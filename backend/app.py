@@ -7,6 +7,7 @@ from flask_cors import CORS
 import os
 import re
 import json
+import sys
 from datetime import datetime, timedelta
 import requests
 from astropy.time import Time
@@ -18,6 +19,12 @@ import sys
 import yaml
 import time
 from zoneinfo import ZoneInfo
+
+# Windows-compatible file locking
+if sys.platform == "win32":
+    import msvcrt
+else:
+    import fcntl
 
 # Add backend to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
@@ -77,6 +84,13 @@ def index():
     """Render main dashboard or redirect to login"""
     if 'username' not in session:
         return redirect(url_for('login_page'))
+    
+    # Initialize cache scheduler on first request
+    try:
+        get_or_create_cache_scheduler()
+    except Exception as e:
+        logger.error(f"Failed to initialize cache scheduler: {e}")
+    
     return render_template('index.html')
 
 
@@ -1201,12 +1215,26 @@ def get_or_create_scheduler():
     """Get the scheduler instance, creating it if necessary"""
     if 'scheduler' not in app.config:
         # Only start scheduler in one worker process using file locking
-        import fcntl
         lock_file_path = os.path.join(DATA_DIR, 'scheduler.lock')
         
         try:
             lock_file = open(lock_file_path, 'w')
-            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            
+            if sys.platform == "win32":
+                # Windows file locking
+                try:
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+                except OSError:
+                    # Another worker already has the lock, don't start scheduler
+                    if not app.config.get('scheduler_lock_logged'):
+                        logger.info("Scheduler already running in another worker process, skipping creation")
+                        app.config['scheduler_lock_logged'] = True
+                    app.config['is_scheduler_worker'] = False
+                    lock_file.close()
+                    return None
+            else:
+                # Unix file locking
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             
             logger.info("Creating scheduler instance (acquired lock)...")
             from uptonight_scheduler import UptonightScheduler
@@ -1244,20 +1272,35 @@ def get_scheduler_for_api():
     
     # If we don't have a local scheduler, check if another worker has it
     # by testing if the lock file exists and is locked
-    import fcntl
     import os
     lock_file_path = os.path.join(DATA_DIR, 'scheduler.lock')
     
     if os.path.exists(lock_file_path):
         try:
             test_file = open(lock_file_path, 'r')
-            fcntl.flock(test_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            # If we can acquire the lock, the scheduler is not running
-            test_file.close()
-            return None
+            
+            if sys.platform == "win32":
+                # Windows file locking test
+                try:
+                    msvcrt.locking(test_file.fileno(), msvcrt.LK_NBLCK, 1)
+                    # If we can acquire the lock, the scheduler is not running
+                    test_file.close()
+                    return None
+                except OSError:
+                    # Lock is held by another process, scheduler is running
+                    test_file.close()
+                    return "remote_scheduler"  # Placeholder to indicate scheduler exists
+            else:
+                # Unix file locking test
+                fcntl.flock(test_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                # If we can acquire the lock, the scheduler is not running
+                test_file.close()
+                return None
+                
         except (IOError, OSError):
             # Lock is held by another process, scheduler is running
-            test_file.close()
+            if 'test_file' in locals():
+                test_file.close()
             return "remote_scheduler"  # Placeholder to indicate scheduler exists
     
     return None
@@ -1296,19 +1339,19 @@ def get_or_create_cache_scheduler():
         try:
             from cache_scheduler import CacheScheduler
             cache_scheduler = CacheScheduler()
-            cache_scheduler.start()
-            app.config['cache_scheduler'] = cache_scheduler
-            logger.info("Cache scheduler created and started successfully.")
+            if cache_scheduler.start():  # Only add to config if successfully started
+                app.config['cache_scheduler'] = cache_scheduler
+                logger.info("Cache scheduler created and started successfully.")
+            else:
+                logger.info("Cache scheduler not started - already running in another process.")
+                return None
         except Exception as e:
             logger.error(f"Failed to create cache scheduler: {e}")
             return None
     return app.config.get('cache_scheduler')
 
-# Initialize cache scheduler immediately when module loads
-try:
-    get_or_create_cache_scheduler()
-except Exception as e:
-    logger.error(f"Failed to start cache scheduler on import: {e}")
+# Don't initialize cache scheduler automatically on import
+# It will be initialized on first request or explicitly when needed
 
 # ============================================================
 

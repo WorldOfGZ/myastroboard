@@ -1,8 +1,17 @@
 import threading
 import time
+import os
+import sys
 from datetime import datetime
 from logging_config import get_logger
 from cache_updater import fully_initialize_caches
+from constants import DATA_DIR
+
+# Windows-compatible file locking
+if sys.platform == "win32":
+    import msvcrt
+else:
+    import fcntl
 
 # Initialize logger for this module
 logger = get_logger(__name__)
@@ -17,14 +26,74 @@ class CacheScheduler:
         self._stop_event = threading.Event()
         self.thread = threading.Thread(target=self._run, daemon=True)
         self._first_run = True
+        self._lock_file = None
+        self._has_lock = False
 
     def start(self):
-        self.thread.start()
-        logger.info("CacheScheduler started - will update caches immediately then every %d seconds", self.interval)
+        """Start the cache scheduler if it can acquire the lock"""
+        if self._acquire_lock():
+            self.thread.start()
+            logger.info("CacheScheduler started - will update caches immediately then every %d seconds", self.interval)
+            return True
+        else:
+            logger.info("Cache scheduler is already running in another process")
+            return False
+
+    def _acquire_lock(self):
+        """Acquire lock file to prevent multiple instances"""
+        try:
+            lock_file_path = os.path.join(DATA_DIR, 'cache_scheduler.lock')
+            self._lock_file = open(lock_file_path, 'w')
+            
+            if sys.platform == "win32":
+                # Windows file locking
+                try:
+                    msvcrt.locking(self._lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+                except OSError:
+                    self._lock_file.close()
+                    self._lock_file = None
+                    return False
+            else:
+                # Unix file locking
+                fcntl.flock(self._lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            
+            self._lock_file.write(str(os.getpid()))
+            self._lock_file.flush()
+            self._has_lock = True
+            return True
+        except (IOError, OSError):
+            if self._lock_file:
+                self._lock_file.close()
+                self._lock_file = None
+            return False
+
+    def _release_lock(self):
+        """Release the lock file"""
+        if self._lock_file and self._has_lock:
+            try:
+                if sys.platform == "win32":
+                    # Windows file unlocking
+                    msvcrt.locking(self._lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    # Unix file unlocking
+                    fcntl.flock(self._lock_file.fileno(), fcntl.LOCK_UN)
+                
+                self._lock_file.close()
+                lock_file_path = os.path.join(DATA_DIR, 'cache_scheduler.lock')
+                if os.path.exists(lock_file_path):
+                    os.unlink(lock_file_path)
+            except Exception as e:
+                logger.error(f"Error releasing cache scheduler lock: {e}")
+            finally:
+                self._lock_file = None
+                self._has_lock = False
 
     def stop(self):
+        """Stop the cache scheduler and release lock"""
         self._stop_event.set()
-        self.thread.join()
+        if self.thread.is_alive():
+            self.thread.join()
+        self._release_lock()
         logger.info("CacheScheduler stopped")
 
     def _run(self):
