@@ -557,8 +557,11 @@ def get_catalogues_api():
 @login_required
 def scheduler_status_api():
     """Get scheduler status"""
-    sched = get_or_create_scheduler()
-    if sched:
+    sched = get_scheduler_for_api()
+    if sched == "remote_scheduler":
+        # Scheduler is running in another worker
+        return jsonify({"running": True, "last_run": None, "next_run": None, "worker": "remote"})
+    elif sched:
         return jsonify(sched.get_status())
     return jsonify({"running": False, "last_run": None, "next_run": None})
 
@@ -567,8 +570,20 @@ def scheduler_status_api():
 @admin_required
 def trigger_scheduler_api():
     """Manually trigger uptonight execution"""
-    sched = get_or_create_scheduler()
-    if sched:
+    sched = get_scheduler_for_api()
+    if sched == "remote_scheduler":
+        # Scheduler is running in another worker, we can't trigger it directly
+        # But we can create a trigger file that the scheduler will detect
+        import os
+        trigger_file = os.path.join(DATA_DIR, 'scheduler_trigger')
+        try:
+            with open(trigger_file, 'w') as f:
+                f.write('trigger_now')
+            return jsonify({"status": "triggered", "message": "Trigger signal sent to scheduler worker"})
+        except Exception as e:
+            logger.error(f"Failed to create trigger file: {e}")
+            return jsonify({"error": "Failed to trigger scheduler"}), 500
+    elif sched:
         return jsonify(sched.trigger_now())
     return jsonify({"error": "Scheduler not running"}), 500
 
@@ -1173,8 +1188,15 @@ def check_item_in_astrodex(item_name):
 def get_or_create_scheduler():
     """Get the scheduler instance, creating it if necessary"""
     if 'scheduler' not in app.config:
-        logger.info("Creating scheduler instance...")
+        # Only start scheduler in one worker process using file locking
+        import fcntl
+        lock_file_path = os.path.join(DATA_DIR, 'scheduler.lock')
+        
         try:
+            lock_file = open(lock_file_path, 'w')
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            
+            logger.info("Creating scheduler instance (acquired lock)...")
             from uptonight_scheduler import UptonightScheduler
             scheduler = UptonightScheduler(
                 config_loader=load_config,
@@ -1182,11 +1204,51 @@ def get_or_create_scheduler():
             )
             scheduler.start()
             app.config['scheduler'] = scheduler
+            app.config['scheduler_lock_file'] = lock_file
+            app.config['is_scheduler_worker'] = True
             logger.info("Scheduler created and started successfully.")
+            
+        except (IOError, OSError) as e:
+            # Another worker already has the lock, don't start scheduler
+            # Only log this message once per worker
+            if not app.config.get('scheduler_lock_logged'):
+                logger.info("Scheduler already running in another worker process, skipping creation")
+                app.config['scheduler_lock_logged'] = True
+            app.config['is_scheduler_worker'] = False
+            return None
         except Exception as e:
             logger.error(f"Failed to create scheduler: {e}")
+            app.config['is_scheduler_worker'] = False
             return None
+            
     return app.config.get('scheduler')
+
+def get_scheduler_for_api():
+    """Get scheduler for API endpoints - tries to find running scheduler across workers"""
+    # First try to get local scheduler
+    scheduler = get_or_create_scheduler()
+    if scheduler:
+        return scheduler
+    
+    # If we don't have a local scheduler, check if another worker has it
+    # by testing if the lock file exists and is locked
+    import fcntl
+    import os
+    lock_file_path = os.path.join(DATA_DIR, 'scheduler.lock')
+    
+    if os.path.exists(lock_file_path):
+        try:
+            test_file = open(lock_file_path, 'r')
+            fcntl.flock(test_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            # If we can acquire the lock, the scheduler is not running
+            test_file.close()
+            return None
+        except (IOError, OSError):
+            # Lock is held by another process, scheduler is running
+            test_file.close()
+            return "remote_scheduler"  # Placeholder to indicate scheduler exists
+    
+    return None
 
 def get_or_create_cache_scheduler():
     """Get the cache scheduler instance, creating it if necessary"""
@@ -1224,6 +1286,17 @@ if __name__ == '__main__':
         if scheduler:
             scheduler.stop()
             logger.info("Scheduler stopped.")
+            
+            # Clean up lock file if we have it
+            lock_file = app.config.get('scheduler_lock_file')
+            if lock_file:
+                try:
+                    lock_file.close()
+                    os.unlink(os.path.join(DATA_DIR, 'scheduler.lock'))
+                    logger.info("Scheduler lock file cleaned up.")
+                except Exception as e:
+                    logger.warning(f"Failed to clean up lock file: {e}")
+                    
         cache_scheduler = app.config.get('cache_scheduler') 
         if cache_scheduler:
             cache_scheduler.stop()

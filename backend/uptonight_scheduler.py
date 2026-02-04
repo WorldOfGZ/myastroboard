@@ -82,7 +82,20 @@ class UptonightScheduler:
         """Main scheduler loop"""
         while self.running:
             time.sleep(60)  # Check every minute
-            if self.last_run is None or (datetime.now() - self.last_run).total_seconds() >= SCHEDULE_INTERVAL:
+            
+            # Check for manual trigger file
+            trigger_file = os.path.join(DATA_DIR, 'scheduler_trigger')
+            manual_trigger = False
+            if os.path.exists(trigger_file):
+                try:
+                    os.remove(trigger_file)
+                    manual_trigger = True
+                    logger.info("Manual trigger detected, executing uptonight")
+                except Exception as e:
+                    logger.error(f"Failed to remove trigger file: {e}")
+            
+            # Execute if manually triggered or scheduled
+            if manual_trigger or self.last_run is None or (datetime.now() - self.last_run).total_seconds() >= SCHEDULE_INTERVAL:
                 self._execute_uptonight_for_all_catalogues()
 
     def _execute_uptonight_for_all_catalogues(self):
