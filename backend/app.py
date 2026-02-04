@@ -557,7 +557,7 @@ def get_catalogues_api():
 @login_required
 def scheduler_status_api():
     """Get scheduler status"""
-    sched = app.config.get('scheduler')
+    sched = get_or_create_scheduler()
     if sched:
         return jsonify(sched.get_status())
     return jsonify({"running": False, "last_run": None, "next_run": None})
@@ -567,7 +567,7 @@ def scheduler_status_api():
 @admin_required
 def trigger_scheduler_api():
     """Manually trigger uptonight execution"""
-    sched = app.config.get('scheduler')
+    sched = get_or_create_scheduler()
     if sched:
         return jsonify(sched.trigger_now())
     return jsonify({"error": "Scheduler not running"}), 500
@@ -1169,6 +1169,45 @@ def check_item_in_astrodex(item_name):
     except Exception as e:
         logger.error(f"Error checking astrodex: {e}")
         return jsonify({'error': 'Internal server error'}), 500
+
+def get_or_create_scheduler():
+    """Get the scheduler instance, creating it if necessary"""
+    if 'scheduler' not in app.config:
+        logger.info("Creating scheduler instance...")
+        try:
+            from uptonight_scheduler import UptonightScheduler
+            scheduler = UptonightScheduler(
+                config_loader=load_config,
+                app=app
+            )
+            scheduler.start()
+            app.config['scheduler'] = scheduler
+            logger.info("Scheduler created and started successfully.")
+        except Exception as e:
+            logger.error(f"Failed to create scheduler: {e}")
+            return None
+    return app.config.get('scheduler')
+
+def get_or_create_cache_scheduler():
+    """Get the cache scheduler instance, creating it if necessary"""
+    if 'cache_scheduler' not in app.config:
+        logger.info("Creating cache scheduler instance...")
+        try:
+            from cache_scheduler import CacheScheduler
+            cache_scheduler = CacheScheduler()
+            cache_scheduler.start()
+            app.config['cache_scheduler'] = cache_scheduler
+            logger.info("Cache scheduler created and started successfully.")
+        except Exception as e:
+            logger.error(f"Failed to create cache scheduler: {e}")
+            return None
+    return app.config.get('cache_scheduler')
+
+# Initialize cache scheduler immediately when module loads
+try:
+    get_or_create_cache_scheduler()
+except Exception as e:
+    logger.error(f"Failed to start cache scheduler on import: {e}")
 
 # ============================================================
 
