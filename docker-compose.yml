@@ -28,7 +28,7 @@ services:
       # Security - Flask secret key for session management
       # IMPORTANT: Generate a secure random key and set it here
       # Generate using: python3 -c "import secrets; print(secrets.token_hex(32))"
-      # Or online: https://randomkeygen.com/ (use "CodeIgniter Encryption Keys")
+      # Or online: https://randomkeygen.com/jwt-secret (use "HS256 (256 bits), format Hexadecimal")
       # If not set, sessions will be invalidated on container restart
       - SECRET_KEY=your-secret-key-here-replace-with-random-64-character-hex-string
 
