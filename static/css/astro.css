@@ -1,0 +1,387 @@
+/* Astrophotography and Astronomy-specific Styles */
+
+/* Current Conditions Grid */
+.astro-conditions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.astro-condition-card {
+    background: linear-gradient(135deg, var(--white) 0%, var(--gray-50) 100%);
+    border-radius: var(--border-radius-lg);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.astro-condition-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.astro-condition-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.astro-icon {
+    font-size: 20px;
+}
+
+.astro-title {
+    font-weight: 600;
+    color: var(--text-color);
+    font-size: 14px;
+}
+
+.astro-condition-content {
+    text-align: center;
+}
+
+.astro-main-value {
+    font-size: 2rem;
+    font-weight: var(--font-bold);
+    color: var(--primary-color);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.astro-quality-text {
+    font-size: 0.75rem;
+    font-weight: var(--font-semibold);
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    display: inline-block;
+    line-height: 1.2;
+}
+
+.astro-detail {
+    font-size: 11px;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Dew Risk Colors */
+.dew-minimal {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.dew-low {
+    background: #f0fdf4;
+    color: #16a34a;
+}
+
+.dew-moderate {
+    background: #fefce8;
+    color: #ca8a04;
+}
+
+.dew-high {
+    background: #fed7aa;
+    color: #ea580c;
+}
+
+.dew-critical {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.dew-unknown {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+/* Best Observation Periods */
+.astro-periods-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.astro-periods-header h3 {
+    color: var(--text-color);
+    margin-bottom: 5px;
+    font-size: 20px;
+}
+
+.astro-periods-subtitle {
+    color: var(--text-light);
+    font-size: 14px;
+}
+
+.astro-periods-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.astro-period-card {
+    background: white;
+    border-radius: var(--border-radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-md);
+    border-left: 4px solid var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: var(--transition-normal);
+}
+
+.astro-period-card:hover {
+    transform: translateX(5px);
+}
+
+.astro-period-rank {
+    background: var(--primary-color);
+    color: white;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--font-bold);
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.astro-period-content {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.astro-period-time {
+    flex: 1;
+}
+
+.astro-time-range {
+    font-size: 1.125rem;
+    font-weight: var(--font-semibold);
+    color: var(--text-color);
+    margin-bottom: 0.25rem;
+    line-height: 1.3;
+}
+
+.astro-date-range {
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+.astro-period-details {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.astro-duration,
+.astro-quality {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.astro-label {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.astro-value {
+    font-size: 1rem;
+    font-weight: var(--font-semibold);
+    color: var(--text-color);
+    line-height: 1.2;
+}
+
+.astro-value.quality-excellent {
+    color: #059669;
+}
+
+.astro-value.quality-good {
+    color: #2563eb;
+}
+
+.astro-value.quality-fair {
+    color: #d97706;
+}
+
+.astro-value.quality-poor {
+    color: #dc2626;
+}
+
+/* No Periods/Alerts Messages */
+.astro-no-periods,
+.astro-no-alerts {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-light);
+}
+
+.astro-no-periods .astro-icon,
+.astro-no-alerts .astro-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+}
+
+.astro-no-periods .astro-message,
+.astro-no-alerts .astro-message {
+    font-size: 16px;
+}
+
+/* Weather Alerts */
+.astro-alerts-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.astro-alerts-header h3 {
+    color: var(--text-color);
+    margin-bottom: 5px;
+    font-size: 20px;
+}
+
+.astro-alerts-subtitle {
+    color: var(--text-light);
+    font-size: 14px;
+}
+
+.astro-alerts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.astro-alert {
+    background: white;
+    border-radius: 10px;
+    padding: 16px;
+    border-left: 4px solid;
+    box-shadow: var(--shadow-sm);
+}
+
+.astro-alert.severity-high {
+    border-left-color: #dc2626;
+    background: #fef2f2;
+}
+
+.astro-alert.severity-medium {
+    border-left-color: var(--warning-600);
+    background: var(--warning-50);
+}
+
+.astro-alert.severity-low {
+    border-left-color: #059669;
+    background: #ecfdf5;
+}
+
+.astro-alert-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.astro-alert-icon {
+    font-size: 18px;
+}
+
+.astro-alert-type {
+    font-weight: 600;
+    color: var(--text-color);
+    flex: 1;
+    text-transform: capitalize;
+}
+
+.astro-alert-time {
+    font-size: 12px;
+    color: var(--text-light);
+    background: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.astro-alert-message {
+    color: var(--text-color);
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+/* Chart Containers */
+.astro-charts-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 25px;
+    margin: 30px 0;
+}
+
+.astro-chart-container {
+    background: white;
+    border-radius: var(--border-radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-md);
+    width: 100%;
+}
+
+.astro-chart-container canvas {
+    max-height: 450px;
+    min-height: 300px;
+    width: 100% !important;
+}
+
+/* Chart Section */
+.chart-section {
+    margin-bottom: 20px;
+}
+
+.chart-section h3 {
+    margin-bottom: 15px;
+    color: var(--text-color);
+    font-size: 1.1rem;
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 400px;
+    padding: 15px;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.chart-wrapper canvas {
+    max-height: 100%;
+}
+
+/* Loading and Error States for Astro Weather */
+#astro-weather-loading,
+#astro-weather-error {
+    text-align: center;
+    padding: 40px;
+    background: white;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+}
+
+#astro-weather-loading .loading {
+    color: var(--primary-color);
+    font-size: 16px;
+}
+
+#astro-weather-error .error-box {
+    color: var(--error-color);
+    background: #fef2f2;
+    padding: 15px;
+    border-radius: var(--border-radius);
+    border: 1px solid #fecaca;
+}

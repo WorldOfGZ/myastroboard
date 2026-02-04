@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyAstroBoard - Astronomy Observation Planning Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1>🌙 MyAstroBoard</h1>
+                    <p>Astronomy Observation Planning Dashboard</p>
+                </div>
+                <div class="header-user-info" style="text-align: right;">
+                    <div id="user-info" style="margin-bottom: 0.5rem;">
+                        <span id="username-display" style="font-weight: 500;"></span>
+                        <span id="user-role" style="color: #666; font-size: 0.9rem;"></span>
+                    </div>
+                    <button id="logout-btn" class="btn" style="padding: 0.5rem 1rem;">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Default Password Warning Banner -->
+        <div id="default-password-warning" class="global-status-banner" style="display: none; background: #ff9800;">
+            <div class="global-status-content">
+                <div class="global-status-text">
+                    <div class="global-status-main" style="color: #fff;">⚠️ You are using the default password. Please change it in the Users section for security.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Navigation Tabs -->
+        <div class="main-tabs">
+            <button class="main-tab-btn active" data-tab="forecast">🌞 Forecast</button>
+            <button class="main-tab-btn" data-tab="uptonight">📊 UpTonight</button>
+            <button class="main-tab-btn" data-tab="astrodex">📚 Astrodex</button>
+            <button class="main-tab-btn" data-tab="parameters">⚙️ Parameters</button>
+        </div>
+
+        <!-- Global cache Status Banner -->
+        <div id="global-cache-banner" class="global-status-banner">
+            <div class="global-status-content">
+                <div class="spinner-small"></div>
+                <div class="global-status-text">
+                    <div id="global-cache-progress" class="global-status-main">Cache is initializing for the first time, please be patient...</div>
+                    <div id="global-cache-detail" class="global-status-detail"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Global Scheduler Status Banner -->
+        <div id="global-scheduler-banner" class="global-status-banner" style="display: none;">
+            <div class="global-status-content">
+                <div class="spinner-small"></div>
+                <div class="global-status-text">
+                    <div id="global-scheduler-progress" class="global-status-main">Processing catalogues...</div>
+                    <div id="global-scheduler-detail" class="global-status-detail"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forecast Section -->
+        <div id="forecast-tab" class="main-tab-content active">
+            <!-- forecast Sub-tabs -->
+            <div class="sub-tabs" id="forecast-subtabs">
+                <button class="sub-tab-btn active" data-subtab="weather">🌤️ Weather</button>
+                <button class="sub-tab-btn" data-subtab="astro-weather">🔭 Astrophotography</button>
+                <button class="sub-tab-btn" data-subtab="window">🌟 Best window</button>
+                <button class="sub-tab-btn" data-subtab="trend">📈 Observation Conditions</button>
+                <button class="sub-tab-btn" data-subtab="sunmoon">🌓 Sun & Moon</button>
+            </div>
+
+            <!-- Weather Sub-tab -->
+            <div id="weather-subtab" class="sub-tab-content active">
+                <div class="card">
+                    <h2>🌤️ Weather Forecast</h2>
+                    <div id="weather-location"></div>
+                    <div id="weather-display" class="weather-grid">
+                        <div class="weather-placeholder">
+                            <div class="placeholder-icon">☁️</div>
+                            <div class="placeholder-text">Loading weather data...</div>
+                            <div class="placeholder-subtext">Fetching forecast and astronomical information</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Astrophotography Weather Sub-tab -->
+            <div id="astro-weather-subtab" class="sub-tab-content">
+                <div class="card">
+                    <h2>🔭 Astrophotography Weather Analysis</h2>
+                    
+                    <!-- Loading State -->
+                    <div id="astro-weather-loading" style="display: none;">
+                        <div class="loading">Loading astrophotography weather analysis...</div>
+                    </div>
+                    
+                    <!-- Error State -->
+                    <div id="astro-weather-error" style="display: none;"></div>
+                    
+                    <!-- Main Content -->
+                    <div id="astro-weather-display" style="display: none;">
+                        <!-- Current Conditions -->
+                        <div class="card">
+                            <h3>🌡️ Current Conditions</h3>
+                            <div id="astro-current-conditions"></div>
+                        </div>
+                        
+                        <!-- Best Observation Periods -->
+                        <div class="card">
+                            <div id="astro-best-periods"></div>
+                        </div>
+                        
+                        <!-- Weather Alerts -->
+                        <div class="card">
+                            <div id="astro-weather-alerts"></div>
+                        </div>
+                        
+                        <!-- Advanced Charts -->
+                        <div class="card">
+                            <h3>📊 Advanced Weather Analysis</h3>
+                            <div class="astro-charts-grid">
+                                <div class="astro-chart-container">
+                                    <canvas id="astro-seeing-chart"></canvas>
+                                </div>
+                                <div class="astro-chart-container">
+                                    <canvas id="astro-clouds-chart"></canvas>
+                                </div>
+                                <div class="astro-chart-container">
+                                    <canvas id="astro-conditions-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Window Sub-tab -->
+            <div id="window-subtab" class="sub-tab-content">
+                <div class="card">
+                    <h2>🌟 Best Observation Window</h2>
+                    <div class="info-notice">
+                        Best next window is calculated within three differents modes, return is in hours:<br>
+                        - <b>Strict</b>: Sun altitude < -18° AND Moon altitude < 0° => No moon on sky<br>
+                        - <b>Practical</b>: Sun < -18° AND Moon altitude < 5° => Moon, but negligible<br>
+                        - <b>Illumination</b>: Sun < -18° AND Moon illumination < 15% => Visible moon, but faint
+                    </div>
+                    <div class="info-notice" id="window-loader-info-notice"></div>
+                    <div id="window-display" class="window-grid"></div>
+                </div>
+            </div>
+
+            <!-- Trend Sub-tab -->
+            <div id="trend-subtab" class="sub-tab-content">
+                <!-- Astronomical Observation Charts -->
+                <div class="card">
+                    <h2>📈 Observation Conditions - Next 12 Hours</h2>
+                    <div id="astro-charts-loading" style="text-align: center; padding: 20px;">
+                        <div class="loading">Loading astronomical data...</div>
+                    </div>
+                    <div id="astro-charts-container" style="display: none;">
+                        <div class="chart-section">
+                            <h3>Cloud Conditions & Wind</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="cloudConditionsChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-section" style="margin-top: 30px;">
+                            <h3>Seeing & Atmospheric Conditions</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="seeingConditionsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="astro-charts-error" style="display: none; text-align: center; padding: 20px;">
+                        <div class="error-box">Failed to load astronomical data. Please check your internet connection.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sun & moon Sub-tab -->
+            <div id="sunmoon-subtab" class="sub-tab-content">
+                <div class="card">
+                    <h2>🌓 Sun & Moon</h2>
+                    <div id="sun-display" class="sun-info-card"></div>
+                    <div id="moon-display" class="moon-info-card"></div>
+                    <h2>🌓 Moon next days</h2>
+                    <div class="info-notice">
+                        Dark-time is calculated within three differents modes, return is in hours:<br>
+                        - <b>Strict</b>: Sun altitude < -18° AND Moon altitude < 0° => No moon on sky<br>
+                        - <b>Practical</b>: Sun < -18° AND Moon altitude < 5° => Moon, but negligible<br>
+                        - <b>Illumination</b>: Sun < -18° AND Moon illumination < 15% => Visible moon, but faint
+                    </div>
+                    <div id="moon-planner-display" class="weather-grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- UpTonight Section -->
+        <div id="uptonight-tab" class="main-tab-content">
+            <!-- UpTonight Sub-tabs -->
+            <div class="sub-tabs" id="uptonight-subtabs">
+            </div>
+            
+        </div>
+
+        <!-- Astrodex Section -->
+        <div id="astrodex-tab" class="main-tab-content">
+            <div class="card">
+                <h2>📚 Astrodex - Gotta Catch 'Em All!</h2>
+                <p>Your personal collection of captured celestial objects</p>     
+                
+                <!-- Stats Cards -->
+                <div id="astrodex-stats" class="astrodex-stats-container">
+                    <!-- Stats will be rendered by JavaScript -->
+                </div>
+                
+                <!-- Filters and Search -->
+                <div class="astrodex-filters">
+                    <input type="text" id="astrodex-search" class="form-control" placeholder="🔍 Search objects...">
+                    
+                    <select id="astrodex-type-filter" class="form-control">
+                        <option value="all">All Types</option>
+                        <option value="Galaxy">Galaxy</option>
+                        <option value="Nebula">Nebula</option>
+                        <option value="Planetary Nebula">Planetary Nebula</option>
+                        <option value="Star Cluster">Star Cluster</option>
+                        <option value="Open Cluster">Open Cluster</option>
+                        <option value="Globular Cluster">Globular Cluster</option>
+                        <option value="Planet">Planet</option>
+                        <option value="Comet">Comet</option>
+                    </select>
+                    
+                    <select id="astrodex-photo-filter" class="form-control">
+                        <option value="all">All Objects</option>
+                        <option value="yes">With Photos</option>
+                        <option value="no">Without Photos</option>
+                    </select>
+                    
+                    <select id="astrodex-sort" class="form-control">
+                        <option value="name">Sort by Name</option>
+                        <option value="type">Sort by Type</option>
+                        <option value="date">Sort by Date Added</option>
+                        <option value="photos">Sort by Photo Count</option>
+                    </select>
+                    
+                    <button class="btn btn-sm" id="astrodex-sort-order">
+                        ⬆️ Ascending
+                    </button>
+
+                    <button class="btn btn-primary" data-action="add-astrodex-item">
+                        ➕ Add Object
+                    </button>
+                </div>
+                
+                <!-- Items Grid -->
+                <div id="astrodex-content">
+                    <div id="astrodex-grid" class="astrodex-grid">
+                        <!-- Items will be rendered by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parameters Section -->
+        <div id="parameters-tab" class="main-tab-content">
+            <!-- Parameters Sub-tabs -->
+            <div class="sub-tabs">
+                <button class="sub-tab-btn active" data-subtab="configuration">🗺️ Configuration</button>
+                <button class="sub-tab-btn" data-subtab="advanced">🔧 Advanced Settings</button>
+                <button class="sub-tab-btn" data-subtab="logs">📋 Logs</button>
+                <button class="sub-tab-btn" data-subtab="users" id="users-tab-btn" style="display: none;">👥 Users</button>
+            </div>
+
+            <!-- Configuration Sub-tab -->
+            <div id="configuration-subtab" class="sub-tab-content active">
+                <div class="card">
+                    <h2>📍 Location Settings</h2>
+                    
+                    <div class="form-group">
+                        <label>Location Name:</label>
+                        <input type="text" id="location-name" placeholder="My Observatory">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Latitude (DMS or Decimal):</label>
+                            <input type="text" id="latitude-input" placeholder="48d38m36.16s or 48.6434">
+                            <small id="latitude-converted" class="converted-value"></small>
+                            <small id="latitude-error" class="error-msg"></small>
+                        </div>
+                        <div class="form-group">
+                            <label>Longitude (DMS or Decimal):</label>
+                            <input type="text" id="longitude-input" placeholder="9d25m48.96s or 9.4303">
+                            <small id="longitude-converted" class="converted-value"></small>
+                            <small id="longitude-error" class="error-msg"></small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Elevation (meters):</label>
+                            <input type="number" id="elevation" placeholder="10" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Timezone:</label>
+                            <select id="timezone">
+                                <option value="">Loading timezones...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h2>📚 Target Catalogues</h2>
+                    <div class="form-group">
+                        <div id="catalogues-list" class="checkbox-grid"></div>
+                        <small class="info-msg">⚠️ At least one catalogue must be selected. Messier is selected by default.</small>
+                    </div>
+
+                    <div class="info-notice">
+                        When new UpTonight settings are saved, a manual run may be required to see changes on dashboard, or wait for the next scheduled run.
+                    </div>
+
+                    <div class="button-group">
+                        <button id="save-config" class="btn btn-primary">💾 Save Configuration</button>
+                        <button id="run-now" class="btn btn-success">▶️ Run UpTonight Now</button>
+                        <button id="view-config-main" class="btn btn-secondary">👁️ View UpTonight Configs</button>
+                        <button id="export-config-main" class="btn btn-secondary">⬇️ Export General Config</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Settings Sub-tab -->
+            <div id="advanced-subtab" class="sub-tab-content">
+                <div class="card">
+                    <div class="info-notice">
+                        These parameters are coming from UpTonight, please check the <a href="https://github.com/mawinkler/uptonight" target="_blank">UpTonight documentation</a> for more details.
+                    </div>
+                    <h2>🎯 Features</h2>
+                    <div class="checkbox-grid">
+                        <div class="form-group">
+                            <label><input type="checkbox" id="feature-horizon" checked> Horizon</label>
+                            <small>Plot the horizon based on `horizon.anchor_points`</small>
+                        </div>
+                        <div class="form-group">
+                            <label><input type="checkbox" id="feature-objects" checked> Objects</label>
+                            <small>Calculate and plot deep sky objects based on the chosen target list</small>
+                        </div>
+                        <div class="form-group">
+                            <label><input type="checkbox" id="feature-bodies" checked> Bodies</label>
+                            <small>Calculate and plot solar system bodies</small>
+                        </div>
+                        <div class="form-group">
+                            <label><input type="checkbox" id="feature-comets" checked> Comets</label>
+                            <small>Calculate and plot comets</small>
+                        </div>
+                        <div class="form-group">
+                            <label><input type="checkbox" id="feature-alttime" checked> Altitude/Time Plots</label>
+                            <small>Calculate and plot altitude vs time diagrams</small>
+                        </div>
+                    </div>
+
+                    <h2>🔍 Constraints</h2>
+                    <div class="checkbox-grid">
+                        <label><input type="checkbox" id="use-constraints" checked> Use Constraints</label>
+                    </div>
+                    <div class="form-grid" id="constraints-fields">
+                        <div class="form-group">
+                            <label>Min Altitude (°):</label>
+                            <input type="number" id="altitude-min" value="30" step="1" title="Minimum altitude in degrees above horizon (typical: 30°)">
+                            <small>Degrees above horizon</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Max Altitude (°):</label>
+                            <input type="number" id="altitude-max" value="80" step="1" title="Maximum altitude in degrees above horizon (typical: 80°)">
+                            <small>Degrees above horizon</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Airmass Constraint:</label>
+                            <input type="number" id="airmass" value="2" step="0.1" title="Maximum airmass (2 = 60° zenith angle, 3 = 70.5°)">
+                            <small>2 = 1/cos(60°)</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Min Size (arcmin):</label>
+                            <input type="number" id="size-min" value="10" step="1" title="Minimum object size in arc minutes">
+                            <small>Arc minutes</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Max Size (arcmin):</label>
+                            <input type="number" id="size-max" value="300" step="1" title="Maximum object size in arc minutes">
+                            <small>Arc minutes</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Min Moon Separation (°):</label>
+                            <input type="number" id="moon-sep" value="45" step="1" title="Minimum separation from moon in degrees (overridden if 'Use Moon Illumination' is checked)">
+                            <small>Degrees from moon</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Observable Time Threshold:</label>
+                            <input type="number" id="time-threshold" value="0.5" step="0.1" min="0" max="1" title="Fraction of darkness time object must be observable (0.0-1.0, e.g., 0.5 = 50%)">
+                            <small>0.0 - 1.0 (fraction)</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Max Targets in Threshold:</label>
+                            <input type="number" id="max-targets" value="60" step="1" title="Maximum number of targets to calculate (recommended: ~45 for MQTT, ~60 otherwise)">
+                            <small>Limit: ~60 targets</small>
+                        </div>
+                    </div>
+
+                    <div class="checkbox-grid">
+                        <div class="form-group">
+                            <label><input type="checkbox" id="moon-illumination" checked> Use Moon Illumination</label>
+                            <small>If enabled, minimum moon separation is derived from moon illumination percentage (1% = 1°)</small>
+                        </div>
+                        <div class="form-group">
+                            <label><input type="checkbox" id="north-ccw"> North to East CCW</label>
+                            <small>Set azimuth display: counter-clockwise (north at top, east at left) or clockwise</small>
+                        </div>
+                    </div>
+
+                    <h2>📌 Bucket List</h2>
+                    <div class="form-group">
+                        <small>Targets to always include (one per line). These will show if visible, ignoring constraints. Use the 'name' attribute for identification.</small>
+                        <div class="yaml-editor-container" id="bucket-list-container">
+                            <textarea id="bucket-list" class="yaml-editor" rows="4" placeholder="IC 434&#10;NGC 2359&#10;M 16" title="Personal bucket list - targets that will always be included if visible"></textarea>
+                            <div class="yaml-validation-status" id="bucket-list-status">
+                                <span class="icon">⏺</span>
+                                <span class="yaml-validation-message">Ready</span>
+                            </div>
+                        </div>
+                        <small id="bucket-list-error" class="error-msg"></small>
+                    </div>
+
+                    <h2>✔️ Done List</h2>
+                    <div class="form-group">
+                        <small>Targets to never show (one per line). Use the 'name' attribute for identification.</small>
+                        <div class="yaml-editor-container" id="done-list-container">
+                            <textarea id="done-list" class="yaml-editor"  rows="4" placeholder="IC 1795&#10;LBN 535" title="Targets you've already observed and want to exclude"></textarea>
+                            <div class="yaml-validation-status" id="done-list-status">
+                                <span class="icon">⏺</span>
+                                <span class="yaml-validation-message">Ready</span>
+                            </div>
+                        </div>
+                        <small id="done-list-error" class="error-msg"></small>
+                    </div>
+
+                    <h2>🎯 Custom Targets</h2>
+                    <div class="form-group">
+                        <small>Define custom targets in YAML format. Required fields: name, ra, dec. Optional: description, type, constellation, size, mag.</small>
+                        <div class="yaml-editor-container" id="custom-targets-container">
+                            <textarea id="custom-targets" class="yaml-editor" rows="10" placeholder="- name: NGC 4395&#10;  description: NGC 4395&#10;  type: Galaxy&#10;  constellation: Canes Venatici&#10;  size: 13&#10;  ra: 12 25 48&#10;  dec: +33 32 48&#10;  mag: 10.0" title="Add your own custom targets not in the standard catalogues"></textarea>
+                            <div class="yaml-validation-status" id="custom-targets-status">
+                                <span class="icon">⏺</span>
+                                <span class="yaml-validation-message">Ready</span>
+                            </div>
+                        </div>
+                        <small id="custom-targets-error" class="error-msg"></small>
+                    </div>
+
+                    <h2>🌄 Horizon</h2>
+                    <div class="form-group">
+                        <small>Define horizon anchor points in YAML format. Anchor points should start with azimuth 0 and end with 360 degrees. Feature Horizon must be enabled.</small>
+                        <div class="yaml-editor-container" id="horizon-config-container">
+                            <textarea id="horizon-config" class="yaml-editor" rows="8" placeholder="step_size: 5&#10;anchor_points:&#10;  - alt: 20&#10;    az: 0&#10;  ...&#10;  - alt: 20&#10;    az: 360" title="Define your custom horizon profile with altitude/azimuth pairs"></textarea>
+                            <div class="yaml-validation-status" id="horizon-config-status">
+                                <span class="icon">⏺</span>
+                                <span class="yaml-validation-message">Ready</span>
+                            </div>
+                        </div>
+                        <small id="horizon-error" class="error-msg"></small>
+                    </div>
+
+                    <div class="info-notice">
+                        When new UpTonight settings are saved, a manual run may be required to see changes on dashboard, or wait for the next scheduled run.
+                    </div>
+
+                    <div class="button-group">
+                        <button id="save-advanced" class="btn btn-primary">💾 Save Advanced Settings</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Sub-tab -->
+            <div id="logs-subtab" class="sub-tab-content">
+                <div class="card">
+                    <h2>📋 System Logs</h2>
+                    <div class="log-controls">
+                        <select id="log-level">
+                            <option value="all">All Levels</option>
+                            <option value="INFO">INFO</option>
+                            <option value="WARNING">WARNING</option>
+                            <option value="ERROR">ERROR</option>
+                        </select>
+                        <select id="log-limit">
+                            <option value="100">Last 100</option>
+                            <option value="500" selected>Last 500</option>
+                            <option value="1000">Last 1000</option>
+                            <option value="5000">Last 5000</option>
+                        </select>
+                        <button id="refresh-logs" class="btn btn-secondary">🔄 Refresh</button>
+                        <button id="clear-logs-display" class="btn btn-secondary">🗑️ Delete logs (empty log file)</button>
+                    </div>
+                    <div id="logs-display" class="logs-container"></div>
+                </div>
+            </div>
+
+            <!-- Users Management Sub-tab (Admin only) -->
+            <div id="users-subtab" class="sub-tab-content">
+                <div class="card">
+                    <h2>👥 User Management</h2>
+                    <p style="color: #666; margin-bottom: 1.5rem;">Manage users and their access roles.</p>
+                    
+                    <!-- Create User Form -->
+                    <div class="card" style="background: #f9fafb; margin-bottom: 2rem;">
+                        <h3>Create New User</h3>
+                        <form id="create-user-form" style="display: grid; gap: 1rem;">
+                            <div class="form-group">
+                                <label>Username:</label>
+                                <input type="text" id="new-username" required autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label>Password:</label>
+                                <input type="password" id="new-password" required autocomplete="new-password">
+                            </div>
+                            <div class="form-group">
+                                <label>Role:</label>
+                                <select id="new-role" required>
+                                    <option value="read-only">Read-Only (Can view data only & use Astrodex)</option>
+                                    <option value="admin">Admin (Full access)</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Create User</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Users List -->
+                    <div class="card">
+                        <h3>Existing Users</h3>
+                        <div id="users-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Config Viewer Modal -->
+        <div id="config-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>📄 UpTonight Configurations</h2>
+
+                <!-- Dropdown to select config -->
+                <label for="config-selector">Select configuration:</label>
+                <select id="config-selector"></select>
+
+                <!-- Content YAML/JSON -->
+                <pre id="config-display"></pre>
+
+                <button id="export-config-from-modal" class="btn btn-primary">⬇️ Export this config as YAML</button>
+            </div>
+        </div>
+
+        <!-- Image Popup Modal -->
+        <div id="image-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-image">&times;</span>
+                <h2 id="image-title"></h2>
+                <img id="image-display" src="" alt="Plot">
+            </div>
+        </div>
+
+        <!-- Password Change Modal -->
+        <div id="password-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-password">&times;</span>
+                <h2>🔒 Change Password</h2>
+                <p>Change password for user: <strong id="password-modal-username"></strong></p>
+                
+                <div id="password-modal-error" class="error-message" style="display: none;"></div>
+                
+                <form id="password-change-form">
+                    <input type="text" id="password-change-username" autocomplete="username" style="display: none;" readonly>
+                    <div class="form-group">
+                        <label for="new-password-input">New Password:</label>
+                        <input type="password" id="new-password-input" required minlength="4" 
+                               placeholder="Minimum 4 characters" autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-password-input">Confirm Password:</label>
+                        <input type="password" id="confirm-password-input" required minlength="4" 
+                               placeholder="Re-enter password" autocomplete="new-password">
+                    </div>
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                        <button type="button" class="btn btn-secondary" id="cancel-password-change">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Change Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <footer>
+            <p>
+                MyAstroBoard - Astronomy Observation Planning Dashboard | 
+                <span id="version"></span> | 
+                <a href="https://github.com/WorldOfGZ/myastroboard" target="_blank" rel="noopener noreferrer">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: text-bottom; margin-right: 4px;">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    GitHub
+                </a>
+            </p>
+            <div id="update-notification" style="display: none; margin-top: 8px;">
+                <p style="font-size: 13px; color: #10b981; margin: 0;">
+                    🎆 A new version of MyAstroBoard is available! 
+                    <a id="update-link" href="#" target="_blank" rel="noopener noreferrer" style="color: #10b981; text-decoration: underline;">Check the realease</a>
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/apiHelper.js"></script>
+    <script src="/static/js/domUtils.js"></script>
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/scheduler.js"></script>
+    <script src="/static/js/moon.js"></script>
+    <script src="/static/js/sun.js"></script>
+    <script src="/static/js/weather.js"></script>
+    <script src="/static/js/weather_astro.js"></script>
+    <script src="/static/js/weather_alerts.js"></script>
+    <script src="/static/js/astrodex.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

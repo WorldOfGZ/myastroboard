@@ -1,0 +1,27 @@
+# Core web framework
+Flask==3.1.2
+flask-cors==6.0.2
+Werkzeug>=3.1.0
+
+# Astronomy libraries (essential)
+astropy==7.2.0
+astroplan==0.10.1
+astronomy-engine==2.1.19
+
+# Data processing
+numpy==2.4.2
+matplotlib==3.10.8
+pandas==3.0.0
+
+# HTTP and API
+requests==2.32.5
+openmeteo-requests==1.7.5
+requests-cache==1.2.1
+retry-requests==2.0.0
+
+# Configuration
+PyYAML==6.0.3
+
+# Authentication and security
+Flask-Login==0.6.3
+werkzeug>=3.1.0

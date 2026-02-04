@@ -1,0 +1,57 @@
+name: Question or Support
+description: Ask a question about using MyAstroBoard
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question? We're here to help! Please check the documentation first:
+        - [Installation Guide](../docs/1.INSTALLATION.md)
+        - [Quick Start](../docs/2.QUICKSTART.md)
+        - [README](../README.md)
+        
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know?
+      placeholder: How do I...?
+    validations:
+      required: true
+      
+  - type: dropdown
+    id: category
+    attributes:
+      label: Question Category
+      description: What is your question about?
+      options:
+        - Installation & Setup
+        - Configuration
+        - Using Features
+        - Weather & Forecasts
+        - UpTonight Integration
+        - Catalogues
+        - Docker
+        - Troubleshooting
+        - Best Practices
+        - Other
+    validations:
+      required: true
+      
+  - type: textarea
+    id: tried
+    attributes:
+      label: What Have You Tried?
+      description: What have you already attempted or researched?
+      placeholder: I looked at... I tried...
+    validations:
+      required: false
+      
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other information that might help us answer your question (version, setup, screenshots, etc.)
+    validations:
+      required: false

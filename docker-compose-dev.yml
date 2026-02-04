@@ -1,0 +1,53 @@
+services:
+  myastroboard:
+    # For development: build from source
+    build: .
+    # For production: use published image
+    # image: ghcr.io/worldofgz/myastroboard:latest
+    container_name: myastroboard
+
+    ports:
+      - "5000:5000"
+
+    volumes:
+      - ./data:/app/data
+      - ./uptonight_outputs:/app/uptonight_outputs
+      - ./uptonight_configs:/app/uptonight_configs
+      - /var/run/docker.sock:/var/run/docker.sock  # Docker-from-Docker (contrôlé)
+
+    environment:
+      # Timezone
+      - TZ=Europe/Paris
+
+      # Scheduler
+      - SCHEDULE_INTERVAL=7200
+      
+      # Flask
+      - FLASK_DEBUG=0  # 1 en debug
+
+      # Security - Flask secret key for session management
+      # IMPORTANT: Generate a secure random key and set it here
+      # Generate using: python3 -c "import secrets; print(secrets.token_hex(32))"
+      # Or online: https://randomkeygen.com/jwt-secret (use "HS256 (256 bits), format Hexadecimal")
+      # If not set, sessions will be invalidated on container restart
+      #- SECRET_KEY=your-secret-key-here-replace-with-random-64-character-hex-string
+
+      # App
+      - DATA_DIR=/app/data
+      - OUTPUT_DIR=/app/uptonight_outputs
+      - CONFIG_DIR=/app/uptonight_configs
+
+      # Docker-in-Docker paths
+      - HOST_OUTPUT_DIR=${PWD}/uptonight_outputs
+      - HOST_CONFIG_DIR=${PWD}/uptonight_configs
+
+    restart: unless-stopped
+
+    # No privileged mode for security
+    privileged: false
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

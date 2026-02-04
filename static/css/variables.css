@@ -1,0 +1,98 @@
+/* CSS Variables and Theme Configuration */
+
+:root {
+    /* Primary Colors */
+    --primary-color: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #93c5fd;
+    
+    /* Secondary Colors */
+    --secondary-color: #64748b;
+    --secondary-dark: #475569;
+    
+    /* Status Colors */
+    --success-color: #10b981;
+    --error-color: #ef4444;
+    --warning-color: #f59e0b;
+    
+    /* Background */
+    --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --card-bg: #ffffff;
+    --white: #ffffff;
+    --black: #000000;
+    --hover-bg: #f3f4f6;
+    
+    /* Text Colors */
+    --text-color: #1f2937;
+    --text-light: #6b7280;
+    
+    /* Border and Spacing */
+    --border-color: #e5e7eb;
+    --border-radius: 8px;
+    --border-radius-lg: 12px;
+    --border-radius-xl: 16px;
+    
+    /* Shadows */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+    --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.3);
+    
+    /* Transitions */
+    --transition-fast: 0.2s ease;
+    --transition-normal: 0.3s ease;
+    --transition-slow: 0.5s ease;
+    
+    /* Quality Colors */
+    --quality-excellent: #d1fae5;
+    --quality-excellent-text: #065f46;
+    --quality-good: #dbeafe;
+    --quality-good-text: #1e40af;
+    --quality-fair: #fef3c7;
+    --quality-fair-text: #854d0e;
+    --quality-poor: #fed7aa;
+    --quality-poor-text: #9a3412;
+    --quality-bad: #fecaca;
+    --quality-bad-text: #991b1b;
+    
+    /* Z-index layers */
+    --z-dropdown: 1000;
+    --z-modal: 10000;
+    --z-notification: 10001;
+    
+    /* Font weights */
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+    
+    /* Modern color palette additions */
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-300: #cbd5e1;
+    --gray-400: #94a3b8;
+    --gray-500: #64748b;
+    --gray-600: #475569;
+    --gray-700: #334155;
+    --gray-800: #1e293b;
+    --gray-900: #0f172a;
+    
+    /* Status color improvements */
+    --success-50: #ecfdf5;
+    --success-500: #10b981;
+    --success-600: #059669;
+    --success-700: #047857;
+    
+    --error-50: #fef2f2;
+    --error-200: #fecaca;
+    --error-500: #ef4444;
+    --error-600: #dc2626;
+    --error-700: #b91c1c;
+    
+    --warning-50: #fffbeb;
+    --warning-200: #fde68a;
+    --warning-500: #f59e0b;
+    --warning-600: #d97706;
+    --warning-700: #b45309;
+}

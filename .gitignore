@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+dist/
+build/
+.env
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.cache/
+.tox/
+
+# Data files
+data/
+*.db
+*.sqlite
+
+# Uptonight outputs
+uptonight_outputs/
+uptonight_configs/
+targets/*.yaml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Docker
+.dockerignore
+
+# Temporary files
+tmp/
+temp/
+*.tmp
