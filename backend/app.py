@@ -1173,46 +1173,19 @@ def check_item_in_astrodex(item_name):
 # ============================================================
 
 if __name__ == '__main__':
-    # Create necessary directories
-    os.makedirs(DATA_DIR, exist_ok=True)
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    
-    # Initialize config file if it doesn't exist
-    if not os.path.exists(CONFIG_FILE):
-        logger.info("Initializing default configuration because config file does not exist.")
-        save_config(load_config())
-
-    # Start scheduler only if not in Flask reloader child
+    # Running directly with Flask development server
     in_debug_mode = os.environ.get('FLASK_DEBUG') == '1'
-    werkzeug_main_process = os.environ.get("WERKZEUG_RUN_MAIN") == "true"
-
-    # Only start scheduler if we're either:
-    # 1. Not in debug mode, or
-    # 2. In debug mode but in the reloader main process
-    if not in_debug_mode or werkzeug_main_process:
-        scheduler = UptonightScheduler(
-            config_loader=load_config,
-            app=app
-        )
-        scheduler.start()
-        app.config['scheduler'] = scheduler
-    logger.info("Scheduler started successfully.")
-
-    # === Cache Scheduler ===
-    from cache_scheduler import CacheScheduler  # ton module avec update_*_cache()
-    cache_scheduler = CacheScheduler()
-    cache_scheduler.start()
-    app.config['cache_scheduler'] = cache_scheduler
-    logger.info("Cache scheduler started successfully.")
-
+    
     try:
         # Run Flask app
         app.run(host='0.0.0.0', port=5000, debug=in_debug_mode, use_reloader=in_debug_mode)
     finally:
         # Ensure scheduler stops gracefully on shutdown
-        if 'scheduler' in locals() and scheduler:
+        scheduler = app.config.get('scheduler')
+        if scheduler:
             scheduler.stop()
             logger.info("Scheduler stopped.")
-        if 'cache_scheduler' in locals() and cache_scheduler:
+        cache_scheduler = app.config.get('cache_scheduler') 
+        if cache_scheduler:
             cache_scheduler.stop()
             logger.info("Cache scheduler stopped.")

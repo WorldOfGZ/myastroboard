@@ -21,12 +21,19 @@ def update_moon_report_cache():
     Updates the Moon report cache
     """
     try:
+        logger.info("Updating Moon report cache...")
         config = load_config()
+        
+        if not config.get("location"):
+            raise ValueError("Location configuration is missing")
+        
+        location = config["location"]
+        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
 
         moon = MoonService(
-            latitude=config["location"]["latitude"],
-            longitude=config["location"]["longitude"],
-            timezone=config["location"]["timezone"]
+            latitude=location["latitude"],
+            longitude=location["longitude"],
+            timezone=location["timezone"]
         )
 
         report = moon.get_report()
@@ -58,12 +65,19 @@ def update_dark_window_cache():
     Updates the next moonless dark window cache
     """
     try:
+        logger.info("Updating Dark window cache...")
         config = load_config()
+        
+        if not config.get("location"):
+            raise ValueError("Location configuration is missing")
+        
+        location = config["location"]
+        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
 
         moon = MoonService(
-            latitude=config["location"]["latitude"],
-            longitude=config["location"]["longitude"],
-            timezone=config["location"]["timezone"]
+            latitude=location["latitude"],
+            longitude=location["longitude"],
+            timezone=location["timezone"]
         )
 
         report = moon.get_report()
@@ -90,12 +104,19 @@ def update_moon_planner_cache():
     Updates the Moon Planner cache (next 7 nights report)
     """
     try:
+        logger.info("Updating Moon Planner cache...")
         config = load_config()
+        
+        if not config.get("location"):
+            raise ValueError("Location configuration is missing")
+        
+        location = config["location"]
+        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
 
         planner = MoonPlanner(
-            latitude=config["location"]["latitude"],
-            longitude=config["location"]["longitude"],
-            timezone=config["location"]["timezone"]
+            latitude=location["latitude"],
+            longitude=location["longitude"],
+            timezone=location["timezone"]
         )
 
         nights = planner.next_7_nights()
@@ -125,12 +146,19 @@ def update_sun_report_cache():
     Updates the Sun report cache (today report)
     """
     try:
+        logger.info("Updating Sun report cache...")
         config = load_config()
+        
+        if not config.get("location"):
+            raise ValueError("Location configuration is missing")
+        
+        location = config["location"]
+        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
 
         sun = SunService(
-            latitude=config["location"]["latitude"],
-            longitude=config["location"]["longitude"],
-            timezone=config["location"]["timezone"]
+            latitude=location["latitude"],
+            longitude=location["longitude"],
+            timezone=location["timezone"]
         )
 
         report = sun.get_today_report()
@@ -160,12 +188,19 @@ def update_best_window_cache():
     (modes : strict, practical, illumination)
     """
     try:
+        logger.info("Updating Best window cache...")
         config = load_config()
+        
+        if not config.get("location"):
+            raise ValueError("Location configuration is missing")
+        
+        location = config["location"]
+        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
 
         service = AstroTonightService(
-            latitude=config["location"]["latitude"],
-            longitude=config["location"]["longitude"],
-            timezone=config["location"]["timezone"]
+            latitude=location["latitude"],
+            longitude=location["longitude"],
+            timezone=location["timezone"]
         )
 
         for mode in ["strict", "practical", "illumination"]:
@@ -190,12 +225,26 @@ def update_best_window_cache():
         
 def fully_initialize_caches():
     """Updates all caches and activates the flag"""
-    update_moon_report_cache()
-    update_dark_window_cache()
-    update_moon_planner_cache()
-    update_sun_report_cache()
-    update_best_window_cache()
-
+    logger.info("Starting full cache initialization...")
+    start_time = datetime.now()
+    
+    cache_functions = [
+        ("Moon report", update_moon_report_cache),
+        ("Dark window", update_dark_window_cache),
+        ("Moon planner", update_moon_planner_cache),
+        ("Sun report", update_sun_report_cache),
+        ("Best window", update_best_window_cache)
+    ]
+    
+    success_count = 0
+    for cache_name, cache_function in cache_functions:
+        try:
+            cache_function()
+            success_count += 1
+        except Exception as e:
+            logger.error(f"Failed to update {cache_name} cache: {e}", exc_info=True)
+    
     # Update the flag in the module
     cache_store._cache_fully_initialized = True
-    logger.info("All caches fully initialized")
+    duration = (datetime.now() - start_time).total_seconds()
+    logger.info(f"Cache initialization completed: {success_count}/{len(cache_functions)} caches updated successfully in {duration:.2f} seconds")
