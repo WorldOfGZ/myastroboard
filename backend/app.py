@@ -13,7 +13,6 @@ from astropy.coordinates import EarthLocation, AltAz, get_sun
 from astropy.coordinates import get_body
 import astropy.units as u
 
-from weather_openmeteo import get_hourly_forecast
 import sys
 import yaml
 import time
@@ -21,6 +20,7 @@ from zoneinfo import ZoneInfo
 
 # Add backend to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
+from weather_openmeteo import get_hourly_forecast
 from txtconf_loader import get_available_catalogues
 from uptonight_scheduler import UptonightScheduler
 from uptonight_parser import get_catalogue_reports 

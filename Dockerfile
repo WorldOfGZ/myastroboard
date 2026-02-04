@@ -33,7 +33,7 @@ FROM python:3.11-alpine AS production
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV MPLBACKEND=Agg
-ENV PATH=/root/.local/bin:$PATH
+ENV PATH=/usr/local/bin:$PATH
 
 WORKDIR /app
 
@@ -47,8 +47,8 @@ RUN apk add --no-cache \
     shadow \
     && rm -rf /tmp/* /var/cache/apk/*
 
-# Copy Python packages from builder
-COPY --from=builder /root/.local /root/.local
+# Copy Python packages from builder and make accessible to appuser
+COPY --from=builder /root/.local /usr/local
 
 # Version files
 COPY VERSION /app/VERSION

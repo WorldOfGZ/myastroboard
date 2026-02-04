@@ -15,7 +15,9 @@ if [ -S /var/run/docker.sock ]; then
         exec "$@"
     else
         # Normal Linux case
-        groupadd -g "$DOCKER_GID" dockerhost || true
+        if ! getent group dockerhost > /dev/null 2>&1; then
+            groupadd -g "$DOCKER_GID" dockerhost
+        fi
         usermod -aG dockerhost appuser
         echo "[INFO] Starting application as non-root user"
         exec su appuser -c "$*"
