@@ -456,7 +456,7 @@ Catalogues are loaded automatically from the uptonight repository. To add a cust
 1. Edit `VERSION` file: `1.0.0` → `1.1.0`
 2. Commit and push to main branch
 3. GitHub Actions will automatically build and publish new image
-4. Users update with: `docker-compose pull && docker-compose up -d`
+4. Users update with: `docker compose pull && docker compose up -d`
 
 ## Testing Guidelines
 
@@ -473,10 +473,10 @@ Catalogues are loaded automatically from the uptonight repository. To add a cust
 ### Testing with Docker
 ```bash
 # Build
-docker-compose build
+docker compose build
 
 # Start
-docker-compose up -d
+docker compose up -d
 
 # View logs
 docker logs -f myastroboard
@@ -487,14 +487,14 @@ curl http://localhost:5000/api/version
 curl http://localhost:5000/api/catalogues
 
 # Stop
-docker-compose down
+docker compose down
 ```
 
 ### Testing Scheduler (Without Waiting 2 Hours)
 Set environment variable for shorter interval:
 ```bash
-docker-compose down
-SCHEDULE_INTERVAL=300 docker-compose up -d  # 5 minutes
+docker compose down
+SCHEDULE_INTERVAL=300 docker compose up -d  # 5 minutes
 ```
 
 ## Security Considerations
@@ -559,8 +559,8 @@ LOG_LEVEL=DEBUG              # Enable debug logging to file
 CONSOLE_LOG_LEVEL=DEBUG      # Enable debug logging to console
 
 # Or temporarily via Docker
-docker-compose down
-LOG_LEVEL=DEBUG CONSOLE_LOG_LEVEL=INFO docker-compose up -d
+docker compose down
+LOG_LEVEL=DEBUG CONSOLE_LOG_LEVEL=INFO docker compose up -d
 ```
 
 #### Dynamic Log Level Control
