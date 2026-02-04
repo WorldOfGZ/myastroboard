@@ -7,6 +7,7 @@ import subprocess
 import threading
 import time
 import yaml
+import json
 from datetime import datetime, timedelta
 from txtconf_loader import get_uptonight_image_name, get_uptonight_version
 from weather_openmeteo import get_uptonight_conditions
@@ -312,7 +313,7 @@ class UptonightScheduler:
         execution_duration_seconds = None
         if self.is_executing and self.execution_start_time:
             execution_duration_seconds = int((datetime.now() - self.execution_start_time).total_seconds())
-        return {
+        status = {
             'running': self.running,
             'last_run': self.last_run.isoformat() if self.last_run else None,
             'next_run': (self.last_run + timedelta(seconds=SCHEDULE_INTERVAL)).isoformat() if self.last_run else None,
@@ -324,6 +325,14 @@ class UptonightScheduler:
                 'execution_duration_seconds': execution_duration_seconds
             }
         }
+        # Write status to shared file for remote workers
+        try:
+            status_file = os.path.join(DATA_DIR, 'scheduler_status.json')
+            with open(status_file, 'w') as f:
+                json.dump(status, f)
+        except Exception as e:
+            logger.error(f"Failed to write status to file: {e}")
+        return status
 
     def trigger_now(self):
         """Manually trigger uptonight execution"""

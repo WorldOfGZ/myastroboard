@@ -6,6 +6,7 @@ from flask import Flask, request, jsonify, render_template, send_file, send_from
 from flask_cors import CORS
 import os
 import re
+import json
 from datetime import datetime, timedelta
 import requests
 from astropy.time import Time
@@ -559,11 +560,22 @@ def scheduler_status_api():
     """Get scheduler status"""
     sched = get_scheduler_for_api()
     if sched == "remote_scheduler":
-        # Scheduler is running in another worker
-        return jsonify({"running": True, "last_run": None, "next_run": None, "worker": "remote"})
+        # Scheduler is running in another worker - get real status from shared file
+        return jsonify(get_remote_scheduler_status())
     elif sched:
         return jsonify(sched.get_status())
-    return jsonify({"running": False, "last_run": None, "next_run": None})
+    return jsonify({
+        "running": False, 
+        "last_run": None, 
+        "next_run": None,
+        "is_executing": False,
+        "progress": {
+            "current_catalogue": None,
+            "current_index": 0,
+            "total_catalogues": 0,
+            "execution_duration_seconds": None
+        }
+    })
 
 
 @app.route('/api/scheduler/trigger', methods=['POST'])
@@ -1249,6 +1261,33 @@ def get_scheduler_for_api():
             return "remote_scheduler"  # Placeholder to indicate scheduler exists
     
     return None
+
+def get_remote_scheduler_status():
+    """Get scheduler status from shared file for remote workers"""
+    status_file = os.path.join(DATA_DIR, 'scheduler_status.json')
+    try:
+        if os.path.exists(status_file):
+            with open(status_file, 'r') as f:
+                status = json.load(f)
+                status['worker'] = 'remote'  # Mark as remote
+                return status
+    except Exception as e:
+        logger.error(f"Failed to read remote scheduler status: {e}")
+    
+    # Default fallback
+    return {
+        "running": True, 
+        "last_run": None, 
+        "next_run": None, 
+        "is_executing": False,
+        "worker": "remote",
+        "progress": {
+            "current_catalogue": None,
+            "current_index": 0,
+            "total_catalogues": 0,
+            "execution_duration_seconds": None
+        }
+    }
 
 def get_or_create_cache_scheduler():
     """Get the cache scheduler instance, creating it if necessary"""
