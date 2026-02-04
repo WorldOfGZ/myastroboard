@@ -49,7 +49,21 @@ def parse_hourly(response, hourly_vars, timezone_str="UTC"):
     df = pd.DataFrame(data)
 
     # Convert to requested timezone
-    df["date"] = df["date"].dt.tz_convert(timezone_str)
+    try:
+        # Ensure the timezone string is valid and convert
+        if timezone_str and timezone_str != "UTC":
+            # Test if the timezone string is valid first
+            import zoneinfo
+            try:
+                zoneinfo.ZoneInfo(timezone_str)
+                df["date"] = df["date"].dt.tz_convert(timezone_str)
+            except zoneinfo.ZoneInfoNotFoundError:
+                logger.warning(f"Unknown timezone '{timezone_str}', keeping dates in UTC")
+                # Keep dates in UTC if timezone is invalid
+        # If timezone_str is None, empty, or UTC, keep as UTC
+    except Exception as e:
+        logger.warning(f"Failed to convert timezone to {timezone_str}: {e}")
+        # Keep dates in UTC if conversion fails
 
     # -----------------------------
     # Cloudless %
