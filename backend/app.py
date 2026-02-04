@@ -717,6 +717,54 @@ def get_catalogue_reports_api(catalogue):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/uptonight/logs/<catalogue>', methods=['GET'])
+@login_required
+def get_catalogue_log(catalogue):
+    """Get log file for a specific catalogue"""
+    try:
+        catalogue_dir = os.path.join(OUTPUT_DIR, catalogue)
+        log_file = os.path.join(catalogue_dir, 'uptonight.log')
+        
+        if not os.path.exists(log_file):
+            return jsonify({"error": "Log file not found"}), 404
+        
+        # Check if file is not empty
+        if os.path.getsize(log_file) == 0:
+            return jsonify({"error": "Log file is empty"}), 404
+        
+        # Read the log file
+        with open(log_file, 'r', encoding='utf-8') as f:
+            log_content = f.read()
+        
+        return jsonify({
+            "catalogue": catalogue,
+            "log_content": log_content,
+            "file_size": os.path.getsize(log_file)
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/uptonight/logs/<catalogue>/exists', methods=['GET'])
+@login_required
+def check_catalogue_log_exists(catalogue):
+    """Check if log file exists for a specific catalogue"""
+    try:
+        catalogue_dir = os.path.join(OUTPUT_DIR, catalogue)
+        log_file = os.path.join(catalogue_dir, 'uptonight.log')
+        
+        exists = os.path.exists(log_file) and os.path.getsize(log_file) > 0
+        
+        return jsonify({
+            "catalogue": catalogue,
+            "log_exists": exists
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ============================================================
 # API Weather
 # ============================================================

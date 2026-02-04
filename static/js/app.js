@@ -814,6 +814,14 @@ async function loadCatalogueResults(catalogue) {
             if (!firstType) firstType = 'comets';
         }
         
+        // Check if log file exists and add log button
+        checkCatalogueLogExists(catalogue).then(logExists => {
+            if (logExists) {
+                buttonsHTML += `<button class="catalogue-type-btn" onclick="showCatalogueType('${catalogue}', 'log')">📄 Log</button>`;
+                buttonsContainer.innerHTML = buttonsHTML;
+            }
+        });
+        
         buttonsContainer.innerHTML = buttonsHTML;
         
         // Store the reports data for switching between types
@@ -854,6 +862,9 @@ function showCatalogueType(catalogue, type) {
             case 'comets':
                 btnType = 'Comets';
                 break;
+            case 'log':
+                btnType = 'Log';
+                break;
             default:
                 console.warn(`Unknown catalogue type: ${type}`);
                 return;
@@ -876,7 +887,36 @@ function showCatalogueType(catalogue, type) {
             </div>
         `;
     }
-    // Show appropriate table based on type (not for plot)
+    // Show log content if type is 'log'
+    else if (type === 'log') {
+        container.innerHTML = '<div class="loading">Loading log content...</div>';
+        loadCatalogueLog(catalogue).then(logContent => {
+            if (logContent) {
+                // Helper function to escape HTML
+                function escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                }
+                
+                html = `
+                    <div class="log-container">
+                        <div class="log-header">
+                            <h3>📄 UpTonight Log - ${catalogue}</h3>
+                        </div>
+                        <div class="log-content">
+                            <pre>${escapeHtml(logContent)}</pre>
+                        </div>
+                    </div>
+                `;
+            } else {
+                html = '<div class="error-box">Failed to load log content</div>';
+            }
+            container.innerHTML = html;
+        });
+        return; // Early return for async log loading
+    }
+    // Show appropriate table based on type (not for plot or log)
     else if (type === 'report' && reports.report) {
         html += generateReportTable(reports.report, catalogue, 'report');
     } else if (type === 'bodies' && reports.bodies) {
@@ -1685,4 +1725,36 @@ async function updateCatalogueCapturedBadge(itemName, isInAstrodex) {
             }
         });
     });
+}
+
+// ======================
+// Log Management Functions
+// ======================
+
+async function checkCatalogueLogExists(catalogue) {
+    try {
+        const response = await fetch(`${API_BASE}/api/uptonight/logs/${catalogue}/exists`);
+        const result = await response.json();
+        return result.log_exists;
+    } catch (error) {
+        console.error('Error checking log file existence:', error);
+        return false;
+    }
+}
+
+async function loadCatalogueLog(catalogue) {
+    try {
+        const response = await fetch(`${API_BASE}/api/uptonight/logs/${catalogue}`);
+        const result = await response.json();
+        
+        if (response.ok) {
+            return result.log_content;
+        } else {
+            console.error('Error loading log file:', result.error);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error loading log file:', error);
+        return null;
+    }
 }

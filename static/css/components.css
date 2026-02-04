@@ -716,3 +716,63 @@ textarea {
     50% { opacity: 0.7; }
     100% { opacity: 1; }
 }
+
+/* Log Container Styles */
+.log-container {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.log-header {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.log-header h3 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.log-content {
+    padding: 0;
+    max-height: 600px;
+    overflow-y: auto;
+    background: #1a1a1a;
+    text-align:left;
+}
+
+.log-content pre {
+    margin: 0;
+    padding: 20px;
+    background: #1a1a1a;
+    color: #e0e0e0;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-x: auto;
+}
+
+/* Scrollbar styling for log content */
+.log-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.log-content::-webkit-scrollbar-track {
+    background: #2a2a2a;
+}
+
+.log-content::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+
+.log-content::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
