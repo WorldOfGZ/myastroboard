@@ -579,8 +579,14 @@ async function loadVersion() {
         const data = await response.json();
         document.getElementById('version').textContent = `v${data.version}`;
         
-        // Check for updates once per page load
+        // Check for updates immediately after page load
         checkForUpdates(data.version);
+        
+        // Set up periodic update check every 4 hours (4 * 60 * 60 * 1000 ms)
+        setInterval(() => {
+            checkForUpdates(data.version);
+        }, 4 * 60 * 60 * 1000);
+        
     } catch (error) {
         console.error('Error loading version:', error);
     }
@@ -588,14 +594,7 @@ async function loadVersion() {
 
 async function checkForUpdates(currentVersion) {
     try {
-        // Only check once per session
-        if (sessionStorage.getItem('updateChecked')) {
-            console.debug('Update check already performed in this session');
-            return;
-        }
-        
         console.debug(`Checking for updates... Current version: ${currentVersion}`);
-        sessionStorage.setItem('updateChecked', 'true');
         
         // Fetch latest release from GitHub API
         const response = await fetch('https://api.github.com/repos/WorldOfGZ/myastroboard/releases/latest');
@@ -661,8 +660,7 @@ function showUpdateNotification(releaseUrl, version) {
 
 // Test functions for debugging
 function testUpdateCheck() {
-    console.log('Clearing session storage and testing update check...');
-    sessionStorage.removeItem('updateChecked');
+    console.log('Testing update check...');
     
     // Get current version from the page
     const versionElement = document.getElementById('version');
