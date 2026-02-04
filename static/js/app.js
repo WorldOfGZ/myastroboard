@@ -590,15 +590,18 @@ async function checkForUpdates(currentVersion) {
     try {
         // Only check once per session
         if (sessionStorage.getItem('updateChecked')) {
+            console.debug('Update check already performed in this session');
             return;
         }
         
+        console.debug(`Checking for updates... Current version: ${currentVersion}`);
         sessionStorage.setItem('updateChecked', 'true');
         
         // Fetch latest release from GitHub API
         const response = await fetch('https://api.github.com/repos/WorldOfGZ/myastroboard/releases/latest');
         
         if (!response.ok) {
+            console.warn(`GitHub API request failed with status: ${response.status}`);
             return; // Silently fail if API is not available
         }
         
@@ -606,13 +609,18 @@ async function checkForUpdates(currentVersion) {
         const latestVersion = release.tag_name.replace(/^v/, ''); // Remove 'v' prefix if present
         const current = currentVersion.replace(/^v/, '');
         
+        console.debug(`Version comparison: current=${current}, latest=${latestVersion}`);
+        
         // Simple version comparison (assumes semantic versioning)
         if (isNewerVersion(current, latestVersion)) {
+            console.debug('Update available! Showing notification...');
             showUpdateNotification(release.html_url, latestVersion);
+        } else {
+            console.debug('No update needed - current version is up to date');
         }
     } catch (error) {
-        // Silently fail - don't show errors for update checking
-        console.debug('Update check failed:', error);
+        // Log errors for debugging but don't show to users
+        console.warn('Update check failed:', error);
     }
 }
 
@@ -643,7 +651,33 @@ function showUpdateNotification(releaseUrl, version) {
         link.href = releaseUrl;
         link.textContent = `See version v${version}`;
         notification.style.display = 'block';
+        console.debug(`Update notification shown for version v${version}`);
+    } else {
+        console.warn('Update notification elements not found in DOM');
+        if (!notification) console.warn('Missing element: update-notification');
+        if (!link) console.warn('Missing element: update-link');
     }
+}
+
+// Test functions for debugging
+function testUpdateCheck() {
+    console.log('Clearing session storage and testing update check...');
+    sessionStorage.removeItem('updateChecked');
+    
+    // Get current version from the page
+    const versionElement = document.getElementById('version');
+    if (versionElement) {
+        const currentVersion = versionElement.textContent.replace(/^v/, '');
+        console.log(`Testing update check with version: ${currentVersion}`);
+        checkForUpdates(currentVersion);
+    } else {
+        console.warn('Version element not found');
+    }
+}
+
+function testUpdateNotification() {
+    console.log('Testing update notification display...');
+    showUpdateNotification('https://github.com/WorldOfGZ/myastroboard/releases/tag/v0.2.0', '0.2.0');
 }
 
 // ======================
