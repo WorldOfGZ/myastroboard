@@ -44,6 +44,7 @@ RUN apk add --no-cache \
     gnupg \
     tzdata \
     docker-cli \
+    shadow \
     && rm -rf /tmp/* /var/cache/apk/*
 
 # Copy Python packages from builder
