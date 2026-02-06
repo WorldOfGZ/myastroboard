@@ -1362,7 +1362,7 @@ function initializeAstrodexEventListeners() {
         const cardBody = target.closest('.astrodex-card-body');
         
         // Handle buttons with data-action (tab-specific)
-        /*if (button) {
+        if (button) {
             const action = button.getAttribute('data-action');
             const itemId = button.getAttribute('data-item-id');
             
@@ -1372,7 +1372,7 @@ function initializeAstrodexEventListeners() {
                     showAddAstrodexItemModal();
                     break;
             }
-        }*/
+        }
         
         // Handle card image clicks (slideshow)
         if (cardImage && !button) {
@@ -1445,7 +1445,6 @@ function initializeAstrodexEventListeners() {
     const photoFilter = document.getElementById('astrodex-photo-filter');
     const sortSelect = document.getElementById('astrodex-sort');
     const sortOrderBtn = document.getElementById('astrodex-sort-order');
-    const addObjectBtn = document.querySelector('#astrodex-tab .btn-primary[data-action="add-astrodex-item"]');
     
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
@@ -1474,13 +1473,6 @@ function initializeAstrodexEventListeners() {
     if (sortOrderBtn) {
         sortOrderBtn.addEventListener('click', () => {
             toggleAstrodexSortOrder();
-        });
-    }
-    
-    if (addObjectBtn) {
-        addObjectBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            showAddAstrodexItemModal();
         });
     }
 }
