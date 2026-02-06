@@ -164,13 +164,12 @@ const Scheduler = (() => {
     }
 
     function genericMessageLoadingDiv(catalogue) {
-        `catalogue-${catalogue}-subtab`
         //If subtab exists
         if(document.getElementById(`catalogue-${catalogue}-subtab`)) {
-            innerHTML = `
-                <div class="card">
+            const innerHTML = `
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h2>📚 ${catalogue} Results</h2>
-                    <div id="catalogue-${catalogue}-type-buttons" class="catalogue-type-buttons"></div>
+                    <ul class="nav nav-pills sub-tabs" id="catalogue-${catalogue}-type-buttons"></ul>
                     <div id="catalogue-${catalogue}-content" class="loading">Catalogue currently loading via UpTonight...</div>
                 </div>
             `;
