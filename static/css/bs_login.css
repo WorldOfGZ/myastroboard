@@ -1,0 +1,185 @@
+/* Login page specific styles for MyAstroBoard */
+
+/* Login page body */
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-gradient);
+    padding: 1rem;
+}
+
+/* Main login container */
+.login-container {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 3rem;
+    border-radius: 1rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 100%;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Login header */
+.login-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.login-header h1 {
+    color: var(--text-violet);
+    font-size: 2.5rem;
+    font-weight: var(--font-bold);
+    margin-bottom: 0.5rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.login-header p {
+    color: var(--text-grey);
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+/* Form styling */
+.login-form .form-floating {
+    margin-bottom: 1.5rem;
+}
+
+.login-form .form-floating > label {
+    color: var(--text-grey);
+    font-weight: var(--font-medium);
+}
+
+.login-form .form-control {
+    border: 2px solid #e5e7eb;
+    border-radius: var(--border-radius);
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    background-color: #fff;
+}
+
+.login-form .form-control:focus {
+    border-color: var(--border-violet);
+    box-shadow: 0 0 0 0.2rem rgba(118, 75, 162, 0.25);
+    background-color: #fff;
+}
+
+/* Login button */
+.btn-login {
+    width: 100%;
+    background: var(--bg-gradient);
+    border: none;
+    color: var(--text-light);
+    font-size: 1.1rem;
+    font-weight: var(--font-semibold);
+    padding: 0.875rem 1.5rem;
+    border-radius: var(--border-radius);
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(118, 75, 162, 0.3);
+}
+
+.btn-login:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(118, 75, 162, 0.4);
+    color: var(--text-light);
+}
+
+.btn-login:active {
+    transform: translateY(0);
+}
+
+.btn-login:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 4px 12px rgba(118, 75, 162, 0.2);
+}
+
+/* Error message */
+.error-message {
+    background-color: var(--error-50);
+    color: var(--error-700);
+    border: 1px solid var(--error-200);
+    border-radius: var(--border-radius);
+    padding: 0.875rem 1rem;
+    margin-bottom: 1.5rem;
+    font-weight: var(--font-medium);
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+}
+
+.error-message.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.error-message::before {
+    content: "⚠️ ";
+    margin-right: 0.5rem;
+}
+
+/* Success message (for future use) */
+.success-message {
+    background-color: var(--success-50);
+    color: var(--success-700);
+    border: 1px solid var(--success-500);
+    border-radius: var(--border-radius);
+    padding: 0.875rem 1rem;
+    margin-bottom: 1.5rem;
+    font-weight: var(--font-medium);
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+}
+
+.success-message.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.success-message::before {
+    content: "✓ ";
+    margin-right: 0.5rem;
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+    .login-container {
+        margin: 1rem;
+        padding: 2rem;
+    }
+    
+    .login-header h1 {
+        font-size: 2rem;
+    }
+}
+
+/* Loading spinner for button */
+.btn-login.loading {
+    position: relative;
+    color: transparent;
+}
+
+.btn-login.loading::after {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 50%;
+    left: 50%;
+    margin-left: -10px;
+    margin-top: -10px;
+    border: 2px solid transparent;
+    border-top: 2px solid var(--text-light);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
