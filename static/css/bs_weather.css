@@ -26,7 +26,8 @@
     background: linear-gradient(135deg, var(--quality-excellent), rgba(209, 250, 229, 0.7)) !important;
     color: var(--quality-excellent-text) !important;
     border: 1px solid rgba(16, 185, 129, 0.3);
-    border-radius: var(--border-radius);
+    border-top-left-radius: calc(var(--border-radius) + 2px) !important;
+    border-top-right-radius: calc(var(--border-radius) + 2px) !important;
     padding: 0.5rem 0.75rem;
     font-weight: var(--font-semibold);
     box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
@@ -42,7 +43,8 @@
     background: linear-gradient(135deg, var(--quality-good), rgba(219, 234, 254, 0.7)) !important;
     color: var(--quality-good-text) !important;
     border: 1px solid rgba(30, 64, 175, 0.3);
-    border-radius: var(--border-radius);
+    border-top-left-radius: calc(var(--border-radius) + 2px) !important;
+    border-top-right-radius: calc(var(--border-radius) + 2px) !important;
     padding: 0.5rem 0.75rem;
     font-weight: var(--font-semibold);
     box-shadow: 0 2px 8px rgba(30, 64, 175, 0.15);
@@ -58,7 +60,8 @@
     background: linear-gradient(135deg, var(--quality-fair), rgba(254, 243, 199, 0.7)) !important;
     color: var(--quality-fair-text) !important;
     border: 1px solid rgba(217, 119, 6, 0.3);
-    border-radius: var(--border-radius);
+    border-top-left-radius: calc(var(--border-radius) + 2px) !important;
+    border-top-right-radius: calc(var(--border-radius) + 2px) !important;
     padding: 0.5rem 0.75rem;
     font-weight: var(--font-semibold);
     box-shadow: 0 2px 8px rgba(217, 119, 6, 0.15);
@@ -74,7 +77,8 @@
     background: linear-gradient(135deg, var(--quality-poor), rgba(254, 215, 170, 0.7)) !important;
     color: var(--quality-poor-text) !important;
     border: 1px solid rgba(234, 88, 12, 0.3);
-    border-radius: var(--border-radius);
+    border-top-left-radius: calc(var(--border-radius) + 2px) !important;
+    border-top-right-radius: calc(var(--border-radius) + 2px) !important;
     padding: 0.5rem 0.75rem;
     font-weight: var(--font-semibold);
     box-shadow: 0 2px 8px rgba(234, 88, 12, 0.15);
@@ -90,7 +94,8 @@
     background: linear-gradient(135deg, var(--quality-bad), rgba(254, 202, 202, 0.7)) !important;
     color: var(--quality-bad-text) !important;
     border: 1px solid rgba(153, 27, 27, 0.3);
-    border-radius: var(--border-radius);
+    border-top-left-radius: calc(var(--border-radius) + 2px) !important;
+    border-top-right-radius: calc(var(--border-radius) + 2px) !important;
     padding: 0.5rem 0.75rem;
     font-weight: var(--font-semibold);
     box-shadow: 0 2px 8px rgba(153, 27, 27, 0.15);
