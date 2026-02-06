@@ -97,31 +97,112 @@
 
 .moon-info-card {
     background: var(--bg-gradient);
-    color: white;
-    padding: 1.25rem;
+    color: var(--text-light);
+    padding: 2rem 1.5rem;
     margin-bottom: 1.25rem;
     grid-column: 1 / -1;
-    box-shadow: 10px 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: calc(var(--border-radius) + 4px);
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.moon-info-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
 }
 
 .sun-info-card {
     background: var(--sun-gradient);
-    color: white;
-    padding: 1.25rem;
-    margin-bottom: 1.25rem; 
-    box-shadow: 10px 4px 12px rgba(0, 0, 0, 0.15);
+    color: var(--text-light);
+    padding: 2rem 1.5rem;
+    margin-bottom: 1.25rem;
+    border-radius: calc(var(--border-radius) + 4px);
+    box-shadow: 0 12px 32px rgba(245, 158, 11, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.sun-info-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
 }
 
 .icon-weather-lg {
     font-size: 48px;
+    margin-bottom: 0.5rem;
+}
+
+.sun-info-card .card {
+    background-color: rgba(255, 255, 255, 0.85) !important;
+    color: var(--text-color);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: var(--border-radius);
+}
+
+.sun-info-card .card-header {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    color: var(--warning-700);
+    border-bottom: 2px solid var(--warning-500);
+    font-weight: var(--font-bold);
+    padding: 0.75rem 1rem;
+}
+
+.sun-info-card .list-group-item {
+    background-color: rgba(255, 255, 255, 0.7) !important;
+    color: var(--text-color);
+    border-color: rgba(255, 255, 255, 0.4);
+    font-weight: 500;
+}
+
+.sun-info-card .list-group-item:last-child {
+    border-bottom: none;
+}
+
+.moon-info-card .card {
+    background-color: rgba(255, 255, 255, 0.85) !important;
+    color: var(--text-color);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: var(--border-radius);
+}
+
+.moon-info-card .card-header {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    color: var(--text-violet);
+    border-bottom: 2px solid var(--border-violet);
+    font-weight: var(--font-bold);
+    padding: 0.75rem 1rem;
+}
+
+.moon-info-card .list-group-item {
+    background-color: rgba(255, 255, 255, 0.7) !important;
+    color: var(--text-color);
+    border-color: rgba(255, 255, 255, 0.4);
+    font-weight: 500;
+}
+
+.moon-info-card .list-group-item:last-child {
+    border-bottom: none;
 }
 
 .sun-info-card .card-header, .sun-info-card li, .sun-info-card .card {
-    background: var(--sun-gradient);
-    border-color: var(--warning-600);
+    border-color: var(--warning-500);
 }
 
 .moon-info-card .card-header, .moon-info-card li, .moon-info-card .card {
-    background: var(--bg-gradient);
     border-color: var(--border-violet);
 }
