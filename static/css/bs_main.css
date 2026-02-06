@@ -1,5 +1,41 @@
 /* Main style page common for all components */
 
+/* List Group Styling */
+.list-group {
+    border-radius: calc(var(--border-radius) + 2px);
+    overflow: hidden;
+    background-color: var(--bg-light) !important;
+    border: 1px solid rgba(15, 23, 42, 0.08) !important;
+}
+
+.list-group-flush {
+    border-radius: 0;
+}
+
+.list-group-item {
+    background-color: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    padding: 1rem;
+    color: var(--text-color);
+    font-weight: 500;
+    transition: all var(--transition-normal);
+}
+
+.list-group-item:last-child {
+    border-bottom: none !important;
+}
+
+.list-group-item:hover {
+    background-color: rgba(99, 102, 241, 0.04) !important;
+}
+
+.list-group-item.active {
+    background-color: rgba(99, 102, 241, 0.12) !important;
+    color: var(--text-color) !important;
+    border-left: 4px solid var(--border-violet);
+    padding-left: calc(1rem - 4px);
+}
 
 /*HTML Structures*/
 html {
