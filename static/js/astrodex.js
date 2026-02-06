@@ -796,23 +796,17 @@ async function setMainPicture(itemId, pictureId) {
 
 async function deletePicture(itemId, pictureId) {
     if (window.confirm("Are you sure you want to delete this photo? This action cannot be undone.")) {
-        async () => {
-            try {
-                await fetchJSON(`/api/astrodex/items/${itemId}/pictures/${pictureId}`, {
-                    method: 'DELETE'
-                });
-                
-                showMessage('success', 'Photo deleted');
-                await loadAstrodex();
-                showAstrodexItemDetail(itemId);
-            } catch (error) {
-                console.error('Error deleting picture:', error);
-                showMessage('error', 'Failed to delete photo');
-            }
-        },
-        () => {
-            // On cancel, reopen the item detail view
+        try {
+            await fetchJSON(`/api/astrodex/items/${itemId}/pictures/${pictureId}`, {
+                method: 'DELETE'
+            });
+            
+            showMessage('success', 'Photo deleted');
+            await loadAstrodex();
             showAstrodexItemDetail(itemId);
+        } catch (error) {
+            console.error('Error deleting picture:', error);
+            showMessage('error', 'Failed to delete photo');
         }
     }
 }
@@ -826,31 +820,24 @@ async function deleteAstrodexItem(itemId) {
     const item = astrodexData.items.find(i => i.id === itemId);
     const itemName = item ? item.name : null;
     
-    
     if (window.confirm("Are you sure you want to remove this object from your Astrodex? This will also delete all associated photos. This action cannot be undone.")) {
-        async () => {
-            try {
-                await fetchJSON(`/api/astrodex/items/${itemId}`, {
-                    method: 'DELETE'
-                });
-                
-                showMessage('success', 'Object removed from Astrodex');
-                await loadAstrodex();
-                
-                // Update catalogue badges if the function exists (from app.js)
-                if (itemName && typeof updateCatalogueCapturedBadge === 'function') {
-                    updateCatalogueCapturedBadge(itemName, false);
-                }
-                
-                closeModal();
-            } catch (error) {
-                console.error('Error deleting item:', error);
-                showMessage('error', 'Failed to remove object');
+        try {
+            await fetchJSON(`/api/astrodex/items/${itemId}`, {
+                method: 'DELETE'
+            });
+            
+            showMessage('success', 'Object removed from Astrodex');
+            await loadAstrodex();
+            
+            // Update catalogue badges if the function exists (from app.js)
+            if (itemName && typeof updateCatalogueCapturedBadge === 'function') {
+                updateCatalogueCapturedBadge(itemName, false);
             }
-        },
-        () => {
-            // On cancel, reopen the item detail view
-            showAstrodexItemDetail(itemId);
+            
+            closeModal();
+        } catch (error) {
+            console.error('Error deleting item:', error);
+            showMessage('error', 'Failed to remove object');
         }
     }
 }
