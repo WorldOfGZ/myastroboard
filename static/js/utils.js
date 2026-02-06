@@ -4,7 +4,14 @@
 
 
 function showMessage(type, message) {
-    const color = type === 'success' ? '#10b981' : '#ef4444';
+    //type available: 'success', 'error', 'warning', 'info'
+    const colorMap = {
+        success: '#10b981',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+    };
+    const color = colorMap[type] || '#ef4444';
     const messageDiv = document.createElement('div');
     messageDiv.style.cssText = `
         position: fixed;

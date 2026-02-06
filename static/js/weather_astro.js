@@ -45,7 +45,16 @@ async function loadAstroWeather() {
         if (loadingDiv) loadingDiv.style.display = 'none';
         if (errorDiv) {
             errorDiv.style.display = 'block';
-            errorDiv.innerHTML = `<div class="error-box">Failed to load astrophotography weather data: ${error.message}</div>`;
+            errorDiv.innerHTML = `
+                <div class="col">
+                    <div class="card h-100 bg-danger-subtle">
+                        <div class="card-body">
+                            <h5 class="card-title">☁️ Error...</h5>
+                            <p class="card-text">Failed to load astrophotography weather data: ${error.message}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
     }
 }
@@ -62,66 +71,60 @@ function renderCurrentAstroConditions(conditions) {
     const transparencyQuality = getTransparencyQualityText(conditions.transparency_score);
     const dewRiskColor = getDewRiskColor(conditions.dew_risk_level);
     const trackingQuality = getTrackingQualityText(conditions.tracking_stability_score);
+    const cloudQuality = getCloudQualityText(conditions.cloud_discrimination);
     
     container.innerHTML = `
-        <div class="astro-conditions-grid">
-            <div class="astro-condition-card">
-                <div class="astro-condition-header">
-                    <span class="astro-icon">👁️</span>
-                    <span class="astro-title">Seeing</span>
-                </div>
-                <div class="astro-condition-content">
-                    <div class="astro-main-value">${conditions.seeing_pickering}/10</div>
+        <div class="col mb-3">
+            <div class="card h-100">
+                <div class="card-body">👁️ Seeing</div>
+                <div class="card-body text-center">
+                    <div class="astro-main-value text-primary">${conditions.seeing_pickering}/10</div>
                     <div class="astro-quality-text ${seeingQuality.class}">${seeingQuality.text}</div>
-                    <div class="astro-detail">Pickering Scale</div>
+                    <div class="fw-light fst-italic">Pickering Scale</div>
                 </div>
             </div>
-            
-            <div class="astro-condition-card">
-                <div class="astro-condition-header">
-                    <span class="astro-icon">✨</span>
-                    <span class="astro-title">Transparency</span>
-                </div>
-                <div class="astro-condition-content">
-                    <div class="astro-main-value">${conditions.limiting_magnitude}m</div>
+        </div>
+
+        <div class="col mb-3">
+            <div class="card h-100">
+                <div class="card-body">✨ Transparency</div>
+                <div class="card-body text-center">
+                    <div class="astro-main-value text-primary">${conditions.limiting_magnitude}m</div>
                     <div class="astro-quality-text ${transparencyQuality.class}">${transparencyQuality.text}</div>
-                    <div class="astro-detail">Limiting Magnitude</div>
+                    <div class="fw-light fst-italic">Limiting Magnitude</div>
                 </div>
             </div>
-            
-            <div class="astro-condition-card">
-                <div class="astro-condition-header">
-                    <span class="astro-icon">☁️</span>
-                    <span class="astro-title">Cloud Layers</span>
-                </div>
-                <div class="astro-condition-content">
-                    <div class="astro-main-value">${Math.round(conditions.cloud_discrimination)}%</div>
-                    <div class="astro-quality-text">${getCloudQualityText(conditions.cloud_discrimination)}</div>
-                    <div class="astro-detail">Discrimination Score</div>
+        </div>
+
+        <div class="col mb-3">
+            <div class="card h-100">
+                <div class="card-body">☁️ Cloud Layers</div>
+                <div class="card-body text-center">
+                    <div class="astro-main-value text-primary">${Math.round(conditions.cloud_discrimination)}%</div>
+                    <div class="astro-quality-text ${cloudQuality.class}">${cloudQuality.text}</div>
+                    <div class="fw-light fst-italic">Discrimination Score</div>
                 </div>
             </div>
-            
-            <div class="astro-condition-card">
-                <div class="astro-condition-header">
-                    <span class="astro-icon">💧</span>
-                    <span class="astro-title">Dew Risk</span>
-                </div>
-                <div class="astro-condition-content">
-                    <div class="astro-main-value">${Math.round(conditions.dew_point_spread * 10) / 10}°C</div>
+        </div>
+
+        <div class="col mb-3">
+            <div class="card h-100">
+                <div class="card-body">💧 Dew Risk</div>
+                <div class="card-body text-center">
+                    <div class="astro-main-value text-primary">${Math.round(conditions.dew_point_spread * 10) / 10}°C</div>
                     <div class="astro-quality-text ${dewRiskColor}">${conditions.dew_risk_level}</div>
-                    <div class="astro-detail">Temperature Spread</div>
+                    <div class="fw-light fst-italic">Temperature Spread</div>
                 </div>
             </div>
-            
-            <div class="astro-condition-card">
-                <div class="astro-condition-header">
-                    <span class="astro-icon">🎯</span>
-                    <span class="astro-title">Tracking</span>
-                </div>
-                <div class="astro-condition-content">
-                    <div class="astro-main-value">${conditions.tracking_stability_score}%</div>
+        </div>
+
+        <div class="col mb-3">
+            <div class="card h-100">
+                <div class="card-body">🎯 Tracking</div>
+                <div class="card-body text-center">
+                    <div class="astro-main-value text-primary">${conditions.tracking_stability_score}%</div>
                     <div class="astro-quality-text ${trackingQuality.class}">${trackingQuality.text}</div>
-                    <div class="astro-detail">Wind Stability</div>
+                    <div class="fw-light fst-italic">Wind Stability</div>
                 </div>
             </div>
         </div>
@@ -134,13 +137,29 @@ function renderCurrentAstroConditions(conditions) {
 function renderBestObservationPeriods(periods) {
     const container = document.getElementById('astro-best-periods');
     if (!container) return;
+
+    // Fake periods for testing
+    /*
+    periods = [
+        {
+            start: new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString(),
+            end: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
+            duration_hours: 2,
+            average_quality: 85.5
+        },
+        {
+            start: new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),
+            end: new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString(),
+            duration_hours: 2,
+            average_quality: 78.2
+        }
+    ];
+    //*/
     
     if (!periods || periods.length === 0) {
         container.innerHTML = `
-            <div class="astro-no-periods">
-                <div class="astro-icon">😔</div>
-                <div class="astro-message">No optimal observation periods found in the next 24 hours</div>
-            </div>
+            <h1 class="astro-icon text-center">😔</h1>
+            <div class="text-center">No optimal observation periods found in the next 24 hours</div>
         `;
         return;
     }
@@ -151,41 +170,36 @@ function renderBestObservationPeriods(periods) {
         const duration = period.duration_hours;
         
         return `
-            <div class="astro-period-card">
-                <div class="astro-period-rank">#${index + 1}</div>
-                <div class="astro-period-content">
-                    <div class="astro-period-time">
-                        <div class="astro-time-range">
+            <div class="col mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="card-text fw-bold">
                             ${startTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} - 
                             ${endTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
                         </div>
-                        <div class="astro-date-range">
+                        <div class="card-text fw-bold">
                             ${startTime.toLocaleDateString([], {month: 'short', day: 'numeric'})}
                             ${startTime.toDateString() !== endTime.toDateString() ? 
                                 ' - ' + endTime.toLocaleDateString([], {month: 'short', day: 'numeric'}) : ''}
                         </div>
                     </div>
-                    <div class="astro-period-details">
-                        <div class="astro-duration">
-                            <span class="astro-label">Duration:</span>
-                            <span class="astro-value">${duration.toFixed(1)}h</span>
-                        </div>
-                        <div class="astro-quality">
-                            <span class="astro-label">Quality:</span>
-                            <span class="astro-value quality-${getQualityClass(period.average_quality)}">${period.average_quality.toFixed(1)}%</span>
-                        </div>
-                    </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Duration:
+                            <span class="badge text-bg-primary rounded-pill">${duration.toFixed(1)}h</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Quality:
+                            <span class="badge text-bg-primary rounded-pill">${period.average_quality.toFixed(1)}%</span>
+                        </li>
+                    </ul>
                 </div>
             </div>
         `;
     }).join('');
     
     container.innerHTML = `
-        <div class="astro-periods-header">
-            <h3>🌟 Best Observation Windows</h3>
-            <div class="astro-periods-subtitle">Optimal periods for astrophotography in the next 24 hours</div>
-        </div>
-        <div class="astro-periods-list">
+        <div class="row row-cols-2 row-cols-sm-2 row-cols-lg-4 row-cols-xl-6 p-2">
             ${periodsHtml}
         </div>
     `;
@@ -462,9 +476,10 @@ function renderWeatherAlerts(alerts) {
     
     if (!alerts || alerts.length === 0) {
         container.innerHTML = `
-            <div class="astro-no-alerts">
-                <div class="astro-icon">✅</div>
-                <div class="astro-message">No weather alerts for astrophotography</div>
+            <div class="alert alert-success" role="alert">
+                <div class="fw-bold">
+                    <span>✅ No weather alerts for astrophotography</span>
+                </div>
             </div>
         `;
         return;
@@ -473,25 +488,21 @@ function renderWeatherAlerts(alerts) {
     const alertsHtml = alerts.map(alert => {
         const alertTime = new Date(alert.time);
         const severityIcon = getSeverityIcon(alert.severity);
-        const severityClass = getSeverityClass(alert.severity);
         
         return `
-            <div class="astro-alert ${severityClass}">
-                <div class="astro-alert-header">
-                    <div class="astro-alert-icon">${severityIcon}</div>
-                    <div class="astro-alert-type">${alert.type.replace('_', ' ')}</div>
-                    <div class="astro-alert-time">${alertTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>
+            <div class="alert alert-${alert.severity === 'HIGH' ? 'danger' : 'warning'}" role="alert">
+                <div class="fw-bold">
+                    <span>${severityIcon}</span>
+                    <span>${alert.type.replace('_', ' ')}</span>
+                    <span>${alertTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
                 </div>
-                <div class="astro-alert-message">${alert.message}</div>
+                <div>${alert.message}</div>
             </div>
         `;
     }).join('');
     
     container.innerHTML = `
-        <div class="astro-alerts-header">
-            <h3>⚠️ Weather Alerts</h3>
-            <div class="astro-alerts-subtitle">Conditions affecting astrophotography in the next 6 hours</div>
-        </div>
+        <div class="mb-2">Conditions affecting astrophotography in the next 6 hours</div>
         <div class="astro-alerts-list">
             ${alertsHtml}
         </div>
@@ -517,10 +528,10 @@ function getTransparencyQualityText(transparencyValue) {
 }
 
 function getCloudQualityText(cloudValue) {
-    if (cloudValue >= 80) return 'EXCELLENT';
-    if (cloudValue >= 60) return 'GOOD';
-    if (cloudValue >= 40) return 'FAIR';
-    return 'POOR';
+    if (cloudValue >= 80) return { text: 'EXCELLENT', class: 'quality-excellent' };
+    if (cloudValue >= 60) return { text: 'GOOD', class: 'quality-good' };
+    if (cloudValue >= 40) return { text: 'FAIR', class: 'quality-fair' };
+    return { text: 'POOR', class: 'quality-poor' };
 }
 
 function getTrackingQualityText(trackingValue) {
@@ -555,10 +566,6 @@ function getSeverityIcon(severity) {
         case 'LOW': return '🟢';
         default: return 'ℹ️';
     }
-}
-
-function getSeverityClass(severity) {
-    return `severity-${severity.toLowerCase()}`;
 }
 
 /**

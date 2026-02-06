@@ -10,23 +10,43 @@ async function loadWeather() {
     const data = await fetchJSONWithUI('/api/weather/forecast', container, 'Loading weather data...');
     if (!data) return;
     
-    clearContainer(containerLocation);
     
-    // Add grid class for weather display layout
-    addClass(container, 'weather-grid');
+    
+    // Clear containers
+    clearContainer(containerLocation);
     clearContainer(container);
 
     // If data location is available
     if (data.location) {
-        
-        const locationItem = document.createElement('div');
-        locationItem.className = 'weather-location-grid';
-        locationItem.innerHTML = `
-            <div class="weather-item"><strong>${data.location.name}</strong></div>
-            <div class="weather-item"><strong>Lat:</strong> ${data.location.latitude.toFixed(2)}°<br><strong>Lon:</strong> ${data.location.longitude.toFixed(2)}°<br><strong>Elevation:</strong> ${data.location.elevation} m</div>
-            <div class="weather-item"><strong>Timezone:</strong> ${data.location.timezone}</div>
+
+        const locationHtml = `
+            <div class="col mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <p class="card-text"><strong>${data.location.name}</strong></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <p class="card-text">
+                            <strong>Lat:</strong> ${data.location.latitude.toFixed(2)}°<br>
+                            <strong>Lon:</strong> ${data.location.longitude.toFixed(2)}°<br>
+                            <strong>Elevation:</strong> ${data.location.elevation} m</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <p class="card-text"><strong>Timezone:</strong> ${data.location.timezone}</p>
+                    </div>
+                </div>
+            </div>
         `;
-        containerLocation.appendChild(locationItem);
+
+        containerLocation.innerHTML = locationHtml;
     }
 
     // if forecast list is available
@@ -66,46 +86,52 @@ async function loadWeather() {
             }
 
             const item = document.createElement('div');
-            item.className = 'weather-item';
+            item.className = 'col mb-3';
             item.innerHTML = `
-                <div class="weather-time">${date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>
-                <div class="weather-quality ${qualityClass}">${quality}</div>
-                <div class="weather-astro-info">
-                    <div class="weather-row">
-                        <span class="weather-label">☁️ Cloud Cover:</span>
-                        <span class="weather-value">${cloudCover}%</span>
+                <div class="card h-100">
+                    <div class="card-header ${qualityClass}">
+                        <strong>${quality}</strong>
                     </div>
-                    <div class="weather-row">
-                        <span class="weather-label">&nbsp;>&nbsp;Low:</span>
-                        <span class="weather-value">${cloudCoverL}%</span>
-                    </div>
-                    <div class="weather-row">
-                        <span class="weather-label">&nbsp;>&nbsp;Mid:</span>
-                        <span class="weather-value">${cloudCoverM}%</span>
-                    </div>
-                    <div class="weather-row">
-                        <span class="weather-label">&nbsp;>&nbsp;High:</span>
-                        <span class="weather-value">${cloudCoverH}%</span>
-                    </div>
-                    <div class="weather-row">
-                        <span class="weather-label">💧 Humidity:</span>
-                        <span class="weather-value">${humidity}%</span>
-                    </div>
-                    <div class="weather-row">
-                        <span class="weather-label">🌡️ Temperature:</span>
-                        <span class="weather-value">${temp}°C</span>
-                    </div>
-                    <div class="weather-row">
-                        <span class="weather-label">💎 Dew Point:</span>
-                        <span class="weather-value">${dewPoint}°C</span>
-                    </div>
-                    <div class="weather-row">
-                        <span class="weather-label">🔽 Pressure:</span>
-                        <span class="weather-value">${pressure} hPa</span>
-                    </div>
-                    <div class="weather-row">
-                        <span class="weather-label">💨 Wind:</span>
-                        <span class="weather-value">${windSpeed} km/h</span>
+                    <div class="card-body">
+                        <h5 class="card-title card-title-weather">${date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                ☁️ Cloud Cover:
+                                <span class="badge text-bg-primary rounded-pill">${cloudCover}%</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                &nbsp;>&nbsp;Low:
+                                <span class="badge text-bg-primary rounded-pill">${cloudCoverL}%</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                &nbsp;>&nbsp;Mid:
+                                <span class="badge text-bg-primary rounded-pill">${cloudCoverM}%</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                &nbsp;>&nbsp;High:
+                                <span class="badge text-bg-primary rounded-pill">${cloudCoverH}%</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                💧 Humidity:
+                                <span class="badge text-bg-primary rounded-pill">${humidity}%</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                🌡️ Temperature:
+                                <span class="badge text-bg-primary rounded-pill">${temp}°C</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                💎 Dew Point:
+                                <span class="badge text-bg-primary rounded-pill">${dewPoint}°C</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                🔽 Pressure:
+                                <span class="badge text-bg-primary rounded-pill">${pressure} hPa</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                💨 Wind:
+                                <span class="badge text-bg-primary rounded-pill">${windSpeed} km/h</span>
+                            </li>                            
+                        </ul>
                     </div>
                 </div>
             `;
@@ -125,10 +151,12 @@ async function loadAstronomicalCharts() {
     
     // Show loading, hide others
     loadingDiv.style.display = 'block';
-    containerDiv.style.display = 'none';
     errorDiv.style.display = 'none';
     
     try {
+        //Fake error
+        //throw('Fake');
+
         const response = await fetch(`${API_BASE}/api/weather/forecast`);
         const data = await response.json();
 
@@ -140,7 +168,6 @@ async function loadAstronomicalCharts() {
         
         // Hide loading, show charts
         loadingDiv.style.display = 'none';
-        containerDiv.style.display = 'block';
         
         // Extract data for charts
         const labels = data.hourly.map(item => {
@@ -259,7 +286,7 @@ async function loadAstronomicalCharts() {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
                 interaction: {
                     mode: 'index',
                     intersect: false,
@@ -383,7 +410,7 @@ async function loadAstronomicalCharts() {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
                 interaction: {
                     mode: 'index',
                     intersect: false,
@@ -454,5 +481,7 @@ async function loadAstronomicalCharts() {
         console.error('Error loading astronomical charts:', error);
         loadingDiv.style.display = 'none';
         errorDiv.style.display = 'block';
+        //Hide containerDiv
+        containerDiv.style.display = 'none';
     }
 }

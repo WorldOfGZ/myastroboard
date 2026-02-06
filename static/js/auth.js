@@ -41,11 +41,24 @@ function updateUserInterface() {
     }
     
     if (userRoleDisplay) {
-        const roleText = currentUser.role === 'admin' ? '(Admin)' : '(Read-Only)';
+        const roleText = currentUser.role === 'admin' ? '(Admin)' : '(user)';
         userRoleDisplay.textContent = roleText;
     }
     
-    // Show/hide parameters tab for read-only users
+    // Remove parameters tab for read-only users
+    const parametersTab = document.querySelector('[data-tab="parameters"]');
+    if (currentUser.role === 'read-only' && parametersTab) {
+        // Remove dom element
+        parametersTab.remove();
+
+        //Remove also parameters-tab
+        const parametersTabContent = document.getElementById('parameters-tab');
+        if (parametersTabContent) {
+            parametersTabContent.remove();
+        }
+    }
+
+    /*// Show/hide parameters tab for read-only users
     const parametersTab = document.querySelector('[data-tab="parameters"]');
     if (currentUser.role === 'read-only' && parametersTab) {
         parametersTab.style.display = 'none';
@@ -55,7 +68,7 @@ function updateUserInterface() {
     const usersTabBtn = document.getElementById('users-tab-btn');
     if (currentUser.role === 'admin' && usersTabBtn) {
         usersTabBtn.style.display = 'inline-block';
-    }
+    }*/
 }
 
 // Show default password warning
@@ -67,7 +80,9 @@ function showDefaultPasswordWarning() {
 }
 
 // Logout handler
-async function handleLogout() {
+async function handleLogout(event) {
+    // Prevent default link behavior
+    event.preventDefault();
     try {
         await fetch('/api/auth/logout', {
             method: 'POST',
@@ -109,7 +124,7 @@ async function loadUsers() {
         displayUsers(users);
     } catch (error) {
         console.error('Error loading users:', error);
-        showNotification('Failed to load users', 'error');
+        showMessage('error', 'Failed to load users');
     }
 }
 
@@ -118,45 +133,44 @@ function displayUsers(users) {
     if (!usersList) return;
     
     if (users.length === 0) {
-        usersList.innerHTML = '<p style="color: #666;">No users found.</p>';
+        usersList.innerHTML = '<div class="alert alert-warning">No users found.</div>';
         return;
     }
-    
-    const table = document.createElement('table');
-    table.className = 'users-table';
-    table.style.width = '100%';
-    table.style.borderCollapse = 'collapse';
+
+    const table = document.createElement('div');
+    table.className = 'table-responsive';
     
     table.innerHTML = `
-        <thead>
-            <tr>
-                <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #e5e7eb;">Username</th>
-                <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #e5e7eb;">Role</th>
-                <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #e5e7eb;">Created</th>
-                <th style="text-align: left; padding: 0.75rem; border-bottom: 2px solid #e5e7eb;">Last Login</th>
-                <th style="text-align: center; padding: 0.75rem; border-bottom: 2px solid #e5e7eb;">Actions</th>
-            </tr>
-        </thead>
-        <tbody id="users-table-body"></tbody>
+        <table class="table table-sm table-hover">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Created</th>
+                    <th>Last Login</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="users-table-body"></tbody>
+        </table>
     `;
     
     const tbody = table.querySelector('#users-table-body');
     
     users.forEach(user => {
         const row = document.createElement('tr');
-        row.style.borderBottom = '1px solid #e5e7eb';
         
         const createdDate = user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A';
         const lastLogin = user.last_login ? new Date(user.last_login).toLocaleString() : 'Never';
         
         row.innerHTML = `
-            <td style="padding: 0.75rem;">${escapeHtml(user.username)}</td>
-            <td style="padding: 0.75rem;">${escapeHtml(user.role)}</td>
-            <td style="padding: 0.75rem;">${createdDate}</td>
-            <td style="padding: 0.75rem;">${lastLogin}</td>
-            <td style="padding: 0.75rem; text-align: center;">
+            <th>${escapeHtml(user.username)}</th>
+            <td>${escapeHtml(user.role)}</td>
+            <td>${createdDate}</td>
+            <td>${lastLogin}</td>
+            <td class="text-center">
                 <button class="btn btn-secondary btn-small user-change-password" data-username="${escapeHtml(user.username)}">Change Password</button>
-                ${user.username !== 'admin' ? `<button class="btn btn-danger btn-small user-delete" data-username="${escapeHtml(user.username)}">Delete</button>` : ''}
+                ${user.username !== currentUser.username ? `<button class="btn btn-danger btn-small user-delete" data-username="${escapeHtml(user.username)}">Delete</button>` : ''}
             </td>
         `;
         
@@ -213,28 +227,54 @@ function setupCreateUserForm() {
             const data = await response.json();
             
             if (response.ok) {
-                showNotification('User created successfully', 'success');
+                showMessage('success', 'User created successfully');
                 form.reset();
                 loadUsers();
             } else {
-                showNotification(data.error || 'Failed to create user', 'error');
+                showMessage('error', data.error || 'Failed to create user');
             }
         } catch (error) {
             console.error('Error creating user:', error);
-            showNotification('Failed to create user', 'error');
+            showMessage('error', 'Failed to create user');
         }
     });
 }
 
 // Change password using modal dialog
 function changePassword(username) {
-    const modal = document.getElementById('password-modal');
+    //Prepare modal title
+    const titleElement = document.getElementById('modal_lg_close_title');
+    titleElement.innerHTML = `🔒 Change Password`;
+    
+    //Prepare modal content
+    const contentElement = document.getElementById('modal_lg_close_body');
+    contentElement.innerHTML = `
+        <div class="alert alert-info">Change password for user: <strong id="password-modal-username"></strong></div>
+                
+        <div id="password-modal-error" class="alert alert-danger" style="display: none;"></div>
+        
+        <form id="password-change-form" class="row g-3">
+            <input type="text" id="password-change-username" autocomplete="username" style="display: none;" readonly>
+            <div class="col-md-12">
+                <label for="new-password-input" class="form-label">New Password:</label>
+                <input type="password" id="new-password-input" required minlength="4" 
+                        placeholder="Minimum 4 characters" autocomplete="new-password" class="form-control">
+            </div>
+            <div class="col-md-12">
+                <label for="confirm-password-input" class="form-label">Confirm Password:</label>
+                <input type="password" id="confirm-password-input" required minlength="4" 
+                        placeholder="Re-enter password" autocomplete="new-password" class="form-control">
+            </div>
+            <div class="col-md-12 d-flex justify-content-end" style="gap: 1rem;">
+                <button type="submit" class="btn btn-primary">Change Password</button>
+            </div>
+        </form>
+    `;
+
     const usernameDisplay = document.getElementById('password-modal-username');
     const usernameInput = document.getElementById('password-change-username');
     const errorDiv = document.getElementById('password-modal-error');
     const form = document.getElementById('password-change-form');
-    const newPasswordInput = document.getElementById('new-password-input');
-    const confirmPasswordInput = document.getElementById('confirm-password-input');
     
     // Set username
     if (usernameDisplay) {
@@ -253,44 +293,27 @@ function changePassword(username) {
     errorDiv.style.display = 'none';
     errorDiv.textContent = '';
     
-    // Show modal
-    modal.style.display = 'block';
     
-    // Focus on password input
-    setTimeout(() => newPasswordInput.focus(), 100);
+    // Display the modal modal_lg_close
+    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
+        backdrop: 'static',
+        focus: true,
+        keyboard: true
+    });
+    bs_modal.show();
+
+    
+    setupPasswordChangeModal(bs_modal);
     
     // Store username for form submission
     form.dataset.username = username;
 }
 
 // Setup password change modal
-function setupPasswordChangeModal() {
-    const modal = document.getElementById('password-modal');
-    const closeBtn = document.querySelector('.close-password');
-    const cancelBtn = document.getElementById('cancel-password-change');
+function setupPasswordChangeModal(bs_modal) {
     const form = document.getElementById('password-change-form');
     const errorDiv = document.getElementById('password-modal-error');
     
-    // Close modal on X click
-    if (closeBtn) {
-        closeBtn.onclick = function() {
-            modal.style.display = 'none';
-        };
-    }
-    
-    // Close modal on Cancel click
-    if (cancelBtn) {
-        cancelBtn.onclick = function() {
-            modal.style.display = 'none';
-        };
-    }
-    
-    // Close modal on outside click
-    window.onclick = function(event) {
-        if (event.target === modal) {
-            modal.style.display = 'none';
-        }
-    };
     
     // Handle form submission
     if (form) {
@@ -328,9 +351,12 @@ function setupPasswordChangeModal() {
                 const data = await response.json();
                 
                 if (response.ok) {
-                    showNotification('Password updated successfully', 'success');
-                    modal.style.display = 'none';
+                    showMessage('success', 'Password updated successfully');
                     loadUsers();
+
+                    // Close bootstrap modal
+                    bs_modal.hide();
+
                 } else {
                     errorDiv.textContent = data.error || 'Failed to update password';
                     errorDiv.style.display = 'block';
@@ -359,42 +385,15 @@ async function deleteUser(username) {
         const data = await response.json();
         
         if (response.ok) {
-            showNotification('User deleted successfully', 'success');
+            showMessage('success', 'User deleted successfully');
             loadUsers();
         } else {
-            showNotification(data.error || 'Failed to delete user', 'error');
+            showMessage('error', data.error || 'Failed to delete user');
         }
     } catch (error) {
         console.error('Error deleting user:', error);
-        showNotification('Failed to delete user', 'error');
+        showMessage('error', 'Failed to delete user');
     }
-}
-
-// Show notification
-function showNotification(message, type = 'info') {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 1rem 1.5rem;
-        background: ${type === 'error' ? '#fee' : '#efe'};
-        color: ${type === 'error' ? '#c33' : '#363'};
-        border-radius: 5px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 10000;
-        animation: slideIn 0.3s ease-out;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease-out';
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
 }
 
 // Error handler - only redirect on authentication failures (401), not authorization (403)
@@ -437,13 +436,11 @@ if (document.readyState === 'loading') {
         checkAuthStatus();
         setupLogoutButton();
         setupCreateUserForm();
-        setupPasswordChangeModal();
         setupGlobalErrorHandler();
     });
 } else {
     checkAuthStatus();
     setupLogoutButton();
     setupCreateUserForm();
-    setupPasswordChangeModal();
     setupGlobalErrorHandler();
 }

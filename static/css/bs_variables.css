@@ -1,0 +1,55 @@
+/* CSS Variables and Theme Configuration */
+
+:root {
+    /* Background */
+    --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --sun-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    --bg-violet: #764ba26e;
+    --bg-light: #f3f4f6;
+
+    /* Text Colors */
+    --text-light: #ffffff;
+    --text-color: #1f2937;
+    --text-grey: #5f5f5f;
+    --text-violet: #764ba2;
+
+    --success-50: #ecfdf5;
+    --success-500: #10b981;
+    --success-600: #059669;
+    --success-700: #047857;
+    
+    --error-50: #fef2f2;
+    --error-200: #fecaca;
+    --error-500: #ef4444;
+    --error-600: #dc2626;
+    --error-700: #b91c1c;
+    
+    --warning-50: #fffbeb;
+    --warning-200: #fde68a;
+    --warning-500: #f59e0b;
+    --warning-600: #d97706;
+    --warning-700: #b45309;
+
+    /* Borders */    
+    --border-violet: #764ba2;
+    --border-dark: #1f2937;
+    --border-radius: 0.5rem;
+    
+    /* Quality Colors */
+    --quality-excellent: #d1fae5;
+    --quality-excellent-text: #065f46;
+    --quality-good: #dbeafe;
+    --quality-good-text: #1e40af;
+    --quality-fair: #fef3c7;
+    --quality-fair-text: #854d0e;
+    --quality-poor: #fed7aa;
+    --quality-poor-text: #9a3412;
+    --quality-bad: #fecaca;
+    --quality-bad-text: #991b1b;
+
+    /* Font weights */
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+}

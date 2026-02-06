@@ -34,7 +34,8 @@ async function initializeApp() {
 function setupMainTabs() {
     const mainTabBtns = document.querySelectorAll('.main-tab-btn');
     mainTabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
             const tabName = btn.getAttribute('data-tab');
             switchMainTab(tabName);
         });
@@ -402,6 +403,7 @@ function toggleConstraintsFields(enabled) {
 }
 
 async function convertCoordinate(type) {
+
     const inputId = `${type}-input`;
     const convertedId = `${type}-converted`;
     const errorId = `${type}-error`;
@@ -421,6 +423,8 @@ async function convertCoordinate(type) {
     // Check if it's already decimal
     if (!isNaN(value)) {
         convertedEl.textContent = `✓ Decimal: ${parseFloat(value).toFixed(6)}`;
+        input.classList.add('is-valid');
+        input.classList.remove('is-invalid');
         return;
     }
     
@@ -437,23 +441,54 @@ async function convertCoordinate(type) {
         if (data.status === 'success') {
             convertedEl.textContent = `✓ Decimal: ${data.decimal}`;
             input.value = data.decimal;
+            input.classList.add('is-valid');
+            input.classList.remove('is-invalid');
         } else {
             errorEl.textContent = `✗ ${data.message}`;
+            input.classList.add('is-invalid');
+            input.classList.remove('is-valid');
         }
     } catch (error) {
         errorEl.textContent = '✗ Invalid format';
+        input.classList.add('is-invalid');
+        input.classList.remove('is-valid');
     }
 }
 
 let configsData = [];
 //View all configs
 async function viewConfiguration() {
+    
     try {
+        //throw new Error('Simulated error for testing'); // Simulate an error to test error handling
+
         const response = await fetch(`${API_BASE}/api/config/view`);
         const data = await response.json();
         
         if (data.status === 'success') {
             configsData = data.configs;
+
+            //Prepare modal title
+            const titleElement = document.getElementById('modal_lg_close_title');
+            titleElement.innerHTML = `📄 UpTonight Configurations`;
+            
+            //Prepare modal content
+            const contentElement = document.getElementById('modal_lg_close_body');
+            contentElement.innerHTML = `
+                <!-- Dropdown to select config -->
+                <div class="row row-cols-lg-auto g-3 align-items-center mb-3">
+                    <div class="col-12">
+                        <label class="visually-hidden" for="config-selector">Select configuration</label>
+                        <select class="form-select" id="config-selector">
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Content YAML/JSON -->
+                <pre id="config-display" class="border p-3 bg-dark text-light rounded"></pre>
+
+                <button id="export-config-from-modal" class="btn btn-primary">⬇️ Export this config as YAML</button>
+            `;
 
             const selector = document.getElementById('config-selector');
             selector.innerHTML = ''; // clear previous options
@@ -472,8 +507,51 @@ async function viewConfiguration() {
             // Change config
             selector.onchange = (e) => displayConfig(e.target.value);
 
-            // Display the modal
-            document.getElementById('config-modal').style.display = 'block';
+            // Export uptonight config as YAML
+            document.getElementById('export-config-from-modal').onclick = () => {
+                const selector = document.getElementById('config-selector');
+                const cfg = configsData[selector.value];
+                if (!cfg) return;
+
+                const blob = new Blob([cfg.yaml], { type: 'text/yaml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = cfg.name;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            // Display the modal modal_lg_close
+            const bs_modal = new bootstrap.Modal('#modal_lg_close', {
+                backdrop: 'static',
+                focus: true,
+                keyboard: true
+            });
+            bs_modal.show();
+
+            //On modal close, clear the display and events to prevent memory leaks
+            document.getElementById('modal_lg_close').addEventListener('hidden.bs.modal', () => {
+
+                // Remove event listeners
+                const selector = document.getElementById('config-selector');
+                if (selector) {
+                    selector.onchange = null;
+                }
+                const exportBtn = document.getElementById('export-config-from-modal');
+                if (exportBtn) {
+                    exportBtn.onclick = null;
+                }
+
+                document.getElementById('modal_lg_close_title').textContent = '';
+                document.getElementById('modal_lg_close_body').innerHTML = '';
+                configsData = [];
+
+                // Self destroy this event listener to prevent accumulation if user opens/closes modal multiple times
+                document.getElementById('modal_lg_close').removeEventListener('hidden.bs.modal', arguments.callee);
+            });
+
+
         } else {
             showMessage('error', 'Failed to load configuration view');
         }
@@ -489,21 +567,6 @@ function displayConfig(index) {
     if (!cfg) return;
     document.getElementById('config-display').textContent = cfg.yaml;
 }
-
-// Export uptonight config as YAML
-document.getElementById('export-config-from-modal').onclick = () => {
-    const selector = document.getElementById('config-selector');
-    const cfg = configsData[selector.value];
-    if (!cfg) return;
-
-    const blob = new Blob([cfg.yaml], { type: 'text/yaml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = cfg.name;
-    a.click();
-    URL.revokeObjectURL(url);
-};
 
 //Export general configuration
 async function exportConfiguration() {
@@ -594,7 +657,7 @@ async function loadVersion() {
 
 async function checkForUpdates(currentVersion) {
     try {
-        console.debug(`Checking for updates... Current version: ${currentVersion}`);
+        //console.debug(`Checking for updates... Current version: ${currentVersion}`);
         
         // Fetch latest release from GitHub API
         const response = await fetch('https://api.github.com/repos/WorldOfGZ/myastroboard/releases/latest');
@@ -608,14 +671,14 @@ async function checkForUpdates(currentVersion) {
         const latestVersion = release.tag_name.replace(/^v/, ''); // Remove 'v' prefix if present
         const current = currentVersion.replace(/^v/, '');
         
-        console.debug(`Version comparison: current=${current}, latest=${latestVersion}`);
+        //console.debug(`Version comparison: current=${current}, latest=${latestVersion}`);
         
         // Simple version comparison (assumes semantic versioning)
         if (isNewerVersion(current, latestVersion)) {
-            console.debug('Update available! Showing notification...');
+            //console.debug('Update available! Showing notification...');
             showUpdateNotification(release.html_url, latestVersion);
         } else {
-            console.debug('No update needed - current version is up to date');
+            //console.debug('No update needed - current version is up to date');
         }
     } catch (error) {
         // Log errors for debugging but don't show to users
@@ -650,7 +713,7 @@ function showUpdateNotification(releaseUrl, version) {
         link.href = releaseUrl;
         link.textContent = `See version v${version}`;
         notification.style.display = 'block';
-        console.debug(`Update notification shown for version v${version}`);
+        //console.debug(`Update notification shown for version v${version}`);
     } else {
         console.warn('Update notification elements not found in DOM');
         if (!notification) console.warn('Missing element: update-notification');
@@ -660,13 +723,13 @@ function showUpdateNotification(releaseUrl, version) {
 
 // Test functions for debugging
 function testUpdateCheck() {
-    console.log('Testing update check...');
+    //log('Testing update check...');
     
     // Get current version from the page
     const versionElement = document.getElementById('version');
     if (versionElement) {
         const currentVersion = versionElement.textContent.replace(/^v/, '');
-        console.log(`Testing update check with version: ${currentVersion}`);
+        //console.log(`Testing update check with version: ${currentVersion}`);
         checkForUpdates(currentVersion);
     } else {
         console.warn('Version element not found');
@@ -674,7 +737,7 @@ function testUpdateCheck() {
 }
 
 function testUpdateNotification() {
-    console.log('Testing update notification display...');
+    //console.log('Testing update notification display...');
     showUpdateNotification('https://github.com/WorldOfGZ/myastroboard/releases/tag/v0.2.0', '0.2.0');
 }
 
@@ -695,15 +758,15 @@ async function loadCatalogues() {
         const selectedCatalogues = currentConfig.selected_catalogues || ['Messier'];
         
         catalogues.forEach(catalogue => {
-            const label = document.createElement('label');
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.value = catalogue;
-            checkbox.checked = selectedCatalogues.includes(catalogue);
-            
-            label.appendChild(checkbox);
-            label.appendChild(document.createTextNode(catalogue));
-            container.appendChild(label);
+            const checkboxElt = document.createElement('div');
+            checkboxElt.className = 'form-check form-switch form-check-inline bg-checkbox';
+            checkboxElt.innerHTML = `
+                <label class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" value="${catalogue}" ${selectedCatalogues.includes(catalogue) ? 'checked' : ''} switch  >
+                    <span class="form-check-label">${catalogue}</span>
+                </label>
+            `;
+            container.appendChild(checkboxElt);
         });
         
     } catch (error) {
@@ -718,13 +781,16 @@ async function loadUptonightResultsTabs() {
         const outputs = await response.json();
         
         const subtabsContainer = document.getElementById('uptonight-subtabs');
-        
+
         // Add catalogue tabs first, then weather tab at the end
         let tabsHTML = '';
         
         if (outputs && outputs.length > 0) {
             outputs.forEach((output, index) => {
-                tabsHTML += `<button class="sub-tab-btn" data-subtab="catalogue-${output.target}">📚 ${output.target}</button>`;
+                tabsHTML += `
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="catalogue-${output.target}">📚 ${output.target}</a>
+                    </li>`;
             });
         } else {
             tabsHTML = 'Currently no data available for UpTonight service.';
@@ -743,10 +809,10 @@ async function loadUptonightResultsTabs() {
                     div.id = `catalogue-${output.target}-subtab`;
                     div.className = `sub-tab-content`;
                     div.innerHTML = `
-                        <div class="card">
+                        <div class="shadow p-2 mb-3 rounded bg-sub-container">
                             <h2>📚 ${output.target} Results</h2>
-                            <div id="catalogue-${output.target}-type-buttons" class="catalogue-type-buttons"></div>
-                            <div id="catalogue-${output.target}-content" class="loading">Loading...</div>
+                            <ul class="nav nav-pills sub-tabs" id="catalogue-${output.target}-type-buttons"></ul>
+                            <div id="catalogue-${output.target}-content"><div class="alert alert-info">Loading...</div></div>
                         </div>
                     `;
                     uptontightTab.appendChild(div);
@@ -780,7 +846,7 @@ async function loadCatalogueResults(catalogue) {
         const container = document.getElementById(`catalogue-${catalogue}-content`);
         
         if (reports.error) {
-            container.innerHTML = `<div class="error-box">${reports.error}</div>`;
+            container.innerHTML = `<div class="alert alert-danger">${reports.error}</div>`;
             return;
         }
         
@@ -796,26 +862,26 @@ async function loadCatalogueResults(catalogue) {
         
         // Add buttons in order: Plot, Deep sky objects (Report), Bodies, Comets
         if (hasPlot) {
-            buttonsHTML += `<button class="catalogue-type-btn ${!firstType ? 'active' : ''}" onclick="showCatalogueType('${catalogue}', 'plot')">📊 Plot</button>`;
+            buttonsHTML += `<li class="nav-item"><a class="nav-link catalogue-type-btn ${!firstType ? 'active' : ''}" onclick="showCatalogueType('${catalogue}', 'plot')">📊 Plot</a></li>`;
             if (!firstType) firstType = 'plot';
         }
         if (hasReport) {
-            buttonsHTML += `<button class="catalogue-type-btn ${!firstType ? 'active' : ''}" onclick="showCatalogueType('${catalogue}', 'report')">🌌 Deep sky objects</button>`;
+            buttonsHTML += `<li class="nav-item"><a class="nav-link catalogue-type-btn ${!firstType ? 'active' : ''}" onclick="showCatalogueType('${catalogue}', 'report')">🌌 Deep sky objects</a></li>`;
             if (!firstType) firstType = 'report';
         }
         if (hasBodies) {
-            buttonsHTML += `<button class="catalogue-type-btn ${!firstType ? 'active' : ''}" onclick="showCatalogueType('${catalogue}', 'bodies')">🪐 Bodies</button>`;
+            buttonsHTML += `<li class="nav-item"><a class="nav-link catalogue-type-btn ${!firstType ? 'active' : ''}" onclick="showCatalogueType('${catalogue}', 'bodies')">🪐 Bodies</a></li>`;
             if (!firstType) firstType = 'bodies';
         }
         if (hasComets) {
-            buttonsHTML += `<button class="catalogue-type-btn ${!firstType ? 'active' : ''}" onclick="showCatalogueType('${catalogue}', 'comets')">☄️ Comets</button>`;
+            buttonsHTML += `<li class="nav-item"><a class="nav-link catalogue-type-btn ${!firstType ? 'active' : ''}" onclick="showCatalogueType('${catalogue}', 'comets')">☄️ Comets</a></li>`;
             if (!firstType) firstType = 'comets';
         }
         
         // Check if log file exists and add log button
         checkCatalogueLogExists(catalogue).then(logExists => {
             if (logExists) {
-                buttonsHTML += `<button class="catalogue-type-btn" onclick="showCatalogueType('${catalogue}', 'log')">📄 Log</button>`;
+                buttonsHTML += `<li class="nav-item"><a class="nav-link catalogue-type-btn" onclick="showCatalogueType('${catalogue}', 'log')">📄 Log</a></li>`;
                 buttonsContainer.innerHTML = buttonsHTML;
             }
         });
@@ -830,11 +896,13 @@ async function loadCatalogueResults(catalogue) {
         if (firstType) {
             showCatalogueType(catalogue, firstType);
         }
-        
+
+        //throw new Error('Simulated error in loadCatalogueResults'); // Simulate an error to test error handling
+
     } catch (error) {
         console.error('Error loading catalogue results:', error);
         const container = document.getElementById(`catalogue-${catalogue}-content`);
-        container.innerHTML = '<div class="error-box">Failed to load catalogue results</div>';
+        container.innerHTML = '<div class="alert alert-danger">Failed to load catalogue results</div>';
     }
 }
 
@@ -878,10 +946,11 @@ function showCatalogueType(catalogue, type) {
     // Show plot if type is 'plot' and plot exists
     if (type === 'plot' && reports.plot_image) {
         html += `
-            <div class="plot-image">
+            <div class="plot-container mt-3">
                 <img src="${API_BASE}/api/uptonight/outputs/${catalogue}/uptonight-plot.png" 
                      alt="${catalogue} plot" 
-                     onclick="showImagePopup('${catalogue} Plot', this.src)">
+                     class="img-fluid rounded" 
+                     onclick="showPlotPopup('${catalogue} Plot', this.src)">
             </div>
         `;
     }
@@ -898,13 +967,8 @@ function showCatalogueType(catalogue, type) {
                 }
                 
                 html = `
-                    <div class="log-container">
-                        <div class="log-header">
-                            <h3>📄 UpTonight Log - ${catalogue}</h3>
-                        </div>
-                        <div class="log-content">
-                            <pre>${escapeHtml(logContent)}</pre>
-                        </div>
+                    <div class="logs-container mt-3 rounded">
+                        <pre>${escapeHtml(logContent)}</pre>
                     </div>
                 `;
             } else {
@@ -1002,46 +1066,63 @@ function generateReportTable(report, catalogue, type) {
     const types = [...new Set(report.map(r => r.type).filter(t => t))].sort();
     
     let html = `
-        <div class="table-controls">
-            <input type="text" id="filter-${catalogue}-${type}" placeholder="Search..." class="filter-input">`;
+        <div class="row row-cols-lg-auto g-3 align-items-center mt-3">
+            <div class="col-12">
+                <label for="filter-${catalogue}-${type}" class="visually-hidden">Search</label>
+                <input type="text" id="filter-${catalogue}-${type}" placeholder="Search..." class="filter-input form-control">
+            </div>`;
     
     // Only show foto filter for report and bodies types, not for comets
     // Use shared foto value from localStorage or default to 0.8
     if (type !== 'comets') {
         const savedFotoValue = localStorage.getItem('fotoFilterValue') || '0.8';
         html += `
-            <label style="display: flex; align-items: center; gap: 5px;">
-                <input type="checkbox" id="foto-filter-${catalogue}-${type}"> Foto >= 
-                <input type="number" id="foto-value-${catalogue}-${type}" value="${savedFotoValue}" step="0.1" min="0" max="1" style="width: 80px; padding: 4px;" class="shared-foto-value">
-            </label>`;
+            <div class="col-12">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="foto-filter-${catalogue}-${type}">
+                    <label class="form-check-label" for="inlineFormCheck"> Foto >= </label>
+                </div>               
+            </div>`;
+        
+        html += `
+            <div class="col-12">
+                <label for="foto-value-${catalogue}-${type}" class="visually-hidden">Foto score</label>
+                <input type="number" id="foto-value-${catalogue}-${type}" value="${savedFotoValue}" step="0.1" min="0" max="1" class="shared-foto-value form-control">
+            </div>`;
     }
     
     // Add constellation filter if constellation field exists
     if (constellations.length > 0) {
         html += `
-            <select id="constellation-filter-${catalogue}-${type}" class="filter-select">
-                <option value="">All Constellations</option>`;
+            <div class="col-12">
+                <label class="visually-hidden" for="constellation-filter-${catalogue}-${type}">Constellations</label>
+                <select class="form-select filter-select" id="constellation-filter-${catalogue}-${type}">
+                    <option value="">All Constellations</option>`;
         constellations.forEach(c => {
             html += `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`;
         });
-        html += `</select>`;
+        html += `</select>
+            </div>`;
     }
     
     // Add type filter if type field exists
     if (types.length > 0) {
         html += `
-            <select id="type-filter-${catalogue}-${type}" class="filter-select">
-                <option value="">All Types</option>`;
+            <div class="col-12">
+                <label class="visually-hidden" for="type-filter-${catalogue}-${type}">Types</label>
+                <select id="type-filter-${catalogue}-${type}" class="form-select filter-select">
+                    <option value="">All Types</option>`;
         types.forEach(t => {
             html += `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`;
         });
-        html += `</select>`;
+        html += `</select>
+            </div>`;
     }
     
     html += `
         </div>
-        <div class="table-wrapper-full">
-            <table class="report-table" id="table-${catalogue}-${type}">
+        <div class="table-responsive mt-3">
+            <table class="table table-striped table-hover table-sm" id="table-${catalogue}-${type}">
                 <thead>
                     <tr>
     `;
@@ -1055,7 +1136,7 @@ function generateReportTable(report, catalogue, type) {
         }
     });
     
-    html += `</tr></thead><tbody>`;
+    html += `</tr></thead><tbody class="table-group-divider">`;
     
     // Generate table rows
     report.forEach((row, idx) => {
@@ -1066,7 +1147,7 @@ function generateReportTable(report, catalogue, type) {
             if (col.key === 'more') {
                 // Generate More link that opens a popup
                 const popupId = `more-popup-${catalogue}-${type}-${idx}`;
-                html += `<td style="text-align: ${col.align}"><a href="#" onclick="showMorePopup('${popupId}'); return false;">📋 More</a></td>`;
+                html += `<td style="text-align: ${col.align}"><a href="#" onclick="showMorePopup('${popupId}'); return false;" class="link-underline link-underline-opacity-0">📋 More</a></td>`;
             } else if (col.key === 'astrodex') {
                 // Generate Astrodex action button
                 const itemName = row['id'] || row['target name'];
@@ -1089,7 +1170,7 @@ function generateReportTable(report, catalogue, type) {
                         size: row['size']
                     };
                     const itemDataJson = JSON.stringify(itemData).replace(/"/g, '&quot;');
-                    html += `<td style="text-align: ${col.align}"><button class="btn btn-sm astrodex-add-btn" data-item="${itemDataJson}">➕ Add</button></td>`;
+                    html += `<td style="text-align: ${col.align}"><button class="btn btn-sm btn-outline-primary astrodex-add-btn" data-item="${itemDataJson}">➕ Add</button></td>`;
                 } else {
                     html += `<td style="text-align: ${col.align}">-</td>`;
                 }
@@ -1126,7 +1207,7 @@ function generateReportTable(report, catalogue, type) {
                         const alttimePath = `${API_BASE}/api/uptonight/outputs/${catalogue}/${row['alttime_file']}`;
                         html += `
                         <td style="text-align: ${col.align}" class="alttime-check" data-path="${alttimePath}" data-title="${escapeHtml(alttimeSource)} Altitude-Time">
-                            <a href="#" onclick="showImagePopup('${escapeHtml(alttimeSource)} Altitude-Time', '${alttimePath}'); return false;">${displayValue}</a>
+                            <a href="#" class="link-underline link-underline-opacity-0" onclick="showAlttimePopup('${escapeHtml(alttimeSource)} Altitude-Time', '${alttimePath}'); return false;">${displayValue}</a>
                         </td>`;
                     } else {
                         html += `<td style="text-align: ${col.align}">${displayValue}</td>`;
@@ -1146,11 +1227,9 @@ function generateReportTable(report, catalogue, type) {
     if (type === 'report' || type === 'bodies' || type === 'comets') {
         report.forEach((row, idx) => {
             html += `
-                <div id="more-popup-${catalogue}-${type}-${idx}" class="more-popup" style="display: none;">
-                    <div class="more-popup-content">
-                        <span class="more-popup-close" onclick="closeMorePopup('more-popup-${catalogue}-${type}-${idx}')">&times;</span>
-                        <h3>Additional Information</h3>
-                        <table class="more-info-table"><tbody>`;
+                <div id="more-popup-${catalogue}-${type}-${idx}" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-striped"><tbody>`;
             
             moreFields.forEach(field => {
                 let value = row[field];
@@ -1245,7 +1324,7 @@ function generateReportTable(report, catalogue, type) {
                     addFromCatalogue(itemData);
                 } catch (error) {
                     console.error('Error adding to astrodex:', error);
-                    showNotification('Failed to add item', 'error');
+                    showMessage('error', 'Failed to add item');
                 }
             });
         });
@@ -1348,23 +1427,66 @@ function filterTable(catalogue, type) {
     });
 }
 
-function showImagePopup(title, src) {
-    document.getElementById('image-title').textContent = title;
-    document.getElementById('image-display').src = src;
-    document.getElementById('image-modal').style.display = 'block';
+function showPlotPopup(title, src) {
+    // Modal modal_full_close
+    const modal = new bootstrap.Modal(document.getElementById('modal_full_close'));
+
+    // Prepare modal content
+    document.getElementById('modal_full_close_title').textContent = title;
+    document.getElementById('modal_full_close_body').innerHTML = `
+        <img 
+            id="image-display" 
+            src="${src}" 
+            alt="Plot" 
+            title="${title}" 
+            class="img-fluid rounded" 
+        >
+    `;
+
+    // Show the modal
+    modal.show();
+}
+
+function showAlttimePopup(title, src) {
+    // Modal modal_xl_close
+    const modal = new bootstrap.Modal(document.getElementById('modal_xl_close'));
+
+    // Prepare modal content
+    document.getElementById('modal_xl_close_title').textContent = title;
+    document.getElementById('modal_xl_close_body').innerHTML = `
+        <img 
+            id="image-display" 
+            src="${src}" 
+            alt="Altitude-Time Plot" 
+            title="${title}" 
+            class="img-fluid rounded" 
+        >
+    `;
+
+    // Show the modal
+    modal.show();
 }
 
 function showMorePopup(popupId) {
     const popup = document.getElementById(popupId);
+    
     if (popup) {
-        popup.style.display = 'block';
-    }
-}
+        // Use BS modal
+        //Prepare modal title
+        const titleElement = document.getElementById('modal_lg_close_title');
+        titleElement.innerHTML = `More informations`;
+        
+        //Prepare modal content
+        const contentElement = document.getElementById('modal_lg_close_body');
+        contentElement.innerHTML = popup.innerHTML;
 
-function closeMorePopup(popupId) {
-    const popup = document.getElementById(popupId);
-    if (popup) {
-        popup.style.display = 'none';
+        const bs_modal = new bootstrap.Modal('#modal_lg_close', {
+            backdrop: 'static',
+            focus: true,
+            keyboard: true
+        });
+        bs_modal.show();
+
     }
 }
 
@@ -1567,13 +1689,14 @@ function validateYAML(textarea, container, statusElement) {
     const value = textarea.value.trim();
     
     if (!value) {
+        //console.log('YAML is empty, skipping validation');
         // Empty is valid
         container.classList.remove('invalid');
         container.classList.remove('valid');
         statusElement.classList.remove('invalid');
         statusElement.classList.remove('valid');
-        statusElement.querySelector('.icon').textContent = '⏺';
-        statusElement.querySelector('.yaml-validation-message').textContent = 'Ready';
+        statusElement.querySelector('.icon').textContent = '&nbsp;';
+        statusElement.querySelector('.yaml-validation-message').textContent = '';
         return;
     }
     

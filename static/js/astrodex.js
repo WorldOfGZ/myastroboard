@@ -55,7 +55,7 @@ async function loadAstrodex() {
         renderAstrodexView();
     } catch (error) {
         console.error('Error loading astrodex:', error);
-        showNotification('Failed to load Astrodex', 'error');
+        showMessage('error', 'Failed to load Astrodex');
     }
 }
 
@@ -83,21 +83,37 @@ function renderAstrodexStats() {
     
     const stats = astrodexData.stats;
     statsContainer.innerHTML = `
-        <div class="astrodex-stat-card">
-            <div class="stat-value">${stats.total_items || 0}</div>
-            <div class="stat-label">Total Objects</div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="astrodex-insight-value text-primary">${stats.total_items || 0}</div>
+                    <div class="fw-light fst-italic">Total Objects</div>
+                </div>
+            </div>
         </div>
-        <div class="astrodex-stat-card">
-            <div class="stat-value">${stats.items_with_pictures || 0}</div>
-            <div class="stat-label">With Photos</div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="astrodex-insight-value text-primary">${stats.items_with_pictures || 0}</div>
+                    <div class="fw-light fst-italic">With Photos</div>
+                </div>
+            </div>
         </div>
-        <div class="astrodex-stat-card">
-            <div class="stat-value">${stats.total_pictures || 0}</div>
-            <div class="stat-label">Total Photos</div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="astrodex-insight-value text-primary">${stats.total_pictures || 0}</div>
+                    <div class="fw-light fst-italic">Total Photos</div>
+                </div>
+            </div>
         </div>
-        <div class="astrodex-stat-card">
-            <div class="stat-value">${Object.keys(stats.types || {}).length}</div>
-            <div class="stat-label">Object Types</div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="astrodex-insight-value text-primary">${Object.keys(stats.types || {}).length}</div>
+                    <div class="fw-light fst-italic">Object Types</div>
+                </div>
+            </div>
         </div>
     `;
 }
@@ -108,13 +124,18 @@ function renderAstrodexGrid(items) {
     
     if (items.length === 0) {
         gridContainer.innerHTML = `
-            <div class="astrodex-empty">
-                <div class="empty-icon">📚</div>
-                <div class="empty-title">Your Astrodex is empty</div>
-                <div class="empty-text">Start adding celestial objects you've captured!</div>
-                <button class="btn" data-action="add-astrodex-item">
-                    ➕ Add First Object
-                </button>
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <b>📚 Your Astrodex is empty</b><br>
+                        Start adding celestial objects you've captured!
+                    </div>
+                    <div class="card-footer text-center">
+                        <button class="btn btn-outline-primary" data-action="add-astrodex-item">
+                            ➕ Add First Object
+                        </button>
+                    </div>
+                </div>
             </div>
         `;
         return;
@@ -139,15 +160,17 @@ function renderAstrodexGrid(items) {
         const jsEscapedId = escapeForJs(item.id);
         
         return `
-            <div class="astrodex-card">
-                <div class="astrodex-card-image" data-item-id="${jsEscapedId}" tabindex="0" role="button" aria-label="View ${escapedName} photos" style="cursor: pointer;" title="Click to view photos">
-                    <img src="${escapedImageUrl}" alt="${escapedName}" loading="lazy">
-                    ${photoCount > 0 ? `<div class="photo-badge">${photoCount} 📷</div>` : ''}
-                </div>
-                <div class="astrodex-card-body" data-item-id="${jsEscapedId}" tabindex="0" role="button" aria-label="View ${escapedName} details" style="cursor: pointer;">
-                    <div class="astrodex-card-title">${escapedName}</div>
-                    <div class="astrodex-card-type">${escapeHtml(item.type || 'Unknown')}</div>
-                    ${item.constellation ? `<div class="astrodex-card-constellation">📍 ${escapeHtml(item.constellation)}</div>` : ''}
+            <div class="col mb-3">
+                <div class="card h-100">
+                    <div class="astrodex-card-image rounded" data-item-id="${jsEscapedId}" tabindex="0" role="button" aria-label="View ${escapedName} photos" style="cursor: pointer;" title="Click to view photos">
+                        <img src="${escapedImageUrl}" alt="${escapedName}" loading="lazy" class="card-img-top">
+                        ${photoCount > 0 ? `<div class="photo-badge">${photoCount} 📷</div>` : ''}
+                    </div>
+                    <div class="card-body astrodex-card-body" data-item-id="${jsEscapedId}" tabindex="0" role="button" aria-label="View ${escapedName} details" style="cursor: pointer;">
+                        <div class="astrodex-card-title">${escapedName}</div>
+                        <div class="astrodex-card-type">${escapeHtml(item.type || 'Unknown')}</div>
+                        ${item.constellation ? `<div class="astrodex-card-constellation">📍 ${escapeHtml(item.constellation)}</div>` : ''}
+                    </div>
                 </div>
             </div>
         `;
@@ -262,15 +285,15 @@ async function addToAstrodex(itemData) {
             
             return true;
         } else {
-            showNotification(response.error || 'Failed to add item', 'error');
+            showMessage('error', response.error || 'Failed to add item');
             return false;
         }
     } catch (error) {
         console.error('Error adding to astrodex:', error);
         if (error.message && error.message.includes('already exists')) {
-            showNotification('This object is already in your Astrodex', 'warning');
+            showMessage('warning', 'This object is already in your Astrodex');
         } else {
-            showNotification('Failed to add to Astrodex', 'error');
+            showMessage('error', 'Failed to add to Astrodex');
         }
         return false;
     }
@@ -281,7 +304,7 @@ async function addFromCatalogue(catalogueItem) {
     const itemName = catalogueItem.id || catalogueItem['target name'] || catalogueItem.name;
     
     if (!itemName) {
-        showNotification('Invalid item data', 'error');
+        showMessage('error', 'Invalid item data');
         return;
     }
     
@@ -338,42 +361,53 @@ async function addFromCatalogue(catalogueItem) {
 }
 
 function showAddAstrodexItemModal() {
-    const modal = createModal('Add to Astrodex', `
+    //console.log("Opening Add to Astrodex modal");
+
+    closeModal(); // Close any existing modal to avoid stacking
+
+    createModal('Add to Astrodex', `
         <form id="add-astrodex-form" class="form">
-            <div class="form-group">
-                <label for="item-name">Object Name *</label>
-                <input type="text" id="item-name" class="form-control" required>
+            <div class="row mb-3">
+                <label for="item-name" class="col-sm-3 col-form-label fw-bold">Object Name *</label>
+                <div class="col-sm-9">
+                    <input type="text" id="item-name" class="form-control" required>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="item-type">Type</label>
-                <select id="item-type" class="form-control">
-                    <option value="Galaxy">Galaxy</option>
-                    <option value="Nebula">Nebula</option>
-                    <option value="Planetary Nebula">Planetary Nebula</option>
-                    <option value="Star Cluster">Star Cluster</option>
-                    <option value="Open Cluster">Open Cluster</option>
-                    <option value="Globular Cluster">Globular Cluster</option>
-                    <option value="Planet">Planet</option>
-                    <option value="Moon">Moon</option>
-                    <option value="Sun">Sun</option>
-                    <option value="Comet">Comet</option>
-                    <option value="Other">Other</option>
-                </select>
+            <div class="row mb-3">
+                <label for="item-type" class="col-sm-3 col-form-label fw-bold">Type</label>
+                <div class="col-sm-9">
+                    <select id="item-type" class="form-control">
+                        <option value="Galaxy">Galaxy</option>
+                        <option value="Nebula">Nebula</option>
+                        <option value="Planetary Nebula">Planetary Nebula</option>
+                        <option value="Star Cluster">Star Cluster</option>
+                        <option value="Open Cluster">Open Cluster</option>
+                        <option value="Globular Cluster">Globular Cluster</option>
+                        <option value="Planet">Planet</option>
+                        <option value="Moon">Moon</option>
+                        <option value="Sun">Sun</option>
+                        <option value="Comet">Comet</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>            
+            <div class="row mb-3">
+                <label for="item-constellation" class="col-sm-3 col-form-label fw-bold">Constellation</label>
+                <div class="col-sm-9">
+                    <input type="text" id="item-constellation" class="form-control">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="item-constellation">Constellation</label>
-                <input type="text" id="item-constellation" class="form-control">
+            <div class="row mb-3">
+                <label for="item-notes" class="col-sm-3 col-form-label fw-bold">Notes</label>
+                <div class="col-sm-9">
+                    <textarea id="item-notes" class="form-control" rows="3"></textarea>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="item-notes">Notes</label>
-                <textarea id="item-notes" class="form-control" rows="3"></textarea>
-            </div>
-            <div class="form-actions">
-                <button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button>
+            <div class="text-end">
                 <button type="submit" class="btn btn-primary">Add to Astrodex</button>
             </div>
         </form>
-    `);
+    `, 'lg');
     
     document.getElementById('add-astrodex-form').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -390,13 +424,35 @@ function showAddAstrodexItemModal() {
             closeModal();
         }
     });
+
+    // Show the modal
+    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
+        backdrop: 'static', 
+        focus: true,
+        keyboard: true
+    }); 
+    bs_modal.show();
+
+    // Event listener when modal is closed
+    document.getElementById('modal_lg_close').addEventListener('hidden.bs.modal', () => {
+        // Remove previous event listeners to prevent duplicates
+        const form = document.getElementById('add-astrodex-form');
+        if (form) {
+            form.removeEventListener('submit', async (e) => {
+                e.preventDefault();
+            });
+        }
+
+        //Remove self listener to prevent duplicates if modal is opened again
+        document.getElementById('modal_lg_close').removeEventListener('hidden.bs.modal', () => {});
+    });
 }
 
 // ============================================
 // Item Detail View
 // ============================================
 
-async function showAstrodexItemDetail(itemId) {
+async function showAstrodexItemDetail(itemId) { 
     const item = astrodexData.items.find(i => i.id === itemId);
     if (!item) return;
     
@@ -415,64 +471,82 @@ async function showAstrodexItemDetail(itemId) {
     const jsEscapedName = escapeForJs(item.name);
     const jsEscapedImageUrl = escapeForJs(imageUrl);
     
-    const modal = createModal(item.name, `
-        <div class="astrodex-detail">
-            <div class="astrodex-detail-top">
-                <div class="astrodex-detail-image-container">
-                    <img src="${escapedImageUrl}" alt="${escapedName}" class="astrodex-detail-image">
-                </div>
-                <div class="astrodex-detail-info">
-                    <h3>Object Information</h3>
-                    <form id="edit-item-form-${item.id}">
-                        <div class="info-row">
-                            <span>Type:</span> 
-                            <select id="edit-type-${item.id}" class="form-control-inline" data-action="update-field" data-item-id="${item.id}" data-field="type">
-                                <option value="Galaxy" ${item.type === 'Galaxy' ? 'selected' : ''}>Galaxy</option>
-                                <option value="Nebula" ${item.type === 'Nebula' ? 'selected' : ''}>Nebula</option>
-                                <option value="Planetary Nebula" ${item.type === 'Planetary Nebula' ? 'selected' : ''}>Planetary Nebula</option>
-                                <option value="Star Cluster" ${item.type === 'Star Cluster' ? 'selected' : ''}>Star Cluster</option>
-                                <option value="Open Cluster" ${item.type === 'Open Cluster' ? 'selected' : ''}>Open Cluster</option>
-                                <option value="Globular Cluster" ${item.type === 'Globular Cluster' ? 'selected' : ''}>Globular Cluster</option>
-                                <option value="Planet" ${item.type === 'Planet' ? 'selected' : ''}>Planet</option>
-                                <option value="Moon" ${item.type === 'Moon' ? 'selected' : ''}>Moon</option>
-                                <option value="Comet" ${item.type === 'Comet' ? 'selected' : ''}>Comet</option>
-                                <option value="Sun" ${item.type === 'Sun' ? 'selected' : ''}>Sun</option>
-                                <option value="Other" ${item.type === 'Other' ? 'selected' : ''}>Other</option>
-                                <option value="Unknown" ${item.type === 'Unknown' || !item.type ? 'selected' : ''}>Unknown</option>
-                            </select>
-                        </div>
-                        ${item.catalogue ? `<div class="info-row"><span>Catalogue:</span> <span>${escapeHtml(item.catalogue)}</span></div>` : ''}
-                        <div class="info-row">
-                            <span>Constellation:</span> 
-                            <input type="text" id="edit-constellation-${item.id}" class="form-control-inline" value="${escapeHtml(item.constellation || '')}" data-action="update-field" data-item-id="${item.id}" data-field="constellation" placeholder="Optional">
-                        </div>
-                        <div class="info-row">
-                            <span>Notes:</span>
-                        </div>
-                        <textarea id="edit-notes-${item.id}" class="form-control" rows="3" data-action="update-field" data-item-id="${item.id}" data-field="notes" placeholder="Add your notes...">${escapeHtml(item.notes || '')}</textarea>
-                    </form>
-                    <div class="astrodex-detail-actions">
-                        <button class="btn btn-sm" data-action="add-picture" data-item-id="${item.id}">📷 Add Photo</button>
-                        <button class="btn btn-sm btn-danger" data-action="delete-item" data-item-id="${item.id}">🗑️ Remove</button>
-                    </div>
+    const modal = createModal(item.name, `                    
+        <h3>Object Information</h3>
+        <form id="edit-item-form-${item.id}">
+            <div class="row mb-3">
+                <label for="edit-type-${item.id}" class="col-sm-2 col-form-label fw-bold">Type</label>
+                <div class="col-sm-10">
+                    <select id="edit-type-${item.id}" class="form-control" data-action="update-field" data-item-id="${item.id}" data-field="type">
+                        <option value="Galaxy" ${item.type === 'Galaxy' ? 'selected' : ''}>Galaxy</option>
+                        <option value="Nebula" ${item.type === 'Nebula' ? 'selected' : ''}>Nebula</option>
+                        <option value="Planetary Nebula" ${item.type === 'Planetary Nebula' ? 'selected' : ''}>Planetary Nebula</option>
+                        <option value="Star Cluster" ${item.type === 'Star Cluster' ? 'selected' : ''}>Star Cluster</option>
+                        <option value="Open Cluster" ${item.type === 'Open Cluster' ? 'selected' : ''}>Open Cluster</option>
+                        <option value="Globular Cluster" ${item.type === 'Globular Cluster' ? 'selected' : ''}>Globular Cluster</option>
+                        <option value="Planet" ${item.type === 'Planet' ? 'selected' : ''}>Planet</option>
+                        <option value="Moon" ${item.type === 'Moon' ? 'selected' : ''}>Moon</option>
+                        <option value="Comet" ${item.type === 'Comet' ? 'selected' : ''}>Comet</option>
+                        <option value="Sun" ${item.type === 'Sun' ? 'selected' : ''}>Sun</option>
+                        <option value="Other" ${item.type === 'Other' ? 'selected' : ''}>Other</option>
+                        <option value="Unknown" ${item.type === 'Unknown' || !item.type ? 'selected' : ''}>Unknown</option>
+                    </select>
                 </div>
             </div>
-            <div class="astrodex-detail-bottom">
-                <h3>Photos (${item.pictures ? item.pictures.length : 0})</h3>
-                <div class="astrodex-pictures">
-                    ${renderPicturesGrid(item)}
+
+            <div class="row mb-3">
+                <label for="catalogue-${item.id}" class="col-sm-2 col-form-label fw-bold">Catalogue</label>
+                <div class="col-sm-10">
+                    <input type="text" id="catalogue-${item.id}" class="form-control" value="${escapeHtml(item.catalogue || '')}" data-field="catalogue" readonly>
                 </div>
             </div>
+
+            <div class="row mb-3">
+                <label for="edit-constellation-${item.id}" class="col-sm-2 col-form-label fw-bold">Constellation</label>
+                <div class="col-sm-10">
+                    <input type="text" id="edit-constellation-${item.id}" class="form-control" value="${escapeHtml(item.constellation || '')}" data-action="update-field" data-item-id="${item.id}" data-field="constellation" placeholder="Optional">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <label for="edit-notes-${item.id}" class="col-sm-2 col-form-label fw-bold">Notes</label>
+                <div class="col-sm-10">
+                    <textarea id="edit-notes-${item.id}" class="form-control" rows="3" data-action="update-field" data-item-id="${item.id}" data-field="notes" placeholder="Add your notes...">${escapeHtml(item.notes || '')}</textarea>
+                </div>
+            </div>
+        </form>
+
+        <div class="mt-3 mb-3 text-end">
+            <button class="btn btn-sm btn-primary me-3" data-action="add-picture" data-item-id="${item.id}">📷 Add Photo</button>
+            <button class="btn btn-sm btn-danger" data-action="delete-item" data-item-id="${item.id}">🗑️ Remove</button>
         </div>
-    `, 'modal-large');
+
+        <h3>Photos (${item.pictures ? item.pictures.length : 0})</h3>
+        <div class="astrodex-pictures row row-cols-2 row-cols-md-4 g-4">
+            ${renderPicturesGrid(item)}
+        </div>
+
+    `, 'xl');
+
+    // Show the modal
+    const bs_modal = new bootstrap.Modal('#modal_xl_close', {
+        backdrop: 'static',
+        focus: true,
+        keyboard: true
+    });
+    bs_modal.show();
 }
 
 function renderPicturesGrid(item) {
     if (!item.pictures || item.pictures.length === 0) {
         return `
-            <div class="no-pictures">
-                <p>No photos yet</p>
-                <button class="btn" data-action="add-picture" data-item-id="${item.id}">Add First Photo</button>
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <p>No photos yet</p>
+                        <button class="btn btn-primary" data-action="add-picture" data-item-id="${item.id}">Add First Photo</button>
+                    </div>
+                </div>
             </div>
         `;
     }
@@ -488,20 +562,26 @@ function renderPicturesGrid(item) {
         const jsEscapedImageUrl = escapeForJs(imageUrl);
         
         return `
-        <div class="picture-card ${picture.is_main ? 'main-picture' : ''}">
-            <img src="${escapedImageUrl}" alt="Photo" data-picture-name="${jsEscapedName} - Photo" data-picture-url="${jsEscapedImageUrl}" tabindex="0" role="button" aria-label="View photo of ${escapedName} larger" style="cursor: pointer;" title="Click to view larger">
-            ${picture.is_main ? '<div class="main-badge">⭐ Main</div>' : ''}
-            <div class="picture-info">
-                ${picture.date ? `<div>📅 ${escapeHtml(formatDate(picture.date))}</div>` : ''}
-                ${picture.exposition_time ? `<div>⏱️ ${escapeHtml(picture.exposition_time)}</div>` : ''}
-                ${picture.device ? `<div>🔭 ${escapeHtml(picture.device)}</div>` : ''}
+            <div class="col">
+                <div class="card h-100">
+                    <div class="astrodex-card-image-no-hover rounded">
+                        <img src="${escapedImageUrl}" class="card-img-top" alt="Photo" >
+                        ${picture.is_main ? '<div class="main-badge">⭐ Main</div>' : ''}
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">
+                            ${picture.date ? `<div>📅 ${escapeHtml(formatDate(picture.date))}</div>` : ''}
+                            ${picture.exposition_time ? `<div>⏱️ ${escapeHtml(picture.exposition_time)}</div>` : ''}
+                            ${picture.device ? `<div>🔭 ${escapeHtml(picture.device)}</div>` : ''}
+                        </p>
+                    </div>
+                    <div class="card-footer text-center">
+                        ${!picture.is_main ? `<button class="btn btn-outline-light" data-action="set-main-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="Set as main">⭐</button>` : '<span class="btn-icon-placeholder"></span>'}
+                        <button class="btn btn-outline-light" data-action="edit-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="Edit">✏️</button>
+                        <button class="btn btn-danger" data-action="delete-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="Delete">🗑️</button>
+                    </div>
+                </div>
             </div>
-            <div class="picture-actions">
-                ${!picture.is_main ? `<button class="btn-icon" data-action="set-main-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="Set as main">⭐</button>` : '<span class="btn-icon-placeholder"></span>'}
-                <button class="btn-icon" data-action="edit-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="Edit">✏️</button>
-                <button class="btn-icon btn-danger" data-action="delete-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="Delete">🗑️</button>
-            </div>
-        </div>
         `;
     }).join('');
 }
@@ -511,6 +591,8 @@ function renderPicturesGrid(item) {
 // ============================================
 
 function showAddPictureModal(itemId) {
+    closeModal(); // Close current modal to avoid stacking
+
     // Get current date in YYYY-MM-DD format
     const today = new Date().toISOString().split('T')[0];
     
@@ -532,59 +614,97 @@ function showAddPictureModal(itemId) {
     const filterOptions = filters.map(f => `<option value="${escapeHtml(f)}">`).join('');
     const isoOptions = isos.map(i => `<option value="${escapeHtml(i)}">`).join('');
     
-    const modal = createModal('Add Photo', `
+    createModal('Add Photo', `
         <form id="add-picture-form" class="form">
-            <div class="form-group">
-                <label for="picture-file">Image File *</label>
-                <input type="file" id="picture-file" class="form-control" accept="image/*" required>
+            <div class="row mb-3">
+                <label for="picture-file" class="col-sm-3 col-form-label">Image File *</label>
+                <div class="col-sm-9">
+                    <input type="file" class="form-control" id="picture-file" accept="image/*" required>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="picture-date">Observation Date</label>
-                <input type="date" id="picture-date" class="form-control" value="${today}">
+            <div class="row mb-3">
+                <label for="picture-date" class="col-sm-3 col-form-label">Observation Date</label>
+                <div class="col-sm-9">
+                    <input type="date" class="form-control" id="picture-date" value="${today}">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="picture-exposition">Exposition Time</label>
-                <input type="text" id="picture-exposition" class="form-control" placeholder="e.g., 120x30s">
+            <div class="row mb-3">
+                <label for="picture-exposition" class="col-sm-3 col-form-label">Exposition Time</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="picture-exposition" placeholder="e.g., 120x30s">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="picture-device">Device/Telescope</label>
-                <input type="text" id="picture-device" class="form-control" list="device-list" autocomplete="off">
-                <datalist id="device-list">
-                    ${deviceOptions}
-                </datalist>
+            <div class="row mb-3">
+                <label for="picture-device" class="col-sm-3 col-form-label">Device/Telescope</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="picture-device" list="device-list" autocomplete="off">
+                    <datalist id="device-list">
+                        ${deviceOptions}
+                    </datalist>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="picture-filters">Filters</label>
-                <input type="text" id="picture-filters" class="form-control" placeholder="e.g., LRGB, Ha-OIII" list="filters-list" autocomplete="off">
-                <datalist id="filters-list">
-                    ${filterOptions}
-                </datalist>
+            <div class="row mb-3">
+                <label for="picture-filters" class="col-sm-3 col-form-label">Filters</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="picture-filters" placeholder="e.g., LRGB, Ha-OIII" list="filters-list" autocomplete="off">
+                    <datalist id="filters-list">
+                        ${filterOptions}
+                    </datalist>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="picture-iso">ISO</label>
-                <input type="text" id="picture-iso" class="form-control" list="iso-list" autocomplete="off">
-                <datalist id="iso-list">
-                    ${isoOptions}
-                </datalist>
+            <div class="row mb-3">
+                <label for="picture-iso" class="col-sm-3 col-form-label">ISO</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="picture-iso" list="iso-list" autocomplete="off">
+                    <datalist id="iso-list">
+                        ${isoOptions}
+                    </datalist>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="picture-frames">Number of Frames</label>
-                <input type="text" id="picture-frames" class="form-control">
+            <div class="row mb-3">
+                <label for="picture-frames" class="col-sm-3 col-form-label">Number of Frames</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="picture-frames">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="picture-notes">Notes</label>
-                <textarea id="picture-notes" class="form-control" rows="2"></textarea>
+            <div class="row mb-3">
+                <label for="picture-notes" class="col-sm-3 col-form-label">Notes</label>
+                <div class="col-sm-9">
+                    <textarea id="picture-notes" class="form-control" rows="3"></textarea>
+                </div>
             </div>
-            <div class="form-actions">
+            <div class="form-actions text-end">
                 <button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button>
                 <button type="submit" class="btn btn-primary">Upload Photo</button>
             </div>
         </form>
-    `);
+    `, 'lg');
+
+    // Open the modal
+    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
+        backdrop: 'static',
+        focus: true,
+        keyboard: true
+    });
+    bs_modal.show();
     
     document.getElementById('add-picture-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         await uploadPicture(itemId);
+    });    
+
+    // Event listener when modal is closed
+    document.getElementById('modal_lg_close').addEventListener('hidden.bs.modal', () => {
+        //Remove event listener
+        const pictureForm = document.getElementById('add-picture-form');
+        if (pictureForm) {
+            pictureForm.removeEventListener('submit', async (e) => {
+                e.preventDefault();
+            });
+        }
+
+        //Remove self listener to prevent duplicates if modal is opened again
+        document.getElementById('modal_lg_close').removeEventListener('hidden.bs.modal', () => {});
     });
 }
 
@@ -593,7 +713,7 @@ async function uploadPicture(itemId) {
     const file = fileInput.files[0];
     
     if (!file) {
-        showNotification('Please select an image', 'error');
+        showMessage('error', 'Please select an image');
         return;
     }
     
@@ -651,7 +771,7 @@ async function uploadPicture(itemId) {
         }
     } catch (error) {
         console.error('Error uploading picture:', error);
-        showNotification('Failed to upload photo', 'error');
+        showMessage('error', 'Failed to upload photo');
         // Re-enable button on error so user can retry
         submitButton.disabled = false;
         submitButton.textContent = originalButtonText;
@@ -666,36 +786,35 @@ async function setMainPicture(itemId, pictureId) {
         
         // No alert on success
         await loadAstrodex();
-        showAstrodexItemDetail(itemId);
+        closeModal();
+        //showAstrodexItemDetail(itemId);
     } catch (error) {
         console.error('Error setting main picture:', error);
-        showNotification('Failed to update main photo', 'error');
+        showMessage('error', 'Failed to update main photo');
     }
 }
 
 async function deletePicture(itemId, pictureId) {
-    showConfirmModal(
-        'Delete Photo',
-        'Are you sure you want to delete this photo? This action cannot be undone.',
+    if (window.confirm("Are you sure you want to delete this photo? This action cannot be undone.")) {
         async () => {
             try {
                 await fetchJSON(`/api/astrodex/items/${itemId}/pictures/${pictureId}`, {
                     method: 'DELETE'
                 });
                 
-                showNotification('Photo deleted', 'success');
+                showMessage('success', 'Photo deleted');
                 await loadAstrodex();
                 showAstrodexItemDetail(itemId);
             } catch (error) {
                 console.error('Error deleting picture:', error);
-                showNotification('Failed to delete photo', 'error');
+                showMessage('error', 'Failed to delete photo');
             }
         },
         () => {
             // On cancel, reopen the item detail view
             showAstrodexItemDetail(itemId);
         }
-    );
+    }
 }
 
 // ============================================
@@ -707,16 +826,15 @@ async function deleteAstrodexItem(itemId) {
     const item = astrodexData.items.find(i => i.id === itemId);
     const itemName = item ? item.name : null;
     
-    showConfirmModal(
-        'Remove from Astrodex',
-        'Are you sure you want to remove this object from your Astrodex? This will also delete all associated photos. This action cannot be undone.',
+    
+    if (window.confirm("Are you sure you want to remove this object from your Astrodex? This will also delete all associated photos. This action cannot be undone.")) {
         async () => {
             try {
                 await fetchJSON(`/api/astrodex/items/${itemId}`, {
                     method: 'DELETE'
                 });
                 
-                showNotification('Object removed from Astrodex', 'success');
+                showMessage('success', 'Object removed from Astrodex');
                 await loadAstrodex();
                 
                 // Update catalogue badges if the function exists (from app.js)
@@ -727,14 +845,14 @@ async function deleteAstrodexItem(itemId) {
                 closeModal();
             } catch (error) {
                 console.error('Error deleting item:', error);
-                showNotification('Failed to remove object', 'error');
+                showMessage('error', 'Failed to remove object');
             }
         },
         () => {
             // On cancel, reopen the item detail view
             showAstrodexItemDetail(itemId);
         }
-    );
+    }
 }
 
 async function updateItemField(itemId, field, value) {
@@ -756,60 +874,98 @@ async function updateItemField(itemId, field, value) {
             item[field] = value;
         }
         
-        showNotification('Updated successfully', 'success');
+        showMessage('success', 'Updated successfully');
     } catch (error) {
         console.error('Error updating item:', error);
-        showNotification('Failed to update', 'error');
+        showMessage('error', 'Failed to update item');
     }
 }
 
 function showEditPictureModal(itemId, pictureId) {
+    closeModal(); // Close current modal to avoid stacking
+
     const item = astrodexData.items.find(i => i.id === itemId);
     if (!item) return;
     
     const picture = item.pictures.find(p => p.id === pictureId);
     if (!picture) return;
     
-    const modal = createModal('Edit Photo', `
+    createModal('Edit Photo', `
         <form id="edit-picture-form" class="form">
-            <div class="form-group">
-                <label for="edit-picture-date">Observation Date</label>
-                <input type="date" id="edit-picture-date" class="form-control" value="${picture.date || ''}">
+            <div class="row mb-3">
+                <label for="edit-picture-date" class="col-sm-3 col-form-label">Observation Date</label>
+                <div class="col-sm-9">
+                    <input type="date" class="form-control" id="edit-picture-date" value="${picture.date || ''}">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="edit-picture-exposition">Exposition Time</label>
-                <input type="text" id="edit-picture-exposition" class="form-control" value="${escapeHtml(picture.exposition_time || '')}" placeholder="e.g., 120x30s">
+            <div class="row mb-3">
+                <label for="edit-picture-exposition" class="col-sm-3 col-form-label">Exposition Time</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="edit-picture-exposition" placeholder="e.g., 120x30s" value="${escapeHtml(picture.exposition_time || '')}">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="edit-picture-device">Device/Telescope</label>
-                <input type="text" id="edit-picture-device" class="form-control" value="${escapeHtml(picture.device || '')}">
+            <div class="row mb-3">
+                <label for="edit-picture-device" class="col-sm-3 col-form-label">Device/Telescope</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="edit-picture-device" list="device-list" autocomplete="off" value="${escapeHtml(picture.device || '')}">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="edit-picture-filters">Filters</label>
-                <input type="text" id="edit-picture-filters" class="form-control" value="${escapeHtml(picture.filters || '')}" placeholder="e.g., LRGB, Ha-OIII">
+            <div class="row mb-3">
+                <label for="edit-picture-filters" class="col-sm-3 col-form-label">Filters</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="edit-picture-filters" placeholder="e.g., LRGB, Ha-OIII" list="filters-list" autocomplete="off" value="${escapeHtml(picture.filters || '')}">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="edit-picture-iso">ISO</label>
-                <input type="text" id="edit-picture-iso" class="form-control" value="${escapeHtml(picture.iso || '')}">
+            <div class="row mb-3">
+                <label for="edit-picture-iso" class="col-sm-3 col-form-label">ISO</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="edit-picture-iso" list="iso-list" autocomplete="off" value="${escapeHtml(picture.iso || '')}">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="edit-picture-frames">Number of Frames</label>
-                <input type="text" id="edit-picture-frames" class="form-control" value="${escapeHtml(picture.frames || '')}">
+            <div class="row mb-3">
+                <label for="edit-picture-frames" class="col-sm-3 col-form-label">Number of Frames</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="edit-picture-frames" value="${escapeHtml(picture.frames || '')}">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="edit-picture-notes">Notes</label>
-                <textarea id="edit-picture-notes" class="form-control" rows="2">${escapeHtml(picture.notes || '')}</textarea>
+            <div class="row mb-3">
+                <label for="edit-picture-notes" class="col-sm-3 col-form-label">Notes</label>
+                <div class="col-sm-9">
+                    <textarea id="edit-picture-notes" class="form-control" rows="3">${escapeHtml(picture.notes || '')}</textarea>
+                </div>
             </div>
-            <div class="form-actions">
-                <button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button>
+            <div class="form-actions text-end">
                 <button type="submit" class="btn btn-primary">Save Changes</button>
             </div>
         </form>
-    `);
+    `, 'lg');
     
+    // Open the modal
+    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
+        backdrop: 'static',
+        focus: true,
+        keyboard: true
+    });
+    bs_modal.show();
+
     document.getElementById('edit-picture-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         await updatePicture(itemId, pictureId);
+    });
+       
+
+    // Event listener when modal is closed
+    document.getElementById('modal_lg_close').addEventListener('hidden.bs.modal', () => {
+        //Remove event listener
+        const pictureForm = document.getElementById('edit-picture-form');
+        if (pictureForm) {
+            pictureForm.removeEventListener('submit', async (e) => {
+                e.preventDefault();
+            });
+        }
+
+        //Remove self listener to prevent duplicates if modal is opened again
+        document.getElementById('modal_lg_close').removeEventListener('hidden.bs.modal', () => {});
     });
 }
 
@@ -839,140 +995,245 @@ async function updatePicture(itemId, pictureId) {
         showAstrodexItemDetail(itemId);
     } catch (error) {
         console.error('Error updating picture:', error);
-        showNotification('Failed to update photo', 'error');
+        showMessage('error', 'Failed to update photo');
     }
 }
 
 function showPictureSlideshow(itemId) {
     const item = astrodexData.items.find(i => i.id === itemId);
     if (!item || !item.pictures || item.pictures.length === 0) {
-        // No pictures, just show the default image popup
-        const imageUrl = '/static/default_astro_object.svg';
-        showImagePopup(item ? item.name : 'Object', imageUrl);
+        // No pictures, do nothing
         return;
     }
     
     let currentIndex = 0;
     let keyHandler = null; // Store the handler reference for cleanup
+    let bs_modal = null; // Store bootstrap modal reference
     
-    function renderSlide() {
+    function updateModalContent() {
         const picture = item.pictures[currentIndex];
         const imageUrl = `/api/astrodex/images/${picture.filename}`;
         
         const pictureInfo = `
-            <div class="slideshow-info">
-                <div class="slideshow-counter">Photo ${currentIndex + 1} of ${item.pictures.length}</div>
-                ${picture.date ? `<div>📅 ${escapeHtml(formatDate(picture.date))}</div>` : ''}
-                ${picture.exposition_time ? `<div>⏱️ ${escapeHtml(picture.exposition_time)}</div>` : ''}
-                ${picture.device ? `<div>🔭 ${escapeHtml(picture.device)}</div>` : ''}
-                ${picture.filters ? `<div>🎨 Filters: ${escapeHtml(picture.filters)}</div>` : ''}
-                ${picture.iso ? `<div>📷 ISO: ${escapeHtml(picture.iso)}</div>` : ''}
-                ${picture.frames ? `<div>🎞️ Frames: ${escapeHtml(picture.frames)}</div>` : ''}
-                ${picture.notes ? `<div class="slideshow-notes">📝 ${escapeHtml(picture.notes)}</div>` : ''}
+            <div class="slideshow-info mt-4">
+                <div class="row mb-3">
+                    <div class="col text-center">
+                        <span class="badge bg-primary fs-6">Photo ${currentIndex + 1} of ${item.pictures.length}</span>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    ${picture.date ? `
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">📅</span>
+                                <div>
+                                    <small class="text-muted d-block">Observation Date</small>
+                                    <strong>${escapeHtml(formatDate(picture.date))}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${picture.exposition_time ? `
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">⏱️</span>
+                                <div>
+                                    <small class="text-muted d-block">Exposition Time</small>
+                                    <strong>${escapeHtml(picture.exposition_time)}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${picture.device ? `
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">🔭</span>
+                                <div>
+                                    <small class="text-muted d-block">Device/Telescope</small>
+                                    <strong>${escapeHtml(picture.device)}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${picture.filters ? `
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">🎨</span>
+                                <div>
+                                    <small class="text-muted d-block">Filters</small>
+                                    <strong>${escapeHtml(picture.filters)}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${picture.iso ? `
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">📷</span>
+                                <div>
+                                    <small class="text-muted d-block">ISO</small>
+                                    <strong>${escapeHtml(picture.iso)}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${picture.frames ? `
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">🎞️</span>
+                                <div>
+                                    <small class="text-muted d-block">Frames</small>
+                                    <strong>${escapeHtml(picture.frames)}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+                ${picture.notes ? `
+                    <div class="row mt-3">
+                        <div class="col">
+                            <div class="d-flex align-items-start">
+                                <span class="me-2">📝</span>
+                                <div>
+                                    <small class="text-muted d-block">Notes</small>
+                                    <p class="mb-0">${escapeHtml(picture.notes)}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
             </div>
         `;
         
-        const navigation = item.pictures.length > 1 ? `
-            <button class="slideshow-arrow slideshow-prev" ${currentIndex === 0 ? 'disabled' : ''} aria-label="Previous photo">
-                <span>‹</span>
-            </button>
-            <button class="slideshow-arrow slideshow-next" ${currentIndex === item.pictures.length - 1 ? 'disabled' : ''} aria-label="Next photo">
-                <span>›</span>
+        const leftArrow = item.pictures.length > 1 && currentIndex > 0 ? `
+            <button type="button" class="btn btn-dark btn-lg slideshow-arrow slideshow-prev position-absolute top-50 start-0 translate-middle-y ms-3" aria-label="Previous photo" style="z-index: 10; opacity: 0.7; border-radius: 50%; width: 50px; height: 50px;">
+                <i class="fas fa-chevron-left"></i>
             </button>
         ` : '';
         
-        const modalHTML = `
-            <div id="custom-modal" class="modal-overlay modal-slideshow">
-                <div class="modal-content slideshow-modal">
-                    <div class="modal-header">
-                        <h2>${escapeHtml(item.name)} - Photos</h2>
-                        <button class="modal-close" data-action="cleanup-close-modal">×</button>
-                    </div>
-                    <div class="modal-body slideshow-body">
-                        <div class="slideshow-container">
-                            <img src="${escapeHtml(imageUrl)}" alt="Photo ${currentIndex + 1}" class="slideshow-image">
-                            ${navigation}
-                        </div>
-                        ${pictureInfo}
-                    </div>
+        const rightArrow = item.pictures.length > 1 && currentIndex < item.pictures.length - 1 ? `
+            <button type="button" class="btn btn-dark btn-lg slideshow-arrow slideshow-next position-absolute top-50 end-0 translate-middle-y me-3" aria-label="Next photo" style="z-index: 10; opacity: 0.7; border-radius: 50%; width: 50px; height: 50px;">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        ` : '';
+        
+        const modalContent = `
+            <div class="slideshow-body">
+                <div class="slideshow-container position-relative text-center mb-4">
+                    <img src="${escapeHtml(imageUrl)}" alt="Photo ${currentIndex + 1}" class="slideshow-image img-fluid" style="max-height: 70vh; border-radius: 8px;">
+                    ${leftArrow}
+                    ${rightArrow}
                 </div>
+                ${pictureInfo}
             </div>
         `;
         
-        // Don't close existing modal - slideshow should stack on top with higher z-index
-        // Remove any existing slideshow modal first
-        const existingSlideshow = document.querySelector('.modal-slideshow');
-        if (existingSlideshow) {
-            existingSlideshow.remove();
-        }
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        
-        // Add event listeners to navigation buttons
-        if (item.pictures.length > 1) {
-            const prevBtn = document.querySelector('.slideshow-prev');
-            const nextBtn = document.querySelector('.slideshow-next');
+        // Update the modal content
+        const modalBody = document.getElementById('modal_xl_close_body');
+        if (modalBody) {
+            modalBody.innerHTML = modalContent;
             
-            if (prevBtn && currentIndex > 0) {
-                prevBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    currentIndex--;
-                    // Remove old keyboard handler before rendering new slide
-                    if (keyHandler) {
-                        document.removeEventListener('keydown', keyHandler);
-                    }
-                    renderSlide();
-                });
-            }
-            if (nextBtn && currentIndex < item.pictures.length - 1) {
-                nextBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    currentIndex++;
-                    // Remove old keyboard handler before rendering new slide
-                    if (keyHandler) {
-                        document.removeEventListener('keydown', keyHandler);
-                    }
-                    renderSlide();
-                });
-            }
-            
-            // Remove old keyboard handler if exists
-            if (keyHandler) {
-                document.removeEventListener('keydown', keyHandler);
-            }
-            
-            // Create and add new keyboard handler
-            keyHandler = (e) => {
-                if (e.key === 'ArrowLeft' && currentIndex > 0) {
-                    e.preventDefault();
-                    currentIndex--;
-                    document.removeEventListener('keydown', keyHandler);
-                    renderSlide();
-                } else if (e.key === 'ArrowRight' && currentIndex < item.pictures.length - 1) {
-                    e.preventDefault();
-                    currentIndex++;
-                    document.removeEventListener('keydown', keyHandler);
-                    renderSlide();
-                } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    document.removeEventListener('keydown', keyHandler);
-                    closeModal();
-                }
-            };
-            
-            document.addEventListener('keydown', keyHandler);
+            // Re-attach event listeners to navigation buttons
+            attachNavigationListeners();
         }
     }
     
-    // Make cleanup function available globally for the close button
-    window.cleanupAndCloseModal = function() {
+    function attachNavigationListeners() {
+        if (item.pictures.length <= 1) return;
+        
+        const prevBtn = document.querySelector('.slideshow-prev');
+        const nextBtn = document.querySelector('.slideshow-next');
+        
+        if (prevBtn) {
+            prevBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (currentIndex > 0) {
+                    currentIndex--;
+                    updateModalContent();
+                }
+            });
+            
+            // Add hover effects
+            prevBtn.addEventListener('mouseenter', () => {
+                prevBtn.style.opacity = '1';
+            });
+            prevBtn.addEventListener('mouseleave', () => {
+                prevBtn.style.opacity = '0.7';
+            });
+        }
+        
+        if (nextBtn) {
+            nextBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (currentIndex < item.pictures.length - 1) {
+                    currentIndex++;
+                    updateModalContent();
+                }
+            });
+            
+            // Add hover effects
+            nextBtn.addEventListener('mouseenter', () => {
+                nextBtn.style.opacity = '1';
+            });
+            nextBtn.addEventListener('mouseleave', () => {
+                nextBtn.style.opacity = '0.7';
+            });
+        }
+    }
+    
+    function setupKeyboardNavigation() {
+        // Remove old keyboard handler if exists
+        if (keyHandler) {
+            document.removeEventListener('keydown', keyHandler);
+        }
+        
+        // Create and add new keyboard handler
+        keyHandler = (e) => {
+            if (e.key === 'ArrowLeft' && currentIndex > 0) {
+                e.preventDefault();
+                currentIndex--;
+                updateModalContent();
+            } else if (e.key === 'ArrowRight' && currentIndex < item.pictures.length - 1) {
+                e.preventDefault();
+                currentIndex++;
+                updateModalContent();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                if (bs_modal) {
+                    bs_modal.hide();
+                }
+            }
+        };
+        
+        document.addEventListener('keydown', keyHandler);
+    }
+    
+    // Create modal using existing Bootstrap structure
+    createModal(`${escapeHtml(item.name)} - Photos`, '', 'xl');
+    
+    // Show the modal
+    bs_modal = new bootstrap.Modal('#modal_xl_close', {
+        backdrop: 'static',
+        focus: true,
+        keyboard: true
+    });
+    
+    // Setup cleanup when modal is hidden
+    document.getElementById('modal_xl_close').addEventListener('hidden.bs.modal', function cleanup() {
+        // Remove keyboard handler
         if (keyHandler) {
             document.removeEventListener('keydown', keyHandler);
             keyHandler = null;
         }
-        closeModal();
-    };
+        
+        // Remove this event listener to prevent duplicates
+        document.getElementById('modal_xl_close').removeEventListener('hidden.bs.modal', cleanup);
+    });
     
-    renderSlide();
+    // Initialize content and show modal
+    updateModalContent();
+    setupKeyboardNavigation();
+    bs_modal.show();
 }
 
 // ============================================
@@ -991,136 +1252,39 @@ function toggleAstrodexSortOrder() {
     renderAstrodexView();
 }
 
-function showNotification(message, type = 'info') {
-    // Create auto-disappearing notification element
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
-    
-    // Style based on notification type
-    let bgColor, textColor;
-    switch(type) {
-        case 'error':
-            bgColor = '#fee';
-            textColor = '#c33';
-            break;
-        case 'success':
-            bgColor = '#efe';
-            textColor = '#363';
-            break;
-        case 'warning':
-            bgColor = '#fff3cd';
-            textColor = '#856404';
-            break;
-        default: // info
-            bgColor = '#e7f3ff';
-            textColor = '#004085';
-    }
-    
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 1rem 1.5rem;
-        background: ${bgColor};
-        color: ${textColor};
-        border-radius: 5px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 10001;
-        animation: slideIn 0.3s ease-out;
-        font-weight: 500;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Auto-remove after 3 seconds
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease-out';
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
-}
+function createModal(title, content, size = 'lg') {
+    //console.log('Creating modal with title:', title);
 
-function createModal(title, content, className = '') {
-    // Close any existing modal
-    closeModal();
+    //Prepare modal title
+    const titleElement = document.getElementById(`modal_${size}_close_title`);
+    titleElement.innerHTML = `${title}`;
     
-    const modalHTML = `
-        <div id="custom-modal" class="modal-overlay ${className}">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>${title}</h2>
-                    <button class="modal-close" data-action="close-modal">×</button>
-                </div>
-                <div class="modal-body">
-                    ${content}
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    //Prepare modal content
+    const contentElement = document.getElementById(`modal_${size}_close_body`);
+    contentElement.innerHTML = `${content}`;
 }
 
 function closeModal() {
-    const modal = document.getElementById('custom-modal');
-    if (modal) {
-        modal.remove();
-    }
+    //Close all bs modals to prevent stacking
+    const modals = document.querySelectorAll('.modal.show');
+    modals.forEach(modal => {
+        const bs_modal = bootstrap.Modal.getInstance(modal);
+        if (bs_modal) {
+            bs_modal.hide();
+        }
+    });
+
+    //Remove any existing close modal event listeners to prevent duplicates
+    const closeButtons = document.querySelectorAll('[data-action="close-modal"], [data-action="cleanup-close-modal"]');
+    closeButtons.forEach(button => {
+        button.removeEventListener('click', handleModalClick);
+    });
 }
 
 function handleModalClick(event) {
+
     if (event.target.classList.contains('modal-overlay')) {
         closeModal();
-    }
-}
-
-/**
- * Show a confirmation modal with confirm/cancel buttons
- * @param {string} title - Modal title
- * @param {string} message - Confirmation message
- * @param {Function} onConfirm - Callback when user confirms
- * @param {Function} onCancel - Optional callback when user cancels
- */
-function showConfirmModal(title, message, onConfirm, onCancel = null) {
-    // Close any existing modal
-    closeModal();
-    
-    const modalHTML = `
-        <div id="custom-modal" class="modal-overlay">
-            <div class="modal-content confirm-modal">
-                <div class="modal-header">
-                    <h2>${escapeHtml(title)}</h2>
-                    <button class="modal-close" data-action="close-modal">×</button>
-                </div>
-                <div class="modal-body">
-                    <p class="confirm-message">${escapeHtml(message)}</p>
-                    <div class="confirm-actions">
-                        <button class="btn btn-cancel" data-action="confirm-cancel">Cancel</button>
-                        <button class="btn btn-danger" data-action="confirm-delete">Confirm</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
-    // Add event listeners for confirm/cancel buttons
-    const confirmBtn = document.querySelector('[data-action="confirm-delete"]');
-    const cancelBtn = document.querySelector('[data-action="confirm-cancel"]');
-    
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', () => {
-            closeModal();
-            if (onConfirm) onConfirm();
-        });
-    }
-    
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', () => {
-            closeModal();
-            if (onCancel) onCancel();
-        });
     }
 }
 
@@ -1198,7 +1362,7 @@ function initializeAstrodexEventListeners() {
         const cardBody = target.closest('.astrodex-card-body');
         
         // Handle buttons with data-action (tab-specific)
-        if (button) {
+        /*if (button) {
             const action = button.getAttribute('data-action');
             const itemId = button.getAttribute('data-item-id');
             
@@ -1208,7 +1372,7 @@ function initializeAstrodexEventListeners() {
                     showAddAstrodexItemModal();
                     break;
             }
-        }
+        }*/
         
         // Handle card image clicks (slideshow)
         if (cardImage && !button) {

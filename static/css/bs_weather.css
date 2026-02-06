@@ -1,0 +1,127 @@
+/* CSS for weather */
+
+
+/* Weather alerts */
+.weather-alert-indicator-high-priority {
+    border: #dc3545 solid 1px;
+    border-radius: var(--border-radius);
+    background: rgba(220, 53, 69, 0.3);
+}
+
+.weather-alert-indicator-normal {
+    border: #ffc107 solid 1px;
+    border-radius: var(--border-radius);
+    background: rgba(255, 193, 7, 0.3);
+}
+
+/* Weather card */
+.card-title-weather {
+    text-align: center;
+}
+
+/* Quality Classes */
+.quality-excellent {
+    background-color: var(--quality-excellent) !important;
+    color: var(--quality-excellent-text) !important;
+}
+
+.quality-good {
+    background-color: var(--quality-good) !important;
+    color: var(--quality-good-text) !important;
+}
+
+.quality-fair {
+    background-color: var(--quality-fair) !important;
+    color: var(--quality-fair-text) !important;
+}
+
+.quality-poor {
+    background-color: var(--quality-poor) !important;
+    color: var(--quality-poor-text) !important;
+}
+
+.quality-bad {
+    background-color: var(--quality-bad) !important;
+    color: var(--quality-bad-text) !important;
+}
+
+/* Astro weather */
+.astro-main-value {
+    font-size: 2rem;
+    font-weight: var(--font-bold);
+    color: var(--primary-color);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.astro-quality-text {
+    font-size: 0.75rem;
+    font-weight: var(--font-semibold);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 0.5rem;
+    display: inline-block;
+    line-height: 1.2;
+}
+
+/* Dew Risk Colors */
+.dew-minimal {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.dew-low {
+    background: #f0fdf4;
+    color: #16a34a;
+}
+
+.dew-moderate {
+    background: #fefce8;
+    color: #ca8a04;
+}
+
+.dew-high {
+    background: #fed7aa;
+    color: #ea580c;
+}
+
+.dew-critical {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.dew-unknown {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.moon-info-card {
+    background: var(--bg-gradient);
+    color: white;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    grid-column: 1 / -1;
+    box-shadow: 10px 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.sun-info-card {
+    background: var(--sun-gradient);
+    color: white;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem; 
+    box-shadow: 10px 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.icon-weather-lg {
+    font-size: 48px;
+}
+
+.sun-info-card .card-header, .sun-info-card li, .sun-info-card .card {
+    background: var(--sun-gradient);
+    border-color: var(--warning-600);
+}
+
+.moon-info-card .card-header, .moon-info-card li, .moon-info-card .card {
+    background: var(--bg-gradient);
+    border-color: var(--border-violet);
+}

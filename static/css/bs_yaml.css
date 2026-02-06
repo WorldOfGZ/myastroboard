@@ -1,0 +1,63 @@
+/* YAML Editor */
+.yaml-editor-container {
+    position: relative;
+    border: 1px solid var(--border-dark);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    background: #1e1e1e;
+}
+
+.yaml-editor-container.valid {
+    border-color: var(--bs-success);
+    box-shadow: 0 0 0 1px var(--bs-success);
+}
+
+.yaml-editor-container.invalid {
+    border-color: var(---bs-danger);
+    box-shadow: 0 0 0 1px var(--bs-danger);
+}
+
+.yaml-editor {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 12px;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border: none;
+    resize: vertical;
+    width: 100%;
+    tab-size: 2;
+    -moz-tab-size: 2;
+}
+
+.yaml-editor:focus {
+    outline: none;
+}
+
+.yaml-validation-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    background: #252525;
+    border-top: 1px solid #3e3e3e;
+}
+
+.yaml-validation-status.valid {
+    color: var(--bs-success);
+}
+
+.yaml-validation-status.invalid {
+    color: var(--bs-danger);
+}
+
+.yaml-validation-status .icon {
+    font-size: 14px;
+}
+
+.yaml-validation-message {
+    flex: 1;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+}

@@ -12,96 +12,113 @@ async function loadSun() {
         const data = await response.json();
         
         //console.log(data);
+        //data.error = "error"; 
 
         if (data.error) {
-            container.innerHTML = `<div class="error-box">${data.error}</div>`;
+            container.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
             return;
         }
 
         // Cache pending
         if (data.status && data.status === 'pending') {
-            container.innerHTML = `<div class="info-notice">${data.message}</div>`;
+            container.innerHTML = `<div class="alert alert-info">${data.message}</div>`;
             return;
         }
         
         // Empty container
-        container.innerHTML = '';
-        
+        clearContainer(container);        
 
         // Display sun information
         container.innerHTML = `
-            <div class="sun-header">
-                <div class="sun-icon">☀️</div>
-                <div class="sun-details">
-                    <div class="sun-title">Sun & Twilight Times</div>
-                    <div class="sun-subtitle">For astronomical observation planning</div>
+            <div class="d-flex flex-row align-items-center mb-3">
+                <div class="p-2 icon-weather-lg">☀️</div>
+                <div class="p-2">
+                    <div class="fw-bold fs-4">Sun & Twilight Times</div>
+                    <div>For astronomical observation planning</div>
                 </div>
             </div>
-            <div class="sun-info">
-                <div class="sun-section">
-                    <div class="sun-section-title">☀️ Sun</div>
-                    <div class="sun-row">
-                        <span class="sun-label">🌇 Set:</span>
-                        <span class="sun-value">
-                            ${new Date(data.sun.sunset).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.sunset).toLocaleDateString([], {month: "numeric", day: "numeric"})})
-                        </span>
-                    </div>
-                    <div class="sun-row">
-                        <span class="sun-label">🌅 Rise:</span>
-                        <span class="sun-value">
-                            ${new Date(data.sun.sunrise).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.sunrise).toLocaleDateString([], {month: "numeric", day: "numeric"})})
-                        </span>
-                    </div>
-                </div>
-                <div class="sun-section">
-                    <div class="sun-section-title">🌆 Civil Twilight</div>
-                    <div class="sun-row">
-                        <span class="sun-label">Dusk:</span>
-                        <span class="sun-value">
-                            ${new Date(data.sun.civil_dusk).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.civil_dusk).toLocaleDateString([], {month: "numeric", day: "numeric"})})
-                        </span>
-                    </div>
-                    <div class="sun-row">
-                        <span class="sun-label">Dawn:</span>
-                        <span class="sun-value">
-                            ${new Date(data.sun.civil_dawn).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.civil_dawn).toLocaleDateString([], {month: "numeric", day: "numeric"})})
-                        </span>
+
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-2 row-cols-xl-4 p-2 mb-3">
+                <div class="col mb-3">
+                    <div class="card h-100">
+                        <div class="card-header fw-bold">☀️ Sun</div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                🌇 Set:
+                                <span class="fw-bold fs-6">
+                                    ${new Date(data.sun.sunset).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.sunset).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                🌅 Rise:
+                                <span class="fw-bold fs-6">
+                                    ${new Date(data.sun.sunrise).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.sunrise).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                </span>
+                            </li>
+                        </ul>
                     </div>
                 </div>
-                <div class="sun-section">
-                    <div class="sun-section-title">⚓ Nautical Twilight</div>
-                    <div class="sun-row">
-                        <span class="sun-label">Dusk:</span>
-                        <span class="sun-value">
-                            ${new Date(data.sun.nautical_dusk).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.nautical_dusk).toLocaleDateString([], {month: "numeric", day: "numeric"})})
-                        </span>
-                    </div>
-                    <div class="sun-row">
-                        <span class="sun-label">Dawn:</span>
-                        <span class="sun-value">
-                            ${new Date(data.sun.nautical_dawn).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.nautical_dawn).toLocaleDateString([], {month: "numeric", day: "numeric"})})
-                        </span>
-                    </div>
-                </div>
-                <div class="sun-section">
-                    <div class="sun-section-title">🌌 Astronomical Twilight</div>
-                    <div class="sun-row">
-                        <span class="sun-label">Dusk:</span>
-                        <span class="sun-value">
-                            ${new Date(data.sun.astronomical_dusk).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.astronomical_dusk).toLocaleDateString([], {month: "numeric", day: "numeric"})})
-                        </span>
-                    </div>
-                    <div class="sun-row">
-                        <span class="sun-label">Dawn:</span>
-                        <span class="sun-value">
-                            ${new Date(data.sun.astronomical_dawn).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.astronomical_dawn).toLocaleDateString([], {month: "numeric", day: "numeric"})})
-                        </span>
-                    </div>
-                    <div class="sun-row">
-                        <span class="sun-label">True Night hours:</span>
-                        <span class="sun-value">${data.sun.true_night_hours}</span>
+                
+                <div class="col mb-3">
+                    <div class="card h-100">
+                        <div class="card-header fw-bold">🌆 Civil Twilight</div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Dusk:
+                                <span class="fw-bold fs-6">
+                                    ${new Date(data.sun.civil_dusk).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.civil_dusk).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Dawn:
+                                <span class="fw-bold fs-6">
+                                    ${new Date(data.sun.civil_dawn).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.civil_dawn).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                </span>
+                            </li>
+                        </ul>
                     </div>
                 </div>
+                
+                <div class="col mb-3">
+                    <div class="card h-100">
+                        <div class="card-header fw-bold">⚓ Nautical Twilight</div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Dusk:
+                                <span class="fw-bold fs-6">
+                                    ${new Date(data.sun.nautical_dusk).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.nautical_dusk).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Dawn:
+                                <span class="fw-bold fs-6">
+                                    ${new Date(data.sun.nautical_dawn).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.nautical_dawn).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="col mb-3">
+                    <div class="card h-100">
+                        <div class="card-header fw-bold">🌌 Astronomical Twilight</div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Dusk:
+                                <span class="fw-bold fs-6">
+                                    ${new Date(data.sun.astronomical_dusk).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.astronomical_dusk).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Dawn:
+                                <span class="fw-bold fs-6">
+                                    ${new Date(data.sun.astronomical_dawn).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.astronomical_dawn).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
             </div>
         `;
         

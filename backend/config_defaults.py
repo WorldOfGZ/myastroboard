@@ -46,7 +46,7 @@ DEFAULT_CONFIG = {
     "location": DEFAULT_LOCATION,
     "selected_catalogues": ["Messier"],
     "min_altitude": 30,
-    "use_constraints": True,
+    "use_constraints": False,
     "features": DEFAULT_FEATURES,
     "constraints": DEFAULT_CONSTRAINTS,
     "bucket_list": [],

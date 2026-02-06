@@ -26,10 +26,15 @@ class WeatherAlertsSystem {
         // Create notification container if it doesn't exist
         this.notificationContainer = document.getElementById('weather-notifications');
         if (!this.notificationContainer) {
-            this.notificationContainer = document.createElement('div');
+            this.notificationContainer = document.createElement('li');
             this.notificationContainer.id = 'weather-notifications';
-            this.notificationContainer.className = 'weather-notifications-container';
-            document.body.appendChild(this.notificationContainer);
+            this.notificationContainer.className = 'nav-item';
+            // Add this element to first of ul id="end-navbar"
+            const endNavbar = document.getElementById('end-navbar');
+            if (endNavbar) {
+                endNavbar.insertBefore(this.notificationContainer, endNavbar.firstChild);
+            } 
+
         }
     }
     
@@ -44,6 +49,7 @@ class WeatherAlertsSystem {
             }
             
             const newAlerts = data.alerts || [];
+            //console.log('Fetched weather alerts:', newAlerts);
             this.processNewAlerts(newAlerts);
             
         } catch (error) {
@@ -58,63 +64,11 @@ class WeatherAlertsSystem {
             !this.alerts.some(existing => existing.type === alert.type && existing.time === alert.time)
         );
         
-        // Show new high priority alerts as notifications
-        highPriorityAlerts.forEach(alert => {
-            this.showNotification(alert);
-        });
-        
         // Update alerts array
         this.alerts = newAlerts;
         
         // Update header alert indicator
         this.updateHeaderAlertIndicator();
-    }
-    
-    showNotification(alert) {
-        const notification = document.createElement('div');
-        notification.className = `weather-notification ${this.getSeverityClass(alert.severity)}`;
-        
-        const alertTime = new Date(alert.time);
-        const icon = this.getAlertTypeIcon(alert.type);
-        
-        notification.innerHTML = `
-            <div class="weather-notification-content">
-                <div class="weather-notification-header">
-                    <span class="weather-notification-icon">${icon}</span>
-                    <span class="weather-notification-title">${alert.type.replace('_', ' ')}</span>
-                    <span class="weather-notification-time">${alertTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
-                    <button class="weather-notification-close" onclick="weatherAlertsSystem.closeNotification(this)">×</button>
-                </div>
-                <div class="weather-notification-message">${alert.message}</div>
-            </div>
-        `;
-        
-        // Add to container
-        this.notificationContainer.appendChild(notification);
-        
-        // Auto-hide after 10 seconds for non-critical alerts
-        setTimeout(() => {
-            if (notification && notification.parentNode) {
-                this.closeNotification(notification.querySelector('.weather-notification-close'));
-            }
-        }, 10000);
-        
-        // Trigger animation
-        setTimeout(() => {
-            notification.classList.add('show');
-        }, 100);
-    }
-    
-    closeNotification(closeButton) {
-        const notification = closeButton.closest('.weather-notification');
-        if (notification) {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 300);
-        }
     }
     
     isAlertActive(alert) {
@@ -130,102 +84,70 @@ class WeatherAlertsSystem {
     }
     
     updateHeaderAlertIndicator() {
-        // Update or create alert indicator in header
-        const header = document.querySelector('header');
-        if (!header) return;
-        
-        let indicator = document.getElementById('weather-alert-indicator');
-        
+        //Empty id weather-notifications
+        let container = document.getElementById('weather-notifications');
+        clearContainer(container)
+        container.className = 'nav-item';
+
         const activeAlerts = this.alerts.filter(alert => this.isAlertActive(alert));
-        
+
         if (activeAlerts.length > 0) {
-            if (!indicator) {
-                indicator = document.createElement('div');
-                indicator.id = 'weather-alert-indicator';
-                indicator.className = 'weather-alert-indicator';
-                indicator.onclick = () => this.showAlertsModal();
-                header.appendChild(indicator);
-            }
-            
+            //console.log('Active weather alerts:', activeAlerts);
+
+            let indicator = document.createElement('a');
+            indicator.id = 'weather-alert-indicator';
+            indicator.className = 'nav-link';
+            indicator.onclick = () => this.showAlertsModal();
+            container.appendChild(indicator);
+
             const highPriorityCount = activeAlerts.filter(a => a.severity === 'HIGH').length;
             const totalCount = activeAlerts.length;
             
-            indicator.innerHTML = `
-                <div class="alert-indicator-content">
-                    <span class="alert-indicator-icon">⚠️</span>
-                    <span class="alert-indicator-count">${totalCount}</span>
-                </div>
-            `;
+            indicator.innerHTML = `⚠️ ${totalCount}`;
             
-            indicator.className = `weather-alert-indicator ${highPriorityCount > 0 ? 'high-priority' : 'normal'}`;
+            container.className = `nav-item weather-alert-indicator-${highPriorityCount > 0 ? 'high-priority' : 'normal'}`;
             indicator.title = `${totalCount} weather alert(s) - Click to view details`;
-            
-        } else if (indicator) {
-            indicator.remove();
-        }
+
+        } 
     }
     
     showAlertsModal() {
-        // Create and show a modal with all current alerts
-        const modal = document.createElement('div');
-        modal.className = 'weather-alerts-modal';
-        
-        const modalContent = document.createElement('div');
-        modalContent.className = 'weather-alerts-modal-content';
-        
+
         const activeAlerts = this.alerts.filter(alert => this.isAlertActive(alert));
-        
+
         const alertsHtml = activeAlerts.length > 0 ? 
             activeAlerts.map(alert => {
                 const alertTime = new Date(alert.time);
                 const icon = this.getAlertTypeIcon(alert.type);
                 
                 return `
-                    <div class="modal-alert-item ${this.getSeverityClass(alert.severity)}">
-                        <div class="modal-alert-header">
-                            <span class="modal-alert-icon">${icon}</span>
-                            <span class="modal-alert-title">${alert.type.replace('_', ' ')}</span>
-                            <span class="modal-alert-time">${alertTime.toLocaleString()}</span>
+                    <div class="alert alert-${alert.severity === 'HIGH' ? 'danger' : 'warning'}" role="alert">
+                        <div class="fw-bold">
+                            <span>${icon}</span>
+                            <span>${alert.type.replace('_', ' ')}</span>
+                            <span>${alertTime.toLocaleString()}</span>
                         </div>
-                        <div class="modal-alert-message">${alert.message}</div>
+                        <div>${alert.message}</div>
                     </div>
                 `;
             }).join('') : 
             '<div class="modal-no-alerts">No active weather alerts</div>';
-        
-        modalContent.innerHTML = `
-            <div class="weather-alerts-modal-header">
-                <h3>⚠️ Weather Alerts for Astrophotography</h3>
-                <button class="weather-alerts-modal-close" onclick="weatherAlertsSystem.closeAlertsModal()">×</button>
-            </div>
+
+        // Set modal content
+        document.getElementById('modal_lg_close_title').textContent = 'Weather Alerts for Astrophotography';
+        document.getElementById('modal_lg_close_body').innerHTML = `
             <div class="weather-alerts-modal-body">
                 ${alertsHtml}
             </div>
         `;
-        
-        modal.appendChild(modalContent);
-        document.body.appendChild(modal);
-        
-        // Close on backdrop click
-        modal.onclick = (e) => {
-            if (e.target === modal) {
-                this.closeAlertsModal();
-            }
-        };
-        
-        setTimeout(() => modal.classList.add('show'), 100);
-    }
-    
-    closeAlertsModal() {
-        const modal = document.querySelector('.weather-alerts-modal');
-        if (modal) {
-            modal.classList.remove('show');
-            setTimeout(() => {
-                if (modal.parentNode) {
-                    modal.parentNode.removeChild(modal);
-                }
-            }, 300);
-        }
+
+        const bs_modal = new bootstrap.Modal('#modal_lg_close', {
+            backdrop: 'static',
+            focus: true,
+            keyboard: true
+        });
+
+        bs_modal.show();
     }
     
     startPeriodicCheck() {
@@ -243,10 +165,6 @@ class WeatherAlertsSystem {
             clearInterval(this.updateInterval);
             this.updateInterval = null;
         }
-    }
-    
-    getSeverityClass(severity) {
-        return `severity-${severity.toLowerCase()}`;
     }
     
     getAlertTypeIcon(type) {

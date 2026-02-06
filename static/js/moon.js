@@ -27,55 +27,87 @@ async function loadMoon() {
         let moonEmoji = phaseEmojiMap[moon.phase_name] || '🌑';
 
         container.innerHTML = `
-            <div class="moon-header">
-                <div class="moon-icon">${moonEmoji}</div>
-                <div class="moon-details">
-                    <div class="moon-phase">${moon.phase_name}</div>
-                    <div class="moon-illumination">${moon.illumination_percent.toFixed(0)}% illuminated</div>
+            <div class="d-flex flex-row align-items-center mb-3">
+                <div class="p-2 icon-weather-lg">${moonEmoji}</div>
+                <div class="p-2">
+                    <div class="fw-bold fs-4">${moon.phase_name}</div>
+                    <div>${moon.illumination_percent.toFixed(0)}% illuminated</div>
                 </div>
             </div>
-            <div class="moon-info">
-                <div class="moon-section">
-                    <div class="moon-section-title">🌑 Moon</div>
-                    <div class="moon-row">
-                        <span class="moon-label">🌅 Rise:</span>
-                        <span class="moon-value">${new Date(moon.next_moonrise).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(moon.next_moonrise).toLocaleDateString([], {month: "numeric", day: "numeric"})})</span>
-                    </div>
-                    <div class="moon-row">
-                        <span class="moon-label">🌇 Set:</span>
-                        <span class="moon-value">${new Date(moon.next_moonset).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(moon.next_moonset).toLocaleDateString([], {month: "numeric", day: "numeric"})})</span>
-                    </div>
-                </div>
-                <div class="moon-section">
-                    <div class="moon-section-title">📐 Position</div>
-                    <div class="moon-row">
-                        <span class="moon-label">📏 Distance:</span>
-                        <span class="moon-value">${moon.distance_km ? Math.round(moon.distance_km).toLocaleString() + ' km' : 'N/A'}</span>
-                    </div>
-                    <div class="moon-row">
-                        <span class="moon-label">📐 Altitude:</span>
-                        <span class="moon-value">${moon.altitude_deg}°</span>
-                    </div>
-                    <div class="moon-row">
-                        <span class="moon-label">🧭 Azimuth:</span>
-                        <span class="moon-value">${moon.azimuth_deg}°</span>
+
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-2 row-cols-xl-3 p-2 mb-3">
+                <div class="col mb-3">
+                    <div class="card h-100">
+                        <div class="card-header fw-bold">🌑 Moon</div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                🌅 Rise:
+                                <span class="fw-bold fs-6">
+                                    ${new Date(moon.next_moonrise).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(moon.next_moonrise).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                🌇 Set:
+                                <span class="fw-bold fs-6">
+                                    ${new Date(moon.next_moonset).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(moon.next_moonset).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                </span>
+                            </li>
+                        </ul>
                     </div>
                 </div>
-                <div class="moon-section">
-                    <div class="moon-section-title">🌕 Next Events</div>
-                    <div class="moon-row">
-                        <span class="moon-label">🌕 Next Full Moon:</span>
-                        <span class="moon-value">${new Date(moon.next_full_moon).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(moon.next_full_moon).toLocaleDateString([], {month: "numeric", day: "numeric"})})</span>
-                    </div>
-                    <div class="moon-row">
-                        <span class="moon-label">🌑 Next New Moon:</span>
-                        <span class="moon-value">${new Date(moon.next_new_moon).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(moon.next_new_moon).toLocaleDateString([], {month: "numeric", day: "numeric"})})</span>
-                    </div>
-                    <div class="moon-row">
-                        <span class="moon-label">🌌 Next Dark Night:</span>
-                        <span class="moon-value">${new Date(moon.next_dark_night_start).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(moon.next_dark_night_start).toLocaleDateString([], {month: "numeric", day: "numeric"})})</span>
+                
+                <div class="col mb-3">
+                    <div class="card h-100">
+                        <div class="card-header fw-bold">📐 Position</div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                📏 Distance:
+                                <span class="fw-bold fs-6">
+                                    ${moon.distance_km ? Math.round(moon.distance_km).toLocaleString() + ' km' : 'N/A'}
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                📐 Altitude:
+                                <span class="fw-bold fs-6">
+                                    ${moon.altitude_deg}°
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                🧭 Azimuth:
+                                <span class="fw-bold fs-6">
+                                    ${moon.azimuth_deg}°
+                                </span>
+                            </li>
+                        </ul>
                     </div>
                 </div>
+                
+                <div class="col mb-3">
+                    <div class="card h-100">
+                        <div class="card-header fw-bold">🌕 Next Events</div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                               🌕 Next Full Moon:
+                                <span class="fw-bold fs-6">
+                                    ${new Date(moon.next_full_moon).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(moon.next_full_moon).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                🌑 Next New Moon:
+                                <span class="fw-bold fs-6">
+                                    ${new Date(moon.next_new_moon).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(moon.next_new_moon).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                🌌 Next Dark Night:
+                                <span class="fw-bold fs-6">
+                                    ${new Date(moon.next_dark_night_start).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(moon.next_dark_night_start).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
             </div>
         `;
     }
@@ -91,18 +123,18 @@ async function loadNextMoonPhases() {
         const data = await response.json();
         
         //console.log(data);
+        //data.error = "error";
+        //throw new Error('Test error');
 
         if (data.error) {
             // Remove grid classes if error
-            container.classList.remove('weather-grid');
-            container.innerHTML = `<div class="error-box">${data.error}</div>`;
+            container.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
             return;
         }
 
         // Cache pending
         if (data.status && data.status === 'pending') {
-            container.classList.remove('weather-grid');
-            container.innerHTML = `<div class="info-notice">${data.message}</div>`;
+            container.innerHTML = `<div class="alert alert-info">${data.message}</div>`;
             return;
         }
 
@@ -111,10 +143,13 @@ async function loadNextMoonPhases() {
             container.classList.add('weather-grid');
         }
         
-        container.innerHTML = '';
+        clearContainer(container);
 
         // if forecast list is available
         if (data.next_7_nights && data.next_7_nights.length > 0) {
+            // Class grid to container
+            container.className = 'row row-cols-1 row-cols-sm-2 row-cols-lg-4 row-cols-xl-6 p-2 mb-3';
+
             // We receive up to 12 hours of data, display all
             data.next_7_nights.forEach(moon => {
                 const date = new Date(moon.date);
@@ -146,34 +181,39 @@ async function loadNextMoonPhases() {
                 }
 
                 const item = document.createElement('div');
-                item.className = 'weather-item';
+                item.className = 'col mb-3';
                 item.innerHTML = `
-                    <div class="weather-time">${date.toLocaleDateString()}</div>
-                    <div class="weather-quality ${qualityClass}">${quality}</div>
-                    <div class="weather-astro-info">
-                        <div class="weather-row">
-                            <span class="weather-label">🌗 Illumination:</span>
-                            <span class="weather-value">${illumination_percent}%</span>
+                    <div class="card h-100">
+                        <div class="card-header ${qualityClass}">
+                            <strong>${quality}</strong>
                         </div>
-                        <div class="weather-row">
-                            <span class="weather-label">📐 Max Altitude:</span>
-                            <span class="weather-value">${max_altitude}%</span>
-                        </div>
-                        <div class="weather-row">
-                            <span class="weather-label">🌌 Dark-time:</span>
-                            <span class="weather-value">&nbsp;</span>
-                        </div>
-                        <div class="weather-row">
-                            <span class="weather-label">&nbsp;>&nbsp;Strict:</span>
-                            <span class="weather-value">${dark_hours_strict} h</span>
-                        </div>
-                        <div class="weather-row">
-                            <span class="weather-label">&nbsp;>&nbsp;Practical:</span>
-                            <span class="weather-value">${dark_hours_practical} h</span>
-                        </div>
-                        <div class="weather-row">
-                            <span class="weather-label">&nbsp;>&nbsp;Illumination:</span>
-                            <span class="weather-value">${dark_hours_illumination} h</span>
+                        <div class="card-body">
+                            <h5 class="card-title card-title-weather">${date.toLocaleDateString()}</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    🌗 Illumination:
+                                    <span>${illumination_percent}%</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    📐 Max Altitude:
+                                    <span >${max_altitude}°</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    🌌 Dark-time:
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    &nbsp;>&nbsp;Strict:
+                                    <span>${dark_hours_strict} h</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    &nbsp;>&nbsp;Practical:
+                                    <span>${dark_hours_practical} h</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    &nbsp;>&nbsp;Illumination:
+                                    <span>${dark_hours_illumination} h</span>
+                                </li>                         
+                            </ul>
                         </div>
                     </div>
                 `;
@@ -183,7 +223,7 @@ async function loadNextMoonPhases() {
     
     } catch (error) {
         console.error('Error loading moon data:', error);
-        container.innerHTML = '<div class="error-box">Failed to load moon data</div>';
+        container.innerHTML = '<div class="alert alert-danger">Failed to load moon data</div>';
     }
 }
 
@@ -191,10 +231,12 @@ async function loadNextMoonPhases() {
 async function loadBestDarkWindow() {
     const container = document.getElementById('window-display');
     const containerLoader = document.getElementById('window-loader-info-notice');
-    containerLoader.innerHTML = '<div class="loading">Loading best dark window data...</div>';
+    containerLoader.innerHTML = 'Loading best dark window data...';
     containerLoader.style.display = 'block';
 
     try {
+        // Fake error to catch error display
+        //throw new Error('Test error');
 
         container.innerHTML = '';
 
@@ -223,27 +265,29 @@ async function loadBestDarkWindow() {
 
         // Bloc normal
         const item = document.createElement("div");
-        item.className = "weather-item";
+        item.className = "col mb-3";
 
         item.innerHTML = `
-            <div class="weather-time">Dark Window</div>
-
-            <div class="weather-astro-info">
-                <div class="weather-row">
-                    <span class="weather-label">🌆 Start:</span>
-                    <span class="weather-value">
-                        ${start.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})}
-                        (${start.toLocaleDateString([], {month: "numeric", day: "numeric"})})
-                    </span>
+            <div class="card h-100">
+                <div class="card-header">
+                    🌌 Next Dark Window
                 </div>
-
-                <div class="weather-row">
-                    <span class="weather-label">🌅 End:</span>
-                    <span class="weather-value">
-                        ${end.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})}
-                        (${end.toLocaleDateString([], {month: "numeric", day: "numeric"})})
-                    </span>
-                </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        🌆 Start:
+                        <span>
+                            ${start.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})}
+                            (${start.toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        🌅 End:
+                        <span>
+                            ${end.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})}
+                            (${end.toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                        </span>
+                    </li>
+                </ul>
             </div>
         `;
         container.appendChild(item);
@@ -262,12 +306,20 @@ async function loadBestDarkWindow() {
             //console.log(data);
 
             // Si erreur → affiche un bloc d’erreur mais continue
-            if (data.error || !data.best_window || !data.best_window.start) {
+            if (data.error || !data.best_window || !data.best_window.start ) {
                 const errorItem = document.createElement("div");
-                errorItem.className = "weather-item";
+                errorItem.className = "col mb-3";
                 errorItem.innerHTML = `
-                    <div class="weather-time">${mode.toUpperCase()}</div>
-                    <div class="error-box">No dark window</div>
+                    <div class="card h-100">
+                        <div class="card-header">
+                            ${mode.toUpperCase()}
+                        </div>
+                        <div class="card-body">
+                            <div class="card-text">
+                                No dark window
+                            </div>
+                        </div>
+                    </div>
                 `;
                 container.appendChild(errorItem);
                 continue;
@@ -291,31 +343,33 @@ async function loadBestDarkWindow() {
                 
             }
 
-
             // Bloc normal
             const item = document.createElement("div");
-            item.className = "weather-item";
+            item.className = "col mb-3";
 
             item.innerHTML = `
-                <div class="weather-time">${mode.toUpperCase()}</div>
-
-                <div class="weather-astro-info">
-                    <div class="weather-row">
-                        <span class="weather-label">💯 Score:</span>
-                        <span class="weather-value">${data.best_window.score}</span>
+                <div class="card h-100">
+                    <div class="card-header">
+                        ${mode.toUpperCase()}
                     </div>
-                    <div class="weather-row">
-                        <span class="weather-label">🌚 Moon condition:</span>
-                        <span class="weather-value">${data.best_window.moon_condition}</span>
-                    </div>
-                    <div class="weather-row">
-                        <span class="weather-label">🌗 Start:</span>
-                        <span class="weather-value">${start_txt}</span>
-                    </div>
-                    <div class="weather-row">
-                        <span class="weather-label">🌗 End:</span>
-                        <span class="weather-value">${end_txt}</span>
-                    </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            💯 Score:
+                            <span>${data.best_window.score}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            🌚 Moon condition:
+                            <span>${data.best_window.moon_condition}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            🌗 Start:
+                            <span>${start_txt}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            🌗 End:
+                            <span>${end_txt}</span>
+                        </li>
+                    </ul>
                 </div>
             `;
 
@@ -329,6 +383,8 @@ async function loadBestDarkWindow() {
 
     } catch (error) {
         console.error('Error loading dark window data:', error);
-        container.innerHTML = '<div class="error-box">Failed to load dark window data</div>';
+        const containerError = document.getElementById('window-loader-info-notice');
+        containerError.className = 'alert alert-danger';
+        containerError.innerHTML = 'Failed to load dark window data';
     }
 }
