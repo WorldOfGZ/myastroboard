@@ -52,4 +52,13 @@
     --font-medium: 500;
     --font-semibold: 600;
     --font-bold: 700;
+
+    /* Transitions */
+    --transition-normal: 0.2s ease;
+    --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Shadows */
+    --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.08);
+    --shadow-md: 0 8px 20px rgba(15, 23, 42, 0.12);
+    --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.18);
 }

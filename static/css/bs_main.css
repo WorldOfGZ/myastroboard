@@ -136,3 +136,117 @@ h3 {
     margin-right: 0.5rem;
 }
 
+/* Main Tab Button Styling */
+.main-tab-btn {
+    position: relative;
+    background-color: transparent !important;
+    color: var(--text-light) !important;
+    font-weight: var(--font-semibold) !important;
+    padding: 0.65rem 1.5rem !important;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    transition: all var(--transition-smooth);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow: hidden;
+}
+
+.main-tab-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.15);
+    transition: left var(--transition-smooth);
+    z-index: -1;
+}
+
+.main-tab-btn:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+}
+
+.main-tab-btn.active {
+    background: rgba(255, 255, 255, 0.25) !important;
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    color: var(--text-light) !important;
+}
+
+.main-tab-btn.active::before {
+    left: 0;
+}
+
+/* Sub Tab Button Styling */
+.sub-tab-btn {
+    background-color: rgba(255, 255, 255, 0.18) !important;
+    color: var(--text-grey) !important;
+    font-weight: var(--font-medium) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    border-radius: var(--border-radius) !important;
+    padding: 0.55rem 1rem !important;
+    transition: all var(--transition-smooth);
+    position: relative;
+    overflow: hidden;
+}
+
+.sub-tab-btn::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: -100%;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 1), transparent);
+    transition: left var(--transition-smooth);
+}
+
+.sub-tab-btn:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.25) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    color: var(--text-color) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.sub-tab-btn.active {
+    background-color: rgba(99, 102, 241, 0.25) !important;
+    border-color: rgba(99, 102, 241, 0.5) !important;
+    color: var(--text-color) !important;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2);
+}
+
+.sub-tab-btn.active::before {
+    left: 0;
+}
+
+/* Catalogue Type Button Styling */
+.catalogue-type-btn {
+    background-color: rgba(255, 255, 255, 0.16) !important;
+    color: var(--text-grey) !important;
+    font-weight: var(--font-medium) !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    border-radius: var(--border-radius) !important;
+    padding: 0.5rem 1rem !important;
+    transition: all var(--transition-normal);
+    position: relative;
+}
+
+.catalogue-type-btn:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.22) !important;
+    border-color: rgba(255, 255, 255, 0.32) !important;
+    color: var(--text-color) !important;
+    transform: translateY(-1px);
+}
+
+.catalogue-type-btn.active {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.25)) !important;
+    border-color: rgba(99, 102, 241, 0.6) !important;
+    color: var(--text-light) !important;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+}
+
