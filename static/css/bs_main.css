@@ -233,8 +233,56 @@ h3 {
 .bg-checkbox {
     background-color: var(--bg-light) !important;
     border-radius: var(--border-radius);
-    padding: 0.25rem 0.5rem;
-    margin-right: 0.5rem;
+    padding: 0.5rem 0.75rem !important;
+    display: inline-block !important;
+    overflow: visible !important;
+    margin-right: 0 !important;
+    margin-bottom: 0.5rem;
+}
+
+/* Features container - full width block */
+.bg-features {
+    background-color: var(--bg-light) !important;
+    border-radius: var(--border-radius);
+    padding: 1rem !important;
+    display: block !important;
+    width: 100%;
+}
+
+.bg-features .form-check {
+    margin-bottom: 1.5rem;
+}
+
+.bg-features .form-check:last-child {
+    margin-bottom: 0;
+}
+
+.bg-checkbox .form-check {
+    margin-bottom: 1rem;
+}
+
+.bg-checkbox .form-check-input {
+    margin-right: 0.5rem !important;
+    margin-left: 0 !important;
+}
+
+.bg-checkbox .form-check-label {
+    margin-bottom: 0 !important;
+    cursor: pointer;
+    display: inline !important;
+}
+
+.form-check-inline {
+    display: inline-block;
+    margin-right: 1rem;
+}
+
+#catalogues-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: flex-start;
+    justify-content: flex-start;
 }
 
 /* Main Tab Button Styling */

@@ -317,29 +317,29 @@ async function saveConfiguration() {
 
 function setupEventListeners() {
     // Configuration save
-    document.getElementById('save-config').addEventListener('click', saveConfiguration);
-    document.getElementById('save-advanced').addEventListener('click', saveConfiguration);
-    document.getElementById('view-config-main').addEventListener('click', viewConfiguration);
-    document.getElementById('export-config-main').addEventListener('click', exportConfiguration);
+    document.getElementById('save-config')?.addEventListener('click', saveConfiguration);
+    document.getElementById('save-advanced')?.addEventListener('click', saveConfiguration);
+    document.getElementById('view-config-main')?.addEventListener('click', viewConfiguration);
+    document.getElementById('export-config-main')?.addEventListener('click', exportConfiguration);
     
     // Run Now button
     document.getElementById('run-now')
         ?.addEventListener('click', Scheduler.trigger);
     
     // Constraints toggle
-    document.getElementById('use-constraints').addEventListener('change', (e) => {
+    document.getElementById('use-constraints')?.addEventListener('change', (e) => {
         toggleConstraintsFields(e.target.checked);
     });
     
     // Coordinate conversion
-    document.getElementById('latitude-input').addEventListener('blur', () => convertCoordinate('latitude'));
-    document.getElementById('longitude-input').addEventListener('blur', () => convertCoordinate('longitude'));
+    document.getElementById('latitude-input')?.addEventListener('blur', () => convertCoordinate('latitude'));
+    document.getElementById('longitude-input')?.addEventListener('blur', () => convertCoordinate('longitude'));
     
     // Logs
-    document.getElementById('refresh-logs').addEventListener('click', loadLogs);
-    document.getElementById('clear-logs-display').addEventListener('click', clearLogsDisplay);
-    document.getElementById('log-level').addEventListener('change', loadLogs);
-    document.getElementById('log-limit').addEventListener('change', loadLogs);
+    document.getElementById('refresh-logs')?.addEventListener('click', loadLogs);
+    document.getElementById('clear-logs-display')?.addEventListener('click', clearLogsDisplay);
+    document.getElementById('log-level')?.addEventListener('change', loadLogs);
+    document.getElementById('log-limit')?.addEventListener('change', loadLogs);
     
     // Config modal
     const modal = document.getElementById('config-modal');
@@ -470,10 +470,20 @@ async function viewConfiguration() {
 
             //Prepare modal title
             const titleElement = document.getElementById('modal_lg_close_title');
+            if (!titleElement) {
+                console.error('Modal title element not found');
+                showMessage('error', 'Configuration modal not properly initialized');
+                return;
+            }
             titleElement.innerHTML = `📄 UpTonight Configurations`;
             
             //Prepare modal content
             const contentElement = document.getElementById('modal_lg_close_body');
+            if (!contentElement) {
+                console.error('Modal body element not found');
+                showMessage('error', 'Configuration modal not properly initialized');
+                return;
+            }
             contentElement.innerHTML = `
                 <!-- Dropdown to select config -->
                 <div class="row row-cols-lg-auto g-3 align-items-center mb-3">
@@ -491,6 +501,11 @@ async function viewConfiguration() {
             `;
 
             const selector = document.getElementById('config-selector');
+            if (!selector) {
+                console.error('Config selector element not found');
+                showMessage('error', 'Configuration selector not properly initialized');
+                return;
+            }
             selector.innerHTML = ''; // clear previous options
 
             // Add options for each config
@@ -508,19 +523,26 @@ async function viewConfiguration() {
             selector.onchange = (e) => displayConfig(e.target.value);
 
             // Export uptonight config as YAML
-            document.getElementById('export-config-from-modal').onclick = () => {
-                const selector = document.getElementById('config-selector');
-                const cfg = configsData[selector.value];
-                if (!cfg) return;
+            const exportBtn = document.getElementById('export-config-from-modal');
+            if (exportBtn) {
+                exportBtn.onclick = () => {
+                    const selector = document.getElementById('config-selector');
+                    if (!selector) {
+                        console.error('Config selector not found during export');
+                        return;
+                    }
+                    const cfg = configsData[selector.value];
+                    if (!cfg) return;
 
-                const blob = new Blob([cfg.yaml], { type: 'text/yaml' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = cfg.name;
-                a.click();
-                URL.revokeObjectURL(url);
-            };
+                    const blob = new Blob([cfg.yaml], { type: 'text/yaml' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = cfg.name;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                };
+            }
 
             // Display the modal modal_lg_close
             const bs_modal = new bootstrap.Modal('#modal_lg_close', {
@@ -531,25 +553,34 @@ async function viewConfiguration() {
             bs_modal.show();
 
             //On modal close, clear the display and events to prevent memory leaks
-            document.getElementById('modal_lg_close').addEventListener('hidden.bs.modal', () => {
+            const modal = document.getElementById('modal_lg_close');
+            if (modal) {
+                modal.addEventListener('hidden.bs.modal', () => {
 
-                // Remove event listeners
-                const selector = document.getElementById('config-selector');
-                if (selector) {
-                    selector.onchange = null;
-                }
-                const exportBtn = document.getElementById('export-config-from-modal');
-                if (exportBtn) {
-                    exportBtn.onclick = null;
-                }
+                    // Remove event listeners
+                    const selector = document.getElementById('config-selector');
+                    if (selector) {
+                        selector.onchange = null;
+                    }
+                    const exportBtn = document.getElementById('export-config-from-modal');
+                    if (exportBtn) {
+                        exportBtn.onclick = null;
+                    }
 
-                document.getElementById('modal_lg_close_title').textContent = '';
-                document.getElementById('modal_lg_close_body').innerHTML = '';
-                configsData = [];
+                    const titleElement = document.getElementById('modal_lg_close_title');
+                    if (titleElement) {
+                        titleElement.textContent = '';
+                    }
+                    const bodyElement = document.getElementById('modal_lg_close_body');
+                    if (bodyElement) {
+                        bodyElement.innerHTML = '';
+                    }
+                    configsData = [];
 
-                // Self destroy this event listener to prevent accumulation if user opens/closes modal multiple times
-                document.getElementById('modal_lg_close').removeEventListener('hidden.bs.modal', arguments.callee);
-            });
+                    // Self destroy this event listener to prevent accumulation if user opens/closes modal multiple times
+                    modal.removeEventListener('hidden.bs.modal', arguments.callee);
+                });
+            }
 
 
         } else {
@@ -565,7 +596,12 @@ async function viewConfiguration() {
 function displayConfig(index) {
     const cfg = configsData[index];
     if (!cfg) return;
-    document.getElementById('config-display').textContent = cfg.yaml;
+    const displayElement = document.getElementById('config-display');
+    if (!displayElement) {
+        console.error('Config display element not found');
+        return;
+    }
+    displayElement.textContent = cfg.yaml;
 }
 
 //Export general configuration
@@ -581,12 +617,25 @@ async function exportConfiguration() {
 
 async function loadLogs() {
     try {
-        const level = document.getElementById('log-level').value;
-        const limit = document.getElementById('log-limit').value;
+        const logLevelElement = document.getElementById('log-level');
+        const logLimitElement = document.getElementById('log-limit');
+        
+        if (!logLevelElement || !logLimitElement) {
+            console.error('Log filter elements not found');
+            return;
+        }
+        
+        const level = logLevelElement.value;
+        const limit = logLimitElement.value;
         const response = await fetch(`${API_BASE}/api/logs?level=${level}&limit=${limit}`);
         const data = await response.json();
         
         const logsContainer = document.getElementById('logs-display');
+        if (!logsContainer) {
+            console.error('Logs display container not found');
+            return;
+        }
+        
         logsContainer.innerHTML = '';
         
         if (data.logs && data.logs.length > 0) {
@@ -622,7 +671,10 @@ async function loadLogs() {
         }
     } catch (error) {
         console.error('Error loading logs:', error);
-        document.getElementById('logs-display').innerHTML = '<div class="log-error">Error loading logs</div>';
+        const logsDisplay = document.getElementById('logs-display');
+        if (logsDisplay) {
+            logsDisplay.innerHTML = '<div class="log-error">Error loading logs</div>';
+        }
     }
 }
 
@@ -633,14 +685,20 @@ async function clearLogsDisplay() {
 
     showMessage("success", "Logs cleared");
 
-    document.getElementById('logs-display').innerHTML = '<div class="log-empty">Logs cleared (refresh to reload)</div>';
+    const logsDisplay = document.getElementById('logs-display');
+    if (logsDisplay) {
+        logsDisplay.innerHTML = '<div class="log-empty">Logs cleared (refresh to reload)</div>';
+    }
 }
 
 async function loadVersion() {
     try {
         const response = await fetch(`${API_BASE}/api/version`);
         const data = await response.json();
-        document.getElementById('version').textContent = `v${data.version}`;
+        const versionElement = document.getElementById('version');
+        if (versionElement) {
+            versionElement.textContent = `v${data.version}`;
+        }
         
         // Check for updates immediately after page load
         checkForUpdates(data.version);
@@ -759,12 +817,10 @@ async function loadCatalogues() {
         
         catalogues.forEach(catalogue => {
             const checkboxElt = document.createElement('div');
-            checkboxElt.className = 'form-check form-switch form-check-inline bg-checkbox';
+            checkboxElt.className = 'form-check form-switch bg-checkbox';
             checkboxElt.innerHTML = `
-                <label class="form-check form-check-inline">
-                    <input class="form-check-input" type="checkbox" value="${catalogue}" ${selectedCatalogues.includes(catalogue) ? 'checked' : ''} switch  >
-                    <span class="form-check-label">${catalogue}</span>
-                </label>
+                <input class="form-check-input" type="checkbox" value="${catalogue}" id="catalogue-${catalogue}" ${selectedCatalogues.includes(catalogue) ? 'checked' : ''} switch>
+                <label class="form-check-label" for="catalogue-${catalogue}">${catalogue}</label>
             `;
             container.appendChild(checkboxElt);
         });
@@ -1429,19 +1485,32 @@ function filterTable(catalogue, type) {
 
 function showPlotPopup(title, src) {
     // Modal modal_full_close
-    const modal = new bootstrap.Modal(document.getElementById('modal_full_close'));
+    const modalElement = document.getElementById('modal_full_close');
+    if (!modalElement) {
+        console.error('Modal element not found');
+        return;
+    }
+    
+    const modal = new bootstrap.Modal(modalElement);
 
     // Prepare modal content
-    document.getElementById('modal_full_close_title').textContent = title;
-    document.getElementById('modal_full_close_body').innerHTML = `
-        <img 
-            id="image-display" 
-            src="${src}" 
-            alt="Plot" 
-            title="${title}" 
-            class="img-fluid rounded" 
-        >
-    `;
+    const titleElement = document.getElementById('modal_full_close_title');
+    if (titleElement) {
+        titleElement.textContent = title;
+    }
+    
+    const bodyElement = document.getElementById('modal_full_close_body');
+    if (bodyElement) {
+        bodyElement.innerHTML = `
+            <img 
+                id="image-display" 
+                src="${src}" 
+                alt="Plot" 
+                title="${title}" 
+                class="img-fluid rounded" 
+            >
+        `;
+    }
 
     // Show the modal
     modal.show();
@@ -1449,19 +1518,32 @@ function showPlotPopup(title, src) {
 
 function showAlttimePopup(title, src) {
     // Modal modal_xl_close
-    const modal = new bootstrap.Modal(document.getElementById('modal_xl_close'));
+    const modalElement = document.getElementById('modal_xl_close');
+    if (!modalElement) {
+        console.error('Modal element not found');
+        return;
+    }
+    
+    const modal = new bootstrap.Modal(modalElement);
 
     // Prepare modal content
-    document.getElementById('modal_xl_close_title').textContent = title;
-    document.getElementById('modal_xl_close_body').innerHTML = `
-        <img 
-            id="image-display" 
-            src="${src}" 
-            alt="Altitude-Time Plot" 
-            title="${title}" 
-            class="img-fluid rounded" 
-        >
-    `;
+    const titleElement = document.getElementById('modal_xl_close_title');
+    if (titleElement) {
+        titleElement.textContent = title;
+    }
+    
+    const bodyElement = document.getElementById('modal_xl_close_body');
+    if (bodyElement) {
+        bodyElement.innerHTML = `
+            <img 
+                id="image-display" 
+                src="${src}" 
+                alt="Altitude-Time Plot" 
+                title="${title}" 
+                class="img-fluid rounded" 
+            >
+        `;
+    }
 
     // Show the modal
     modal.show();
