@@ -6,13 +6,13 @@
     <title>MyAstroBoard - Astronomy Observation Planning Dashboard</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <link rel="stylesheet" href="/static/css/bs_variables.css">
-    <link rel="stylesheet" href="/static/css/bs_main.css">
-    <link rel="stylesheet" href="/static/css/bs_weather.css">
-    <link rel="stylesheet" href="/static/css/bs_yaml.css">
-    <link rel="stylesheet" href="/static/css/bs_logs.css">
-    <link rel="stylesheet" href="/static/css/bs_uptonight.css">
-    <link rel="stylesheet" href="/static/css/bs_astrodex.css">
+    <link rel="stylesheet" href="/static/css/bs_variables.css?v={{ version }}">
+    <link rel="stylesheet" href="/static/css/bs_main.css?v={{ version }}">
+    <link rel="stylesheet" href="/static/css/bs_weather.css?v={{ version }}">
+    <link rel="stylesheet" href="/static/css/bs_yaml.css?v={{ version }}">
+    <link rel="stylesheet" href="/static/css/bs_logs.css?v={{ version }}">
+    <link rel="stylesheet" href="/static/css/bs_uptonight.css?v={{ version }}">
+    <link rel="stylesheet" href="/static/css/bs_astrodex.css?v={{ version }}">
     <script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js"></script>
 </head>
 <body>
@@ -28,7 +28,7 @@
     <div class="mainContainer mt-3">
 
         <!-- Navbar -->
-        <nav class="navbar navbar-expand-lg rounded">
+        <nav class="navbar navbar-expand-lg rounded mb-3">
             <div class="container-fluid">
                 <span class="navbar-brand mb-0 h1">
                     Hey! <span id="username-display"></span>
@@ -63,13 +63,13 @@
 
     
         <!-- Default Password Warning Banner -->
-        <div id="default-password-warning" class="alert alert-warning alert-dismissible fade show mt-3" role="alert" style="display: none;">
+        <div id="default-password-warning" class="alert alert-warning alert-dismissible fade show mb-3" role="alert" style="display: none;">
             ⚠️ <b>You are using the default password</b>. Please change it in the Users section for security.
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
         
         <!-- Global cache Status Banner -->
-        <div id="global-cache-banner" class="alert alert-info" role="alert" style="display: none;">
+        <div id="global-cache-banner" class="alert alert-info mb-3" role="alert" style="display: none;">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
@@ -79,7 +79,7 @@
         </div>
 
         <!-- Global UpTonight Scheduler Status Banner -->
-        <div id="global-scheduler-banner" class="alert alert-info" role="alert" style="display: none;">
+        <div id="global-scheduler-banner" class="alert alert-info mt-3" role="alert" style="display: none;">
             <div id="global-scheduler-progress" class="fw-bold">Processing catalogues...</div>
             <div id="global-scheduler-detail" class="global-status-detail">blabla</div>
         </div>
@@ -762,19 +762,18 @@
 
 
 
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-    <script src="/static/js/auth.js"></script>
-    <script src="/static/js/apiHelper.js"></script>
-    <script src="/static/js/domUtils.js"></script>
-    <script src="/static/js/utils.js"></script>
-    <script src="/static/js/scheduler.js"></script>
-    <script src="/static/js/moon.js"></script>
-    <script src="/static/js/sun.js"></script>
-    <script src="/static/js/weather.js"></script>
-    <script src="/static/js/weather_astro.js"></script>
-    <script src="/static/js/weather_alerts.js"></script>
-    <script src="/static/js/astrodex.js"></script>
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/auth.js?v={{ version }}"></script>
+    <script src="/static/js/apiHelper.js?v={{ version }}"></script>
+    <script src="/static/js/domUtils.js?v={{ version }}"></script>
+    <script src="/static/js/utils.js?v={{ version }}"></script>
+    <script src="/static/js/scheduler.js?v={{ version }}"></script>
+    <script src="/static/js/moon.js?v={{ version }}"></script>
+    <script src="/static/js/sun.js?v={{ version }}"></script>
+    <script src="/static/js/weather.js?v={{ version }}"></script>
+    <script src="/static/js/weather_astro.js?v={{ version }}"></script>
+    <script src="/static/js/weather_alerts.js?v={{ version }}"></script>
+    <script src="/static/js/astrodex.js?v={{ version }}"></script>
+    <script src="/static/js/app.js?v={{ version }}"></script>
 </body>
 </html>

@@ -91,13 +91,19 @@ def index():
     except Exception as e:
         logger.error(f"Failed to initialize cache scheduler: {e}")
     
-    return render_template('index.html')
+    # Get version for cache busting
+    version = get_repo_version()
+    
+    return render_template('index.html', version=version)
 
 
 @app.route('/login')
 def login_page():
     """Render login page"""
-    return render_template('login.html')
+    # Get version for cache busting
+    version = get_repo_version()
+    
+    return render_template('login.html', version=version)
 
 
 # ============================================================
