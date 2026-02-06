@@ -52,15 +52,14 @@ myastroboard/
 │   └── myastroboard.log        # Application logs
 ├── static/
 │   ├── css/
-│   │   ├── main.css (import orchestrator)
-│   │   ├── variables.css (CSS custom properties)
-│   │   ├── base.css (reset, typography, base styles)
-│   │   ├── layout.css (header, footer, cards, containers)
-│   │   ├── components.css (tabs, buttons, forms, modals, etc.)
-│   │   ├── weather.css (weather-specific components)
-│   │   ├── astro.css (astrophotography-specific styles)
-│   │   ├── login.css (login page styles)
-│   │   └── responsive.css (media queries & responsive design)
+│   │   ├── bs_astrodex.css (astrodex-specific styles)
+│   │   ├── bs_imports.css (import orchestrator)
+│   │   ├── bs_logs.css (logs-specific styles)
+│   │   ├── bs_main.css (common styles for all pages)
+│   │   ├── bs_uptonight.css (uptonight-specific styles)
+│   │   ├── bs_variables.css (common variables for all pages)
+│   │   ├── bs_weather.css (weather-specific styles)
+│   │   └── bs_yaml.css (yaml-specific styles)
 │   ├── js/
 │   │   ├── apiHelper.js
 │   │   ├── app.js
