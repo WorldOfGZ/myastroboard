@@ -97,7 +97,40 @@ h3 {
 
 .card {
     background-color: var(--bg-light) !important;
-    box-shadow: 10px 4px 12px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(15, 23, 42, 0.08) !important;
+    border-radius: calc(var(--border-radius) + 2px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all var(--transition-smooth);
+    position: relative;
+    overflow: hidden;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent);
+}
+
+.card:hover {
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.24);
+    border-color: rgba(99, 102, 241, 0.15) !important;
+}
+
+.card-header {
+    background-color: rgba(99, 102, 241, 0.08) !important;
+    border-bottom: 2px solid rgba(99, 102, 241, 0.2) !important;
+    font-weight: var(--font-semibold);
+    color: var(--text-color) !important;
+}
+
+.card-title {
+    color: var(--text-color);
+    font-weight: var(--font-bold);
+    margin-bottom: 0;
 }
 
 

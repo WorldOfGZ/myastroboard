@@ -17,32 +17,89 @@
 /* Weather card */
 .card-title-weather {
     text-align: center;
+    font-weight: var(--font-semibold);
+    color: var(--text-color);
 }
 
 /* Quality Classes */
 .quality-excellent {
-    background-color: var(--quality-excellent) !important;
+    background: linear-gradient(135deg, var(--quality-excellent), rgba(209, 250, 229, 0.7)) !important;
     color: var(--quality-excellent-text) !important;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: var(--border-radius);
+    padding: 0.5rem 0.75rem;
+    font-weight: var(--font-semibold);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+    transition: all var(--transition-normal);
+}
+
+.quality-excellent:hover {
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);
+    transform: translateY(-1px);
 }
 
 .quality-good {
-    background-color: var(--quality-good) !important;
+    background: linear-gradient(135deg, var(--quality-good), rgba(219, 234, 254, 0.7)) !important;
     color: var(--quality-good-text) !important;
+    border: 1px solid rgba(30, 64, 175, 0.3);
+    border-radius: var(--border-radius);
+    padding: 0.5rem 0.75rem;
+    font-weight: var(--font-semibold);
+    box-shadow: 0 2px 8px rgba(30, 64, 175, 0.15);
+    transition: all var(--transition-normal);
+}
+
+.quality-good:hover {
+    box-shadow: 0 6px 16px rgba(30, 64, 175, 0.25);
+    transform: translateY(-1px);
 }
 
 .quality-fair {
-    background-color: var(--quality-fair) !important;
+    background: linear-gradient(135deg, var(--quality-fair), rgba(254, 243, 199, 0.7)) !important;
     color: var(--quality-fair-text) !important;
+    border: 1px solid rgba(217, 119, 6, 0.3);
+    border-radius: var(--border-radius);
+    padding: 0.5rem 0.75rem;
+    font-weight: var(--font-semibold);
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.15);
+    transition: all var(--transition-normal);
+}
+
+.quality-fair:hover {
+    box-shadow: 0 6px 16px rgba(217, 119, 6, 0.25);
+    transform: translateY(-1px);
 }
 
 .quality-poor {
-    background-color: var(--quality-poor) !important;
+    background: linear-gradient(135deg, var(--quality-poor), rgba(254, 215, 170, 0.7)) !important;
     color: var(--quality-poor-text) !important;
+    border: 1px solid rgba(234, 88, 12, 0.3);
+    border-radius: var(--border-radius);
+    padding: 0.5rem 0.75rem;
+    font-weight: var(--font-semibold);
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.15);
+    transition: all var(--transition-normal);
+}
+
+.quality-poor:hover {
+    box-shadow: 0 6px 16px rgba(234, 88, 12, 0.25);
+    transform: translateY(-1px);
 }
 
 .quality-bad {
-    background-color: var(--quality-bad) !important;
+    background: linear-gradient(135deg, var(--quality-bad), rgba(254, 202, 202, 0.7)) !important;
     color: var(--quality-bad-text) !important;
+    border: 1px solid rgba(153, 27, 27, 0.3);
+    border-radius: var(--border-radius);
+    padding: 0.5rem 0.75rem;
+    font-weight: var(--font-semibold);
+    box-shadow: 0 2px 8px rgba(153, 27, 27, 0.15);
+    transition: all var(--transition-normal);
+}
+
+.quality-bad:hover {
+    box-shadow: 0 6px 16px rgba(153, 27, 27, 0.25);
+    transform: translateY(-1px);
 }
 
 /* Astro weather */
@@ -66,33 +123,105 @@
 
 /* Dew Risk Colors */
 .dew-minimal {
-    background: #ecfdf5;
-    color: #047857;
+    background: linear-gradient(135deg, #ecfdf5, rgba(236, 253, 245, 0.7)) !important;
+    color: #047857 !important;
+    border: 1px solid rgba(4, 120, 87, 0.3);
+    border-radius: var(--border-radius);
+    padding: 0.5rem 0.75rem;
+    font-weight: var(--font-semibold);
+    box-shadow: 0 2px 8px rgba(4, 120, 87, 0.15);
+    transition: all var(--transition-normal);
+    display: inline-block;
+}
+
+.dew-minimal:hover {
+    box-shadow: 0 6px 16px rgba(4, 120, 87, 0.25);
+    transform: translateY(-1px);
 }
 
 .dew-low {
-    background: #f0fdf4;
-    color: #16a34a;
+    background: linear-gradient(135deg, #f0fdf4, rgba(240, 253, 244, 0.7)) !important;
+    color: #16a34a !important;
+    border: 1px solid rgba(22, 163, 74, 0.3);
+    border-radius: var(--border-radius);
+    padding: 0.5rem 0.75rem;
+    font-weight: var(--font-semibold);
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.15);
+    transition: all var(--transition-normal);
+    display: inline-block;
+}
+
+.dew-low:hover {
+    box-shadow: 0 6px 16px rgba(22, 163, 74, 0.25);
+    transform: translateY(-1px);
 }
 
 .dew-moderate {
-    background: #fefce8;
-    color: #ca8a04;
+    background: linear-gradient(135deg, #fefce8, rgba(254, 252, 232, 0.7)) !important;
+    color: #ca8a04 !important;
+    border: 1px solid rgba(202, 138, 4, 0.3);
+    border-radius: var(--border-radius);
+    padding: 0.5rem 0.75rem;
+    font-weight: var(--font-semibold);
+    box-shadow: 0 2px 8px rgba(202, 138, 4, 0.15);
+    transition: all var(--transition-normal);
+    display: inline-block;
+}
+
+.dew-moderate:hover {
+    box-shadow: 0 6px 16px rgba(202, 138, 4, 0.25);
+    transform: translateY(-1px);
 }
 
 .dew-high {
-    background: #fed7aa;
-    color: #ea580c;
+    background: linear-gradient(135deg, #fed7aa, rgba(254, 215, 170, 0.7)) !important;
+    color: #ea580c !important;
+    border: 1px solid rgba(234, 88, 12, 0.3);
+    border-radius: var(--border-radius);
+    padding: 0.5rem 0.75rem;
+    font-weight: var(--font-semibold);
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.15);
+    transition: all var(--transition-normal);
+    display: inline-block;
+}
+
+.dew-high:hover {
+    box-shadow: 0 6px 16px rgba(234, 88, 12, 0.25);
+    transform: translateY(-1px);
 }
 
 .dew-critical {
-    background: #fee2e2;
-    color: #dc2626;
+    background: linear-gradient(135deg, #fee2e2, rgba(254, 226, 226, 0.7)) !important;
+    color: #dc2626 !important;
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    border-radius: var(--border-radius);
+    padding: 0.5rem 0.75rem;
+    font-weight: var(--font-semibold);
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15);
+    transition: all var(--transition-normal);
+    display: inline-block;
+}
+
+.dew-critical:hover {
+    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.25);
+    transform: translateY(-1px);
 }
 
 .dew-unknown {
-    background: #f1f5f9;
-    color: #64748b;
+    background: linear-gradient(135deg, #f1f5f9, rgba(241, 245, 249, 0.7)) !important;
+    color: #64748b !important;
+    border: 1px solid rgba(100, 116, 139, 0.3);
+    border-radius: var(--border-radius);
+    padding: 0.5rem 0.75rem;
+    font-weight: var(--font-semibold);
+    box-shadow: 0 2px 8px rgba(100, 116, 139, 0.15);
+    transition: all var(--transition-normal);
+    display: inline-block;
+}
+
+.dew-unknown:hover {
+    box-shadow: 0 6px 16px rgba(100, 116, 139, 0.25);
+    transform: translateY(-1px);
 }
 
 .moon-info-card {
