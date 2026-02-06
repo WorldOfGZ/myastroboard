@@ -126,6 +126,8 @@ async function loadTimezones() {
         const timezones = await response.json();
         
         const select = document.getElementById('timezone');
+        if (!select) return; // Element doesn't exist on this page view
+        
         select.innerHTML = '';
         
         timezones.forEach(tz => {
@@ -145,59 +147,106 @@ async function loadConfiguration() {
         const config = await response.json();
         currentConfig = config;
         
-        // Populate basic fields
-        document.getElementById('location-name').value = config.location?.name || '';
-        document.getElementById('latitude-input').value = config.location?.latitude || '';
-        document.getElementById('longitude-input').value = config.location?.longitude || '';
-        document.getElementById('elevation').value = config.location?.elevation || 0;
-        document.getElementById('timezone').value = config.location?.timezone || 'UTC';
+        // Populate basic fields - check if elements exist before setting values
+        const locationName = document.getElementById('location-name');
+        if (locationName) locationName.value = config.location?.name || '';
+        
+        const latInput = document.getElementById('latitude-input');
+        if (latInput) latInput.value = config.location?.latitude || '';
+        
+        const lonInput = document.getElementById('longitude-input');
+        if (lonInput) lonInput.value = config.location?.longitude || '';
+        
+        const elevation = document.getElementById('elevation');
+        if (elevation) elevation.value = config.location?.elevation || 0;
+        
+        const timezone = document.getElementById('timezone');
+        if (timezone) timezone.value = config.location?.timezone || 'UTC';
         
         // Features
         const features = config.features || {};
-        document.getElementById('feature-horizon').checked = features.horizon !== false;
-        document.getElementById('feature-objects').checked = features.objects !== false;
-        document.getElementById('feature-bodies').checked = features.bodies !== false;
-        document.getElementById('feature-comets').checked = features.comets !== false;
-        document.getElementById('feature-alttime').checked = features.alttime !== false;
+        const featureHorizon = document.getElementById('feature-horizon');
+        if (featureHorizon) featureHorizon.checked = features.horizon !== false;
+        
+        const featureObjects = document.getElementById('feature-objects');
+        if (featureObjects) featureObjects.checked = features.objects !== false;
+        
+        const featureBodies = document.getElementById('feature-bodies');
+        if (featureBodies) featureBodies.checked = features.bodies !== false;
+        
+        const featureComets = document.getElementById('feature-comets');
+        if (featureComets) featureComets.checked = features.comets !== false;
+        
+        const featureAlttime = document.getElementById('feature-alttime');
+        if (featureAlttime) featureAlttime.checked = features.alttime !== false;
         
         // Constraints
         const useConstraints = config.use_constraints !== false;  // Default to true
-        document.getElementById('use-constraints').checked = useConstraints;
-        toggleConstraintsFields(useConstraints);
+        const useConstraintsEl = document.getElementById('use-constraints');
+        if (useConstraintsEl) {
+            useConstraintsEl.checked = useConstraints;
+            toggleConstraintsFields(useConstraints);
+        }
         
         const constraints = config.constraints || {};
-        document.getElementById('altitude-min').value = constraints.altitude_constraint_min || 30;
-        document.getElementById('altitude-max').value = constraints.altitude_constraint_max || 80;
-        document.getElementById('airmass').value = constraints.airmass_constraint || 2;
-        document.getElementById('size-min').value = constraints.size_constraint_min || 10;
-        document.getElementById('size-max').value = constraints.size_constraint_max || 300;
-        document.getElementById('moon-sep').value = constraints.moon_separation_min || 45;
-        document.getElementById('time-threshold').value = constraints.fraction_of_time_observable_threshold || 0.5;
-        document.getElementById('max-targets').value = constraints.max_number_within_threshold || 60;
-        document.getElementById('moon-illumination').checked = constraints.moon_separation_use_illumination !== false;
-        document.getElementById('north-ccw').checked = constraints.north_to_east_ccw === true;
+        
+        const altMin = document.getElementById('altitude-min');
+        if (altMin) altMin.value = constraints.altitude_constraint_min || 30;
+        
+        const altMax = document.getElementById('altitude-max');
+        if (altMax) altMax.value = constraints.altitude_constraint_max || 80;
+        
+        const airmass = document.getElementById('airmass');
+        if (airmass) airmass.value = constraints.airmass_constraint || 2;
+        
+        const sizeMin = document.getElementById('size-min');
+        if (sizeMin) sizeMin.value = constraints.size_constraint_min || 10;
+        
+        const sizeMax = document.getElementById('size-max');
+        if (sizeMax) sizeMax.value = constraints.size_constraint_max || 300;
+        
+        const moonSep = document.getElementById('moon-sep');
+        if (moonSep) moonSep.value = constraints.moon_separation_min || 45;
+        
+        const timeThreshold = document.getElementById('time-threshold');
+        if (timeThreshold) timeThreshold.value = constraints.fraction_of_time_observable_threshold || 0.5;
+        
+        const maxTargets = document.getElementById('max-targets');
+        if (maxTargets) maxTargets.value = constraints.max_number_within_threshold || 60;
+        
+        const moonIllumination = document.getElementById('moon-illumination');
+        if (moonIllumination) moonIllumination.checked = constraints.moon_separation_use_illumination !== false;
+        
+        const northCCW = document.getElementById('north-ccw');
+        if (northCCW) northCCW.checked = constraints.north_to_east_ccw === true;
                 
         // Bucket list
-        if (config.bucket_list && config.bucket_list.length > 0) {
-            document.getElementById('bucket-list').value = config.bucket_list.join('\n');
+        const bucketList = document.getElementById('bucket-list');
+        if (bucketList && config.bucket_list && config.bucket_list.length > 0) {
+            bucketList.value = config.bucket_list.join('\n');
         }
         
         // Done list
-        if (config.done_list && config.done_list.length > 0) {
-            document.getElementById('done-list').value = config.done_list.join('\n');
+        const doneList = document.getElementById('done-list');
+        if (doneList && config.done_list && config.done_list.length > 0) {
+            doneList.value = config.done_list.join('\n');
         }
         
         // Custom targets
-        if (config.custom_targets && config.custom_targets.length > 0) {
-            document.getElementById('custom-targets').value = formatCustomTargetsAsYAML(config.custom_targets);
+        const customTargets = document.getElementById('custom-targets');
+        if (customTargets && config.custom_targets && config.custom_targets.length > 0) {
+            customTargets.value = formatCustomTargetsAsYAML(config.custom_targets);
         }
         
         // Horizon
-        if (config.horizon && config.horizon.anchor_points && config.horizon.anchor_points.length > 0) {
-            const horizonYAML = formatHorizonAsYAML(config.horizon);
-            document.getElementById('horizon-config').value = horizonYAML;
-        } else {
-            document.getElementById('horizon-config').value = '';
+        const horizonConfig = document.getElementById('horizon-config');
+        if (horizonConfig) {
+            if (config.horizon && config.horizon.anchor_points && config.horizon.anchor_points.length > 0) {
+                const horizonYAML = formatHorizonAsYAML(config.horizon);
+                horizonConfig.value = horizonYAML;
+            } else {
+                horizonConfig.value = '';
+            }
         }
         
     } catch (error) {
@@ -810,7 +859,7 @@ async function loadCatalogues() {
         const catalogues = await response.json();
         
         const container = document.getElementById('catalogues-list');
-        container.innerHTML = '';
+        if (!container) return; // Element doesn't exist on this page view
         
         // Ensure Messier is checked by default if no catalogues selected
         const selectedCatalogues = currentConfig.selected_catalogues || ['Messier'];
