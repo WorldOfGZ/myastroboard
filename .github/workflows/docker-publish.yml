@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # Fetch all history for accurate versioning
 
       - name: Read VERSION
         id: version
@@ -66,7 +68,7 @@ jobs:
           CURRENT_TAG=$(git describe --tags --abbrev=0)
           
           # Get the previous tag (sorted by version)
-          PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -v "^$CURRENT_TAG$" | head -1 || echo "")
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           
           # Generate release notes
           echo "## 🚀 What's Changed" >> release_notes.md
@@ -75,18 +77,15 @@ jobs:
           if [ -n "$PREVIOUS_TAG" ]; then
             echo "### 📋 Commits since $PREVIOUS_TAG:" >> release_notes.md
             echo "" >> release_notes.md
-            
-            # Get all commits since previous tag with better formatting
-            git log "$PREVIOUS_TAG..HEAD" --pretty=format:"- %s (%an) - %h" >> release_notes.md
-            echo "" >> release_notes.md
-            echo "" >> release_notes.md
+            git log "$PREVIOUS_TAG..$CURRENT_TAG" --pretty=format:"- %s (%an) - %h" >> release_notes.md
           else
             echo "### 📋 Initial Release Commits:" >> release_notes.md
             echo "" >> release_notes.md
             git log --pretty=format:"- %s (%an) - %h" >> release_notes.md
-            echo "" >> release_notes.md
-            echo "" >> release_notes.md
           fi
+
+          echo "" >> release_notes.md
+          echo "" >> release_notes.md
           
           # Add Docker image information
           echo "## 🐳 Docker Image" >> release_notes.md
