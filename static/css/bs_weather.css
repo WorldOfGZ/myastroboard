@@ -260,7 +260,6 @@
 .moon-info-card {
     background: var(--bg-gradient);
     color: var(--text-light);
-    padding: 2rem 1.5rem;
     margin-bottom: 1.25rem;
     grid-column: 1 / -1;
     border-radius: calc(var(--border-radius) + 4px);
@@ -283,7 +282,6 @@
 .sun-info-card {
     background: var(--sun-gradient);
     color: var(--text-light);
-    padding: 2rem 1.5rem;
     margin-bottom: 1.25rem;
     border-radius: calc(var(--border-radius) + 4px);
     box-shadow: 0 12px 32px rgba(245, 158, 11, 0.25);
