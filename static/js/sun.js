@@ -5,28 +5,14 @@
 //Load Sun data for today
 async function loadSun() {
     const container = document.getElementById('sun-display');
-    container.innerHTML = '<div class="loading">Loading Sun data...</div>';
-    
+    const data = await fetchJSONWithUI('/api/sun/today', container, 'Loading Sun data...', {
+        pendingMessage: 'Cache not ready. Retrying...'
+    });
+    if (!data) return;
+
     try {
-        const response = await fetch(`${API_BASE}/api/sun/today`);
-        const data = await response.json();
-        
-        //console.log(data);
-        //data.error = "error"; 
-
-        if (data.error) {
-            container.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
-            return;
-        }
-
-        // Cache pending
-        if (data.status && data.status === 'pending') {
-            container.innerHTML = `<div class="alert alert-info">${data.message}</div>`;
-            return;
-        }
-        
         // Empty container
-        clearContainer(container);        
+        clearContainer(container);
 
         // Display sun information
         container.innerHTML = `
@@ -121,7 +107,6 @@ async function loadSun() {
 
             </div>
         `;
-        
     } catch (error) {
         console.error('Error loading weather:', error);
         container.innerHTML = '<div class="error-box">Failed to load Sun data</div>';

@@ -19,8 +19,25 @@ async function loadAstroWeather() {
     if (container) container.style.display = 'none';
     
     try {
-        const response = await fetch(`${API_BASE}/api/weather/astro-analysis?hours=24`);
-        const data = await response.json();
+        const data = await fetchJSONWithRetry('/api/weather/astro-analysis?hours=24', {}, {
+            maxAttempts: 8,
+            baseDelayMs: 1000,
+            maxDelayMs: 15000,
+            timeoutMs: 20000,
+            shouldRetryData: (payload) => payload && payload.status === 'pending',
+            onRetry: ({ reason, attempt, maxAttempts, waitMs, data: retryData }) => {
+                if (!loadingDiv) return;
+                const seconds = Math.max(1, Math.round(waitMs / 1000));
+                const message = reason === 'data' && retryData && retryData.message
+                    ? retryData.message
+                    : 'Loading astrophotography weather data...';
+                loadingDiv.innerHTML = `${message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
+            }
+        });
+
+        if (data.status === 'pending') {
+            throw new Error(data.message || 'Cache not ready');
+        }
         
         if (data.error) {
             throw new Error(data.error);

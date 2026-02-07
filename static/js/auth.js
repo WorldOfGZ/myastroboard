@@ -5,10 +5,12 @@ let currentUser = null;
 // Check authentication status on page load
 async function checkAuthStatus() {
     try {
-        const response = await fetch('/api/auth/status', {
+        const data = await fetchJSONWithRetry('/api/auth/status', {
             credentials: 'include'
+        }, {
+            maxAttempts: 3,
+            timeoutMs: 10000
         });
-        const data = await response.json();
         
         if (data.authenticated) {
             currentUser = data;
@@ -84,9 +86,12 @@ async function handleLogout(event) {
     // Prevent default link behavior
     event.preventDefault();
     try {
-        await fetch('/api/auth/logout', {
+        await fetchJSONWithRetry('/api/auth/logout', {
             method: 'POST',
             credentials: 'include'
+        }, {
+            maxAttempts: 1,
+            timeoutMs: 10000
         });
         window.location.href = '/login';
     } catch (error) {
@@ -111,15 +116,23 @@ async function loadUsers() {
     if (currentUser?.role !== 'admin') return;
     
     try {
-        const response = await fetch('/api/users', {
+        const response = await fetchWithRetry('/api/users', {
             credentials: 'include'
+        }, {
+            maxAttempts: 3,
+            timeoutMs: 10000
         });
         
         if (response.status === 401 || response.status === 403) {
             window.location.href = '/login';
             return;
         }
-        
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Failed to load users');
+        }
+
         const users = await response.json();
         displayUsers(users);
     } catch (error) {
@@ -215,13 +228,16 @@ function setupCreateUserForm() {
         const role = document.getElementById('new-role').value;
         
         try {
-            const response = await fetch('/api/users', {
+            const response = await fetchWithRetry('/api/users', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 credentials: 'include',
                 body: JSON.stringify({ username, password, role })
+            }, {
+                maxAttempts: 1,
+                timeoutMs: 15000
             });
             
             const data = await response.json();
@@ -339,13 +355,16 @@ function setupPasswordChangeModal(bs_modal) {
             }
             
             try {
-                const response = await fetch(`/api/users/${username}`, {
+                const response = await fetchWithRetry(`/api/users/${username}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     credentials: 'include',
                     body: JSON.stringify({ password: newPassword })
+                }, {
+                    maxAttempts: 1,
+                    timeoutMs: 15000
                 });
                 
                 const data = await response.json();
@@ -377,9 +396,12 @@ async function deleteUser(username) {
     }
     
     try {
-        const response = await fetch(`/api/users/${username}`, {
+        const response = await fetchWithRetry(`/api/users/${username}`, {
             method: 'DELETE',
             credentials: 'include'
+        }, {
+            maxAttempts: 1,
+            timeoutMs: 15000
         });
         
         const data = await response.json();

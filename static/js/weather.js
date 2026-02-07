@@ -157,8 +157,24 @@ async function loadAstronomicalCharts() {
         //Fake error
         //throw('Fake');
 
-        const response = await fetch(`${API_BASE}/api/weather/forecast`);
-        const data = await response.json();
+        const data = await fetchJSONWithRetry('/api/weather/forecast', {}, {
+            maxAttempts: 6,
+            baseDelayMs: 1000,
+            maxDelayMs: 12000,
+            timeoutMs: 15000,
+            shouldRetryData: (payload) => payload && payload.status === 'pending',
+            onRetry: ({ reason, attempt, maxAttempts, waitMs, data: retryData }) => {
+                const seconds = Math.max(1, Math.round(waitMs / 1000));
+                const message = reason === 'data' && retryData && retryData.message
+                    ? retryData.message
+                    : 'Loading astronomical charts...';
+                loadingDiv.innerHTML = `${message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
+            }
+        });
+
+        if (data.status === 'pending') {
+            throw new Error(data.message || 'Cache not ready');
+        }
 
         //console.log(data);
         

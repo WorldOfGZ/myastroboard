@@ -49,8 +49,12 @@ async function checkCacheStatus() {
     const banner = document.getElementById('global-cache-banner');
     
     try {
-        const response = await fetch(`${API_BASE}/api/cache`);
-        const data = await response.json();
+        const data = await fetchJSONWithRetry('/api/cache', {}, {
+            maxAttempts: 4,
+            baseDelayMs: 1000,
+            maxDelayMs: 8000,
+            timeoutMs: 10000
+        });
 
         if (data.cache_status === true) {
             // If the cache is ready, hide the banner

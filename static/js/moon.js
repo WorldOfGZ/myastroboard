@@ -116,33 +116,17 @@ async function loadMoon() {
 //Load next moon phases
 async function loadNextMoonPhases() {
     const container = document.getElementById('moon-planner-display');
-    container.innerHTML = '<div class="loading">Loading Moon planner data...</div>';
+    const data = await fetchJSONWithUI('/api/moon/next-7-nights', container, 'Loading Moon planner data...', {
+        pendingMessage: 'Cache not ready. Retrying...'
+    });
+    if (!data) return;
 
     try {
-        const response = await fetch(`${API_BASE}/api/moon/next-7-nights`);
-        const data = await response.json();
-        
-        //console.log(data);
-        //data.error = "error";
-        //throw new Error('Test error');
-
-        if (data.error) {
-            // Remove grid classes if error
-            container.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
-            return;
-        }
-
-        // Cache pending
-        if (data.status && data.status === 'pending') {
-            container.innerHTML = `<div class="alert alert-info">${data.message}</div>`;
-            return;
-        }
-
         // Check if container has weather-grid class, if not add it
         if (!container.classList.contains('weather-grid')) {
             container.classList.add('weather-grid');
         }
-        
+
         clearContainer(container);
 
         // if forecast list is available
@@ -220,7 +204,7 @@ async function loadNextMoonPhases() {
                 container.appendChild(item);
             });
         }
-    
+
     } catch (error) {
         console.error('Error loading moon data:', error);
         container.innerHTML = '<div class="alert alert-danger">Failed to load moon data</div>';
@@ -234,6 +218,22 @@ async function loadBestDarkWindow() {
     containerLoader.innerHTML = 'Loading best dark window data...';
     containerLoader.style.display = 'block';
 
+    const retryOptions = {
+        maxAttempts: 6,
+        baseDelayMs: 1000,
+        maxDelayMs: 12000,
+        timeoutMs: 15000,
+        shouldRetryData: (payload) => payload && payload.status === 'pending',
+        onRetry: ({ reason, attempt, maxAttempts, waitMs, data }) => {
+            const seconds = Math.max(1, Math.round(waitMs / 1000));
+            if (reason === 'data' && data && data.message) {
+                containerLoader.innerHTML = `${data.message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
+                return;
+            }
+            containerLoader.innerHTML = `Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
+        }
+    };
+
     try {
         // Fake error to catch error display
         //throw new Error('Test error');
@@ -241,15 +241,12 @@ async function loadBestDarkWindow() {
         container.innerHTML = '';
 
         // Get dark window
-        const response = await fetch(
-            `${API_BASE}/api/moon/dark-window`
-        );
+        const data = await fetchJSONWithRetry('/api/moon/dark-window', {}, retryOptions);
 
-        const data = await response.json();        
-
-        // Cache pending
+        // Cache pending (retries exhausted)
         if (data.status && data.status === 'pending') {
             container.innerHTML = `<div class="info-notice">${data.message}</div>`;
+            containerLoader.style.display = 'none';
             return;
         }
 
@@ -298,11 +295,10 @@ async function loadBestDarkWindow() {
 
         for (const mode of modes) {
 
-            const response = await fetch(
-                `${API_BASE}/api/tonight/best-window?mode=${mode}`
-            );
-
-            const data = await response.json();
+            const data = await fetchJSONWithRetry(`/api/tonight/best-window?mode=${mode}`, {}, {
+                ...retryOptions,
+                onRetry: null
+            });
             //console.log(data);
 
             // Si erreur → affiche un bloc d’erreur mais continue

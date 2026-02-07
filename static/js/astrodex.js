@@ -730,10 +730,13 @@ async function uploadPicture(itemId) {
         const formData = new FormData();
         formData.append('file', file);
         
-        const uploadResponse = await fetch('/api/astrodex/upload', {
+        const uploadResponse = await fetchWithRetry('/api/astrodex/upload', {
             method: 'POST',
             body: formData,
             credentials: 'include'
+        }, {
+            maxAttempts: 1,
+            timeoutMs: 30000
         });
         
         if (!uploadResponse.ok) {

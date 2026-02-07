@@ -21,8 +21,12 @@ const Scheduler = (() => {
     };
 
     async function fetchStatus() {
-        const res = await fetch(`${API_BASE}/api/scheduler/status`);
-        return res.json();
+        return fetchJSONWithRetry('/api/scheduler/status', {}, {
+            maxAttempts: 3,
+            baseDelayMs: 1000,
+            maxDelayMs: 5000,
+            timeoutMs: 8000
+        });
     }
 
     async function trigger() {
@@ -30,11 +34,12 @@ const Scheduler = (() => {
             blockButton();
             state.mode = 'manual';
 
-            const res = await fetch(
-                `${API_BASE}/api/scheduler/trigger`,
-                { method: 'POST' }
-            );
-            const data = await res.json();
+            const data = await fetchJSONWithRetry('/api/scheduler/trigger', {
+                method: 'POST'
+            }, {
+                maxAttempts: 1,
+                timeoutMs: 10000
+            });
 
             if (data.status !== 'triggered') {
                 throw new Error('Trigger failed');

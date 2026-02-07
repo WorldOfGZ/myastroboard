@@ -69,6 +69,8 @@ function setupSubTabs() {
     // Use event delegation for dynamically added sub-tabs
     document.addEventListener('click', (e) => {
         if (e.target.classList.contains('sub-tab-btn')) {
+            // prevent default link behavior
+            e.preventDefault();
             const subtabName = e.target.getAttribute('data-subtab');
             const parentTab = e.target.closest('.main-tab-content').id.replace('-tab', '');
             switchSubTab(parentTab, subtabName);
@@ -122,8 +124,7 @@ function activateSubTab(parentTab, subtabName) {
 
 async function loadTimezones() {
     try {
-        const response = await fetch(`${API_BASE}/api/timezones`);
-        const timezones = await response.json();
+        const timezones = await fetchJSON('/api/timezones');
         
         const select = document.getElementById('timezone');
         if (!select) return; // Element doesn't exist on this page view
@@ -143,8 +144,7 @@ async function loadTimezones() {
 
 async function loadConfiguration() {
     try {
-        const response = await fetch(`${API_BASE}/api/config`);
-        const config = await response.json();
+        const config = await fetchJSON('/api/config');
         currentConfig = config;
         
         // Populate basic fields - check if elements exist before setting values
@@ -342,13 +342,11 @@ async function saveConfiguration() {
     }
     
     try {
-        const response = await fetch(`${API_BASE}/api/config`, {
+        const result = await fetchJSON('/api/config', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(config)
         });
-        
-        const result = await response.json();
         
         if (result.status === 'success') {
             showMessage('success', '✅ Configuration saved successfully!');
@@ -479,13 +477,11 @@ async function convertCoordinate(type) {
     
     // Try to convert DMS
     try {
-        const response = await fetch(`${API_BASE}/api/convert-coordinates`, {
+        const data = await fetchJSON('/api/convert-coordinates', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ dms: value })
         });
-        
-        const data = await response.json();
         
         if (data.status === 'success') {
             convertedEl.textContent = `✓ Decimal: ${data.decimal}`;
@@ -511,8 +507,7 @@ async function viewConfiguration() {
     try {
         //throw new Error('Simulated error for testing'); // Simulate an error to test error handling
 
-        const response = await fetch(`${API_BASE}/api/config/view`);
-        const data = await response.json();
+        const data = await fetchJSON('/api/config/view');
         
         if (data.status === 'success') {
             configsData = data.configs;
@@ -676,8 +671,7 @@ async function loadLogs() {
         
         const level = logLevelElement.value;
         const limit = logLimitElement.value;
-        const response = await fetch(`${API_BASE}/api/logs?level=${level}&limit=${limit}`);
-        const data = await response.json();
+        const data = await fetchJSON(`/api/logs?level=${level}&limit=${limit}`);
         
         const logsContainer = document.getElementById('logs-display');
         if (!logsContainer) {
@@ -728,8 +722,8 @@ async function loadLogs() {
 }
 
 async function clearLogsDisplay() {
-    await fetch(`${API_BASE}/api/logs/clear`, {
-        method: "POST"
+    await fetchJSON('/api/logs/clear', {
+        method: 'POST'
     });
 
     showMessage("success", "Logs cleared");
@@ -742,8 +736,7 @@ async function clearLogsDisplay() {
 
 async function loadVersion() {
     try {
-        const response = await fetch(`${API_BASE}/api/version`);
-        const data = await response.json();
+        const data = await fetchJSON('/api/version');
         const versionElement = document.getElementById('version');
         if (versionElement) {
             versionElement.textContent = `v${data.version}`;
@@ -767,14 +760,12 @@ async function checkForUpdates(currentVersion) {
         //console.debug(`Checking for updates... Current version: ${currentVersion}`);
         
         // Fetch latest release from GitHub API
-        const response = await fetch('https://api.github.com/repos/WorldOfGZ/myastroboard/releases/latest');
-        
-        if (!response.ok) {
-            console.warn(`GitHub API request failed with status: ${response.status}`);
-            return; // Silently fail if API is not available
-        }
-        
-        const release = await response.json();
+        const release = await fetchJSONWithRetry('https://api.github.com/repos/WorldOfGZ/myastroboard/releases/latest', {}, {
+            maxAttempts: 3,
+            baseDelayMs: 1000,
+            maxDelayMs: 8000,
+            timeoutMs: 10000
+        });
         const latestVersion = release.tag_name.replace(/^v/, ''); // Remove 'v' prefix if present
         const current = currentVersion.replace(/^v/, '');
         
@@ -855,8 +846,7 @@ function testUpdateNotification() {
 
 async function loadCatalogues() {
     try {
-        const response = await fetch(`${API_BASE}/api/catalogues`);
-        const catalogues = await response.json();
+        const catalogues = await fetchJSON('/api/catalogues');
         
         const container = document.getElementById('catalogues-list');
         if (!container) return; // Element doesn't exist on this page view
@@ -882,8 +872,7 @@ async function loadCatalogues() {
 //Load uptonight results tabs
 async function loadUptonightResultsTabs() {
     try {
-        const response = await fetch(`${API_BASE}/api/uptonight/outputs`);
-        const outputs = await response.json();
+        const outputs = await fetchJSON('/api/uptonight/outputs');
         
         const subtabsContainer = document.getElementById('uptonight-subtabs');
 
@@ -944,8 +933,7 @@ async function loadCatalogueResults(catalogue) {
     //console.log(`Loading results for catalogue: ${catalogue}`);
     currentCatalogueTab = catalogue; // Track current catalogue
     try {
-        const response = await fetch(`${API_BASE}/api/uptonight/reports/${catalogue}`);
-        const reports = await response.json();
+        const reports = await fetchJSON(`/api/uptonight/reports/${catalogue}`);
         //console.log('Catalogue reports:', reports);
         const buttonsContainer = document.getElementById(`catalogue-${catalogue}-type-buttons`);
         const container = document.getElementById(`catalogue-${catalogue}-content`);
@@ -1985,8 +1973,7 @@ async function updateCatalogueCapturedBadge(itemName, isInAstrodex) {
 
 async function checkCatalogueLogExists(catalogue) {
     try {
-        const response = await fetch(`${API_BASE}/api/uptonight/logs/${catalogue}/exists`);
-        const result = await response.json();
+        const result = await fetchJSON(`/api/uptonight/logs/${catalogue}/exists`);
         return result.log_exists;
     } catch (error) {
         console.error('Error checking log file existence:', error);
@@ -1996,15 +1983,8 @@ async function checkCatalogueLogExists(catalogue) {
 
 async function loadCatalogueLog(catalogue) {
     try {
-        const response = await fetch(`${API_BASE}/api/uptonight/logs/${catalogue}`);
-        const result = await response.json();
-        
-        if (response.ok) {
-            return result.log_content;
-        } else {
-            console.error('Error loading log file:', result.error);
-            return null;
-        }
+        const result = await fetchJSON(`/api/uptonight/logs/${catalogue}`);
+        return result.log_content;
     } catch (error) {
         console.error('Error loading log file:', error);
         return null;

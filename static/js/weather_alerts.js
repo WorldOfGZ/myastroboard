@@ -40,8 +40,12 @@ class WeatherAlertsSystem {
     
     async checkForAlerts() {
         try {
-            const response = await fetch(`${API_BASE}/api/weather/alerts`);
-            const data = await response.json();
+            const data = await fetchJSONWithRetry('/api/weather/alerts', {}, {
+                maxAttempts: 3,
+                baseDelayMs: 1000,
+                maxDelayMs: 8000,
+                timeoutMs: 10000
+            });
             
             if (data.error) {
                 console.warn('Failed to fetch weather alerts:', data.error);
