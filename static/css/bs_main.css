@@ -17,8 +17,11 @@
     border: none !important;
     border-bottom: 1px solid rgba(15, 23, 42, 0.08);
     padding: 1rem;
+    padding-bottom: 0.25rem;
+    padding-top: 0.25rem;
     color: var(--text-color);
     font-weight: 500;
+    font-size: 0.9rem;
     transition: all var(--transition-normal);
 }
 
