@@ -9,7 +9,10 @@ Fully integrated web dashboard interface easy to set-up with Docker.
 
 Automated UpTonight execution, based on the [mawinkler/uptonight](https://github.com/mawinkler/uptonight) project, with nice result display.
 
-![weater](docs/img/obs_conditions.png "Weather")
+> [!TIP]
+> Want quickly look interface? Check [the Visual Tour!](docs/VISUAL_TOUR.md)
+
+![weater](docs/img/home.png "Weather")
 
 ## 🌟 Features
 
@@ -29,12 +32,16 @@ Automated UpTonight execution, based on the [mawinkler/uptonight](https://github
 - **Image Popups**: View plots and charts in modal dialogs
 - **Log Viewer**: Real-time system log viewing and filtering
 - **Responsive Design**: Works on desktop, tablet, and mobile devices
-- **Astrodex Integration**: Add objects directly from catalogue tables, see which objects you've already captured
 
 ### Automation & Docker
 - **Automated Execution**: Scheduled uptonight runs (configurable interval), with weather environment updated
 - **Per-Catalogue Processing**: Separate execution for each catalogue
 - **Version Control**: Be notified if a new version is available
+
+### Astrodex: Your Astrophotography Collection
+Astrodex is your personal tracker for every celestial object you've captured. Browse your collection with detailed metadata and imaging information.
+
+![Astrodex Collection](docs/img/astrodex.png)
 
 ## 🚀 Quick Start
 
@@ -47,19 +54,7 @@ Maybe now you want install it, and run it ! So you can consult the quick documen
 
 ## Views
 
-### Weather
-
-![Weather](docs/img/weather.png "Weather")
-
-### Sun & Moon
-
-![Sun and Moon](docs/img/sun_moon.png "Sun and Moon")
-
-### UpTonight
-
-![Bodies](docs/img/bodies.png "Bodies")
-
-![Popup Alttime](docs/img/popup_alttime.png "Popup Alttime")
+Take a look to [Visual Tour](docs/VISUAL_TOUR.md) !
 
 ## 📦 Dependencies
 
