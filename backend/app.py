@@ -225,6 +225,7 @@ def update_user(user_id):
         if not username and not password and not role:
             return jsonify({'error': 'Username, password or role required'}), 400
         
+        logger.info(f"Updating user {user_id}, available users: {list(user_manager.users.keys())}")
         user = user_manager.update_user(user_id, username, password, role)
         return jsonify({
             'status': 'success',
