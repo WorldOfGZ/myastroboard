@@ -377,8 +377,28 @@ async function saveConfiguration() {
     }
 }
 
+function setupModalAccessibility() {
+    const modalIds = ['modal_sm_close', 'modal_lg_close', 'modal_xl_close', 'modal_full_close'];
+    
+    modalIds.forEach(modalId => {
+        const modalElement = document.getElementById(modalId);
+        if (!modalElement) return;
+        
+        // When modal is shown, set aria-hidden to false
+        modalElement.addEventListener('show.bs.modal', () => {
+            modalElement.setAttribute('aria-hidden', 'false');
+        });
+        
+        // When modal is hidden, set aria-hidden to true
+        modalElement.addEventListener('hide.bs.modal', () => {
+            modalElement.setAttribute('aria-hidden', 'true');
+        });
+    });
+}
+
 function setupEventListeners() {
     setupNavbarAutoCollapse();
+    setupModalAccessibility();
 
     // Configuration save
     document.getElementById('save-config')?.addEventListener('click', saveConfiguration);
