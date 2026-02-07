@@ -1400,12 +1400,13 @@ def get_or_create_cache_scheduler():
         try:
             from cache_scheduler import CacheScheduler
             cache_scheduler = CacheScheduler()
-            if cache_scheduler.start():  # Only add to config if successfully started
-                app.config['cache_scheduler'] = cache_scheduler
+            # Store the instance regardless of whether it started
+            # (it may already be running in another process)
+            app.config['cache_scheduler'] = cache_scheduler
+            if cache_scheduler.start():
                 logger.info("Cache scheduler created and started successfully.")
             else:
                 logger.info("Cache scheduler not started - already running in another process.")
-                return None
         except Exception as e:
             logger.error(f"Failed to create cache scheduler: {e}")
             return None
