@@ -78,6 +78,21 @@ function setupSubTabs() {
     });
 }
 
+function setupNavbarAutoCollapse() {
+    const navbarCollapse = document.getElementById('navBarMyAstroBoard');
+    if (!navbarCollapse) return;
+
+    navbarCollapse.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!target || !target.closest('.nav-link')) return;
+
+        if (!navbarCollapse.classList.contains('show')) return;
+
+        const collapseInstance = bootstrap.Collapse.getInstance(navbarCollapse);
+        (collapseInstance || new bootstrap.Collapse(navbarCollapse)).hide();
+    });
+}
+
 function switchSubTab(parentTab, subtabName) {
     activateSubTab(parentTab, subtabName);
 
@@ -363,6 +378,8 @@ async function saveConfiguration() {
 }
 
 function setupEventListeners() {
+    setupNavbarAutoCollapse();
+
     // Configuration save
     document.getElementById('save-config')?.addEventListener('click', saveConfiguration);
     document.getElementById('save-advanced')?.addEventListener('click', saveConfiguration);
