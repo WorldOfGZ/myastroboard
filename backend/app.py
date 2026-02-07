@@ -123,6 +123,7 @@ def login():
         
         user = user_manager.authenticate(username, password)
         if user:
+            session['user_id'] = user.user_id
             session['username'] = user.username
             session['role'] = user.role
             
@@ -132,6 +133,7 @@ def login():
             logger.info(f"User {username} logged in successfully")
             return jsonify({
                 'status': 'success',
+                'user_id': user.user_id,
                 'username': user.username,
                 'role': user.role,
                 'using_default_password': using_default_password
@@ -161,6 +163,7 @@ def auth_status():
         if user:
             return jsonify({
                 'authenticated': True,
+                'user_id': user.user_id,
                 'username': user.username,
                 'role': user.role,
                 'using_default_password': user.is_using_default_password()
@@ -209,22 +212,24 @@ def create_user():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/users/<username>', methods=['PUT'])
+@app.route('/api/users/<user_id>', methods=['PUT'])
 @admin_required
-def update_user(username):
+def update_user(user_id):
     """Update a user (admin only)"""
     try:
         data = request.json
+        username = data.get('username')
         password = data.get('password')
         role = data.get('role')
         
-        if not password and not role:
-            return jsonify({'error': 'Password or role required'}), 400
+        if not username and not password and not role:
+            return jsonify({'error': 'Username, password or role required'}), 400
         
-        user = user_manager.update_user(username, password, role)
+        user = user_manager.update_user(user_id, username, password, role)
         return jsonify({
             'status': 'success',
             'user': {
+                'user_id': user.user_id,
                 'username': user.username,
                 'role': user.role
             }
@@ -236,12 +241,13 @@ def update_user(username):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/users/<username>', methods=['DELETE'])
+@app.route('/api/users/<user_id>', methods=['DELETE'])
 @admin_required
-def delete_user(username):
+def delete_user(user_id):
     """Delete a user (admin only)"""
     try:
-        user_manager.delete_user(username)
+        current_user_id = session.get('user_id')
+        user_manager.delete_user(user_id, current_user_id)
         return jsonify({'status': 'success'})
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
@@ -669,8 +675,8 @@ def get_catalogue_reports_api(catalogue):
     """Get parsed reports for a specific target"""
     try:
         user = get_current_user()
-        username = user.username if user else None
-        if not username:
+        user_id = user.user_id if user else None
+        if not user_id:
             return jsonify({'error': 'User not authenticated'}), 401
             
         catalogue_dir = os.path.join(OUTPUT_DIR, catalogue)
@@ -691,7 +697,7 @@ def get_catalogue_reports_api(catalogue):
         for item in result['report']:
             item_name = item.get('id', '')
             if item_name:
-                item['in_astrodex'] = astrodex.is_item_in_astrodex(username, item_name)
+                item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name)
             else:
                 item['in_astrodex'] = False
         
@@ -703,7 +709,7 @@ def get_catalogue_reports_api(catalogue):
             for item in result['bodies']:
                 item_name = item.get('target name', '')
                 if item_name:
-                    item['in_astrodex'] = astrodex.is_item_in_astrodex(username, item_name)
+                    item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name)
                 else:
                     item['in_astrodex'] = False
         
@@ -714,7 +720,7 @@ def get_catalogue_reports_api(catalogue):
             for item in result['comets']:
                 item_name = item.get('target name', '')
                 if item_name:
-                    item['in_astrodex'] = astrodex.is_item_in_astrodex(username, item_name)
+                    item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name)
                 else:
                     item['in_astrodex'] = False
         
@@ -987,12 +993,12 @@ def get_astrodex():
     """Get user's astrodex collection"""
     try:
         user = get_current_user()
-        username = user.username if user else None
-        if not username:
+        user_id = user.user_id if user else None
+        if not user_id:
             return jsonify({'error': 'User not authenticated'}), 401
             
-        astrodex_data = astrodex.load_user_astrodex(username)
-        stats = astrodex.get_astrodex_stats(username)
+        astrodex_data = astrodex.load_user_astrodex(user_id, user.username)
+        stats = astrodex.get_astrodex_stats(user_id)
         
         return jsonify({
             'items': astrodex_data.get('items', []),
@@ -1011,8 +1017,8 @@ def add_astrodex_item():
     """Add item to user's astrodex"""
     try:
         user = get_current_user()
-        username = user.username if user else None
-        if not username:
+        user_id = user.user_id if user else None
+        if not user_id:
             return jsonify({'error': 'User not authenticated'}), 401
             
         item_data = request.json
@@ -1021,10 +1027,10 @@ def add_astrodex_item():
             return jsonify({'error': 'Item name is required'}), 400
         
         # Check if item already exists
-        if astrodex.is_item_in_astrodex(username, item_data['name']):
+        if astrodex.is_item_in_astrodex(user_id, item_data['name']):
             return jsonify({'error': 'Item already exists in Astrodex'}), 400
         
-        new_item = astrodex.create_astrodex_item(username, item_data)
+        new_item = astrodex.create_astrodex_item(user_id, item_data, user.username)
         
         if new_item:
             return jsonify({
@@ -1044,11 +1050,11 @@ def get_astrodex_item_api(item_id):
     """Get a specific astrodex item"""
     try:
         user = get_current_user()
-        username = user.username if user else None
-        if not username:
+        user_id = user.user_id if user else None
+        if not user_id:
             return jsonify({'error': 'User not authenticated'}), 401
             
-        item = astrodex.get_astrodex_item(username, item_id)
+        item = astrodex.get_astrodex_item(user_id, item_id)
         
         if item:
             return jsonify(item)
@@ -1065,13 +1071,13 @@ def update_astrodex_item_api(item_id):
     """Update an astrodex item"""
     try:
         user = get_current_user()
-        username = user.username if user else None
-        if not username:
+        user_id = user.user_id if user else None
+        if not user_id:
             return jsonify({'error': 'User not authenticated'}), 401
             
         updates = request.json
         
-        updated_item = astrodex.update_astrodex_item(username, item_id, updates)
+        updated_item = astrodex.update_astrodex_item(user_id, item_id, updates)
         
         if updated_item:
             return jsonify({
@@ -1091,11 +1097,11 @@ def delete_astrodex_item_api(item_id):
     """Delete an astrodex item"""
     try:
         user = get_current_user()
-        username = user.username if user else None
-        if not username:
+        user_id = user.user_id if user else None
+        if not user_id:
             return jsonify({'error': 'User not authenticated'}), 401
         
-        if astrodex.delete_astrodex_item(username, item_id):
+        if astrodex.delete_astrodex_item(user_id, item_id):
             return jsonify({'status': 'success'})
         else:
             return jsonify({'error': 'Item not found'}), 404
@@ -1110,13 +1116,13 @@ def add_picture_to_astrodex_item(item_id):
     """Add a picture to an astrodex item"""
     try:
         user = get_current_user()
-        username = user.username if user else None
-        if not username:
+        user_id = user.user_id if user else None
+        if not user_id:
             return jsonify({'error': 'User not authenticated'}), 401
             
         picture_data = request.json
         
-        new_picture = astrodex.add_picture_to_item(username, item_id, picture_data)
+        new_picture = astrodex.add_picture_to_item(user_id, item_id, picture_data)
         
         if new_picture:
             return jsonify({
@@ -1136,13 +1142,13 @@ def update_picture_api(item_id, picture_id):
     """Update a picture in an astrodex item"""
     try:
         user = get_current_user()
-        username = user.username if user else None
-        if not username:
+        user_id = user.user_id if user else None
+        if not user_id:
             return jsonify({'error': 'User not authenticated'}), 401
             
         updates = request.json
         
-        updated_picture = astrodex.update_picture(username, item_id, picture_id, updates)
+        updated_picture = astrodex.update_picture(user_id, item_id, picture_id, updates)
         
         if updated_picture:
             return jsonify({
@@ -1162,11 +1168,11 @@ def delete_picture_api(item_id, picture_id):
     """Delete a picture from an astrodex item"""
     try:
         user = get_current_user()
-        username = user.username if user else None
-        if not username:
+        user_id = user.user_id if user else None
+        if not user_id:
             return jsonify({'error': 'User not authenticated'}), 401
         
-        if astrodex.delete_picture(username, item_id, picture_id):
+        if astrodex.delete_picture(user_id, item_id, picture_id):
             return jsonify({'status': 'success'})
         else:
             return jsonify({'error': 'Picture not found'}), 404
@@ -1181,11 +1187,11 @@ def set_main_picture_api(item_id, picture_id):
     """Set a picture as the main picture for an item"""
     try:
         user = get_current_user()
-        username = user.username if user else None
-        if not username:
+        user_id = user.user_id if user else None
+        if not user_id:
             return jsonify({'error': 'User not authenticated'}), 401
         
-        if astrodex.set_main_picture(username, item_id, picture_id):
+        if astrodex.set_main_picture(user_id, item_id, picture_id):
             return jsonify({'status': 'success'})
         else:
             return jsonify({'error': 'Picture not found'}), 404
@@ -1214,13 +1220,13 @@ def upload_astrodex_image():
         
         # Generate unique filename
         user = get_current_user()
-        username = user.username if user else None
-        if not username:
+        user_id = user.user_id if user else None
+        if not user_id:
             return jsonify({'error': 'User not authenticated'}), 401
             
         import uuid
         file_ext = filename.rsplit('.', 1)[1]
-        unique_filename = f"{username}_{uuid.uuid4()}.{file_ext}"
+        unique_filename = f"{user_id}_{uuid.uuid4()}.{file_ext}"
         
         # Save file
         astrodex.ensure_astrodex_directories()
@@ -1253,10 +1259,10 @@ def check_item_in_astrodex(item_name):
     """Check if an item is in user's astrodex"""
     try:
         user = get_current_user()
-        username = user.username if user else None
-        if not username:
+        user_id = user.user_id if user else None
+        if not user_id:
             return jsonify({'error': 'User not authenticated'}), 401
-        is_in_astrodex = astrodex.is_item_in_astrodex(username, item_name)
+        is_in_astrodex = astrodex.is_item_in_astrodex(user_id, item_name)
         
         return jsonify({
             'in_astrodex': is_in_astrodex
@@ -1437,3 +1443,4 @@ if __name__ == '__main__':
         if cache_scheduler:
             cache_scheduler.stop()
             logger.info("Cache scheduler stopped.")
+

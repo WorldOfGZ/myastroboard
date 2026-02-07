@@ -528,6 +528,11 @@ async function showAstrodexItemDetail(itemId) {
 
     `, 'xl');
 
+    const modalEl = document.getElementById('modal_xl_close');
+    if (modalEl && modalEl.classList.contains('show')) {
+        return;
+    }
+
     // Show the modal
     const bs_modal = new bootstrap.Modal('#modal_xl_close', {
         backdrop: 'static',
@@ -1263,6 +1268,10 @@ function closeModal() {
             bs_modal.hide();
         }
     });
+
+    // Remove any lingering backdrops to avoid stacked blur layers
+    const backdrops = document.querySelectorAll('.modal-backdrop');
+    backdrops.forEach(backdrop => backdrop.remove());
 
     //Remove any existing close modal event listeners to prevent duplicates
     const closeButtons = document.querySelectorAll('[data-action="close-modal"], [data-action="cleanup-close-modal"]');

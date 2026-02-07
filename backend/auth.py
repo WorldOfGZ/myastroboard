@@ -4,6 +4,7 @@ Handles user authentication, authorization, and session management
 """
 import json
 import os
+import uuid
 from datetime import datetime
 from functools import wraps
 from flask import session, jsonify, request
@@ -26,7 +27,8 @@ USERS_FILE = os.path.join(os.environ.get('DATA_DIR', '/app/data'), 'users.json')
 
 class User:
     """User model"""
-    def __init__(self, username, password_hash, role, created_at=None, last_login=None):
+    def __init__(self, username, password_hash, role, user_id=None, created_at=None, last_login=None):
+        self.user_id = user_id or str(uuid.uuid4())
         self.username = username
         self.password_hash = password_hash
         self.role = role
@@ -36,6 +38,7 @@ class User:
     def to_dict(self):
         """Convert user to dictionary"""
         return {
+            'user_id': self.user_id,
             'username': self.username,
             'password_hash': self.password_hash,
             'role': self.role,
@@ -47,6 +50,7 @@ class User:
     def from_dict(data):
         """Create user from dictionary"""
         return User(
+            user_id=data.get('user_id'),
             username=data['username'],
             password_hash=data['password_hash'],
             role=data['role'],
@@ -84,10 +88,12 @@ class UserManager:
                 with open(USERS_FILE, 'r') as f:
                     data = json.load(f)
                     self.users = {
-                        username: User.from_dict(user_data)
-                        for username, user_data in data.items()
+                        key: User.from_dict(user_data)
+                        for key, user_data in data.items()
                     }
                 logger.info(f"Loaded {len(self.users)} users from {USERS_FILE}")
+                # Migrate old username-based keys to UUID-based keys
+                self._migrate_to_uuid_keys()
             except Exception as e:
                 logger.error(f"Error loading users: {e}")
                 self.users = {}
@@ -102,8 +108,8 @@ class UserManager:
             os.makedirs(os.path.dirname(USERS_FILE), exist_ok=True)
             
             data = {
-                username: user.to_dict()
-                for username, user in self.users.items()
+                user_id: user.to_dict()
+                for user_id, user in self.users.items()
             }
             with open(USERS_FILE, 'w') as f:
                 json.dump(data, f, indent=2)
@@ -112,9 +118,35 @@ class UserManager:
             logger.error(f"Error saving users: {e}")
             raise
     
+    def _migrate_to_uuid_keys(self):
+        """Migrate old username-based keys to UUID-based keys"""
+        needs_migration = False
+        new_users = {}
+        
+        for key, user in self.users.items():
+            # If key is not a valid UUID, it's an old username-based key
+            try:
+                uuid.UUID(key)
+                # Valid UUID, keep as is
+                new_users[key] = user
+            except ValueError:
+                # Not a UUID, this is an old username-based key
+                needs_migration = True
+                logger.info(f"Migrating user {user.username} from username-based key to UUID")
+                # Ensure user has a UUID
+                if not hasattr(user, 'user_id') or not user.user_id:
+                    user.user_id = str(uuid.uuid4())
+                new_users[user.user_id] = user
+        
+        if needs_migration:
+            self.users = new_users
+            self.save_users()
+            logger.info("User migration to UUID keys completed")
+    
     def ensure_default_admin(self):
         """Ensure default admin user exists"""
-        if DEFAULT_ADMIN_USERNAME not in self.users:
+        # Check by username, not by key
+        if not self.get_user_by_username(DEFAULT_ADMIN_USERNAME):
             logger.info("Creating default admin user")
             self.create_user(
                 DEFAULT_ADMIN_USERNAME,
@@ -124,7 +156,7 @@ class UserManager:
     
     def create_user(self, username, password, role):
         """Create a new user"""
-        if username in self.users:
+        if self.get_user_by_username(username):
             raise ValueError(f"User {username} already exists")
         
         if role not in [ROLE_ADMIN, ROLE_READ_ONLY]:
@@ -135,20 +167,39 @@ class UserManager:
             password_hash=generate_password_hash(password),
             role=role
         )
-        self.users[username] = user
+        self.users[user.user_id] = user
         self.save_users()
-        logger.info(f"Created user {username} with role {role}")
+        logger.info(f"Created user {username} (ID: {user.user_id}) with role {role}")
         return user
     
-    def get_user(self, username):
+    def get_user_by_username(self, username):
         """Get user by username"""
-        return self.users.get(username)
+        for user in self.users.values():
+            if user.username == username:
+                return user
+        return None
     
-    def update_user(self, username, password=None, role=None):
-        """Update user password and/or role"""
-        user = self.users.get(username)
+    def get_user_by_id(self, user_id):
+        """Get user by UUID"""
+        return self.users.get(user_id)
+    
+    def get_user(self, username):
+        """Get user by username (for backwards compatibility)"""
+        return self.get_user_by_username(username)
+    
+    def update_user(self, user_id, username=None, password=None, role=None):
+        """Update user username, password and/or role"""
+        user = self.get_user_by_id(user_id)
         if not user:
-            raise ValueError(f"User {username} not found")
+            raise ValueError(f"User with ID {user_id} not found")
+        
+        # If changing username, check for conflicts
+        if username and username != user.username:
+            existing_user = self.get_user_by_username(username)
+            if existing_user and existing_user.user_id != user_id:
+                raise ValueError(f"Username {username} already taken")
+            logger.info(f"Changing username from {user.username} to {username}")
+            user.username = username
         
         if password:
             user.password_hash = generate_password_hash(password)
@@ -159,25 +210,75 @@ class UserManager:
             user.role = role
         
         self.save_users()
-        logger.info(f"Updated user {username}")
+        logger.info(f"Updated user {user.username} (ID: {user_id})")
         return user
     
-    def delete_user(self, username):
+    def delete_user(self, user_id, current_user_id=None):
         """Delete a user"""
-        if username == DEFAULT_ADMIN_USERNAME:
+        user = self.get_user_by_id(user_id)
+        if not user:
+            raise ValueError(f"User with ID {user_id} not found")
+        
+        if user.username == DEFAULT_ADMIN_USERNAME:
             raise ValueError("Cannot delete default admin user")
         
-        if username not in self.users:
-            raise ValueError(f"User {username} not found")
+        # Prevent deleting your own account
+        if current_user_id and user_id == current_user_id:
+            raise ValueError("Cannot delete your own account")
         
-        del self.users[username]
+        username = user.username
+        del self.users[user_id]
         self.save_users()
-        logger.info(f"Deleted user {username}")
+        logger.info(f"Deleted user {username} (ID: {user_id})")
+        
+        # Also delete user's astrodex file and images
+        try:
+            from astrodex import ASTRODEX_DIR, ASTRODEX_IMAGES_DIR
+            astrodex_file = os.path.join(ASTRODEX_DIR, f'{user_id}_astrodex.json')
+            image_filenames = set()
+
+            if os.path.exists(astrodex_file):
+                try:
+                    with open(astrodex_file, 'r') as f:
+                        astrodex_data = json.load(f)
+                    for item in astrodex_data.get('items', []):
+                        for picture in item.get('pictures', []):
+                            filename = picture.get('filename')
+                            if filename:
+                                image_filenames.add(filename)
+                except Exception as read_error:
+                    logger.warning(f"Failed to read astrodex file for cleanup: {read_error}")
+
+            # Delete images referenced by the astrodex file
+            for filename in image_filenames:
+                file_path = os.path.join(ASTRODEX_IMAGES_DIR, filename)
+                if os.path.exists(file_path):
+                    try:
+                        os.remove(file_path)
+                    except Exception as remove_error:
+                        logger.warning(f"Failed to delete astrodex image {filename}: {remove_error}")
+
+            # Delete any remaining images that match the user_id prefix
+            if os.path.exists(ASTRODEX_IMAGES_DIR):
+                for filename in os.listdir(ASTRODEX_IMAGES_DIR):
+                    if filename.startswith(f"{user_id}_"):
+                        file_path = os.path.join(ASTRODEX_IMAGES_DIR, filename)
+                        try:
+                            os.remove(file_path)
+                        except Exception as remove_error:
+                            logger.warning(f"Failed to delete astrodex image {filename}: {remove_error}")
+
+            if os.path.exists(astrodex_file):
+                os.remove(astrodex_file)
+                logger.info(f"Deleted astrodex file for {username}")
+        except Exception as e:
+            logger.warning(f"Failed to delete astrodex file: {e}")
     
     def list_users(self):
         """List all users (without password hashes)"""
         return [
             {
+                'user_id': user.user_id,
                 'username': user.username,
                 'role': user.role,
                 'created_at': user.created_at,
@@ -188,7 +289,7 @@ class UserManager:
     
     def authenticate(self, username, password):
         """Authenticate user"""
-        user = self.users.get(username)
+        user = self.get_user_by_username(username)
         if user and user.check_password(password):
             # Update last login
             user.last_login = datetime.now().isoformat()

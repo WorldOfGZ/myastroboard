@@ -176,14 +176,18 @@ function displayUsers(users) {
         const createdDate = user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A';
         const lastLogin = user.last_login ? new Date(user.last_login).toLocaleString() : 'Never';
         
+        const isCurrentUser = user.user_id === currentUser?.user_id;
+        
         row.innerHTML = `
             <th>${escapeHtml(user.username)}</th>
             <td>${escapeHtml(user.role)}</td>
             <td>${createdDate}</td>
             <td>${lastLogin}</td>
             <td class="text-center">
-                <button class="btn btn-secondary btn-small user-change-password" data-username="${escapeHtml(user.username)}">Change Password</button>
-                ${user.username !== currentUser.username ? `<button class="btn btn-danger btn-small user-delete" data-username="${escapeHtml(user.username)}">Delete</button>` : ''}
+                <button class="btn btn-primary btn-small user-edit-username" data-user-id="${escapeHtml(user.user_id)}" data-username="${escapeHtml(user.username)}">✏️ Username</button>
+                ${!isCurrentUser ? `<button class="btn btn-info btn-small user-edit-role" data-user-id="${escapeHtml(user.user_id)}" data-username="${escapeHtml(user.username)}" data-role="${escapeHtml(user.role)}">🔑 Role</button>` : ''}
+                <button class="btn btn-secondary btn-small user-change-password" data-user-id="${escapeHtml(user.user_id)}" data-username="${escapeHtml(user.username)}">🔒 Password</button>
+                ${!isCurrentUser ? `<button class="btn btn-danger btn-small user-delete" data-user-id="${escapeHtml(user.user_id)}" data-username="${escapeHtml(user.username)}">🗑️ Delete</button>` : ''}
             </td>
         `;
         
@@ -194,17 +198,36 @@ function displayUsers(users) {
     usersList.appendChild(table);
     
     // Attach event listeners to buttons
+    usersList.querySelectorAll('.user-edit-username').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const userId = e.target.getAttribute('data-user-id');
+            const username = e.target.getAttribute('data-username');
+            editUsername(userId, username);
+        });
+    });
+    
+    usersList.querySelectorAll('.user-edit-role').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const userId = e.target.getAttribute('data-user-id');
+            const username = e.target.getAttribute('data-username');
+            const role = e.target.getAttribute('data-role');
+            editRole(userId, username, role);
+        });
+    });
+    
     usersList.querySelectorAll('.user-change-password').forEach(btn => {
         btn.addEventListener('click', (e) => {
+            const userId = e.target.getAttribute('data-user-id');
             const username = e.target.getAttribute('data-username');
-            changePassword(username);
+            changePassword(userId, username);
         });
     });
     
     usersList.querySelectorAll('.user-delete').forEach(btn => {
         btn.addEventListener('click', (e) => {
+            const userId = e.target.getAttribute('data-user-id');
             const username = e.target.getAttribute('data-username');
-            deleteUser(username);
+            deleteUser(userId, username);
         });
     });
 }
@@ -256,8 +279,168 @@ function setupCreateUserForm() {
     });
 }
 
+// Edit username using modal dialog
+function editUsername(userId, currentUsername) {
+    const titleElement = document.getElementById('modal_lg_close_title');
+    titleElement.innerHTML = `✏️ Edit Username`;
+    
+    const contentElement = document.getElementById('modal_lg_close_body');
+    contentElement.innerHTML = `
+        <div class="alert alert-info">Edit username for: <strong>${escapeHtml(currentUsername)}</strong></div>
+        <div id="username-modal-error" class="alert alert-danger" style="display: none;"></div>
+        
+        <form id="username-edit-form" class="row g-3">
+            <input type="hidden" id="edit-user-id" value="${escapeHtml(userId)}">
+            <div class="col-md-12">
+                <label for="new-username-input" class="form-label">New Username:</label>
+                <input type="text" id="new-username-input" required minlength="3" 
+                        placeholder="Minimum 3 characters" autocomplete="username" class="form-control" value="${escapeHtml(currentUsername)}">
+            </div>
+            <div class="col-md-12 d-flex justify-content-end" style="gap: 1rem;">
+                <button type="submit" class="btn btn-primary">Save Username</button>
+            </div>
+        </form>
+    `;
+    
+    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
+        backdrop: 'static',
+        focus: true,
+        keyboard: true
+    });
+    bs_modal.show();
+    
+    const form = document.getElementById('username-edit-form');
+    const errorDiv = document.getElementById('username-modal-error');
+    
+    form.onsubmit = async function(e) {
+        e.preventDefault();
+        
+        const newUsername = document.getElementById('new-username-input').value;
+        const userId = document.getElementById('edit-user-id').value;
+        
+        if (newUsername === currentUsername) {
+            errorDiv.textContent = 'Username unchanged';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        if (newUsername.length < 3) {
+            errorDiv.textContent = 'Username must be at least 3 characters';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        try {
+            const response = await fetchWithRetry(`/api/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ username: newUsername })
+            }, {
+                maxAttempts: 1,
+                timeoutMs: 15000
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                showMessage('success', 'Username updated successfully');
+                loadUsers();
+                bs_modal.hide();
+            } else {
+                errorDiv.textContent = data.error || 'Failed to update username';
+                errorDiv.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Error updating username:', error);
+            errorDiv.textContent = 'Failed to update username';
+            errorDiv.style.display = 'block';
+        }
+    };
+}
+
+// Edit user role using modal dialog
+function editRole(userId, username, currentRole) {
+    const titleElement = document.getElementById('modal_lg_close_title');
+    titleElement.innerHTML = `🔑 Edit User Role`;
+    
+    const contentElement = document.getElementById('modal_lg_close_body');
+    contentElement.innerHTML = `
+        <div class="alert alert-info">Edit role for: <strong>${escapeHtml(username)}</strong></div>
+        <div id="role-modal-error" class="alert alert-danger" style="display: none;"></div>
+        
+        <form id="role-edit-form" class="row g-3">
+            <input type="hidden" id="edit-user-id" value="${escapeHtml(userId)}">
+            <div class="col-md-12">
+                <label for="new-role-select" class="form-label">New Role:</label>
+                <select id="new-role-select" class="form-select" required>
+                    <option value="admin" ${currentRole === 'admin' ? 'selected' : ''}>Admin</option>
+                    <option value="read-only" ${currentRole === 'read-only' ? 'selected' : ''}>Read-Only</option>
+                </select>
+            </div>
+            <div class="col-md-12 d-flex justify-content-end" style="gap: 1rem;">
+                <button type="submit" class="btn btn-primary">Save Role</button>
+            </div>
+        </form>
+    `;
+    
+    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
+        backdrop: 'static',
+        focus: true,
+        keyboard: true
+    });
+    bs_modal.show();
+    
+    const form = document.getElementById('role-edit-form');
+    const errorDiv = document.getElementById('role-modal-error');
+    
+    form.onsubmit = async function(e) {
+        e.preventDefault();
+        
+        const newRole = document.getElementById('new-role-select').value;
+        const userId = document.getElementById('edit-user-id').value;
+        
+        if (newRole === currentRole) {
+            errorDiv.textContent = 'Role unchanged';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        try {
+            const response = await fetchWithRetry(`/api/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ role: newRole })
+            }, {
+                maxAttempts: 1,
+                timeoutMs: 15000
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                showMessage('success', 'Role updated successfully');
+                loadUsers();
+                bs_modal.hide();
+            } else {
+                errorDiv.textContent = data.error || 'Failed to update role';
+                errorDiv.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Error updating role:', error);
+            errorDiv.textContent = 'Failed to update role';
+            errorDiv.style.display = 'block';
+        }
+    };
+}
+
 // Change password using modal dialog
-function changePassword(username) {
+function changePassword(userId, username) {
     //Prepare modal title
     const titleElement = document.getElementById('modal_lg_close_title');
     titleElement.innerHTML = `🔒 Change Password`;
@@ -270,7 +453,8 @@ function changePassword(username) {
         <div id="password-modal-error" class="alert alert-danger" style="display: none;"></div>
         
         <form id="password-change-form" class="row g-3">
-            <input type="text" id="password-change-username" autocomplete="username" style="display: none;" readonly>
+            <input type="hidden" id="password-change-user-id" value="${escapeHtml(userId)}">
+            <input type="text" id="password-change-username" autocomplete="username" style="display: none;" readonly value="${escapeHtml(username)}">
             <div class="col-md-12">
                 <label for="new-password-input" class="form-label">New Password:</label>
                 <input type="password" id="new-password-input" required minlength="4" 
@@ -317,16 +501,12 @@ function changePassword(username) {
         keyboard: true
     });
     bs_modal.show();
-
     
-    setupPasswordChangeModal(bs_modal);
-    
-    // Store username for form submission
-    form.dataset.username = username;
+    setupPasswordChangeModal(bs_modal, userId);
 }
 
 // Setup password change modal
-function setupPasswordChangeModal(bs_modal) {
+function setupPasswordChangeModal(bs_modal, userId) {
     const form = document.getElementById('password-change-form');
     const errorDiv = document.getElementById('password-modal-error');
     
@@ -336,7 +516,7 @@ function setupPasswordChangeModal(bs_modal) {
         form.onsubmit = async function(e) {
             e.preventDefault();
             
-            const username = form.dataset.username;
+            const userId = document.getElementById('password-change-user-id').value;
             const newPassword = document.getElementById('new-password-input').value;
             const confirmPassword = document.getElementById('confirm-password-input').value;
             
@@ -355,7 +535,7 @@ function setupPasswordChangeModal(bs_modal) {
             }
             
             try {
-                const response = await fetchWithRetry(`/api/users/${username}`, {
+                const response = await fetchWithRetry(`/api/users/${userId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json'
@@ -390,13 +570,13 @@ function setupPasswordChangeModal(bs_modal) {
 }
 
 // Delete user
-async function deleteUser(username) {
+async function deleteUser(userId, username) {
     if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
         return;
     }
     
     try {
-        const response = await fetchWithRetry(`/api/users/${username}`, {
+        const response = await fetchWithRetry(`/api/users/${userId}`, {
             method: 'DELETE',
             credentials: 'include'
         }, {
