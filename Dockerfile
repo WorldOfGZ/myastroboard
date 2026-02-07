@@ -1,5 +1,5 @@
 # Multi-stage build for smaller production image
-FROM python:3.11-alpine AS builder
+FROM python:3.14-alpine AS builder
 
 # Build environment
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -27,7 +27,7 @@ RUN pip install --no-cache-dir --user -r requirements.txt \
 # ================================
 # Production stage
 # ================================
-FROM python:3.11-alpine AS production
+FROM python:3.14-alpine AS production
 
 # Prevents .pyc files and enables immediate logging
 ENV PYTHONDONTWRITEBYTECODE=1
