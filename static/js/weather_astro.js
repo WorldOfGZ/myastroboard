@@ -189,16 +189,16 @@ function renderBestObservationPeriods(periods) {
         return `
             <div class="col mb-3">
                 <div class="card h-100">
-                    <div class="card-body">
-                        <div class="card-text fw-bold">
+                    <div class="card-header">
+                        <h5 class="card-title">
                             ${startTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} - 
                             ${endTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
-                        </div>
-                        <div class="card-text fw-bold">
+                        </h5>
+                        <h6 class="card-subtitle mb-2 text-body-secondary">
                             ${startTime.toLocaleDateString([], {month: 'short', day: 'numeric'})}
                             ${startTime.toDateString() !== endTime.toDateString() ? 
                                 ' - ' + endTime.toLocaleDateString([], {month: 'short', day: 'numeric'}) : ''}
-                        </div>
+                        </h6>
                     </div>
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item d-flex justify-content-between align-items-center">
