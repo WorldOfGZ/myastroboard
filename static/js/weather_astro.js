@@ -243,6 +243,10 @@ function renderAstroWeatherCharts(hourlyData) {
     renderDewTrackingChart(labels, hourlyData);
 }
 
+function isCompactChart() {
+    return window.matchMedia('(max-width: 575.98px)').matches;
+}
+
 /**
  * Render seeing and transparency chart
  */
@@ -258,6 +262,7 @@ function renderSeeingTransparencyChart(labels, data) {
     const seeingData = data.map(item => item.seeing_pickering * 10); // Convert to percentage scale
     const transparencyData = data.map(item => item.transparency_score);
     
+    const compactChart = isCompactChart();
     window.astroSeeingChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -296,7 +301,7 @@ function renderSeeingTransparencyChart(labels, data) {
                     text: '👁️ Seeing & ✨ Transparency Forecast'
                 },
                 legend: {
-                    display: true
+                    display: !compactChart
                 }
             },
             scales: {
@@ -339,6 +344,7 @@ function renderCloudLayersChart(labels, data) {
     const midCloudImpact = data.map(item => item.mid_cloud_impact);
     const lowCloudImpact = data.map(item => item.low_cloud_impact);
     
+    const compactChart = isCompactChart();
     window.astroCloudsChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -383,7 +389,7 @@ function renderCloudLayersChart(labels, data) {
                     text: '☁️ Cloud Layer Impact Analysis'
                 },
                 legend: {
-                    display: true
+                    display: !compactChart
                 }
             },
             scales: {
@@ -423,6 +429,7 @@ function renderDewTrackingChart(labels, data) {
     const dewRiskScore = data.map(item => item.dew_risk_score);
     const trackingScore = data.map(item => item.tracking_stability_score);
     
+    const compactChart = isCompactChart();
     window.astroConditionsChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -459,7 +466,7 @@ function renderDewTrackingChart(labels, data) {
                     text: '💧 Dew Risk & 🎯 Tracking Stability'
                 },
                 legend: {
-                    display: true
+                    display: !compactChart
                 }
             },
             scales: {

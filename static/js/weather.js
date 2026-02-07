@@ -143,6 +143,10 @@ async function loadWeather() {
 // Global chart instances
 let cloudConditionsChartInstance = null;
 let seeingConditionsChartInstance = null;
+
+function isCompactChart() {
+    return window.matchMedia('(max-width: 575.98px)').matches;
+}
 //Load Astronomical Charts
 async function loadAstronomicalCharts() {
     const loadingDiv = document.getElementById('astro-charts-loading');
@@ -213,6 +217,7 @@ async function loadAstronomicalCharts() {
         
         // Chart 1: Cloud Conditions & Wind
         const ctx1 = document.getElementById('cloudConditionsChart').getContext('2d');
+        const compactChart = isCompactChart();
         cloudConditionsChartInstance = new Chart(ctx1, {
             type: 'line',
             data: {
@@ -302,14 +307,18 @@ async function loadAstronomicalCharts() {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false,
                 interaction: {
                     mode: 'index',
                     intersect: false,
                 },
                 plugins: {
-                    legend: {
+                    title: {
                         display: true,
+                        text: '☁️ Clouds & 💨 Wind'
+                    },
+                    legend: {
+                        display: !compactChart,
                         position: 'top',
                     },
                     tooltip: {
@@ -350,6 +359,7 @@ async function loadAstronomicalCharts() {
         
         // Chart 2: Seeing & Atmospheric Conditions
         const ctx2 = document.getElementById('seeingConditionsChart').getContext('2d');
+        const compactChart2 = isCompactChart();
         seeingConditionsChartInstance = new Chart(ctx2, {
             type: 'line',
             data: {
@@ -426,14 +436,18 @@ async function loadAstronomicalCharts() {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false,
                 interaction: {
                     mode: 'index',
                     intersect: false,
                 },
                 plugins: {
-                    legend: {
+                    title: {
                         display: true,
+                        text: '👁️ Seeing & 🌤️ Atmosphere'
+                    },
+                    legend: {
+                        display: !compactChart2,
                         position: 'top',
                     },
                     tooltip: {
@@ -447,7 +461,6 @@ async function loadAstronomicalCharts() {
                                 if (context.dataset.yAxisID === 'y') {
                                     label += Math.round(context.parsed.y * 10) / 10 + '%';
                                 } else if (context.dataset.yAxisID === 'y1') {
-                                    // Check if it's precipitation or temperature based on label
                                     if (context.dataset.label === 'Precipitation') {
                                         label += Math.round(context.parsed.y * 100) / 100 + 'mm';
                                     } else {
@@ -481,7 +494,7 @@ async function loadAstronomicalCharts() {
                         },
                         grid: {
                             drawOnChartArea: false,
-                        },
+                        }
                     },
                     x: {
                         title: {

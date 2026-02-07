@@ -126,6 +126,34 @@
     line-height: 1.2;
 }
 
+/* Trend charts */
+#trend-subtab .trend-chart-card {
+    padding: 0.75rem;
+}
+
+#trend-subtab .trend-chart-canvas {
+    width: 100% !important;
+    height: 340px !important;
+    display: block;
+}
+
+#astro-seeing-chart,
+#astro-clouds-chart,
+#astro-conditions-chart {
+    width: 100% !important;
+    height: 340px !important;
+    display: block;
+}
+
+@media (max-width: 575.98px) {
+    #trend-subtab .trend-chart-canvas,
+    #astro-seeing-chart,
+    #astro-clouds-chart,
+    #astro-conditions-chart {
+        height: 280px !important;
+    }
+}
+
 /* Dew Risk Colors */
 .dew-minimal {
     background: linear-gradient(135deg, #ecfdf5, rgba(236, 253, 245, 0.7)) !important;
