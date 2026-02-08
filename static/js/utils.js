@@ -48,6 +48,7 @@ function formatDuration(seconds) {
  */
 async function checkCacheStatus() {
     const banner = document.getElementById('global-cache-banner');
+    const bannerText = document.getElementById('cache-banner-text');
     if (!banner) return;
     
     try {
@@ -61,13 +62,20 @@ async function checkCacheStatus() {
         if (data.cache_status === true) {
             // Cache is ready, hide the banner
             banner.style.display = 'none';
-        } else {
-            // Cache is initializing, show informational banner
+        } else if (data.in_progress === true) {
+            // Cache is actively being initialized/refreshed
             banner.style.display = 'block';
-            
-            // Check less frequently (every 30 seconds)
-            // since cache updates happen server-side on schedule
-            setTimeout(checkCacheStatus, 30000);
+            if (bannerText) {
+                bannerText.textContent = 'Updating astronomical data, please wait...';
+            }
+            // Check more frequently during initialization (every 10 seconds)
+            setTimeout(checkCacheStatus, 10000);
+        } else {
+            // Cache expired but not yet refreshing - will refresh soon
+            // Hide banner to avoid confusion, data will still work with stale cache
+            banner.style.display = 'none';
+            // Check again soon (every 5 seconds) to catch when refresh starts
+            setTimeout(checkCacheStatus, 5000);
         }
     } catch (error) {
         // If API fails, hide banner and don't block UI

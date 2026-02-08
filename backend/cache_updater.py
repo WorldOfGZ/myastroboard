@@ -29,16 +29,24 @@ def check_and_handle_config_changes():
     config = load_config()
     location_config = config.get("location")
     
-    if location_config and cache_store.has_location_changed(location_config):
+    if not location_config:
+        return False
+    
+    # Check if this is the first time (no persisted location)
+    is_first_time = cache_store._last_known_location_config["latitude"] is None
+    
+    if is_first_time:
+        # First initialization - just store the config without warning
+        logger.info("Initializing location config tracking")
+        cache_store.update_location_config(location_config)
+        return False
+    
+    # Check if location actually changed
+    if cache_store.has_location_changed(location_config):
         logger.warning(f"Location configuration changed! Resetting all astronomical caches.")
         cache_store.reset_all_caches()
         cache_store.update_location_config(location_config)
         return True
-    
-    # Update location config even if not changed (for first-time tracking)
-    if location_config and cache_store._last_known_location_config["latitude"] is None:
-        logger.info("Initializing location config tracking")
-        cache_store.update_location_config(location_config)
     
     return False
 

@@ -17,10 +17,10 @@ else:
 logger = get_logger(__name__)
 
 class CacheScheduler:
-    def __init__(self, interval_seconds=3600):
+    def __init__(self, interval_seconds=1500):
         """
         Scheduler to pre-compute heavy caches in the background.
-        interval_seconds: frequency of calculations
+        interval_seconds: frequency of calculations (default 1500s = 25 min, less than 30 min CACHE_TTL)
         """
         self.interval = interval_seconds
         self._stop_event = threading.Event()

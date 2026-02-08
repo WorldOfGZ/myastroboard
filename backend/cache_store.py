@@ -3,7 +3,9 @@ Server-side cache management with TTL-based expiration and config change detecti
 All cache management is handled server-side only.
 """
 import time
-from constants import CACHE_TTL, WEATHER_CACHE_TTL
+import json
+import os
+from constants import CACHE_TTL, WEATHER_CACHE_TTL, DATA_DIR
 
 # Cache entries with timestamp for TTL tracking
 _moon_report_cache = {"timestamp": 0, "data": None}
@@ -20,6 +22,8 @@ _dark_window_report_cache = {"timestamp": 0, "data": None}
 _weather_cache = {"timestamp": 0, "data": None}
 
 # Track the last known location config to detect changes
+# This is loaded from disk to survive restarts
+_LOCATION_CACHE_FILE = os.path.join(DATA_DIR, 'location_cache.json')
 _last_known_location_config = {
     "latitude": None,
     "longitude": None,
@@ -29,6 +33,32 @@ _last_known_location_config = {
 
 # Flag to indicate if caches are currently being initialized
 _cache_initialization_in_progress = False
+
+
+def _load_location_cache():
+    """Load persisted location config from disk"""
+    global _last_known_location_config
+    try:
+        if os.path.exists(_LOCATION_CACHE_FILE):
+            with open(_LOCATION_CACHE_FILE, 'r') as f:
+                _last_known_location_config = json.load(f)
+    except Exception:
+        # If loading fails, keep the default None values
+        pass
+
+
+def _save_location_cache():
+    """Persist location config to disk"""
+    try:
+        with open(_LOCATION_CACHE_FILE, 'w') as f:
+            json.dump(_last_known_location_config, f)
+    except Exception:
+        # Not critical if save fails, just means next restart might trigger false positive
+        pass
+
+
+# Load persisted location on module import
+_load_location_cache()
 
 
 def get_current_location_signature(location_config):
@@ -61,11 +91,12 @@ def has_location_changed(new_location_config):
 
 
 def update_location_config(new_location_config):
-    """Update the tracked location config"""
+    """Update the tracked location config and persist to disk"""
     global _last_known_location_config
     signature = get_current_location_signature(new_location_config)
     if signature:
         _last_known_location_config = signature.copy()
+        _save_location_cache()
 
 
 def reset_all_caches():

@@ -87,12 +87,6 @@ def index():
     if 'username' not in session:
         return redirect(url_for('login_page'))
     
-    # Initialize cache scheduler on first request
-    try:
-        get_or_create_cache_scheduler()
-    except Exception as e:
-        logger.error(f"Failed to initialize cache scheduler: {e}")
-    
     # Get version for cache busting
     version = get_repo_version()
     
@@ -598,6 +592,7 @@ def cache_health_api():
     status = cache_store.get_cache_init_status()
     return jsonify({
         "cache_status": status["all_ready"],
+        "in_progress": status["in_progress"],
         "details": status
     })
 
@@ -1531,8 +1526,17 @@ def get_or_create_cache_scheduler():
             return None
     return app.config.get('cache_scheduler')
 
-# Don't initialize cache scheduler automatically on import
-# It will be initialized on first request or explicitly when needed
+# ============================================================
+# Application Startup Initialization
+# ============================================================
+
+# Initialize cache scheduler when the app starts (for each gunicorn worker)
+# This ensures caches are populated before any requests are served
+try:
+    logger.info("Initializing cache scheduler on application startup...")
+    get_or_create_cache_scheduler()
+except Exception as e:
+    logger.error(f"Failed to initialize cache scheduler on startup: {e}", exc_info=True)
 
 # ============================================================
 
