@@ -1,5 +1,7 @@
 """
 Cache functions for heavy computations.
+All cache management is server-side with TTL-based expiration.
+Automatically resets astronomical caches when location parameters change.
 """
 
 from datetime import datetime
@@ -11,10 +13,34 @@ from moon_astrotonight import AstroTonightService
 from moon_phases import MoonService
 from moon_planner import MoonPlanner
 from sun_phases import SunService
+from weather_openmeteo import get_hourly_forecast
 import cache_store
 
 # Initialize logger for this module
 logger = get_logger(__name__)
+
+
+def check_and_handle_config_changes():
+    """
+    Check if location configuration has changed.
+    If it has, reset all astronomical caches.
+    This ensures cache is invalidated when the observer location changes.
+    """
+    config = load_config()
+    location_config = config.get("location")
+    
+    if location_config and cache_store.has_location_changed(location_config):
+        logger.warning(f"Location configuration changed! Resetting all astronomical caches.")
+        cache_store.reset_all_caches()
+        cache_store.update_location_config(location_config)
+        return True
+    
+    # Update location config even if not changed (for first-time tracking)
+    if location_config and cache_store._last_known_location_config["latitude"] is None:
+        logger.info("Initializing location config tracking")
+        cache_store.update_location_config(location_config)
+    
+    return False
 
 def update_moon_report_cache():
     """
@@ -222,29 +248,70 @@ def update_best_window_cache():
 
     except Exception as e:
         logger.error(f"Failed to update best window cache: {e}")
+
+
+def update_weather_cache():
+    """
+    Updates the weather forecast cache
+    Pre-fetches weather data from Open-Meteo API and caches it
+    """
+    try:
+        logger.info("Updating Weather forecast cache...")
+        
+        # Call the weather API - this will be cached at HTTP level by requests_cache
+        # and also stored in our application cache for consistency
+        forecast = get_hourly_forecast()
+        
+        if forecast is None:
+            logger.error("Failed to fetch weather forecast - API returned None")
+            return
+        
+        # Store in application cache
+        cache_store._weather_cache["data"] = forecast
+        cache_store._weather_cache["timestamp"] = time.time()
+        
+        logger.info(f"Weather forecast cache updated at {datetime.now().isoformat()}")
+        
+    except Exception as e:
+        logger.error(f"Failed to update Weather forecast cache: {e}")
         
 def fully_initialize_caches():
-    """Updates all caches and activates the flag"""
-    logger.info("Starting full cache initialization...")
+    """
+    Updates all cache entries with fresh calculations.
+    Automatically resets caches if location configuration has changed.
+    This is called:
+    - On container/server startup
+    - On schedule (every CACHE_TTL interval)
+    - When location configuration changes
+    """
+    logger.info("Starting cache refresh cycle...")
+    cache_store.set_cache_initialization_in_progress(True)
     start_time = datetime.now()
     
-    cache_functions = [
-        ("Moon report", update_moon_report_cache),
-        ("Dark window", update_dark_window_cache),
-        ("Moon planner", update_moon_planner_cache),
-        ("Sun report", update_sun_report_cache),
-        ("Best window", update_best_window_cache)
-    ]
-    
-    success_count = 0
-    for cache_name, cache_function in cache_functions:
-        try:
-            cache_function()
-            success_count += 1
-        except Exception as e:
-            logger.error(f"Failed to update {cache_name} cache: {e}", exc_info=True)
-    
-    # Update the flag in the module
-    cache_store._cache_fully_initialized = True
-    duration = (datetime.now() - start_time).total_seconds()
-    logger.info(f"Cache initialization completed: {success_count}/{len(cache_functions)} caches updated successfully in {duration:.2f} seconds")
+    try:
+        # Check if location has changed and reset caches if needed
+        check_and_handle_config_changes()
+        
+        # All cache update functions
+        cache_functions = [
+            ("Moon report", update_moon_report_cache),
+            ("Dark window", update_dark_window_cache),
+            ("Moon planner", update_moon_planner_cache),
+            ("Sun report", update_sun_report_cache),
+            ("Best window", update_best_window_cache),
+            ("Weather forecast", update_weather_cache)
+        ]
+        
+        success_count = 0
+        for cache_name, cache_function in cache_functions:
+            try:
+                cache_function()
+                success_count += 1
+            except Exception as e:
+                logger.error(f"Failed to update {cache_name} cache: {e}", exc_info=True)
+        
+        duration = (datetime.now() - start_time).total_seconds()
+        logger.info(f"Cache refresh cycle completed: {success_count}/{len(cache_functions)} caches updated successfully in {duration:.2f} seconds")
+        
+    finally:
+        cache_store.set_cache_initialization_in_progress(False)

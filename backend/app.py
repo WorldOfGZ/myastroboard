@@ -268,7 +268,11 @@ def get_config_api():
 @app.route('/api/config', methods=['POST'])
 @admin_required
 def update_config_api():
-    """Update configuration"""
+    """
+    Update configuration.
+    Automatically detects and handles location changes (latitude, longitude, elevation, timezone).
+    Triggers cache reset when location parameters are modified.
+    """
     config = request.json
     
     # Validate at least one catalogue is selected
@@ -279,10 +283,21 @@ def update_config_api():
             "message": "At least one catalogue must be selected"
         }), 400
     
-
+    # Load old config to detect changes
+    old_config = load_config()
+    old_location = old_config.get('location', {})
+    new_location = config.get('location', {})
+    
+    # Check if location parameters have changed
+    location_changed = (
+        old_location.get('latitude') != new_location.get('latitude') or
+        old_location.get('longitude') != new_location.get('longitude') or
+        old_location.get('elevation') != new_location.get('elevation') or
+        old_location.get('timezone') != new_location.get('timezone')
+    )
+    
     # Compare selected catalogues to previous catalogues (on folder uptonight_outputs)
     # to remove uptonight_configs & uptonight_outputs of not used catalogues
-    old_config = load_config()
     old_catalogues = set(old_config.get('selected_catalogues', [])) 
     new_catalogues = set(selected_catalogues)
     removed_catalogues = old_catalogues - new_catalogues
@@ -307,8 +322,6 @@ def update_config_api():
             except Exception as e:
                 logger.error(f"Error removing output directory {output_dir}: {e}")
 
-
-
     # Ensure features exist with defaults
     if 'features' not in config:
         config['features'] = {
@@ -319,8 +332,22 @@ def update_config_api():
             "alttime": True
         }
     
+    # Save the new config
     save_config(config)
-    return jsonify({"status": "success", "config": config})
+    
+    # If location changed, reset astronomical caches immediately
+    if location_changed:
+        logger.warning("Location parameters changed! Resetting astronomical caches immediately.")
+        cache_store.reset_all_caches()
+        cache_store.update_location_config(new_location)
+    
+    return jsonify({
+        "status": "success", 
+        "config": config,
+        "cache_reset": location_changed,
+        "message": "Configuration updated" + (" and cache reset" if location_changed else "")
+    })
+
 
 @app.route('/api/config/view', methods=['GET'])
 @admin_required
@@ -549,8 +576,17 @@ def health_simple_api():
 @app.route('/api/cache', methods=['GET'])
 @login_required
 def cache_health_api():
-    """Cache health check endpoint"""
-    return jsonify({"cache_status": cache_store._cache_fully_initialized})
+    """
+    Cache status endpoint - purely informational.
+    Returns whether caches are currently valid based on TTL.
+    All cache management is server-side only.
+    """
+    status = cache_store.get_cache_init_status()
+    return jsonify({
+        "cache_status": status["all_ready"],
+        "details": status
+    })
+
 
 
 

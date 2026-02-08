@@ -46,7 +46,7 @@ class TestWeatherClientCreation:
         # Verify cache session was created with correct TTL
         mock_cached_session.assert_called_once()
         call_args = mock_cached_session.call_args
-        assert call_args[0][0] == ".cache"  # Cache filename
+        assert call_args[0][0].endswith(".weather_cache")  # Cache filename
         # Check expire_after parameter
         assert 'expire_after' in call_args[1]
     

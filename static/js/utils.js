@@ -42,38 +42,36 @@ function formatDuration(seconds) {
 }
 
 /**
- * Check the global cache status from the backend API.
- * If the cache is fully initialized, hide the banner.
+ * Check and display cache status information.
+ * Cache is managed entirely server-side with TTL-based expiration.
+ * No browser-side cache refresh required - F5 works normally.
  */
 async function checkCacheStatus() {
     const banner = document.getElementById('global-cache-banner');
+    if (!banner) return;
     
     try {
         const data = await fetchJSONWithRetry('/api/cache', {}, {
-            maxAttempts: 4,
-            baseDelayMs: 1000,
-            maxDelayMs: 8000,
-            timeoutMs: 10000
+            maxAttempts: 2,
+            baseDelayMs: 500,
+            maxDelayMs: 2000,
+            timeoutMs: 5000
         });
 
         if (data.cache_status === true) {
-            // If the cache is ready, hide the banner
-            if (banner) {
-                banner.style.display = 'none';
-            }
-            //console.log("Cache fully initialized. Banner hidden.");
+            // Cache is ready, hide the banner
+            banner.style.display = 'none';
         } else {
-            // If the cache is not ready keep the banner visible
-            // and schedule a re-check in 10 seconds
-            if (banner) {
-                banner.style.display = 'block';
-            }
-            //console.log("Cache not ready, retrying in 10s...");
-            setTimeout(checkCacheStatus, 10000);
+            // Cache is initializing, show informational banner
+            banner.style.display = 'block';
+            
+            // Check less frequently (every 30 seconds)
+            // since cache updates happen server-side on schedule
+            setTimeout(checkCacheStatus, 30000);
         }
     } catch (error) {
-        console.error('Error checking cache status:', error);
-        // In case of API error, retry after 10 seconds anyway
-        setTimeout(checkCacheStatus, 10000);
+        // If API fails, hide banner and don't block UI
+        banner.style.display = 'none';
+        console.debug('Cache status check unavailable (server-side cached data will still be used)');
     }
 }

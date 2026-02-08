@@ -35,7 +35,7 @@ class TestAstrodexDataModel:
     
     def test_load_empty_astrodex(self, temp_data_dir):
         """Test loading empty astrodex"""
-        data = astrodex.load_user_astrodex('testuser')
+        data = astrodex.load_user_astrodex('testuser', username='testuser')
         assert data['username'] == 'testuser'
         assert data['items'] == []
         assert 'created_at' in data

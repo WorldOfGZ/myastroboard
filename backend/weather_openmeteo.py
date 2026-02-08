@@ -9,14 +9,31 @@ import pandas as pd
 from repo_config import load_config
 from constants import URL_OPENMETEO, DATA_DIR, CONFIG_FILE, CONDITIONS_FILE
 from logging_config import get_logger
-from weather_utils import create_weather_client
+from weather_utils import create_weather_client, create_fresh_weather_client
 
 # Create logger with centralized configuration
 logger = get_logger(__name__)
 
-def fetch_weather(latitude, longitude, timezone, hourly_vars, forecast_hours=12):
-    """Call Open-Meteo API and return raw response"""
-    client = create_weather_client()
+def fetch_weather(latitude, longitude, timezone, hourly_vars, forecast_hours=12, use_cache=True):
+    """
+    Call Open-Meteo API and return raw response
+    
+    Args:
+        latitude: Location latitude
+        longitude: Location longitude
+        timezone: Timezone string
+        hourly_vars: List of variables to fetch
+        forecast_hours: Number of hours to forecast (default 12)
+        use_cache: If True, use cached client; If False, always fetch fresh data (default True)
+    
+    Returns:
+        Raw API response
+    """
+    # Choose client based on caching preference
+    if use_cache:
+        client = create_weather_client()
+    else:
+        client = create_fresh_weather_client()
 
     params = {
         "latitude": latitude,
@@ -190,7 +207,10 @@ def get_hourly_forecast():
 
 
 def get_uptonight_conditions():
-    """Return current uptonight conditions summary (1h forecast)"""
+    """
+    Return current uptonight conditions summary (1h forecast).
+    ALWAYS fetches fresh data (no caching) for accurate real-time conditions.
+    """
     try:
         config = load_config()
 
@@ -200,12 +220,14 @@ def get_uptonight_conditions():
             "surface_pressure"
         ]
 
+        # Bypass cache for fresh uptonight conditions
         response = fetch_weather(
             latitude=config["location"]["latitude"],
             longitude=config["location"]["longitude"],
             timezone=config["location"]["timezone"],
             hourly_vars=hourly_vars,
-            forecast_hours=1
+            forecast_hours=1,
+            use_cache=False  # Always fetch fresh data for uptonight
         )
 
         hourly = response.Hourly()
