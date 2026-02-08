@@ -13,7 +13,7 @@ services:
       - ./data:/app/data
       - ./uptonight_outputs:/app/uptonight_outputs
       - ./uptonight_configs:/app/uptonight_configs
-      - /var/run/docker.sock:/var/run/docker.sock  # Docker-from-Docker (contrôlé)
+      - /var/run/docker.sock:/var/run/docker.sock  # Docker-from-Docker (controled)
 
     environment:
       # Timezone
@@ -31,6 +31,9 @@ services:
       # Or online: https://randomkeygen.com/jwt-secret (use "HS256 (256 bits), format Hexadecimal")
       # If not set, sessions will be invalidated on container restart
       - SECRET_KEY=a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456
+      
+      # Session cookie security (for development, keep false)
+      - SESSION_COOKIE_SECURE=false
 
       # App
       - DATA_DIR=/app/data

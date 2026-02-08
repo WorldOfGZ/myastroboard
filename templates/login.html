@@ -26,10 +26,21 @@
                 <label for="username">👤 Username</label>
             </div>
             
-            <div class="form-floating mb-4">
+            <div class="form-floating mb-3">
                 <input type="password" class="form-control" id="password" name="password" placeholder="Password" required autocomplete="current-password">
                 <label for="password">🔐 Password</label>
             </div>
+            
+            {% if session_cookie_secure %}
+            <div class="form-check mb-4">
+                <input class="form-check-input" type="checkbox" id="remember-me" name="remember-me">
+                <label class="form-check-label" for="remember-me">
+                    Remember me (stay logged in for 30 days)
+                </label>
+            </div>
+            {% else %}
+            <div class="mb-4"></div>
+            {% endif %}
             
             <button type="submit" class="btn btn-login" id="login-btn">
                 <span class="btn-text">🚀 Sign In</span>
@@ -85,6 +96,8 @@
             
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
+            const rememberMeCheckbox = document.getElementById('remember-me');
+            const rememberMe = rememberMeCheckbox ? rememberMeCheckbox.checked : false;
             
             if (!username || !password) {
                 showMessage(errorMessage, 'Please enter both username and password');
@@ -101,7 +114,7 @@
                         'Content-Type': 'application/json',
                     },
                     credentials: 'include',
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify({ username, password, remember_me: rememberMe })
                 });
                 
                 const data = await response.json();

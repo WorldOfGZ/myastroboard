@@ -66,6 +66,8 @@ if not secret_key:
 app.secret_key = secret_key
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)  # 30 days for remember-me
 
 CORS(app, supports_credentials=True)
 
@@ -102,8 +104,10 @@ def login_page():
     """Render login page"""
     # Get version for cache busting
     version = get_repo_version()
+    # Pass SESSION_COOKIE_SECURE setting to show/hide remember-me checkbox
+    session_cookie_secure = app.config.get('SESSION_COOKIE_SECURE', False)
     
-    return render_template('login.html', version=version)
+    return render_template('login.html', version=version, session_cookie_secure=session_cookie_secure)
 
 
 # ============================================================
@@ -117,6 +121,7 @@ def login():
         data = request.json
         username = data.get('username')
         password = data.get('password')
+        remember_me = data.get('remember_me', False)
         
         if not username or not password:
             return jsonify({'error': 'Username and password required'}), 400
@@ -127,10 +132,14 @@ def login():
             session['username'] = user.username
             session['role'] = user.role
             
+            # Set session to permanent if remember_me is checked
+            # This will use PERMANENT_SESSION_LIFETIME (30 days)
+            session.permanent = remember_me
+            
             # Check if using default password
             using_default_password = user.is_using_default_password()
             
-            logger.info(f"User {username} logged in successfully")
+            logger.info(f"User {username} logged in successfully (remember_me: {remember_me})")
             return jsonify({
                 'status': 'success',
                 'user_id': user.user_id,
@@ -152,7 +161,12 @@ def logout():
     username = session.get('username')
     session.clear()
     logger.info(f"User {username} logged out")
-    return jsonify({'status': 'success'})
+    
+    # Create response and clear the session cookie
+    response = jsonify({'status': 'success'})
+    response.set_cookie('session', '', expires=0, httponly=True, samesite='Lax')
+    
+    return response
 
 
 @app.route('/api/auth/status', methods=['GET'])
