@@ -828,6 +828,75 @@ def check_catalogue_log_exists(catalogue):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/uptonight/reports/<catalogue>/<report_type>', methods=['GET'])
+@login_required
+def get_catalogue_report_text(catalogue, report_type):
+    """Get report text file for a specific catalogue and report type"""
+    try:
+        catalogue_dir = os.path.join(OUTPUT_DIR, catalogue)
+        
+        # Map report type to filename
+        report_files = {
+            'general': 'uptonight-report.txt',
+            'bodies': 'uptonight-bodies-report.txt',
+            'comets': 'uptonight-comets-report.txt'
+        }
+        
+        if report_type not in report_files:
+            return jsonify({"error": f"Invalid report type: {report_type}"}), 400
+        
+        report_file = os.path.join(catalogue_dir, report_files[report_type])
+        
+        if not os.path.exists(report_file):
+            return jsonify({"error": "Report file not found"}), 404
+        
+        # Check if file is not empty
+        if os.path.getsize(report_file) == 0:
+            return jsonify({"error": "Report file is empty"}), 404
+        
+        # Read the report file
+        with open(report_file, 'r', encoding='utf-8') as f:
+            report_content = f.read()
+        
+        return jsonify({
+            "catalogue": catalogue,
+            "report_type": report_type,
+            "report_content": report_content,
+            "file_size": os.path.getsize(report_file)
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/uptonight/reports/<catalogue>/available', methods=['GET'])
+@login_required
+def check_catalogue_reports_available(catalogue):
+    """Check which report files exist for a specific catalogue"""
+    try:
+        catalogue_dir = os.path.join(OUTPUT_DIR, catalogue)
+        
+        report_files = {
+            'general': 'uptonight-report.txt',
+            'bodies': 'uptonight-bodies-report.txt',
+            'comets': 'uptonight-comets-report.txt'
+        }
+        
+        available = {}
+        for report_type, filename in report_files.items():
+            report_file = os.path.join(catalogue_dir, filename)
+            available[report_type] = os.path.exists(report_file) and os.path.getsize(report_file) > 0
+        
+        return jsonify({
+            "catalogue": catalogue,
+            "available": available,
+            "has_any": any(available.values())
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ============================================================
 # API Weather
 # ============================================================

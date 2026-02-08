@@ -1009,10 +1009,23 @@ async function loadCatalogueResults(catalogue) {
         }
         
         // Check if log file exists and add log button
-        checkCatalogueLogExists(catalogue).then(logExists => {
+        // Check if report files exist and add reports button  
+        Promise.all([
+            checkCatalogueLogExists(catalogue),
+            checkCatalogueReportsAvailable(catalogue)
+        ]).then(([logExists, reportsAvailable]) => {
             if (logExists) {
                 buttonsHTML += `<li class="nav-item"><a class="nav-link catalogue-type-btn" onclick="showCatalogueType('${catalogue}', 'log')">📄 Log</a></li>`;
-                buttonsContainer.innerHTML = buttonsHTML;
+            }
+            if (reportsAvailable && reportsAvailable.has_any) {
+                buttonsHTML += `<li class="nav-item"><a class="nav-link catalogue-type-btn" onclick="showCatalogueType('${catalogue}', 'reports')">📑 Reports</a></li>`;
+            }
+            buttonsContainer.innerHTML = buttonsHTML;
+            
+            // Store reports availability for later use
+            if (reportsAvailable) {
+                window.catalogueReportsAvailability = window.catalogueReportsAvailability || {};
+                window.catalogueReportsAvailability[catalogue] = reportsAvailable.available;
             }
         });
         
@@ -1061,6 +1074,9 @@ function showCatalogueType(catalogue, type) {
             case 'log':
                 btnType = 'Log';
                 break;
+            case 'reports':
+                btnType = 'Reports';
+                break;
             default:
                 console.warn(`Unknown catalogue type: ${type}`);
                 return;
@@ -1107,6 +1123,57 @@ function showCatalogueType(catalogue, type) {
             container.innerHTML = html;
         });
         return; // Early return for async log loading
+    }
+    // Show reports content with dropdown selector if type is 'reports'
+    else if (type === 'reports') {
+        const availability = window.catalogueReportsAvailability?.[catalogue] || {};
+        
+        // Helper function to escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Build dropdown options based on available reports
+        let dropdownOptions = '';
+        if (availability.general) {
+            dropdownOptions += '<option value="general">General</option>';
+        }
+        if (availability.bodies) {
+            dropdownOptions += '<option value="bodies">Bodies</option>';
+        }
+        if (availability.comets) {
+            dropdownOptions += '<option value="comets">Comets</option>';
+        }
+        
+        // If no reports available, show message
+        if (!dropdownOptions) {
+            container.innerHTML = '<div class="alert alert-info mt-3">No reports available for this catalogue.</div>';
+            return;
+        }
+        
+        // Create the reports interface with dropdown
+        html = `
+            <div class="mt-3">
+                <div class="mb-3">
+                    <label for="report-selector-${catalogue}" class="form-label">Select Report Type:</label>
+                    <select class="form-select" id="report-selector-${catalogue}" onchange="loadSelectedReport('${catalogue}', this.value)">
+                        ${dropdownOptions}
+                    </select>
+                </div>
+                <div id="report-content-${catalogue}" class="logs-container rounded">
+                    <div class="loading">Loading report content...</div>
+                </div>
+            </div>
+        `;
+        
+        container.innerHTML = html;
+        
+        // Load the first available report by default
+        const firstReportType = availability.general ? 'general' : (availability.bodies ? 'bodies' : 'comets');
+        loadSelectedReport(catalogue, firstReportType);
+        return; // Early return for async report loading
     }
     // Show appropriate table based on type (not for plot or log)
     else if (type === 'report' && reports.report) {
@@ -2025,5 +2092,49 @@ async function loadCatalogueLog(catalogue) {
     } catch (error) {
         console.error('Error loading log file:', error);
         return null;
+    }
+}
+
+// ======================
+// Report Management Functions
+// ======================
+
+async function checkCatalogueReportsAvailable(catalogue) {
+    try {
+        const result = await fetchJSON(`/api/uptonight/reports/${catalogue}/available`);
+        return result;
+    } catch (error) {
+        console.error('Error checking reports availability:', error);
+        return null;
+    }
+}
+
+async function loadSelectedReport(catalogue, reportType) {
+    try {
+        const contentDiv = document.getElementById(`report-content-${catalogue}`);
+        if (!contentDiv) return;
+        
+        contentDiv.innerHTML = '<div class="loading">Loading report content...</div>';
+        
+        const result = await fetchJSON(`/api/uptonight/reports/${catalogue}/${reportType}`);
+        
+        if (result && result.report_content) {
+            // Helper function to escape HTML
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            contentDiv.innerHTML = `<pre>${escapeHtml(result.report_content)}</pre>`;
+        } else {
+            contentDiv.innerHTML = '<div class="alert alert-warning">Report file is empty or not available.</div>';
+        }
+    } catch (error) {
+        console.error('Error loading report:', error);
+        const contentDiv = document.getElementById(`report-content-${catalogue}`);
+        if (contentDiv) {
+            contentDiv.innerHTML = '<div class="alert alert-danger">Failed to load report content.</div>';
+        }
     }
 }

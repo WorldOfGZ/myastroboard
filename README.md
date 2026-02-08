@@ -1,6 +1,5 @@
 > [!WARNING]
-> This repo is currently in alpha stage! Be really carefull, lot of things unexpected can happen!
-> Docker package is still not really ready...
+> This repo is currently in early stage! Be really carefull, lot of things unexpected can happen!
 
 
 # 🌙 MyAstroBoard
