@@ -159,8 +159,8 @@ function displayUsers(users) {
                 <tr>
                     <th>Username</th>
                     <th>Role</th>
-                    <th>Created</th>
-                    <th>Last Login</th>
+                    <th class="d-none d-md-table-cell">Created</th>
+                    <th class="d-none d-md-table-cell">Last Login</th>
                     <th class="text-center">Actions</th>
                 </tr>
             </thead>
@@ -181,13 +181,13 @@ function displayUsers(users) {
         row.innerHTML = `
             <th>${escapeHtml(user.username)}</th>
             <td>${escapeHtml(user.role)}</td>
-            <td>${createdDate}</td>
-            <td>${lastLogin}</td>
+            <td class="d-none d-md-table-cell">${createdDate}</td>
+            <td class="d-none d-md-table-cell">${lastLogin}</td>
             <td class="text-center">
-                <button class="btn btn-primary btn-small user-edit-username" data-user-id="${escapeHtml(user.user_id)}" data-username="${escapeHtml(user.username)}">✏️ Username</button>
-                ${!isCurrentUser ? `<button class="btn btn-info btn-small user-edit-role" data-user-id="${escapeHtml(user.user_id)}" data-username="${escapeHtml(user.username)}" data-role="${escapeHtml(user.role)}">🔑 Role</button>` : ''}
-                <button class="btn btn-secondary btn-small user-change-password" data-user-id="${escapeHtml(user.user_id)}" data-username="${escapeHtml(user.username)}">🔒 Password</button>
-                ${!isCurrentUser ? `<button class="btn btn-danger btn-small user-delete" data-user-id="${escapeHtml(user.user_id)}" data-username="${escapeHtml(user.username)}">🗑️ Delete</button>` : ''}
+                <button class="btn btn-primary btn-small user-edit-username mb-2" data-user-id="${escapeHtml(user.user_id)}" data-username="${escapeHtml(user.username)}">✏️ Username</button>
+                ${!isCurrentUser ? `<button class="btn btn-info btn-small user-edit-role mb-2" data-user-id="${escapeHtml(user.user_id)}" data-username="${escapeHtml(user.username)}" data-role="${escapeHtml(user.role)}">🔑 Role</button>` : ''}
+                <button class="btn btn-secondary btn-small user-change-password mb-2" data-user-id="${escapeHtml(user.user_id)}" data-username="${escapeHtml(user.username)}">🔒 Password</button>
+                ${!isCurrentUser ? `<button class="btn btn-danger btn-small user-delete mb-2" data-user-id="${escapeHtml(user.user_id)}" data-username="${escapeHtml(user.username)}">🗑️ Delete</button>` : ''}
             </td>
         `;
         
