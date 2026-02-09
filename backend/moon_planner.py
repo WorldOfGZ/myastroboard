@@ -31,6 +31,7 @@ Example output for a night (on API call):
 
 import datetime
 from zoneinfo import ZoneInfo
+from typing import Any, Optional, cast
 
 import astropy.units as u
 from astropy.time import Time
@@ -125,10 +126,15 @@ class MoonPlanner:
             frame = AltAz(obstime=t, location=self.location)
 
             # Sun altitude
-            sun_alt = get_sun(t).transform_to(frame).alt.deg
+            sun_alt = self._coord_altitude_deg(get_sun(t), frame)
 
             # Moon altitude
-            moon_alt = get_body("moon", t).transform_to(frame).alt.deg
+            moon_alt = self._coord_altitude_deg(get_body("moon", t), frame)
+
+            if sun_alt is None or moon_alt is None:
+                dt += step
+                continue
+
             moon_max_alt = max(moon_max_alt, moon_alt)
 
             # Always require astronomical night
@@ -155,6 +161,21 @@ class MoonPlanner:
             "moon_max_alt": moon_max_alt,
             "illumination": illum_percent
         }
+
+    def _coord_altitude_deg(self, coord: Any, frame: AltAz) -> Optional[float]:
+        if coord is None:
+            return None
+
+        transformed = coord.transform_to(frame)
+        alt = getattr(transformed, "alt", None)
+        if alt is None:
+            return None
+
+        value = alt.to_value(u.deg) if hasattr(alt, "to_value") else None
+        if value is None:
+            return None
+
+        return float(cast(Any, value))
 
     # ============================================================
     # Moon illumination (official astroplan)

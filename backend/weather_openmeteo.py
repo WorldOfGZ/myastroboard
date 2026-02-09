@@ -5,6 +5,7 @@ https://open-meteo.com/en/docs
 from http.client import responses
 import json
 import os
+from typing import Any, Optional, cast
 import pandas as pd
 from repo_config import load_config
 from constants import URL_OPENMETEO, DATA_DIR, CONFIG_FILE, CONDITIONS_FILE
@@ -46,7 +47,7 @@ def fetch_weather(latitude, longitude, timezone, hourly_vars, forecast_hours=12,
     response = client.weather_api(URL_OPENMETEO, params=params)[0]
     return response
 
-def parse_hourly(response, hourly_vars, timezone_str="UTC"):
+def parse_hourly(response, hourly_vars, timezone_str: Optional[str] = "UTC"):
     """Transform raw response into pandas DataFrame, apply timezone"""
 
     hourly = response.Hourly()
@@ -73,7 +74,10 @@ def parse_hourly(response, hourly_vars, timezone_str="UTC"):
             import zoneinfo
             try:
                 zoneinfo.ZoneInfo(timezone_str)
-                df["date"] = df["date"].dt.tz_convert(timezone_str)
+                date_series = cast(pd.Series, df["date"])
+                df["date"] = date_series.map(
+                    lambda x: x.tz_convert(timezone_str) if hasattr(x, "tz_convert") else x
+                )
             except zoneinfo.ZoneInfoNotFoundError:
                 logger.warning(f"Unknown timezone '{timezone_str}', keeping dates in UTC")
                 # Keep dates in UTC if timezone is invalid
@@ -95,7 +99,7 @@ def parse_hourly(response, hourly_vars, timezone_str="UTC"):
     # -----------------------------
     wind_factor = (100 - df["wind_speed_10m"] * 3).clip(0, 100)
 
-    stability_factor = (50 + df["lifted_index"] * 5).clip(0, 100)
+    stability_factor = (df["lifted_index"] * 5 + 50).clip(0, 100)
 
     seeing_percent = (wind_factor * 0.7 + stability_factor * 0.3).clip(0, 100)
 
@@ -194,6 +198,8 @@ def get_hourly_forecast():
         timezone_str = response.Timezone()
         if isinstance(timezone_str, bytes):
             timezone_str = timezone_str.decode("utf-8")
+        if timezone_str is None:
+            timezone_str = "UTC"
 
         hourly_df = parse_hourly(response, hourly_vars, timezone_str=timezone_str)
         return {
@@ -231,11 +237,20 @@ def get_uptonight_conditions():
         )
 
         hourly = response.Hourly()
+        if hourly is None:
+            raise ValueError("Hourly data missing from weather response")
 
         # Extract first hour only
-        temperature = float(hourly.Variables(0).ValuesAsNumpy()[0])
-        humidity = float(hourly.Variables(1).ValuesAsNumpy()[0]) / 100  
-        pressure = float(hourly.Variables(2).ValuesAsNumpy()[0]) / 1000
+        temp_values = hourly.Variables(0)
+        humidity_values = hourly.Variables(1)
+        pressure_values = hourly.Variables(2)
+
+        if temp_values is None or humidity_values is None or pressure_values is None:
+            raise ValueError("Hourly variables missing from weather response")
+
+        temperature = float(temp_values.ValuesAsNumpy()[0])
+        humidity = float(humidity_values.ValuesAsNumpy()[0]) / 100
+        pressure = float(pressure_values.ValuesAsNumpy()[0]) / 1000
 
         conditions = {
             "temperature": round(temperature, 1),

@@ -9,16 +9,9 @@ import re
 import json
 import sys
 from datetime import datetime, timedelta
-import requests
-from astropy.time import Time
-from astropy.coordinates import EarthLocation, AltAz, get_sun
-from astropy.coordinates import get_body
-import astropy.units as u
 
 import sys
 import yaml
-import time
-from zoneinfo import ZoneInfo
 
 # Windows-compatible file locking
 if sys.platform == "win32":
@@ -30,13 +23,18 @@ else:
 sys.path.insert(0, os.path.dirname(__file__))
 from weather_openmeteo import get_hourly_forecast
 from txtconf_loader import get_available_catalogues
-from uptonight_scheduler import UptonightScheduler
 from uptonight_parser import get_catalogue_reports 
 from txtconf_loader import get_repo_version
 from repo_config import load_config, save_config
 from constants import DATA_DIR, CONFIG_FILE, OUTPUT_DIR, CONFIG_DIR, CACHE_TTL
 from logging_config import get_logger
-from utils import IndentDumper
+from cache_updater import (
+    update_dark_window_cache,
+    update_moon_report_cache,
+    update_moon_planner_cache,
+    update_sun_report_cache,
+    update_best_window_cache,
+)
 
 #Cache for heavy computations
 import cache_store
@@ -997,7 +995,17 @@ def get_weather_alerts_api():
 def get_moon_report_api():
     """Return astrophotography-grade Moon report, from cache only"""
     try:
-        if cache_store._moon_report_cache["data"]:
+        if cache_store.is_cache_valid(cache_store._moon_report_cache, CACHE_TTL):
+            return jsonify(cache_store._moon_report_cache["data"])
+
+        # Try shared cache first (other worker may have computed)
+        if cache_store.sync_cache_from_shared("moon_report", cache_store._moon_report_cache):
+            if cache_store.is_cache_valid(cache_store._moon_report_cache, CACHE_TTL):
+                return jsonify(cache_store._moon_report_cache["data"])
+
+        # Cache not ready in this worker -> attempt to refresh just this cache
+        update_moon_report_cache()
+        if cache_store.is_cache_valid(cache_store._moon_report_cache, CACHE_TTL):
             return jsonify(cache_store._moon_report_cache["data"])
 
         # Cache non disponible
@@ -1016,7 +1024,17 @@ def get_moon_report_api():
 def get_next_dark_window_api():
     """Return next astronomical moonless dark window, from cache only"""
     try:
-        if cache_store._dark_window_report_cache["data"]:
+        if cache_store.is_cache_valid(cache_store._dark_window_report_cache, CACHE_TTL):
+            return jsonify(cache_store._dark_window_report_cache["data"])
+
+        # Try shared cache first (other worker may have computed)
+        if cache_store.sync_cache_from_shared("dark_window", cache_store._dark_window_report_cache):
+            if cache_store.is_cache_valid(cache_store._dark_window_report_cache, CACHE_TTL):
+                return jsonify(cache_store._dark_window_report_cache["data"])
+
+        # Cache not ready in this worker -> attempt to refresh just this cache
+        update_dark_window_cache()
+        if cache_store.is_cache_valid(cache_store._dark_window_report_cache, CACHE_TTL):
             return jsonify(cache_store._dark_window_report_cache["data"])
 
         # Cache non disponible
@@ -1035,7 +1053,17 @@ def get_next_dark_window_api():
 def get_next_7_nights_api():
     """Return Moon Planner next 7 nights report, from cache only"""
     try:
-        if cache_store._moon_planner_report_cache["data"]:
+        if cache_store.is_cache_valid(cache_store._moon_planner_report_cache, CACHE_TTL):
+            return jsonify(cache_store._moon_planner_report_cache["data"])
+
+        # Try shared cache first (other worker may have computed)
+        if cache_store.sync_cache_from_shared("moon_planner", cache_store._moon_planner_report_cache):
+            if cache_store.is_cache_valid(cache_store._moon_planner_report_cache, CACHE_TTL):
+                return jsonify(cache_store._moon_planner_report_cache["data"])
+
+        # Cache not ready in this worker -> attempt to refresh just this cache
+        update_moon_planner_cache()
+        if cache_store.is_cache_valid(cache_store._moon_planner_report_cache, CACHE_TTL):
             return jsonify(cache_store._moon_planner_report_cache["data"])
 
         # Cache non disponible
@@ -1055,7 +1083,17 @@ def get_next_7_nights_api():
 def get_sun_today_api():
     """Return Sun today report, from cache only"""
     try:
-        if cache_store._sun_report_cache["data"]:
+        if cache_store.is_cache_valid(cache_store._sun_report_cache, CACHE_TTL):
+            return jsonify(cache_store._sun_report_cache["data"])
+
+        # Try shared cache first (other worker may have computed)
+        if cache_store.sync_cache_from_shared("sun_report", cache_store._sun_report_cache):
+            if cache_store.is_cache_valid(cache_store._sun_report_cache, CACHE_TTL):
+                return jsonify(cache_store._sun_report_cache["data"])
+
+        # Cache not ready in this worker -> attempt to refresh just this cache
+        update_sun_report_cache()
+        if cache_store.is_cache_valid(cache_store._sun_report_cache, CACHE_TTL):
             return jsonify(cache_store._sun_report_cache["data"])
 
         # Cache non disponible
@@ -1078,13 +1116,61 @@ def best_window_api():
     """
     try:
         mode = request.args.get("mode", "strict")
+        modes = ["strict", "practical", "illumination"]
 
-        if mode not in ["strict", "practical", "illumination"]:
+        if mode == "all":
+            results = {}
+            missing_modes = []
+
+            for current_mode in modes:
+                cache_entry = cache_store._best_window_cache[current_mode]
+                if cache_store.is_cache_valid(cache_entry, CACHE_TTL):
+                    results[current_mode] = cache_entry["data"]
+                    continue
+
+                # Try shared cache first (other worker may have computed)
+                if cache_store.sync_cache_from_shared(f"best_window_{current_mode}", cache_entry):
+                    if cache_store.is_cache_valid(cache_entry, CACHE_TTL):
+                        results[current_mode] = cache_entry["data"]
+                        continue
+
+                missing_modes.append(current_mode)
+
+            if missing_modes:
+                update_best_window_cache()
+
+                for current_mode in missing_modes:
+                    cache_entry = cache_store._best_window_cache[current_mode]
+                    if cache_store.is_cache_valid(cache_entry, CACHE_TTL):
+                        results[current_mode] = cache_entry["data"]
+                    else:
+                        results[current_mode] = {
+                            "status": "pending",
+                            "message": (
+                                f"Best window cache for mode '{current_mode}' is not ready yet. "
+                                "Please try again shortly."
+                            )
+                        }
+
+            return jsonify({"modes": results})
+
+        if mode not in modes:
             return jsonify({"error": "Invalid mode"}), 400
 
         cache_entry = cache_store._best_window_cache[mode]
 
-        if cache_entry["data"]:
+        if cache_store.is_cache_valid(cache_entry, CACHE_TTL):
+            return jsonify(cache_entry["data"])
+
+        # Try shared cache first (other worker may have computed)
+        if cache_store.sync_cache_from_shared(f"best_window_{mode}", cache_entry):
+            if cache_store.is_cache_valid(cache_entry, CACHE_TTL):
+                return jsonify(cache_entry["data"])
+
+        # Cache not ready in this worker -> attempt to refresh just this cache
+        update_best_window_cache()
+        cache_entry = cache_store._best_window_cache[mode]
+        if cache_store.is_cache_valid(cache_entry, CACHE_TTL):
             return jsonify(cache_entry["data"])
 
         # Cache non disponible
@@ -1109,7 +1195,7 @@ def get_astrodex():
     try:
         user = get_current_user()
         user_id = user.user_id if user else None
-        if not user_id:
+        if not user_id or not user:
             return jsonify({'error': 'User not authenticated'}), 401
             
         astrodex_data = astrodex.load_user_astrodex(user_id, user.username)
@@ -1133,7 +1219,7 @@ def add_astrodex_item():
     try:
         user = get_current_user()
         user_id = user.user_id if user else None
-        if not user_id:
+        if not user_id or not user:
             return jsonify({'error': 'User not authenticated'}), 401
             
         item_data = request.json
@@ -1324,7 +1410,7 @@ def upload_astrodex_image():
             return jsonify({'error': 'No file provided'}), 400
         
         file = request.files['file']
-        if file.filename == '':
+        if not file.filename:
             return jsonify({'error': 'No file selected'}), 400
         
         # Validate file type
@@ -1451,6 +1537,7 @@ def get_scheduler_for_api():
     lock_file_path = os.path.join(DATA_DIR, 'scheduler.lock')
     
     if os.path.exists(lock_file_path):
+        test_file = None
         try:
             test_file = open(lock_file_path, 'r')
             
@@ -1459,24 +1546,22 @@ def get_scheduler_for_api():
                 try:
                     msvcrt.locking(test_file.fileno(), msvcrt.LK_NBLCK, 1)
                     # If we can acquire the lock, the scheduler is not running
-                    test_file.close()
                     return None
                 except OSError:
                     # Lock is held by another process, scheduler is running
-                    test_file.close()
                     return "remote_scheduler"  # Placeholder to indicate scheduler exists
             else:
                 # Unix file locking test
                 fcntl.flock(test_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                 # If we can acquire the lock, the scheduler is not running
-                test_file.close()
                 return None
                 
         except (IOError, OSError):
             # Lock is held by another process, scheduler is running
-            if 'test_file' in locals():
-                test_file.close()
             return "remote_scheduler"  # Placeholder to indicate scheduler exists
+        finally:
+            if test_file is not None:
+                test_file.close()
     
     return None
 

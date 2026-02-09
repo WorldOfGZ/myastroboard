@@ -293,18 +293,24 @@ async function loadBestDarkWindow() {
         
         const modes = ["strict", "practical", "illumination"];
 
+        const bestWindowsResponse = await fetchJSONWithRetry('/api/tonight/best-window?mode=all', {}, {
+            ...retryOptions,
+            onRetry: null
+        });
+
+        const bestWindowsByMode = bestWindowsResponse && bestWindowsResponse.modes
+            ? bestWindowsResponse.modes
+            : {};
+
         for (const mode of modes) {
+            const modeData = bestWindowsByMode[mode];
 
-            const data = await fetchJSONWithRetry(`/api/tonight/best-window?mode=${mode}`, {}, {
-                ...retryOptions,
-                onRetry: null
-            });
-            //console.log(data);
-
-            // Si erreur → affiche un bloc d’erreur mais continue
-            if (data.error || !data.best_window || !data.best_window.start ) {
+            if (!modeData || modeData.status === 'pending' || modeData.error || !modeData.best_window || !modeData.best_window.start) {
                 const errorItem = document.createElement("div");
                 errorItem.className = "col mb-3";
+                const message = modeData && modeData.status === 'pending'
+                    ? modeData.message || 'Cache pending'
+                    : 'No dark window';
                 errorItem.innerHTML = `
                     <div class="card h-100">
                         <div class="card-header">
@@ -312,7 +318,7 @@ async function loadBestDarkWindow() {
                         </div>
                         <div class="card-body">
                             <div class="card-text">
-                                No dark window
+                                ${message}
                             </div>
                         </div>
                     </div>
@@ -324,17 +330,17 @@ async function loadBestDarkWindow() {
             let start_txt = "";
             let end_txt = "";
 
-            if(data.best_window.start == 'Not found') {
+            if(modeData.best_window.start == 'Not found') {
                 start_txt = 'Not found';
             } else {
-                const start = new Date(data.best_window.start);
+                const start = new Date(modeData.best_window.start);
                 start_txt = `${start.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})} (${start.toLocaleDateString([], {month: "numeric", day: "numeric"})})`;
                 
             }
-            if(data.best_window.end == 'Not found') {
+            if(modeData.best_window.end == 'Not found') {
                 end_txt = 'Not found';
             } else {
-                const end = new Date(data.best_window.end);
+                const end = new Date(modeData.best_window.end);
                 end_txt = `${end.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})} (${end.toLocaleDateString([], {month: "numeric", day: "numeric"})})`;
                 
             }
@@ -351,11 +357,11 @@ async function loadBestDarkWindow() {
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             💯 Score:
-                            <span>${data.best_window.score}</span>
+                            <span>${modeData.best_window.score}</span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             🌚 Moon condition:
-                            <span>${data.best_window.moon_condition}</span>
+                            <span>${modeData.best_window.moon_condition}</span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             🌗 Start:

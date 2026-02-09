@@ -87,6 +87,11 @@ def update_moon_report_cache():
         # Update global cache
         cache_store._moon_report_cache["data"] = response
         cache_store._moon_report_cache["timestamp"] = time.time()
+        cache_store.update_shared_cache_entry(
+            "moon_report",
+            cache_store._moon_report_cache["data"],
+            cache_store._moon_report_cache["timestamp"]
+        )
 
         logger.info(f"Moon report cache updated at {datetime.now().isoformat()}")
 
@@ -126,6 +131,11 @@ def update_dark_window_cache():
         # Mettre à jour le cache global
         cache_store._dark_window_report_cache["data"] = response
         cache_store._dark_window_report_cache["timestamp"] = time.time()
+        cache_store.update_shared_cache_entry(
+            "dark_window",
+            cache_store._dark_window_report_cache["data"],
+            cache_store._dark_window_report_cache["timestamp"]
+        )
 
         logger.info(f"Dark window cache updated at {datetime.now().isoformat()}")
 
@@ -168,6 +178,11 @@ def update_moon_planner_cache():
         # Update global cache
         cache_store._moon_planner_report_cache["data"] = response
         cache_store._moon_planner_report_cache["timestamp"] = time.time()
+        cache_store.update_shared_cache_entry(
+            "moon_planner",
+            cache_store._moon_planner_report_cache["data"],
+            cache_store._moon_planner_report_cache["timestamp"]
+        )
 
         logger.info(f"Moon Planner cache updated at {datetime.now().isoformat()}")
 
@@ -209,6 +224,11 @@ def update_sun_report_cache():
         # Update global cache
         cache_store._sun_report_cache["data"] = response
         cache_store._sun_report_cache["timestamp"] = time.time()
+        cache_store.update_shared_cache_entry(
+            "sun_report",
+            cache_store._sun_report_cache["data"],
+            cache_store._sun_report_cache["timestamp"]
+        )
 
         logger.info(f"Sun report cache updated at {datetime.now().isoformat()}")
 
@@ -251,6 +271,11 @@ def update_best_window_cache():
                 }
             }
             cache_store._best_window_cache[mode]["timestamp"] = time.time()
+            cache_store.update_shared_cache_entry(
+                f"best_window_{mode}",
+                cache_store._best_window_cache[mode]["data"],
+                cache_store._best_window_cache[mode]["timestamp"]
+            )
 
         logger.info(f"Best window cache updated at {datetime.now().isoformat()}")
 

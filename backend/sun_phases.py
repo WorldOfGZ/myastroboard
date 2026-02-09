@@ -31,6 +31,7 @@ Example output (on API call):
 import datetime
 from dataclasses import dataclass
 from zoneinfo import ZoneInfo
+from typing import Any, Optional, cast
 
 from astropy.time import Time as AstroTime
 from astropy.coordinates import EarthLocation, AltAz, get_sun
@@ -174,8 +175,23 @@ class SunService:
 
         frame = AltAz(obstime=t, location=self.location)
 
-        sun_alt = get_sun(t).transform_to(frame).alt.deg
+        sun_alt = self._coord_altitude_deg(get_sun(t), frame)
         return sun_alt
+
+    def _coord_altitude_deg(self, coord: Any, frame: AltAz) -> Optional[float]:
+        if coord is None:
+            return None
+
+        transformed = coord.transform_to(frame)
+        alt = getattr(transformed, "alt", None)
+        if alt is None:
+            return None
+
+        value = alt.to_value(u.deg) if hasattr(alt, "to_value") else None
+        if value is None:
+            return None
+
+        return float(cast(Any, value))
 
     # -----------------------------
     # Formatting

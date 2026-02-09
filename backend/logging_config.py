@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 from logging.handlers import RotatingFileHandler
+from typing import Optional
 from constants import LOG_FILE, LOG_MAX_BYTES, LOG_BACKUP_COUNT
 
 # Global logger registry to prevent duplicate handlers
@@ -27,7 +28,7 @@ def _get_log_level():
     return levels.get(LOG_LEVEL, logging.INFO)
 
 
-def setup_logger(name: str, include_console: bool = True, console_level: str = None) -> logging.Logger:
+def setup_logger(name: str, include_console: bool = True, console_level: Optional[str] = None) -> logging.Logger:
     """
     Set up a logger with standard configuration for MyAstroBoard
     
@@ -92,7 +93,7 @@ def setup_logger(name: str, include_console: bool = True, console_level: str = N
     return logger
 
 
-def get_logger(name: str, include_console: bool = True, console_level: str = None) -> logging.Logger:
+def get_logger(name: str, include_console: bool = True, console_level: Optional[str] = None) -> logging.Logger:
     """
     Get or create a logger with standard configuration
     

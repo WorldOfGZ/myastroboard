@@ -5,7 +5,15 @@ All cache management is handled server-side only.
 import time
 import json
 import os
+import sys
+from contextlib import contextmanager
 from constants import CACHE_TTL, WEATHER_CACHE_TTL, DATA_DIR
+
+# Windows-compatible file locking
+if sys.platform == "win32":
+    import msvcrt
+else:
+    import fcntl
 
 # Cache entries with timestamp for TTL tracking
 _moon_report_cache = {"timestamp": 0, "data": None}
@@ -33,6 +41,102 @@ _last_known_location_config = {
 
 # Flag to indicate if caches are currently being initialized
 _cache_initialization_in_progress = False
+
+# Shared cache file (cross-worker)
+_SHARED_CACHE_FILE = os.path.join(DATA_DIR, "astro_cache.json")
+_SHARED_CACHE_LOCK = os.path.join(DATA_DIR, "astro_cache.lock")
+
+
+def _ensure_data_dir():
+    """Ensure DATA_DIR exists before file operations"""
+    os.makedirs(DATA_DIR, exist_ok=True)
+
+
+@contextmanager
+def _cache_file_lock():
+    """Cross-platform exclusive lock for shared cache file"""
+    _ensure_data_dir()
+    lock_file = open(_SHARED_CACHE_LOCK, "a+")
+    try:
+        if sys.platform == "win32":
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+        else:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        yield
+    finally:
+        try:
+            if sys.platform == "win32":
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+        finally:
+            lock_file.close()
+
+
+def _read_shared_cache():
+    """Read shared cache file safely"""
+    _ensure_data_dir()
+    if not os.path.exists(_SHARED_CACHE_FILE):
+        return {}
+    try:
+        with open(_SHARED_CACHE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f) or {}
+    except Exception:
+        # If file is corrupted, ignore and treat as empty
+        return {}
+
+
+def _write_shared_cache(shared_cache):
+    """Write shared cache file safely"""
+    _ensure_data_dir()
+    with open(_SHARED_CACHE_FILE, "w", encoding="utf-8") as f:
+        json.dump(shared_cache, f)
+
+
+def update_shared_cache_entry(key, data, timestamp):
+    """Update a single shared cache entry"""
+    with _cache_file_lock():
+        shared_cache = _read_shared_cache()
+        shared_cache[key] = {"timestamp": timestamp, "data": data}
+        _write_shared_cache(shared_cache)
+
+
+def load_shared_cache_entry(key):
+    """Load a single cache entry from shared cache"""
+    with _cache_file_lock():
+        shared_cache = _read_shared_cache()
+        entry = shared_cache.get(key)
+        if not isinstance(entry, dict):
+            return None
+        if "timestamp" not in entry or "data" not in entry:
+            return None
+        return entry
+
+
+def sync_cache_from_shared(key, cache_entry):
+    """Sync in-memory cache entry from shared cache file"""
+    entry = load_shared_cache_entry(key)
+    if not entry or entry.get("data") is None:
+        return False
+    cache_entry["data"] = entry.get("data")
+    cache_entry["timestamp"] = entry.get("timestamp", 0)
+    return True
+
+
+def _write_all_astronomical_caches_to_shared():
+    """Persist all astronomical caches to shared file"""
+    with _cache_file_lock():
+        shared_cache = _read_shared_cache()
+        shared_cache.update({
+            "moon_report": _moon_report_cache,
+            "sun_report": _sun_report_cache,
+            "moon_planner": _moon_planner_report_cache,
+            "dark_window": _dark_window_report_cache,
+            "best_window_strict": _best_window_cache["strict"],
+            "best_window_practical": _best_window_cache["practical"],
+            "best_window_illumination": _best_window_cache["illumination"],
+        })
+        _write_shared_cache(shared_cache)
 
 
 def _load_location_cache():
@@ -77,6 +181,10 @@ def has_location_changed(new_location_config):
     """Check if location parameters have changed"""
     current_signature = get_current_location_signature(new_location_config)
     
+    # If current signature is None (invalid config), consider it as changed
+    if current_signature is None:
+        return True
+    
     # If last config was not set, location has "changed" (first time)
     if _last_known_location_config["latitude"] is None:
         return True
@@ -113,6 +221,7 @@ def reset_all_caches():
     }
     _moon_planner_report_cache = {"timestamp": 0, "data": None}
     _dark_window_report_cache = {"timestamp": 0, "data": None}
+    _write_all_astronomical_caches_to_shared()
 
 
 def reset_weather_cache():
@@ -134,6 +243,13 @@ def is_cache_valid(cache_entry, ttl_seconds):
 
 def is_astronomical_cache_ready():
     """Check if all astronomical caches are valid and ready"""
+    sync_cache_from_shared("moon_report", _moon_report_cache)
+    sync_cache_from_shared("sun_report", _sun_report_cache)
+    sync_cache_from_shared("moon_planner", _moon_planner_report_cache)
+    sync_cache_from_shared("dark_window", _dark_window_report_cache)
+    sync_cache_from_shared("best_window_strict", _best_window_cache["strict"])
+    sync_cache_from_shared("best_window_practical", _best_window_cache["practical"])
+    sync_cache_from_shared("best_window_illumination", _best_window_cache["illumination"])
     all_valid = (
         is_cache_valid(_moon_report_cache, CACHE_TTL) and
         is_cache_valid(_sun_report_cache, CACHE_TTL) and
@@ -146,6 +262,13 @@ def is_astronomical_cache_ready():
 
 def get_cache_init_status():
     """Get detailed cache initialization status"""
+    sync_cache_from_shared("moon_report", _moon_report_cache)
+    sync_cache_from_shared("sun_report", _sun_report_cache)
+    sync_cache_from_shared("moon_planner", _moon_planner_report_cache)
+    sync_cache_from_shared("dark_window", _dark_window_report_cache)
+    sync_cache_from_shared("best_window_strict", _best_window_cache["strict"])
+    sync_cache_from_shared("best_window_practical", _best_window_cache["practical"])
+    sync_cache_from_shared("best_window_illumination", _best_window_cache["illumination"])
     return {
         "moon_report": is_cache_valid(_moon_report_cache, CACHE_TTL),
         "sun_report": is_cache_valid(_sun_report_cache, CACHE_TTL),

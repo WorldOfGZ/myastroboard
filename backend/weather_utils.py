@@ -7,6 +7,7 @@ import requests
 import openmeteo_requests
 import requests_cache
 from retry_requests import retry
+from typing import Any
 from constants import WEATHER_CACHE_TTL, OPENMETEO_RETRY_COUNT, OPENMETEO_BACKOFF_FACTOR, DATA_DIR
 
 
@@ -22,7 +23,7 @@ def create_weather_client():
     """
     cache_session = requests_cache.CachedSession(os.path.join(DATA_DIR, ".weather_cache"), expire_after=WEATHER_CACHE_TTL)
     retry_session = retry(cache_session, retries=OPENMETEO_RETRY_COUNT, backoff_factor=OPENMETEO_BACKOFF_FACTOR)
-    client = openmeteo_requests.Client(session=retry_session)
+    client = openmeteo_requests.Client(session=retry_session)  # type: ignore[arg-type]
     return client
 
 
@@ -38,5 +39,5 @@ def create_fresh_weather_client():
     """
     session = requests.Session()
     retry_session = retry(session, retries=OPENMETEO_RETRY_COUNT, backoff_factor=OPENMETEO_BACKOFF_FACTOR)
-    client = openmeteo_requests.Client(session=retry_session)
+    client = openmeteo_requests.Client(session=retry_session)  # type: ignore[arg-type]
     return client

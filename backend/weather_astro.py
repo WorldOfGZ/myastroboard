@@ -14,7 +14,7 @@ import json
 import os
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 from datetime import datetime, timedelta
 
 from repo_config import load_config
@@ -469,7 +469,10 @@ class AstroWeatherAnalyzer:
             
             # Convert datetime for JSON serialization
             df_json = df.copy()
-            df_json["datetime"] = df_json["datetime"].dt.strftime("%Y-%m-%dT%H:%M:%S%z")
+            dt_series = cast(pd.Series, pd.to_datetime(df_json["datetime"], errors="coerce"))
+            df_json["datetime"] = dt_series.map(
+                lambda x: x.strftime("%Y-%m-%dT%H:%M:%S%z") if pd.notna(x) else None
+            )
             
             # Create summary statistics
             current_conditions = self._generate_current_summary(df.iloc[0] if len(df) > 0 else None)
@@ -541,20 +544,21 @@ class AstroWeatherAnalyzer:
                     current_period_end = row["datetime"]
                 else:
                     # Save current period and start new one
-                    periods.append({
-                        "start": current_period_start.isoformat(),
-                        "end": current_period_end.isoformat(),
-                        "duration_hours": (current_period_end - current_period_start).total_seconds() / 3600,
-                        "average_quality": float(good_periods[
-                            (good_periods["datetime"] >= current_period_start) & 
-                            (good_periods["datetime"] <= current_period_end)
-                        ]["overall_quality"].mean())
-                    })
+                    if current_period_start is not None and current_period_end is not None:
+                        periods.append({
+                            "start": current_period_start.isoformat(),
+                            "end": current_period_end.isoformat(),
+                            "duration_hours": (current_period_end - current_period_start).total_seconds() / 3600,
+                            "average_quality": float(good_periods[
+                                (good_periods["datetime"] >= current_period_start) & 
+                                (good_periods["datetime"] <= current_period_end)
+                            ]["overall_quality"].mean())
+                        })
                     current_period_start = row["datetime"]
                     current_period_end = row["datetime"]
         
         # Don't forget the last period
-        if current_period_start is not None:
+        if current_period_start is not None and current_period_end is not None:
             periods.append({
                 "start": current_period_start.isoformat(),
                 "end": current_period_end.isoformat(),

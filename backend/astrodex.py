@@ -31,7 +31,7 @@ def get_user_astrodex_file(user_id: str) -> str:
     return os.path.join(ASTRODEX_DIR, f'{user_id}_astrodex.json')
 
 
-def load_user_astrodex(user_id: str, username: str = None) -> Dict:
+def load_user_astrodex(user_id: str, username: Optional[str] = None) -> Dict:
     """Load a user's astrodex data using user UUID
     
     Args:
@@ -126,7 +126,7 @@ def validate_astrodex_json(file_path: str) -> tuple[bool, str]:
         return False, f"Validation error: {e}"
 
 
-def save_user_astrodex(user_id: str, astrodex_data: Dict, username: str = None) -> bool:
+def save_user_astrodex(user_id: str, astrodex_data: Dict, username: Optional[str] = None) -> bool:
     """
     Save a user's astrodex data with backup and recovery mechanism
     
@@ -223,7 +223,7 @@ def save_user_astrodex(user_id: str, astrodex_data: Dict, username: str = None) 
         return False
 
 
-def create_astrodex_item(user_id: str, item_data: Dict, username: str = None) -> Optional[Dict]:
+def create_astrodex_item(user_id: str, item_data: Dict, username: Optional[str] = None) -> Optional[Dict]:
     """
     Create a new item in user's astrodex
     

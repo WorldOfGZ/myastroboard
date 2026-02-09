@@ -40,6 +40,7 @@ import datetime
 from dataclasses import dataclass
 from zoneinfo import ZoneInfo
 import math
+from typing import Any, Optional, cast
 
 from astronomy import (
     Time,
@@ -196,8 +197,12 @@ class MoonService:
             t_astropy = AstroTime(utc)
 
             frame = AltAz(obstime=t_astropy, location=self.location)
-            sun_alt = get_sun(t_astropy).transform_to(frame).alt.deg
-            moon_alt = get_body("moon", t_astropy).transform_to(frame).alt.deg
+            sun_alt = self._coord_altitude_deg(get_sun(t_astropy), frame)
+            moon_alt = self._coord_altitude_deg(get_body("moon", t_astropy), frame)
+
+            if sun_alt is None or moon_alt is None:
+                dt += datetime.timedelta(minutes=5)
+                continue
 
             if sun_alt < -18 and moon_alt < 0:
                 if found_start is None:
@@ -211,3 +216,18 @@ class MoonService:
             dt += datetime.timedelta(minutes=5)
 
         return ("Not found", "Not found")
+
+    def _coord_altitude_deg(self, coord: Any, frame: AltAz) -> Optional[float]:
+        if coord is None:
+            return None
+
+        transformed = coord.transform_to(frame)
+        alt = getattr(transformed, "alt", None)
+        if alt is None:
+            return None
+
+        value = alt.to_value(u.deg) if hasattr(alt, "to_value") else None
+        if value is None:
+            return None
+
+        return float(cast(Any, value))

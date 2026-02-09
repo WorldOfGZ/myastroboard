@@ -28,6 +28,7 @@ Example output (on API call):
 import datetime
 from zoneinfo import ZoneInfo
 from dataclasses import dataclass
+from typing import Any, Optional, cast
 
 import astropy.units as u
 from astropy.time import Time
@@ -111,6 +112,10 @@ class AstroTonightService:
 
             sun_alt, moon_alt = self._altitudes(dt)
 
+            if sun_alt is None or moon_alt is None:
+                dt += step
+                continue
+
             # Always require astronomical darkness
             if sun_alt < -18:
 
@@ -181,7 +186,7 @@ class AstroTonightService:
     # Compute altitudes (Sun + Moon)
     # ============================================================
 
-    def _altitudes(self, dt_local):
+    def _altitudes(self, dt_local) -> tuple[Optional[float], Optional[float]]:
 
         # Local → UTC
         utc_dt = dt_local.astimezone(datetime.timezone.utc)
@@ -193,12 +198,28 @@ class AstroTonightService:
         frame = AltAz(obstime=t, location=self.location)
 
         # Sun altitude
-        sun_alt = get_sun(t).transform_to(frame).alt.deg
+        sun_coord = get_sun(t)
+        moon_coord = get_body("moon", t)
 
-        # Moon altitude
-        moon_alt = get_body("moon", t).transform_to(frame).alt.deg
+        sun_alt = self._coord_altitude_deg(sun_coord, frame)
+        moon_alt = self._coord_altitude_deg(moon_coord, frame)
 
         return sun_alt, moon_alt
+
+    def _coord_altitude_deg(self, coord: Any, frame: AltAz) -> Optional[float]:
+        if coord is None:
+            return None
+
+        transformed = coord.transform_to(frame)
+        alt = getattr(transformed, "alt", None)
+        if alt is None:
+            return None
+
+        value = alt.to_value(u.deg) if hasattr(alt, "to_value") else None
+        if value is None:
+            return None
+
+        return float(cast(Any, value))
 
     # ============================================================
     # Moon illumination %

@@ -5,6 +5,7 @@ Provides reusable functionality to avoid code duplication
 import os
 import re
 import json
+import sys
 import yaml
 from typing import Dict, Tuple, Optional
 from constants import CONFIG_FILE, DATA_DIR
@@ -43,7 +44,7 @@ def safe_file_exists(file_path: str) -> bool:
         return False
 
 
-def load_json_file(file_path: str, default: dict = None) -> dict:
+def load_json_file(file_path: str, default: Optional[dict] = None) -> dict:
     """
     Safely load a JSON file with fallback to default value
     
@@ -154,7 +155,7 @@ def validate_coordinates(lat: float, lon: float) -> bool:
         return False
 
 
-def format_file_size(size_bytes: int) -> str:
+def format_file_size(size_bytes: float) -> str:
     """
     Format file size in human-readable format
     
@@ -164,10 +165,11 @@ def format_file_size(size_bytes: int) -> str:
     Returns:
         Formatted string like "1.5 MB"
     """
+    size = float(size_bytes)
     for unit in ['B', 'KB', 'MB', 'GB']:
-        if size_bytes < 1024:
-            return f"{size_bytes:.1f} {unit}"
-        size_bytes /= 1024
+        if size < 1024:
+            return f"{size:.1f} {unit}"
+        size /= 1024
     return f"{size_bytes:.1f} TB"
 
 
@@ -181,7 +183,7 @@ def get_environment_info() -> Dict[str, str]:
     return {
         'data_dir': DATA_DIR,
         'config_file_exists': str(safe_file_exists(CONFIG_FILE)),
-        'python_version': os.sys.version,
+        'python_version': sys.version,
         'platform': os.name,
         'working_directory': os.getcwd(),
         'docker_env': str(os.path.exists('/.dockerenv'))
