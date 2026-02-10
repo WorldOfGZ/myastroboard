@@ -104,7 +104,7 @@ def update_dark_window_cache():
     Updates the next moonless dark window cache
     """
     try:
-        logger.info("Updating Dark window cache...")
+        logger.debug("Updating Dark window cache...")
         config = load_config()
         
         if not config.get("location"):
@@ -148,7 +148,7 @@ def update_moon_planner_cache():
     Updates the Moon Planner cache (next 7 nights report)
     """
     try:
-        logger.info("Updating Moon Planner cache...")
+        logger.debug("Updating Moon Planner cache...")
         config = load_config()
         
         if not config.get("location"):
@@ -195,7 +195,7 @@ def update_sun_report_cache():
     Updates the Sun report cache (today report)
     """
     try:
-        logger.info("Updating Sun report cache...")
+        logger.debug("Updating Sun report cache...")
         config = load_config()
         
         if not config.get("location"):
@@ -242,7 +242,7 @@ def update_best_window_cache():
     (modes : strict, practical, illumination)
     """
     try:
-        logger.info("Updating Best window cache...")
+        logger.debug("Updating Best window cache...")
         config = load_config()
         
         if not config.get("location"):
@@ -289,7 +289,7 @@ def update_weather_cache():
     Pre-fetches weather data from Open-Meteo API and caches it
     """
     try:
-        logger.info("Updating Weather forecast cache...")
+        logger.debug("Updating Weather forecast cache...")
         
         # Call the weather API - this will be cached at HTTP level by requests_cache
         # and also stored in our application cache for consistency
@@ -317,7 +317,7 @@ def fully_initialize_caches():
     - On schedule (every CACHE_TTL interval)
     - When location configuration changes
     """
-    logger.info("Starting cache refresh cycle...")
+    logger.debug("Starting cache refresh cycle...")
     cache_store.set_cache_initialization_in_progress(True)
     start_time = datetime.now()
     

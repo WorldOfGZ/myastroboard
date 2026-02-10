@@ -131,7 +131,7 @@ def login():
             # Check if using default password
             using_default_password = user.is_using_default_password()
             
-            logger.info(f"User {username} logged in successfully (remember_me: {remember_me})")
+            logger.debug(f"User {username} logged in successfully (remember_me: {remember_me})")
             return jsonify({
                 'status': 'success',
                 'user_id': user.user_id,
@@ -1492,7 +1492,7 @@ def get_or_create_scheduler():
                 except OSError:
                     # Another worker already has the lock, don't start scheduler
                     if not app.config.get('scheduler_lock_logged'):
-                        logger.info("Scheduler already running in another worker process, skipping creation")
+                        logger.debug("UpTonight scheduler already running in another worker process, skipping creation")
                         app.config['scheduler_lock_logged'] = True
                     app.config['is_scheduler_worker'] = False
                     lock_file.close()
@@ -1501,7 +1501,7 @@ def get_or_create_scheduler():
                 # Unix file locking
                 fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             
-            logger.info("Creating scheduler instance (acquired lock)...")
+            logger.debug("Creating scheduler instance (acquired lock)...")
             from uptonight_scheduler import UptonightScheduler
             scheduler = UptonightScheduler(
                 config_loader=load_config,
@@ -1511,13 +1511,13 @@ def get_or_create_scheduler():
             app.config['scheduler'] = scheduler
             app.config['scheduler_lock_file'] = lock_file
             app.config['is_scheduler_worker'] = True
-            logger.info("Scheduler created and started successfully.")
+            logger.debug("UpTonight scheduler created and started successfully.")
             
         except (IOError, OSError) as e:
             # Another worker already has the lock, don't start scheduler
             # Only log this message once per worker
             if not app.config.get('scheduler_lock_logged'):
-                logger.info("Scheduler already running in another worker process, skipping creation")
+                logger.debug("UpTonight scheduler already running in another worker process, skipping creation")
                 app.config['scheduler_lock_logged'] = True
             app.config['is_scheduler_worker'] = False
             return None
@@ -1599,7 +1599,7 @@ def get_remote_scheduler_status():
 def get_or_create_cache_scheduler():
     """Get the cache scheduler instance, creating it if necessary"""
     if 'cache_scheduler' not in app.config:
-        logger.info("Creating cache scheduler instance...")
+        logger.debug("Creating cache scheduler instance...")
         try:
             from cache_scheduler import CacheScheduler
             cache_scheduler = CacheScheduler()
@@ -1607,9 +1607,9 @@ def get_or_create_cache_scheduler():
             # (it may already be running in another process)
             app.config['cache_scheduler'] = cache_scheduler
             if cache_scheduler.start():
-                logger.info("Cache scheduler created and started successfully.")
+                logger.debug("Cache scheduler created and started successfully.")
             else:
-                logger.info("Cache scheduler not started - already running in another process.")
+                logger.debug("Cache scheduler not started - already running in another process.")
         except Exception as e:
             logger.error(f"Failed to create cache scheduler: {e}")
             return None

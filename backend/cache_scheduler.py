@@ -35,7 +35,7 @@ class CacheScheduler:
             logger.info("CacheScheduler started - will update caches immediately then every %d seconds", self.interval)
             return True
         else:
-            logger.info("Cache scheduler is already running in another process")
+            logger.debug("Cache scheduler is already running in another process")
             return False
 
     def _acquire_lock(self):

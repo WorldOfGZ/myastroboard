@@ -180,7 +180,7 @@ class UptonightScheduler:
         with open(config_path, 'w') as f:
             yaml.dump(uptonight_config, f, Dumper=IndentDumper, default_flow_style=False, sort_keys=False)
 
-        logger.info(f"Generated config for catalogue {catalogue}")
+        logger.debug(f"Generated config for catalogue {catalogue}")
 
         # Pull image
         try:
@@ -202,7 +202,7 @@ class UptonightScheduler:
                 UPTONIGHT_IMAGE
             ]
 
-            logger.info(f"Running uptonight for catalogue {catalogue}...")
+            logger.debug(f"Running uptonight for catalogue {catalogue}...")
 
             result = subprocess.run(docker_cmd, capture_output=True, text=True, timeout=600)
 
@@ -213,7 +213,7 @@ class UptonightScheduler:
                 log_f.write(f"\n=== Exit code: {result.returncode} ===\n")
 
             if result.returncode == 0:
-                logger.info(f"Successfully executed uptonight for catalogue {catalogue}")
+                logger.debug(f"Successfully executed uptonight for catalogue {catalogue}")
             else:
                 logger.error(f"Uptonight failed for catalogue {catalogue}")
 
@@ -227,7 +227,7 @@ class UptonightScheduler:
         default_conditions = {"pressure": 1013.0, "temperature": 15.0, "relative_humidity": 0.5}
         conditions = get_uptonight_conditions()
         if conditions:
-            logger.info("Using Open-Meteo uptonight conditions")
+            logger.debug("Using Open-Meteo uptonight conditions")
             return conditions
         logger.warning("Open-Meteo failed, fallback to default conditions")
         return default_conditions

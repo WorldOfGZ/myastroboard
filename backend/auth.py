@@ -91,9 +91,7 @@ class UserManager:
                         key: User.from_dict(user_data)
                         for key, user_data in data.items()
                     }
-                logger.info(f"Loaded {len(self.users)} users from {USERS_FILE}")
-                # Migrate old username-based keys to UUID-based keys
-                self._migrate_to_uuid_keys()
+                logger.debug(f"Loaded {len(self.users)} users from {USERS_FILE}")
             except Exception as e:
                 logger.error(f"Error loading users: {e}")
                 self.users = {}
@@ -113,35 +111,10 @@ class UserManager:
             }
             with open(USERS_FILE, 'w') as f:
                 json.dump(data, f, indent=2)
-            logger.info(f"Saved {len(self.users)} users to {USERS_FILE}")
+            logger.debug(f"Saved {len(self.users)} users to {USERS_FILE}")
         except Exception as e:
             logger.error(f"Error saving users: {e}")
             raise
-    
-    def _migrate_to_uuid_keys(self):
-        """Migrate old username-based keys to UUID-based keys"""
-        needs_migration = False
-        new_users = {}
-        
-        for key, user in self.users.items():
-            # If key is not a valid UUID, it's an old username-based key
-            try:
-                uuid.UUID(key)
-                # Valid UUID, keep as is
-                new_users[key] = user
-            except ValueError:
-                # Not a UUID, this is an old username-based key
-                needs_migration = True
-                logger.info(f"Migrating user {user.username} from username-based key to UUID")
-                # Ensure user has a UUID
-                if not hasattr(user, 'user_id') or not user.user_id:
-                    user.user_id = str(uuid.uuid4())
-                new_users[user.user_id] = user
-        
-        if needs_migration:
-            self.users = new_users
-            self.save_users()
-            logger.info("User migration to UUID keys completed")
     
     def ensure_default_admin(self):
         """Ensure default admin user exists"""

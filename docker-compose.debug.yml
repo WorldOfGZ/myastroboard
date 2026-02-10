@@ -17,6 +17,8 @@ services:
       FLASK_RUN_RELOAD: 1
       # Disable template caching for immediate updates
       TEMPLATES_AUTO_RELOAD: 1
+      # Log level for more verbose output during development
+      LOG_LEVEL: DEBUG
     
     command: ["python", "backend/app.py"]
 
