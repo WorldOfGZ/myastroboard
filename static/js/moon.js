@@ -132,7 +132,7 @@ async function loadNextMoonPhases() {
         // if forecast list is available
         if (data.next_7_nights && data.next_7_nights.length > 0) {
             // Class grid to container
-            container.className = 'row row-cols-1 row-cols-sm-2 row-cols-lg-4 row-cols-xl-6 p-2 mb-3';
+            container.className = 'row row-cols-1 row-cols-sm-2 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 p-2 mb-3';
 
             // We receive up to 12 hours of data, display all
             data.next_7_nights.forEach(moon => {
