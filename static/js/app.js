@@ -893,14 +893,22 @@ async function loadUptonightResultsTabs() {
         
         const subtabsContainer = document.getElementById('uptonight-subtabs');
 
-        // Add catalogue tabs first, then weather tab at the end
+        // Init var
         let tabsHTML = '';
         
+        //console.log('Uptonight outputs:', outputs);
+
+        //Make the tab links for each catalogue output
         if (outputs && outputs.length > 0) {
-            outputs.forEach((output, index) => {
+            // Make an array with only output.target
+            const targets = outputs.map(output => output.target);
+            // Reorder alphabetically targets
+            targets.sort((a, b) => a.localeCompare(b));
+
+            targets.forEach((target, index) => {
                 tabsHTML += `
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="catalogue-${output.target}">📚 ${output.target}</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="catalogue-${target}">📚 ${target}</a>
                     </li>`;
             });
         } else {
