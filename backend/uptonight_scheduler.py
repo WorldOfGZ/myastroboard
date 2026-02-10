@@ -290,7 +290,7 @@ class UptonightScheduler:
     def _cleanup_old_uptonight_images(self, version_to_keep: str):
         """Remove all upTonight images except the active version"""
 
-        logger.info(f"Cleaning up old upTonight images, keeping version: {version_to_keep}")
+        logger.debug(f"Cleaning up old upTonight images, keeping version: {version_to_keep}")
 
         try:
             # Get list of all upTonight image tags
