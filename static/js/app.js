@@ -22,8 +22,8 @@ async function initializeApp() {
     setupEventListeners();
     loadVersion();
 
-    // Init scheduler
-    Scheduler.init();
+    // Init uptonight scheduler
+    UptonightScheduler.init();
 
     checkCacheStatus();
     
@@ -275,8 +275,9 @@ async function saveConfiguration() {
     const selectedCatalogues = Array.from(
         document.querySelectorAll('#catalogues-list input:checked')
     ).map(cb => cb.value);
+    const uniqueCatalogues = Array.from(new Set(selectedCatalogues));
     
-    if (selectedCatalogues.length === 0) {
+    if (uniqueCatalogues.length === 0) {
         showMessage('error', 'At least one catalogue must be selected');
         return;
     }
@@ -325,7 +326,7 @@ async function saveConfiguration() {
             elevation: parseFloat(document.getElementById('elevation').value || 0),
             timezone: document.getElementById('timezone').value
         },
-        selected_catalogues: selectedCatalogues,
+        selected_catalogues: uniqueCatalogues,
         use_constraints: document.getElementById('use-constraints').checked,
         features: {
             horizon: document.getElementById('feature-horizon').checked,
@@ -408,7 +409,7 @@ function setupEventListeners() {
     
     // Run Now button
     document.getElementById('run-now')
-        ?.addEventListener('click', Scheduler.trigger);
+        ?.addEventListener('click', UptonightScheduler.trigger);
     
     // Constraints toggle
     document.getElementById('use-constraints')?.addEventListener('change', (e) => {
@@ -867,6 +868,8 @@ async function loadCatalogues() {
         
         const container = document.getElementById('catalogues-list');
         if (!container) return; // Element doesn't exist on this page view
+
+        container.innerHTML = '';
         
         // Ensure Messier is checked by default if no catalogues selected
         const selectedCatalogues = currentConfig.selected_catalogues || ['Messier'];

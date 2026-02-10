@@ -283,6 +283,10 @@ def update_config_api():
     
     # Validate at least one catalogue is selected
     selected_catalogues = config.get('selected_catalogues', [])
+    # De-duplicate while preserving order
+    if selected_catalogues:
+        selected_catalogues = list(dict.fromkeys(selected_catalogues))
+        config['selected_catalogues'] = selected_catalogues
     if not selected_catalogues:
         return jsonify({
             "status": "error", 

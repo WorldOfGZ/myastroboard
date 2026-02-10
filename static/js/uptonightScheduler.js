@@ -1,9 +1,9 @@
 /* =====================
-   Scheduler
+   uptonightScheduler
    (UpTonight execution)
    ===================== */
 
-const Scheduler = (() => {
+const UptonightScheduler = (() => {
 
     const state = {
         isExecuting: false,
@@ -108,8 +108,8 @@ const Scheduler = (() => {
         showMessage(
             'success',
             state.mode === 'manual'
-                ? 'Scheduler execution completed!'
-                : 'Scheduled execution completed!'
+                ? 'UpTonight scheduler execution completed!'
+                : 'UpTonight scheduled execution completed!'
         );
 
         setTimeout(resetUI, state.mode === 'manual' ? 3000 : 5000);
@@ -121,7 +121,7 @@ const Scheduler = (() => {
             const status = await fetchStatus();
             render(status);
         } catch (e) {
-            console.error('Scheduler polling error', e);
+            console.error('Uptonight scheduler polling error', e);
             stopPolling();
             resetUI();
         }
