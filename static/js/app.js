@@ -856,26 +856,6 @@ function showUpdateNotification(releaseUrl, version) {
     }
 }
 
-// Test functions for debugging
-function testUpdateCheck() {
-    //log('Testing update check...');
-    
-    // Get current version from the page
-    const versionElement = document.getElementById('version');
-    if (versionElement) {
-        const currentVersion = versionElement.textContent.replace(/^v/, '');
-        //console.log(`Testing update check with version: ${currentVersion}`);
-        checkForUpdates(currentVersion);
-    } else {
-        console.warn('Version element not found');
-    }
-}
-
-function testUpdateNotification() {
-    //console.log('Testing update notification display...');
-    showUpdateNotification('https://github.com/WorldOfGZ/myastroboard/releases/tag/v0.2.0', '0.2.0');
-}
-
 // ======================
 // UpTonight
 // ======================
