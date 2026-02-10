@@ -12,14 +12,14 @@
 
 /* Main login container */
 .login-container {
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--surface-panel);
     padding: 3rem;
     border-radius: 1rem;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     max-width: 400px;
     width: 100%;
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid var(--surface-border-strong);
 }
 
 /* Login header */
@@ -53,18 +53,19 @@
 }
 
 .login-form .form-control {
-    border: 2px solid #e5e7eb;
+    border: 2px solid var(--input-border);
     border-radius: var(--border-radius);
     padding: 0.75rem 1rem;
     font-size: 1rem;
     transition: all 0.2s ease;
-    background-color: #fff;
+    background-color: var(--input-bg);
+    color: var(--text-color);
 }
 
 .login-form .form-control:focus {
     border-color: var(--border-violet);
-    box-shadow: 0 0 0 0.2rem rgba(118, 75, 162, 0.25);
-    background-color: #fff;
+    box-shadow: 0 0 0 0.2rem var(--input-focus-shadow);
+    background-color: var(--input-bg);
 }
 
 /* Login button */

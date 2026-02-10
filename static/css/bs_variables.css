@@ -6,6 +6,15 @@
     --sun-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
     --bg-violet: #764ba26e;
     --bg-light: #f3f4f6;
+    --surface-1: rgba(255, 255, 255, 0.3);
+    --surface-2: rgba(255, 255, 255, 0.18);
+    --surface-3: rgba(255, 255, 255, 0.12);
+    --surface-4: rgba(255, 255, 255, 0.25);
+    --surface-card: #f3f4f6;
+    --surface-panel: rgba(255, 255, 255, 0.95);
+    --surface-border: rgba(15, 23, 42, 0.08);
+    --surface-border-strong: rgba(255, 255, 255, 0.35);
+    --surface-hover: rgba(99, 102, 241, 0.04);
 
     /* Text Colors */
     --text-light: #ffffff;
@@ -34,6 +43,14 @@
     --border-violet: #764ba2;
     --border-dark: #1f2937;
     --border-radius: 0.5rem;
+
+    /* Accents */
+    --accent-1: #6366f1;
+    --accent-2: #a855f7;
+    --accent-soft: rgba(99, 102, 241, 0.08);
+    --accent-soft-strong: rgba(99, 102, 241, 0.2);
+    --accent-glow: rgba(99, 102, 241, 0.3);
+    --accent-glow-strong: rgba(99, 102, 241, 0.5);
     
     /* Quality Colors */
     --quality-excellent: #d1fae5;
@@ -61,4 +78,319 @@
     --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.08);
     --shadow-md: 0 8px 20px rgba(15, 23, 42, 0.12);
     --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.18);
+
+    /* Inputs */
+    --input-bg: #ffffff;
+    --input-border: #e5e7eb;
+    --input-focus-shadow: rgba(118, 75, 162, 0.25);
+
+    /* Alerts */
+    --alert-info-bg: #e0e7ff;
+    --alert-info-text: #1e1b4b;
+    --alert-info-border: #818cf8;
+    --alert-info-border-left: #6366f1;
+    --alert-success-bg: #dcfce7;
+    --alert-success-text: #166534;
+    --alert-success-border: #86efac;
+    --alert-success-border-left: #22c55e;
+    --alert-warning-bg: #fef3c7;
+    --alert-warning-text: #78350f;
+    --alert-warning-border: #fcd34d;
+    --alert-warning-border-left: #eab308;
+    --alert-danger-bg: #fee2e2;
+    --alert-danger-text: #7f1d1d;
+    --alert-danger-border: #fca5a5;
+    --alert-danger-border-left: #ef4444;
+
+    /* Logs */
+    --log-bg: #1e1e1e;
+    --log-text: #d4d4d4;
+    --log-border: rgba(255, 255, 255, 0.05);
+    --log-error-text: #ff5252;
+    --log-error-bg: rgba(255, 82, 82, 0.1);
+    --log-warning-text: #ffb74d;
+    --log-warning-bg: rgba(255, 183, 77, 0.1);
+    --log-info-text: #4caf50;
+    --log-info-bg: rgba(76, 175, 80, 0.1);
+    --log-debug-text: #90caf9;
+    --log-debug-bg: rgba(144, 202, 249, 0.1);
+    --log-header-bg: rgba(255, 255, 255, 0.1);
+    --log-header-text: #d4d4d4;
+    --log-select-bg: rgba(255, 255, 255, 0.2);
+    --log-select-border: rgba(255, 255, 255, 0.3);
+    --log-empty-text: #888888;
+
+    /* YAML editor */
+    --yaml-bg: #1e1e1e;
+    --yaml-text: #d4d4d4;
+    --yaml-border: #3e3e3e;
+    --yaml-status-bg: #252525;
+
+    /* Weather alerts */
+    --weather-alert-high-border: #dc3545;
+    --weather-alert-high-bg: rgba(220, 53, 69, 0.3);
+    --weather-alert-normal-border: #ffc107;
+    --weather-alert-normal-bg: rgba(255, 193, 7, 0.3);
+
+    /* Quality overlays */
+    --quality-excellent-overlay: rgba(209, 250, 229, 0.7);
+    --quality-excellent-border: rgba(16, 185, 129, 0.3);
+    --quality-excellent-shadow: rgba(16, 185, 129, 0.15);
+    --quality-excellent-shadow-hover: rgba(16, 185, 129, 0.25);
+    --quality-good-overlay: rgba(219, 234, 254, 0.7);
+    --quality-good-border: rgba(30, 64, 175, 0.3);
+    --quality-good-shadow: rgba(30, 64, 175, 0.15);
+    --quality-good-shadow-hover: rgba(30, 64, 175, 0.25);
+    --quality-fair-overlay: rgba(254, 243, 199, 0.7);
+    --quality-fair-border: rgba(217, 119, 6, 0.3);
+    --quality-fair-shadow: rgba(217, 119, 6, 0.15);
+    --quality-fair-shadow-hover: rgba(217, 119, 6, 0.25);
+    --quality-poor-overlay: rgba(254, 215, 170, 0.7);
+    --quality-poor-border: rgba(234, 88, 12, 0.3);
+    --quality-poor-shadow: rgba(234, 88, 12, 0.15);
+    --quality-poor-shadow-hover: rgba(234, 88, 12, 0.25);
+    --quality-bad-overlay: rgba(254, 202, 202, 0.7);
+    --quality-bad-border: rgba(153, 27, 27, 0.3);
+    --quality-bad-shadow: rgba(153, 27, 27, 0.15);
+    --quality-bad-shadow-hover: rgba(153, 27, 27, 0.25);
+
+    /* Dew risk */
+    --dew-minimal-bg: #ecfdf5;
+    --dew-minimal-overlay: rgba(236, 253, 245, 0.7);
+    --dew-minimal-text: #047857;
+    --dew-minimal-border: rgba(4, 120, 87, 0.3);
+    --dew-minimal-shadow: rgba(4, 120, 87, 0.15);
+    --dew-minimal-shadow-hover: rgba(4, 120, 87, 0.25);
+    --dew-low-bg: #f0fdf4;
+    --dew-low-overlay: rgba(240, 253, 244, 0.7);
+    --dew-low-text: #16a34a;
+    --dew-low-border: rgba(22, 163, 74, 0.3);
+    --dew-low-shadow: rgba(22, 163, 74, 0.15);
+    --dew-low-shadow-hover: rgba(22, 163, 74, 0.25);
+    --dew-moderate-bg: #fefce8;
+    --dew-moderate-overlay: rgba(254, 252, 232, 0.7);
+    --dew-moderate-text: #ca8a04;
+    --dew-moderate-border: rgba(202, 138, 4, 0.3);
+    --dew-moderate-shadow: rgba(202, 138, 4, 0.15);
+    --dew-moderate-shadow-hover: rgba(202, 138, 4, 0.25);
+    --dew-high-bg: #fed7aa;
+    --dew-high-overlay: rgba(254, 215, 170, 0.7);
+    --dew-high-text: #ea580c;
+    --dew-high-border: rgba(234, 88, 12, 0.3);
+    --dew-high-shadow: rgba(234, 88, 12, 0.15);
+    --dew-high-shadow-hover: rgba(234, 88, 12, 0.25);
+    --dew-critical-bg: #fee2e2;
+    --dew-critical-overlay: rgba(254, 226, 226, 0.7);
+    --dew-critical-text: #dc2626;
+    --dew-critical-border: rgba(220, 38, 38, 0.3);
+    --dew-critical-shadow: rgba(220, 38, 38, 0.15);
+    --dew-critical-shadow-hover: rgba(220, 38, 38, 0.25);
+    --dew-unknown-bg: #f1f5f9;
+    --dew-unknown-overlay: rgba(241, 245, 249, 0.7);
+    --dew-unknown-text: #64748b;
+    --dew-unknown-border: rgba(100, 116, 139, 0.3);
+    --dew-unknown-shadow: rgba(100, 116, 139, 0.15);
+    --dew-unknown-shadow-hover: rgba(100, 116, 139, 0.25);
+
+    /* Sun and moon info cards */
+    --info-card-shadow: rgba(15, 23, 42, 0.2);
+    --info-card-border: rgba(255, 255, 255, 0.2);
+    --info-card-sheen: rgba(255, 255, 255, 0.4);
+    --info-card-inner-bg: rgba(255, 255, 255, 0.85);
+    --info-card-inner-border: rgba(255, 255, 255, 0.3);
+    --info-card-inner-shadow: rgba(0, 0, 0, 0.1);
+    --info-card-inner-header-bg: rgba(255, 255, 255, 0.9);
+    --info-card-inner-list-bg: rgba(255, 255, 255, 0.7);
+    --info-card-inner-list-border: rgba(255, 255, 255, 0.4);
+
+    /* Badges */
+    --photo-badge-bg: rgba(0, 0, 0, 0.7);
+}
+
+html[data-theme="dark"] {
+    --bg-gradient: linear-gradient(135deg, #0b1020 0%, #131c2f 100%);
+    --sun-gradient: linear-gradient(135deg, #b45309 0%, #7c2d12 100%);
+    --bg-violet: rgba(139, 92, 246, 0.35);
+    --bg-light: #111827;
+    --surface-1: rgba(15, 23, 42, 0.85);
+    --surface-2: rgba(15, 23, 42, 0.65);
+    --surface-3: rgba(15, 23, 42, 0.5);
+    --surface-4: rgba(15, 23, 42, 0.8);
+    --surface-card: #0f172a;
+    --surface-panel: rgba(15, 23, 42, 0.95);
+    --surface-border: rgba(148, 163, 184, 0.2);
+    --surface-border-strong: rgba(148, 163, 184, 0.35);
+    --surface-hover: rgba(139, 92, 246, 0.12);
+
+    --text-light: #f8fafc;
+    --text-color: #e5e7eb;
+    --text-grey: #a1a1aa;
+    --text-violet: #a78bfa;
+
+    --border-violet: #8b5cf6;
+    --border-dark: #0f172a;
+
+    --accent-1: #8b5cf6;
+    --accent-2: #6366f1;
+    --accent-soft: rgba(139, 92, 246, 0.15);
+    --accent-soft-strong: rgba(139, 92, 246, 0.35);
+    --accent-glow: rgba(139, 92, 246, 0.35);
+    --accent-glow-strong: rgba(139, 92, 246, 0.55);
+
+    --input-bg: #0b1220;
+    --input-border: rgba(148, 163, 184, 0.35);
+    --input-focus-shadow: rgba(139, 92, 246, 0.35);
+
+    --alert-info-bg: rgba(59, 130, 246, 0.18);
+    --alert-info-text: #dbeafe;
+    --alert-info-border: rgba(59, 130, 246, 0.5);
+    --alert-info-border-left: rgba(59, 130, 246, 0.85);
+    --alert-success-bg: rgba(34, 197, 94, 0.18);
+    --alert-success-text: #dcfce7;
+    --alert-success-border: rgba(34, 197, 94, 0.5);
+    --alert-success-border-left: rgba(34, 197, 94, 0.85);
+    --alert-warning-bg: rgba(245, 158, 11, 0.2);
+    --alert-warning-text: #fef3c7;
+    --alert-warning-border: rgba(245, 158, 11, 0.55);
+    --alert-warning-border-left: rgba(245, 158, 11, 0.85);
+    --alert-danger-bg: rgba(239, 68, 68, 0.2);
+    --alert-danger-text: #fee2e2;
+    --alert-danger-border: rgba(239, 68, 68, 0.55);
+    --alert-danger-border-left: rgba(239, 68, 68, 0.85);
+
+    --log-bg: #0b1220;
+    --log-text: #e5e7eb;
+    --log-border: rgba(148, 163, 184, 0.2);
+    --log-error-text: #fca5a5;
+    --log-error-bg: rgba(239, 68, 68, 0.2);
+    --log-warning-text: #fcd34d;
+    --log-warning-bg: rgba(245, 158, 11, 0.2);
+    --log-info-text: #86efac;
+    --log-info-bg: rgba(34, 197, 94, 0.2);
+    --log-debug-text: #93c5fd;
+    --log-debug-bg: rgba(59, 130, 246, 0.2);
+    --log-header-bg: rgba(148, 163, 184, 0.15);
+    --log-header-text: #e5e7eb;
+    --log-select-bg: rgba(148, 163, 184, 0.2);
+    --log-select-border: rgba(148, 163, 184, 0.35);
+    --log-empty-text: #94a3b8;
+
+    --yaml-bg: #0b1220;
+    --yaml-text: #e5e7eb;
+    --yaml-border: rgba(148, 163, 184, 0.35);
+    --yaml-status-bg: rgba(15, 23, 42, 0.9);
+
+    --weather-alert-high-border: rgba(239, 68, 68, 0.6);
+    --weather-alert-high-bg: rgba(239, 68, 68, 0.2);
+    --weather-alert-normal-border: rgba(245, 158, 11, 0.6);
+    --weather-alert-normal-bg: rgba(245, 158, 11, 0.2);
+
+    --info-card-shadow: rgba(15, 23, 42, 0.45);
+    --info-card-border: rgba(148, 163, 184, 0.2);
+    --info-card-sheen: rgba(248, 250, 252, 0.12);
+    --info-card-inner-bg: rgba(15, 23, 42, 0.75);
+    --info-card-inner-border: rgba(148, 163, 184, 0.35);
+    --info-card-inner-shadow: rgba(0, 0, 0, 0.3);
+    --info-card-inner-header-bg: rgba(15, 23, 42, 0.9);
+    --info-card-inner-list-bg: rgba(15, 23, 42, 0.6);
+    --info-card-inner-list-border: rgba(148, 163, 184, 0.35);
+
+    --photo-badge-bg: rgba(0, 0, 0, 0.6);
+}
+
+html[data-theme="red"] {
+    --bg-gradient: linear-gradient(135deg, #180000 0%, #220000 100%);
+    --sun-gradient: linear-gradient(135deg, #a11a1a 0%, #5f0f0f 100%);
+    --bg-violet: rgba(255, 77, 77, 0.35);
+    --bg-light: #1a0505;
+    --surface-1: rgba(32, 0, 0, 0.85);
+    --surface-2: rgba(32, 0, 0, 0.65);
+    --surface-3: rgba(32, 0, 0, 0.5);
+    --surface-4: rgba(32, 0, 0, 0.8);
+    --surface-card: #140000;
+    --surface-panel: rgba(32, 0, 0, 0.95);
+    --surface-border: rgba(255, 120, 120, 0.2);
+    --surface-border-strong: rgba(255, 120, 120, 0.35);
+    --surface-hover: rgba(255, 90, 90, 0.15);
+
+    --text-light: #ffecec;
+    --text-color: #ffd1d1;
+    --text-grey: #e6a3a3;
+    --text-violet: #ff6b6b;
+
+    --border-violet: #ff4d4d;
+    --border-dark: #140000;
+
+    --accent-1: #ff6b6b;
+    --accent-2: #ff3b3b;
+    --accent-soft: rgba(255, 90, 90, 0.2);
+    --accent-soft-strong: rgba(255, 90, 90, 0.4);
+    --accent-glow: rgba(255, 90, 90, 0.45);
+    --accent-glow-strong: rgba(255, 90, 90, 0.65);
+
+    --input-bg: #120000;
+    --input-border: rgba(255, 120, 120, 0.4);
+    --input-focus-shadow: rgba(255, 90, 90, 0.35);
+
+    --alert-info-bg: rgba(255, 90, 90, 0.18);
+    --alert-info-text: #ffecec;
+    --alert-info-border: rgba(255, 120, 120, 0.55);
+    --alert-info-border-left: rgba(255, 120, 120, 0.85);
+    --alert-success-bg: rgba(34, 197, 94, 0.18);
+    --alert-success-text: #ecfccb;
+    --alert-success-border: rgba(34, 197, 94, 0.55);
+    --alert-success-border-left: rgba(34, 197, 94, 0.85);
+    --alert-warning-bg: rgba(245, 158, 11, 0.2);
+    --alert-warning-text: #ffedd5;
+    --alert-warning-border: rgba(245, 158, 11, 0.6);
+    --alert-warning-border-left: rgba(245, 158, 11, 0.85);
+    --alert-danger-bg: rgba(239, 68, 68, 0.25);
+    --alert-danger-text: #ffe4e6;
+    --alert-danger-border: rgba(239, 68, 68, 0.65);
+    --alert-danger-border-left: rgba(239, 68, 68, 0.9);
+
+    --bs-primary: #ff4d4d;
+    --bs-primary-rgb: 255, 77, 77;
+    --bs-secondary: #ffb3b3;
+    --bs-link-color: #ffb3b3;
+    --bs-link-hover-color: #ffd1d1;
+
+    --log-bg: #120000;
+    --log-text: #ffd1d1;
+    --log-border: rgba(255, 120, 120, 0.15);
+    --log-error-text: #ff6b6b;
+    --log-error-bg: rgba(255, 90, 90, 0.2);
+    --log-warning-text: #ffd08a;
+    --log-warning-bg: rgba(245, 158, 11, 0.2);
+    --log-info-text: #a7f3d0;
+    --log-info-bg: rgba(34, 197, 94, 0.2);
+    --log-debug-text: #fecdd3;
+    --log-debug-bg: rgba(255, 120, 120, 0.2);
+    --log-header-bg: rgba(255, 120, 120, 0.12);
+    --log-header-text: #ffd1d1;
+    --log-select-bg: rgba(255, 120, 120, 0.2);
+    --log-select-border: rgba(255, 120, 120, 0.35);
+    --log-empty-text: #e6a3a3;
+
+    --yaml-bg: #120000;
+    --yaml-text: #ffd1d1;
+    --yaml-border: rgba(255, 120, 120, 0.35);
+    --yaml-status-bg: rgba(32, 0, 0, 0.9);
+
+    --weather-alert-high-border: rgba(255, 120, 120, 0.7);
+    --weather-alert-high-bg: rgba(255, 90, 90, 0.25);
+    --weather-alert-normal-border: rgba(245, 158, 11, 0.65);
+    --weather-alert-normal-bg: rgba(245, 158, 11, 0.2);
+
+    --info-card-shadow: rgba(0, 0, 0, 0.45);
+    --info-card-border: rgba(255, 120, 120, 0.2);
+    --info-card-sheen: rgba(255, 236, 236, 0.12);
+    --info-card-inner-bg: rgba(32, 0, 0, 0.75);
+    --info-card-inner-border: rgba(255, 120, 120, 0.35);
+    --info-card-inner-shadow: rgba(0, 0, 0, 0.3);
+    --info-card-inner-header-bg: rgba(32, 0, 0, 0.9);
+    --info-card-inner-list-bg: rgba(32, 0, 0, 0.6);
+    --info-card-inner-list-border: rgba(255, 120, 120, 0.35);
+
+    --photo-badge-bg: rgba(0, 0, 0, 0.55);
 }

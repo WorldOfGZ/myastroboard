@@ -46,13 +46,6 @@ This document describes features that could potentially be integrated into MyAst
 
 ## Upgrade Features
 
-### Mobile-Responsive Enhancements
-**Objective: Improve usage, specially on night**
-- True dark mode implementation
-- Red-light mode for field use
-- Adjustable brightness controls
-- High contrast options
-
 ### Enhanced Astrodex
 **Objective: Advanced Management of Astro Collections**
 - Photo Session Timeline

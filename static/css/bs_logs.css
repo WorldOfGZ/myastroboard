@@ -1,8 +1,8 @@
 /* CSS for logs display */
 
 .logs-container {
-    background: #1e1e1e;
-    color: #d4d4d4;
+    background: var(--log-bg);
+    color: var(--log-text);
     padding: 20px;
     border-radius: var(--border-radius-lg);
     max-height: 500px;
@@ -14,51 +14,51 @@
 
 .log-entry {
     padding: 6px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--log-border);
 }
 
 .log-entry.log-error {
-    color: #ff5252;
-    background: rgba(255, 82, 82, 0.1);
+    color: var(--log-error-text);
+    background: var(--log-error-bg);
 }
 
 .log-entry.log-warning {
-    color: #ffb74d;
-    background: rgba(255, 183, 77, 0.1);
+    color: var(--log-warning-text);
+    background: var(--log-warning-bg);
 }
 
 .log-entry.log-info {
-    color: #4caf50;
-    background: rgba(76, 175, 80, 0.1);
+    color: var(--log-info-text);
+    background: var(--log-info-bg);
 }
 
 .log-entry.log-debug {
-    color: #90caf9;
-    background: rgba(144, 202, 249, 0.1);
+    color: var(--log-debug-text);
+    background: var(--log-debug-bg);
 }
 
 .log-info-header {
     padding: 12px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--log-header-bg);
     border-radius: var(--border-radius);
     margin-bottom: 15px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    color: var(--card-bg);
+    color: var(--log-header-text);
     font-size: 14px;
 }
 
 .log-info-header select {
-    background: rgba(255, 255, 255, 0.2);
-    color: var(--card-bg);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: var(--log-select-bg);
+    color: var(--log-header-text);
+    border: 1px solid var(--log-select-border);
     border-radius: 4px;
     padding: 4px 8px;
 }
 
 .log-empty {
-    color: #888;
+    color: var(--log-empty-text);
     text-align: center;
     padding: 20px;
 }

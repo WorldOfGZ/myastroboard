@@ -48,7 +48,7 @@
     position: absolute;
     top: 10px;
     right: 10px;
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--photo-badge-bg);
     color: white;
     padding: 4px 8px;
     border-radius: var(--border-radius);

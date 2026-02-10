@@ -3,15 +3,15 @@
 
 /* Weather alerts */
 .weather-alert-indicator-high-priority {
-    border: #dc3545 solid 1px;
+    border: var(--weather-alert-high-border) solid 1px;
     border-radius: var(--border-radius);
-    background: rgba(220, 53, 69, 0.3);
+    background: var(--weather-alert-high-bg);
 }
 
 .weather-alert-indicator-normal {
-    border: #ffc107 solid 1px;
+    border: var(--weather-alert-normal-border) solid 1px;
     border-radius: var(--border-radius);
-    background: rgba(255, 193, 7, 0.3);
+    background: var(--weather-alert-normal-bg);
 }
 
 /* Weather card */
@@ -23,87 +23,87 @@
 
 /* Quality Classes */
 .quality-excellent {
-    background: linear-gradient(135deg, var(--quality-excellent), rgba(209, 250, 229, 0.7)) !important;
+    background: linear-gradient(135deg, var(--quality-excellent), var(--quality-excellent-overlay)) !important;
     color: var(--quality-excellent-text) !important;
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    border: 1px solid var(--quality-excellent-border);
     border-top-left-radius: calc(var(--border-radius) + 2px) !important;
     border-top-right-radius: calc(var(--border-radius) + 2px) !important;
     padding: 0.5rem 0.75rem;
     font-weight: var(--font-semibold);
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+    box-shadow: 0 2px 8px var(--quality-excellent-shadow);
     transition: all var(--transition-normal);
 }
 
 .quality-excellent:hover {
-    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);
+    box-shadow: 0 6px 16px var(--quality-excellent-shadow-hover);
     transform: translateY(-1px);
 }
 
 .quality-good {
-    background: linear-gradient(135deg, var(--quality-good), rgba(219, 234, 254, 0.7)) !important;
+    background: linear-gradient(135deg, var(--quality-good), var(--quality-good-overlay)) !important;
     color: var(--quality-good-text) !important;
-    border: 1px solid rgba(30, 64, 175, 0.3);
+    border: 1px solid var(--quality-good-border);
     border-top-left-radius: calc(var(--border-radius) + 2px) !important;
     border-top-right-radius: calc(var(--border-radius) + 2px) !important;
     padding: 0.5rem 0.75rem;
     font-weight: var(--font-semibold);
-    box-shadow: 0 2px 8px rgba(30, 64, 175, 0.15);
+    box-shadow: 0 2px 8px var(--quality-good-shadow);
     transition: all var(--transition-normal);
 }
 
 .quality-good:hover {
-    box-shadow: 0 6px 16px rgba(30, 64, 175, 0.25);
+    box-shadow: 0 6px 16px var(--quality-good-shadow-hover);
     transform: translateY(-1px);
 }
 
 .quality-fair {
-    background: linear-gradient(135deg, var(--quality-fair), rgba(254, 243, 199, 0.7)) !important;
+    background: linear-gradient(135deg, var(--quality-fair), var(--quality-fair-overlay)) !important;
     color: var(--quality-fair-text) !important;
-    border: 1px solid rgba(217, 119, 6, 0.3);
+    border: 1px solid var(--quality-fair-border);
     border-top-left-radius: calc(var(--border-radius) + 2px) !important;
     border-top-right-radius: calc(var(--border-radius) + 2px) !important;
     padding: 0.5rem 0.75rem;
     font-weight: var(--font-semibold);
-    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.15);
+    box-shadow: 0 2px 8px var(--quality-fair-shadow);
     transition: all var(--transition-normal);
 }
 
 .quality-fair:hover {
-    box-shadow: 0 6px 16px rgba(217, 119, 6, 0.25);
+    box-shadow: 0 6px 16px var(--quality-fair-shadow-hover);
     transform: translateY(-1px);
 }
 
 .quality-poor {
-    background: linear-gradient(135deg, var(--quality-poor), rgba(254, 215, 170, 0.7)) !important;
+    background: linear-gradient(135deg, var(--quality-poor), var(--quality-poor-overlay)) !important;
     color: var(--quality-poor-text) !important;
-    border: 1px solid rgba(234, 88, 12, 0.3);
+    border: 1px solid var(--quality-poor-border);
     border-top-left-radius: calc(var(--border-radius) + 2px) !important;
     border-top-right-radius: calc(var(--border-radius) + 2px) !important;
     padding: 0.5rem 0.75rem;
     font-weight: var(--font-semibold);
-    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.15);
+    box-shadow: 0 2px 8px var(--quality-poor-shadow);
     transition: all var(--transition-normal);
 }
 
 .quality-poor:hover {
-    box-shadow: 0 6px 16px rgba(234, 88, 12, 0.25);
+    box-shadow: 0 6px 16px var(--quality-poor-shadow-hover);
     transform: translateY(-1px);
 }
 
 .quality-bad {
-    background: linear-gradient(135deg, var(--quality-bad), rgba(254, 202, 202, 0.7)) !important;
+    background: linear-gradient(135deg, var(--quality-bad), var(--quality-bad-overlay)) !important;
     color: var(--quality-bad-text) !important;
-    border: 1px solid rgba(153, 27, 27, 0.3);
+    border: 1px solid var(--quality-bad-border);
     border-top-left-radius: calc(var(--border-radius) + 2px) !important;
     border-top-right-radius: calc(var(--border-radius) + 2px) !important;
     padding: 0.5rem 0.75rem;
     font-weight: var(--font-semibold);
-    box-shadow: 0 2px 8px rgba(153, 27, 27, 0.15);
+    box-shadow: 0 2px 8px var(--quality-bad-shadow);
     transition: all var(--transition-normal);
 }
 
 .quality-bad:hover {
-    box-shadow: 0 6px 16px rgba(153, 27, 27, 0.25);
+    box-shadow: 0 6px 16px var(--quality-bad-shadow-hover);
     transform: translateY(-1px);
 }
 
@@ -156,104 +156,104 @@
 
 /* Dew Risk Colors */
 .dew-minimal {
-    background: linear-gradient(135deg, #ecfdf5, rgba(236, 253, 245, 0.7)) !important;
-    color: #047857 !important;
-    border: 1px solid rgba(4, 120, 87, 0.3);
+    background: linear-gradient(135deg, var(--dew-minimal-bg), var(--dew-minimal-overlay)) !important;
+    color: var(--dew-minimal-text) !important;
+    border: 1px solid var(--dew-minimal-border);
     border-radius: var(--border-radius);
     padding: 0.5rem 0.75rem;
     font-weight: var(--font-semibold);
-    box-shadow: 0 2px 8px rgba(4, 120, 87, 0.15);
+    box-shadow: 0 2px 8px var(--dew-minimal-shadow);
     transition: all var(--transition-normal);
     display: inline-block;
 }
 
 .dew-minimal:hover {
-    box-shadow: 0 6px 16px rgba(4, 120, 87, 0.25);
+    box-shadow: 0 6px 16px var(--dew-minimal-shadow-hover);
     transform: translateY(-1px);
 }
 
 .dew-low {
-    background: linear-gradient(135deg, #f0fdf4, rgba(240, 253, 244, 0.7)) !important;
-    color: #16a34a !important;
-    border: 1px solid rgba(22, 163, 74, 0.3);
+    background: linear-gradient(135deg, var(--dew-low-bg), var(--dew-low-overlay)) !important;
+    color: var(--dew-low-text) !important;
+    border: 1px solid var(--dew-low-border);
     border-radius: var(--border-radius);
     padding: 0.5rem 0.75rem;
     font-weight: var(--font-semibold);
-    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.15);
+    box-shadow: 0 2px 8px var(--dew-low-shadow);
     transition: all var(--transition-normal);
     display: inline-block;
 }
 
 .dew-low:hover {
-    box-shadow: 0 6px 16px rgba(22, 163, 74, 0.25);
+    box-shadow: 0 6px 16px var(--dew-low-shadow-hover);
     transform: translateY(-1px);
 }
 
 .dew-moderate {
-    background: linear-gradient(135deg, #fefce8, rgba(254, 252, 232, 0.7)) !important;
-    color: #ca8a04 !important;
-    border: 1px solid rgba(202, 138, 4, 0.3);
+    background: linear-gradient(135deg, var(--dew-moderate-bg), var(--dew-moderate-overlay)) !important;
+    color: var(--dew-moderate-text) !important;
+    border: 1px solid var(--dew-moderate-border);
     border-radius: var(--border-radius);
     padding: 0.5rem 0.75rem;
     font-weight: var(--font-semibold);
-    box-shadow: 0 2px 8px rgba(202, 138, 4, 0.15);
+    box-shadow: 0 2px 8px var(--dew-moderate-shadow);
     transition: all var(--transition-normal);
     display: inline-block;
 }
 
 .dew-moderate:hover {
-    box-shadow: 0 6px 16px rgba(202, 138, 4, 0.25);
+    box-shadow: 0 6px 16px var(--dew-moderate-shadow-hover);
     transform: translateY(-1px);
 }
 
 .dew-high {
-    background: linear-gradient(135deg, #fed7aa, rgba(254, 215, 170, 0.7)) !important;
-    color: #ea580c !important;
-    border: 1px solid rgba(234, 88, 12, 0.3);
+    background: linear-gradient(135deg, var(--dew-high-bg), var(--dew-high-overlay)) !important;
+    color: var(--dew-high-text) !important;
+    border: 1px solid var(--dew-high-border);
     border-radius: var(--border-radius);
     padding: 0.5rem 0.75rem;
     font-weight: var(--font-semibold);
-    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.15);
+    box-shadow: 0 2px 8px var(--dew-high-shadow);
     transition: all var(--transition-normal);
     display: inline-block;
 }
 
 .dew-high:hover {
-    box-shadow: 0 6px 16px rgba(234, 88, 12, 0.25);
+    box-shadow: 0 6px 16px var(--dew-high-shadow-hover);
     transform: translateY(-1px);
 }
 
 .dew-critical {
-    background: linear-gradient(135deg, #fee2e2, rgba(254, 226, 226, 0.7)) !important;
-    color: #dc2626 !important;
-    border: 1px solid rgba(220, 38, 38, 0.3);
+    background: linear-gradient(135deg, var(--dew-critical-bg), var(--dew-critical-overlay)) !important;
+    color: var(--dew-critical-text) !important;
+    border: 1px solid var(--dew-critical-border);
     border-radius: var(--border-radius);
     padding: 0.5rem 0.75rem;
     font-weight: var(--font-semibold);
-    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15);
+    box-shadow: 0 2px 8px var(--dew-critical-shadow);
     transition: all var(--transition-normal);
     display: inline-block;
 }
 
 .dew-critical:hover {
-    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.25);
+    box-shadow: 0 6px 16px var(--dew-critical-shadow-hover);
     transform: translateY(-1px);
 }
 
 .dew-unknown {
-    background: linear-gradient(135deg, #f1f5f9, rgba(241, 245, 249, 0.7)) !important;
-    color: #64748b !important;
-    border: 1px solid rgba(100, 116, 139, 0.3);
+    background: linear-gradient(135deg, var(--dew-unknown-bg), var(--dew-unknown-overlay)) !important;
+    color: var(--dew-unknown-text) !important;
+    border: 1px solid var(--dew-unknown-border);
     border-radius: var(--border-radius);
     padding: 0.5rem 0.75rem;
     font-weight: var(--font-semibold);
-    box-shadow: 0 2px 8px rgba(100, 116, 139, 0.15);
+    box-shadow: 0 2px 8px var(--dew-unknown-shadow);
     transition: all var(--transition-normal);
     display: inline-block;
 }
 
 .dew-unknown:hover {
-    box-shadow: 0 6px 16px rgba(100, 116, 139, 0.25);
+    box-shadow: 0 6px 16px var(--dew-unknown-shadow-hover);
     transform: translateY(-1px);
 }
 
@@ -263,8 +263,8 @@
     margin-bottom: 1.25rem;
     grid-column: 1 / -1;
     border-radius: calc(var(--border-radius) + 4px);
-    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 12px 32px var(--info-card-shadow);
+    border: 1px solid var(--info-card-border);
     position: relative;
     overflow: hidden;
 }
@@ -276,7 +276,7 @@
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    background: linear-gradient(90deg, transparent, var(--info-card-sheen), transparent);
 }
 
 .sun-info-card {
@@ -284,8 +284,8 @@
     color: var(--text-light);
     margin-bottom: 1.25rem;
     border-radius: calc(var(--border-radius) + 4px);
-    box-shadow: 0 12px 32px rgba(245, 158, 11, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 12px 32px var(--info-card-shadow);
+    border: 1px solid var(--info-card-border);
     position: relative;
     overflow: hidden;
 }
@@ -297,7 +297,7 @@
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    background: linear-gradient(90deg, transparent, var(--info-card-sheen), transparent);
 }
 
 .icon-weather-lg {
@@ -306,15 +306,15 @@
 }
 
 .sun-info-card .card {
-    background-color: rgba(255, 255, 255, 0.85) !important;
+    background-color: var(--info-card-inner-bg) !important;
     color: var(--text-color);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--info-card-inner-border);
+    box-shadow: 0 4px 12px var(--info-card-inner-shadow);
     border-radius: var(--border-radius);
 }
 
 .sun-info-card .card-header {
-    background-color: rgba(255, 255, 255, 0.9) !important;
+    background-color: var(--info-card-inner-header-bg) !important;
     color: var(--warning-700);
     border-bottom: 2px solid var(--warning-500);
     font-weight: var(--font-bold);
@@ -322,9 +322,9 @@
 }
 
 .sun-info-card .list-group-item {
-    background-color: rgba(255, 255, 255, 0.7) !important;
+    background-color: var(--info-card-inner-list-bg) !important;
     color: var(--text-color);
-    border-color: rgba(255, 255, 255, 0.4);
+    border-color: var(--info-card-inner-list-border);
     font-weight: 500;
 }
 
@@ -333,15 +333,15 @@
 }
 
 .moon-info-card .card {
-    background-color: rgba(255, 255, 255, 0.85) !important;
+    background-color: var(--info-card-inner-bg) !important;
     color: var(--text-color);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--info-card-inner-border);
+    box-shadow: 0 4px 12px var(--info-card-inner-shadow);
     border-radius: var(--border-radius);
 }
 
 .moon-info-card .card-header {
-    background-color: rgba(255, 255, 255, 0.9) !important;
+    background-color: var(--info-card-inner-header-bg) !important;
     color: var(--text-violet);
     border-bottom: 2px solid var(--border-violet);
     font-weight: var(--font-bold);
@@ -349,9 +349,9 @@
 }
 
 .moon-info-card .list-group-item {
-    background-color: rgba(255, 255, 255, 0.7) !important;
+    background-color: var(--info-card-inner-list-bg) !important;
     color: var(--text-color);
-    border-color: rgba(255, 255, 255, 0.4);
+    border-color: var(--info-card-inner-list-border);
     font-weight: 500;
 }
 

@@ -4,7 +4,7 @@
     border: 1px solid var(--border-dark);
     border-radius: var(--border-radius);
     overflow: hidden;
-    background: #1e1e1e;
+    background: var(--yaml-bg);
 }
 
 .yaml-editor-container.valid {
@@ -13,7 +13,7 @@
 }
 
 .yaml-editor-container.invalid {
-    border-color: var(---bs-danger);
+    border-color: var(--bs-danger);
     box-shadow: 0 0 0 1px var(--bs-danger);
 }
 
@@ -22,8 +22,8 @@
     font-size: 13px;
     line-height: 1.6;
     padding: 12px;
-    background: #1e1e1e;
-    color: #d4d4d4;
+    background: var(--yaml-bg);
+    color: var(--yaml-text);
     border: none;
     resize: vertical;
     width: 100%;
@@ -41,8 +41,8 @@
     gap: 8px;
     padding: 8px 12px;
     font-size: 12px;
-    background: #252525;
-    border-top: 1px solid #3e3e3e;
+    background: var(--yaml-status-bg);
+    border-top: 1px solid var(--yaml-border);
 }
 
 .yaml-validation-status.valid {
