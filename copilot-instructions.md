@@ -8,7 +8,7 @@ MyAstroBoard is a web-based astronomy observation planning system that integrate
 
 ### Core Concept
 - Users configure their location and select target catalogues via web dashboard
-- System automatically runs uptonight Docker container every 2 hours
+- System automatically runs uptonight Docker container every 6 hours
 - Each selected target gets its own uptonight execution (each executed in a queue between targets)
 - Generated outputs (plots, reports) are stored and displayed in the dashboard
 
@@ -324,7 +324,7 @@ echo "2.6" > UPTONIGHT_VERSION
 
 ### Environment Configuration
 Key environment variables (set in docker-compose.yml or .env):
-- **SCHEDULE_INTERVAL**: Uptonight execution interval in seconds (default: 7200)
+- **SCHEDULE_INTERVAL**: Uptonight execution interval in seconds (default: 21600)
 - **DATA_DIR**: Configuration storage (default: `/app/data`)
 - **UPTONIGHT_OUTPUT_DIR**: Results storage (default: `/app/uptonight_outputs`)
 - **LOG_LEVEL**: File logging level - DEBUG, INFO, WARNING, ERROR, CRITICAL (default: INFO)
@@ -336,7 +336,7 @@ Key environment variables (set in docker-compose.yml or .env):
 environment:
   - LOG_LEVEL=INFO          # Standard logging to file
   - CONSOLE_LOG_LEVEL=WARNING # Minimal console noise
-  - SCHEDULE_INTERVAL=7200  # 2 hours
+  - SCHEDULE_INTERVAL=21600  # 6 hours
   
 # For debugging
 environment:
@@ -349,7 +349,7 @@ See `.env.example` for full list and documentation.
 ### Scheduler Behavior
 ```python
 # Runs immediately on startup
-# Then every SCHEDULE_INTERVAL seconds (default: 7200 = 2 hours)
+# Then every SCHEDULE_INTERVAL seconds (default: 21600 = 6 hours)
 # For each target:
 #   1. Generate uptonight config YAML
 #   2. Run uptonight Docker container
@@ -489,7 +489,7 @@ curl http://localhost:5000/api/catalogues
 docker compose down
 ```
 
-### Testing Scheduler (Without Waiting 2 Hours)
+### Testing Scheduler (Without Waiting 6 Hours)
 Set environment variable for shorter interval:
 ```bash
 docker compose down

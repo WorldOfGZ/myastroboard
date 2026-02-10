@@ -58,3 +58,9 @@ This document describes features that could potentially be integrated into MyAst
 - Photo Session Timeline
 - Interactive Map of Sky Objects
 - Suggestions based on weather and conditions
+
+### Enhanced Uptonight Execution
+**Objective: Better managment, not only a cycle**
+- Currently every 6 hours with current weather
+- Idea is to launch at startup, with forecast meteo (from next x hours)
+- Second launch closer to night session with current weather

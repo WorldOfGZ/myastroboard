@@ -15,7 +15,7 @@ LOG_FILE = os.path.join(DATA_DIR, 'myastroboard.log')
 CONDITIONS_FILE = os.path.join(DATA_DIR, 'conditions.json')
 
 # Environment configuration
-SCHEDULE_INTERVAL = int(os.environ.get('SCHEDULE_INTERVAL', '7201'))  # 2 hours in seconds
+SCHEDULE_INTERVAL = int(os.environ.get('SCHEDULE_INTERVAL', '21601'))  # 6 hours in seconds (1 sec more to see it in logs immediately on startup so not set)
 
 # API/Service URLs
 URL_OPENMETEO = "https://api.open-meteo.com/v1/forecast"

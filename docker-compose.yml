@@ -20,7 +20,7 @@ services:
       - TZ=Europe/Paris
 
       # Scheduler
-      - SCHEDULE_INTERVAL=7200
+      - SCHEDULE_INTERVAL=21600
 
       # Flask
       - FLASK_DEBUG=0  # 1 en debug
