@@ -1619,6 +1619,13 @@ def get_or_create_cache_scheduler():
 # Application Startup Initialization
 # ============================================================
 
+# Initialize UpTonight scheduler when the app starts (for each worker)
+try:
+    logger.info("Initializing UpTonight scheduler on application startup...")
+    get_or_create_scheduler()
+except Exception as e:
+    logger.error(f"Failed to initialize UpTonight scheduler on startup: {e}", exc_info=True)
+
 # Initialize cache scheduler when the app starts (for each gunicorn worker)
 # This ensures caches are populated before any requests are served
 try:
