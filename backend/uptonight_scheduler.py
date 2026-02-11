@@ -82,9 +82,7 @@ class UptonightScheduler:
     def _run_loop(self):
         """Main scheduler loop"""
         while self.running:
-            time.sleep(60)  # Check every minute
-            
-            # Check for manual trigger file
+            # Check for manual trigger file (check frequently for responsiveness)
             trigger_file = os.path.join(DATA_DIR, 'scheduler_trigger')
             manual_trigger = False
             if os.path.exists(trigger_file):
@@ -98,6 +96,9 @@ class UptonightScheduler:
             # Execute if manually triggered or scheduled
             if manual_trigger or self.last_run is None or (datetime.now() - self.last_run).total_seconds() >= SCHEDULE_INTERVAL:
                 self._execute_uptonight_for_all_catalogues()
+            
+            # Sleep for a short interval to check trigger file frequently
+            time.sleep(5)  # Check every 5 seconds for responsiveness
 
     def _execute_uptonight_for_all_catalogues(self):
         """Execute uptonight for each selected catalogue with delays"""
@@ -110,6 +111,7 @@ class UptonightScheduler:
                 logger.info("Starting uptonight execution cycle")
                 self.last_run = datetime.now()
                 self.is_executing = True
+                self._write_status()  # Update status file immediately
 
                 config = self.config_loader()
                 selected_catalogues = config.get('selected_catalogues', [])
@@ -117,6 +119,7 @@ class UptonightScheduler:
                 if not selected_catalogues:
                     logger.warning("No catalogues selected, skipping uptonight execution")
                     self.is_executing = False
+                    self._write_status()  # Update status file
                     return
                 
                 self._cleanup_old_uptonight_images(UPTONIGHT_VERSION)
@@ -135,6 +138,7 @@ class UptonightScheduler:
                         self.current_index = idx + 1
                         self.total_catalogues = len(selected_catalogues)
                         self.execution_start_time = datetime.now()
+                        self._write_status()  # Update status file for each catalogue
 
                         logger.info(f"Processing catalogue {idx+1}/{len(selected_catalogues)}: {catalogue}")
                         self._execute_uptonight_for_catalogue(config, catalogue, weather_conditions)
@@ -147,12 +151,14 @@ class UptonightScheduler:
                 self.total_catalogues = 0
                 self.is_executing = False
                 self.execution_start_time = None
+                self._write_status()  # Update status file at completion
 
                 logger.info("Uptonight execution cycle completed")
 
             except Exception as e:
                 logger.error(f"Error in uptonight execution cycle: {e}")
                 self.is_executing = False
+                self._write_status()  # Update status file on error
 
     def _execute_uptonight_for_catalogue(self, config, catalogue, weather_conditions):
         """Execute uptonight Docker container for a single catalogue"""
@@ -308,6 +314,32 @@ class UptonightScheduler:
         except Exception as e:
             logger.error(f"Unexpected error during cleanup: {e}")
 
+    def _write_status(self):
+        """Write current status to shared file for multi-worker environments"""
+        execution_duration_seconds = None
+        if self.is_executing and self.execution_start_time:
+            execution_duration_seconds = int((datetime.now() - self.execution_start_time).total_seconds())
+        
+        status = {
+            'running': self.running,
+            'last_run': self.last_run.isoformat() if self.last_run else None,
+            'next_run': (self.last_run + timedelta(seconds=SCHEDULE_INTERVAL)).isoformat() if self.last_run else None,
+            'is_executing': self.is_executing,
+            'progress': {
+                'current_catalogue': self.current_catalogue,
+                'current_index': self.current_index,
+                'total_catalogues': self.total_catalogues,
+                'execution_duration_seconds': execution_duration_seconds
+            }
+        }
+        
+        try:
+            status_file = os.path.join(DATA_DIR, 'scheduler_status.json')
+            with open(status_file, 'w') as f:
+                json.dump(status, f, indent=2)
+        except Exception as e:
+            logger.error(f"Failed to write status to file: {e}")
+
     def get_status(self):
         """Get scheduler status with progress information"""
         execution_duration_seconds = None
@@ -326,12 +358,7 @@ class UptonightScheduler:
             }
         }
         # Write status to shared file for remote workers
-        try:
-            status_file = os.path.join(DATA_DIR, 'scheduler_status.json')
-            with open(status_file, 'w') as f:
-                json.dump(status, f)
-        except Exception as e:
-            logger.error(f"Failed to write status to file: {e}")
+        self._write_status()
         return status
 
     def trigger_now(self):
