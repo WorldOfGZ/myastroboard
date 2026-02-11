@@ -895,6 +895,7 @@ async function loadUptonightResultsTabs() {
         const outputs = await fetchJSON('/api/uptonight/outputs');
         
         const subtabsContainer = document.getElementById('uptonight-subtabs');
+        let  eltFirstTab = -1; // Index of the first tab to activate by default
 
         // Init var
         let tabsHTML = '';
@@ -909,6 +910,9 @@ async function loadUptonightResultsTabs() {
             targets.sort((a, b) => a.localeCompare(b));
 
             targets.forEach((target, index) => {
+                if (eltFirstTab === -1) {
+                    eltFirstTab = index;
+                }
                 tabsHTML += `
                     <li class="nav-item">
                         <a class="nav-link sub-tab-btn" href="#" data-subtab="catalogue-${target}">📚 ${target}</a>
@@ -948,7 +952,9 @@ async function loadUptonightResultsTabs() {
         // Activate first available subtab once DOM is ready
         requestAnimationFrame(() => {
             if (outputs && outputs.length > 0) {
-                activateSubTab('uptonight', `catalogue-${outputs[0].target}`);
+
+
+                activateSubTab('uptonight', `catalogue-${outputs[eltFirstTab].target}`);
             }
         });
                 
