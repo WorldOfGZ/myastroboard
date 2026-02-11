@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <radialGradient id="space" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#1f2440"/>
+      <stop offset="100%" stop-color="#0b0e1a"/>
+    </radialGradient>
+
+    <radialGradient id="moon" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#fff7d6"/>
+      <stop offset="100%" stop-color="#d1ad5a"/>
+    </radialGradient>
+
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1.2"/>
+    </filter>
+
+    <!-- Star glow -->
+    <filter id="starGlow">
+      <feGaussianBlur stdDeviation="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <circle cx="50" cy="50" r="48" fill="url(#space)"/>
+
+  <!-- Moon light -->
+  <circle cx="46" cy="50" r="26" fill="url(#moon)" filter="url(#glow)"/>
+
+  <!-- Moon shadow (seamless phase loop) -->
+  <circle cx="56" cy="50" r="26" fill="url(#space)">
+    <animate
+      attributeName="cx"
+      values="52;64;52"
+      dur="12s"
+      repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Diffraction star -->
+  <g transform="translate(75,25)" filter="url(#starGlow)">
+    <!-- spikes -->
+    <line x1="-5" y1="0" x2="5" y2="0" stroke="white" stroke-width="0.7">
+      <animate attributeName="x2" values="5;2.5;5" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="x1" values="-5;-2.5;-5" dur="3s" repeatCount="indefinite"/>
+    </line>
+    <line x1="0" y1="-5" x2="0" y2="5" stroke="white" stroke-width="0.7">
+      <animate attributeName="y2" values="5;2.5;5" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="y1" values="-5;-2.5;-5" dur="3s" repeatCount="indefinite"/>
+    </line>
+
+    <!-- core -->
+    <circle r="2.6" fill="white">
+      <animate attributeName="opacity" values="1;0.6;1" dur="3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+</svg>

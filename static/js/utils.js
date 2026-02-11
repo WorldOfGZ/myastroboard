@@ -83,3 +83,12 @@ async function checkCacheStatus() {
         console.debug('Cache status check unavailable (server-side cached data will still be used)');
     }
 }
+
+function capitalizeWords(str) {
+  return str.replace(/\b[a-zA-ZÀ-ÿ](?:(?:'[a-zA-ZÀ-ÿ])|(?:-[a-zA-ZÀ-ÿ]))*/g, word => {
+    return word
+      .split(/([-'])/) // garde les séparateurs - et '
+      .map(part => part.match(/[-']/) ? part : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join('');
+  });
+}

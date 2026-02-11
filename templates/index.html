@@ -14,12 +14,13 @@
     <link rel="stylesheet" href="/static/css/bs_logs.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_uptonight.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_astrodex.css?v={{ version }}">
+    <link rel="stylesheet" href="/static/css/bs_equipment.css?v={{ version }}">
     <script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js"></script>
 </head>
 <body>
     
     <div class="hero text-center mb-2 pb-1">
-        <h1 class="display-4 fw-bold">🌙 MyAstroBoard</h1>
+        <h1 class="display-4 fw-bold"><img src="/static/img/favicon-animated.svg" alt="MyAstroBoard Logo" style="height: 1em; vertical-align: middle;"> MyAstroBoard</h1>
         <p class="lead">
             Astronomy Observation Planning Dashboard
         </p>
@@ -47,6 +48,9 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link main-tab-btn" href="#" data-tab="astrodex">📚 Astrodex</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link main-tab-btn" href="#" data-tab="equipment">🔭 Equipment</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link main-tab-btn" href="#" data-tab="parameters">⚙️ Parameters</a>
@@ -330,7 +334,7 @@
                         </div>
 
                         <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary form-control" id="add-astrodex-item" data-action="add-astrodex-item">➕ Add Object</button>
+                            <button type="submit" class="btn btn-success form-control" id="add-astrodex-item" data-action="add-astrodex-item">➕ Add Object</button>
                         </div>
                     </div>
                     
@@ -341,6 +345,128 @@
                         </div>
                     </div>
 
+                </div>
+            </div>
+        </div>
+
+        <!-- Equipment Section -->
+        <div id="equipment-tab" class="main-tab-content">
+            <!-- Equipment Sub-tabs -->
+            <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                <ul class="nav nav-pills sub-tabs" id="equipment-subtabs">
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="combinations">🔗 Combinations</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="fov">📐 FOV Calculator</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="telescopes">🔭 Telescopes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="cameras">📷 Cameras</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="mounts">🏔️ Mounts</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="filters">🎨 Filters</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="accessories">🔧 Accessories</a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Combinations Sub-tab -->
+            <div id="combinations-subtab" class="sub-tab-content active">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
+                    <h2>🔗 Equipment Combinations</h2>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <p class="text-muted">Combine telescope, camera, mount, accessories, and filters to analyze setup compatibility and FOV. This setup will be also selectable on Astrodex.</p>
+                        <button class="btn btn-success btn-new-combination">+ New Combination</button>
+                    </div>
+                    <div id="equipment-combinations-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
+                        <!-- Combinations will be rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- FOV Calculator Sub-tab -->
+            <div id="fov-subtab" class="sub-tab-content">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
+                    <h2>📐 Field of View Calculator</h2>
+                    <div id="equipment-fov-display"></div>
+                </div>
+            </div>
+
+            <!-- Telescopes Sub-tab -->
+            <div id="telescopes-subtab" class="sub-tab-content">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
+                    <h2>🔭 Telescope Profiles</h2>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <p class="text-muted">Manage your telescope profiles with automatic calculation of focal ratios and effective focal lengths.</p>                    
+                        <button class="btn btn-success btn-new-telescope">+ New Telescope</button>
+                    </div>
+                    <div id="equipment-telescopes-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
+                        <!-- Telescopes will be rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cameras Sub-tab -->
+            <div id="cameras-subtab" class="sub-tab-content">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
+                        <h2>📷 Camera Profiles</h2>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <p class="text-muted">Manage your camera profiles with automatic calculation of sensor diagonal and image scale.</p>
+                        <button class="btn btn-success btn-new-camera">+ New Camera</button>
+                    </div>
+                    <div id="equipment-cameras-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
+                        <!-- Cameras will be rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mounts Sub-tab -->
+            <div id="mounts-subtab" class="sub-tab-content">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
+                    <h2>🏔️ Mount Profiles</h2>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <p class="text-muted">Manage your mount profiles with automatic calculation of recommended imaging payload.</p>
+                        <button class="btn btn-success btn-new-mount">+ New Mount</button>
+                    </div>
+                    <div id="equipment-mounts-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
+                        <!-- Mounts will be rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters Sub-tab -->
+            <div id="filters-subtab" class="sub-tab-content">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
+                    <h2>🎨 Filter Profiles</h2>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <p class="text-muted">Manage your filter profiles for LRGB, narrowband, broadband, and other imaging filters.</p>
+                        <button class="btn btn-success btn-new-filter">+ New Filter</button>
+                    </div>
+                    <div id="equipment-filters-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
+                        <!-- Filters will be rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accessories Sub-tab -->
+            <div id="accessories-subtab" class="sub-tab-content">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
+                    <h2>🔧 Accessory Profiles</h2>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <p class="text-muted">Manage your accessory profiles for focusers, field flatteners, filter wheels, and other equipment.</p>
+                        <button class="btn btn-success btn-new-accessory">+ New Accessory</button>
+                    </div>
+                    <div id="equipment-accessories-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
+                        <!-- Accessories will be rendered here -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -712,7 +838,7 @@
 
     <!-- Generic Modal Close Small -->
     <div class="modal fade" id="modal_sm_close" tabindex="-1" role="dialog" aria-labelledby="modalSmall" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable modal-sm" role="document">
+        <div class="modal-dialog modal-dialog-scrollable modal-sm modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modal_sm_close_title">Modal title</h5>
@@ -728,7 +854,7 @@
 
     <!-- Generic Modal Close lg -->
     <div class="modal fade" id="modal_lg_close" tabindex="-1" role="dialog" aria-labelledby="modalLg" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modal_lg_close_title">Modal title</h5>
@@ -744,7 +870,7 @@
 
     <!-- Generic Modal Close xl -->
     <div class="modal fade" id="modal_xl_close" tabindex="-1" role="dialog" aria-labelledby="modalXl" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable modal-xl" role="document">
+        <div class="modal-dialog modal-dialog-scrollable modal-xl modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modal_xl_close_title">Modal title</h5>
@@ -786,6 +912,7 @@
     <script src="/static/js/weather_astro.js?v={{ version }}"></script>
     <script src="/static/js/weather_alerts.js?v={{ version }}"></script>
     <script src="/static/js/astrodex.js?v={{ version }}"></script>
+    <script src="/static/js/equipment.js?v={{ version }}"></script>
     <script src="/static/js/app.js?v={{ version }}"></script>
 </body>
 </html>

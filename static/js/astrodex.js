@@ -43,6 +43,73 @@ function formatDate(dateString) {
 }
 
 // ============================================
+// Equipment Integration
+// ============================================
+
+let astrodexEquipmentCache = {
+    combinations: [],
+    filters: []
+};
+
+async function loadEquipmentForAstrodex() {
+    try {
+        // Load combinations
+        const combosRes = await fetchJSON('/api/equipment/combinations');
+        astrodexEquipmentCache.combinations = combosRes.data || [];
+        
+        // Load filters
+        const filtersRes = await fetchJSON('/api/equipment/filters');
+        astrodexEquipmentCache.filters = filtersRes.data || [];
+    } catch (error) {
+        console.error('Error loading equipment for Astrodex:', error);
+    }
+}
+
+function buildEquipmentCombinationOptions() {
+    return astrodexEquipmentCache.combinations
+        .map(combo => `<option value="${escapeHtml(combo.name)}" data-combo-id="${combo.id}">🔭 ${escapeHtml(combo.name)}</option>`)
+        .join('');
+}
+
+function buildEquipmentFilterOptions() {
+    return astrodexEquipmentCache.filters
+        .map(filter => `<option value="${escapeHtml(filter.name)}" data-filter-id="${filter.id}">🎨 ${escapeHtml(filter.name)}</option>`)
+        .join('');
+}
+
+function updateDeviceField() {
+    const select = document.getElementById('picture-device-select');
+    const textField = document.getElementById('picture-device');
+    if (select && textField && select.value) {
+        textField.value = select.value;
+    }
+}
+
+function updateFilterField() {
+    const select = document.getElementById('picture-filters-select');
+    const textField = document.getElementById('picture-filters');
+    if (select && textField && select.value) {
+        textField.value = select.value;
+    }
+}
+
+function updateEditDeviceField() {
+    const select = document.getElementById('edit-picture-device-select');
+    const textField = document.getElementById('edit-picture-device');
+    if (select && textField && select.value) {
+        textField.value = select.value;
+    }
+}
+
+function updateEditFilterField() {
+    const select = document.getElementById('edit-picture-filters-select');
+    const textField = document.getElementById('edit-picture-filters');
+    if (select && textField && select.value) {
+        textField.value = select.value;
+    }
+}
+
+// ============================================
 // Astrodex Data Loading
 // ============================================
 
@@ -52,10 +119,23 @@ async function loadAstrodex() {
         astrodexData.items = response.items || [];
         astrodexData.stats = response.stats || {};
         
+        // Load equipment data for Astrodex integration
+        await loadEquipmentForAstrodex();
+        
         renderAstrodexView();
     } catch (error) {
         console.error('Error loading astrodex:', error);
         showMessage('error', 'Failed to load Astrodex');
+    }
+}
+
+async function getConstellationsList() {
+    try {
+        const response = await fetchJSON('/api/astrodex/constellations');
+        return response.constellations || [];
+    } catch (error) {
+        console.error('Error fetching constellations list:', error);
+        return [];
     }
 }
 
@@ -145,7 +225,7 @@ function renderAstrodexGrid(items) {
         const mainPicture = getMainPicture(item);
         const imageUrl = mainPicture 
             ? `/api/astrodex/images/${mainPicture.filename}`
-            : '/static/default_astro_object.svg';
+            : '/static/img/default_astro_object.svg';
         
         const photoCount = item.pictures ? item.pictures.length : 0;
         
@@ -169,7 +249,7 @@ function renderAstrodexGrid(items) {
                     <div class="card-body astrodex-card-body" data-item-id="${jsEscapedId}" tabindex="0" role="button" aria-label="View ${escapedName} details" style="cursor: pointer;">
                         <div class="astrodex-card-title">${escapedName}</div>
                         <div class="astrodex-card-type">${escapeHtml(item.type || 'Unknown')}</div>
-                        ${item.constellation ? `<div class="astrodex-card-constellation">📍 ${escapeHtml(item.constellation)}</div>` : ''}
+                        ${item.constellation ? `<div class="astrodex-card-constellation">📍 ${escapeHtml(capitalizeWords(item.constellation))}</div>` : ''}
                     </div>
                 </div>
             </div>
@@ -360,48 +440,47 @@ async function addFromCatalogue(catalogueItem) {
     }
 }
 
-function showAddAstrodexItemModal() {
+async function showAddAstrodexItemModal() {
     //console.log("Opening Add to Astrodex modal");
 
     closeModal(); // Close any existing modal to avoid stacking
 
+    // Get list of constellations for select options
+    const constellations = await getConstellationsList();
+    //console.log("Fetched constellations for select options:", constellations);
+
     createModal('Add to Astrodex', `
-        <form id="add-astrodex-form" class="form">
-            <div class="row mb-3">
-                <label for="item-name" class="col-sm-3 col-form-label fw-bold">Object Name *</label>
-                <div class="col-sm-9">
-                    <input type="text" id="item-name" class="form-control" required>
-                </div>
+        <form id="add-astrodex-form" class="form row g-3">
+            <div class="col-md-12">
+                <label for="item-name" class="form-label">Object Name *</label>
+                <input type="text" id="item-name" class="form-control" required>
             </div>
-            <div class="row mb-3">
-                <label for="item-type" class="col-sm-3 col-form-label fw-bold">Type</label>
-                <div class="col-sm-9">
-                    <select id="item-type" class="form-control">
-                        <option value="Galaxy">Galaxy</option>
-                        <option value="Nebula">Nebula</option>
-                        <option value="Planetary Nebula">Planetary Nebula</option>
-                        <option value="Star Cluster">Star Cluster</option>
-                        <option value="Open Cluster">Open Cluster</option>
-                        <option value="Globular Cluster">Globular Cluster</option>
-                        <option value="Planet">Planet</option>
-                        <option value="Moon">Moon</option>
-                        <option value="Sun">Sun</option>
-                        <option value="Comet">Comet</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
+            <div class="col-md-6">
+                <label for="item-type" class="form-label">Type</label>
+                <select id="item-type" class="form-select">
+                    <option value="Galaxy">Galaxy</option>
+                    <option value="Nebula">Nebula</option>
+                    <option value="Planetary Nebula">Planetary Nebula</option>
+                    <option value="Star Cluster">Star Cluster</option>
+                    <option value="Open Cluster">Open Cluster</option>
+                    <option value="Globular Cluster">Globular Cluster</option>
+                    <option value="Planet">Planet</option>
+                    <option value="Moon">Moon</option>
+                    <option value="Sun">Sun</option>
+                    <option value="Comet">Comet</option>
+                    <option value="Other">Other</option>
+                </select>
             </div>            
-            <div class="row mb-3">
-                <label for="item-constellation" class="col-sm-3 col-form-label fw-bold">Constellation</label>
-                <div class="col-sm-9">
-                    <input type="text" id="item-constellation" class="form-control">
-                </div>
+            <div class="col-md-6">
+                <label for="item-constellation" class="form-label">Constellation</label>
+                <select id="item-constellation" class="form-select">
+                    <option value=""></option>
+                    ${constellations.map(c => `<option value="${c.toLowerCase()}">${c}</option>`).join('')}
+                </select>
             </div>
-            <div class="row mb-3">
-                <label for="item-notes" class="col-sm-3 col-form-label fw-bold">Notes</label>
-                <div class="col-sm-9">
-                    <textarea id="item-notes" class="form-control" rows="3"></textarea>
-                </div>
+            <div class="col-md-12">
+                <label for="item-notes" class="form-label">Notes</label>
+                <textarea id="item-notes" class="form-control" rows="3"></textarea>
             </div>
             <div class="text-end">
                 <button type="submit" class="btn btn-primary">Add to Astrodex</button>
@@ -457,11 +536,14 @@ async function showAstrodexItemDetail(itemId) {
     if (!item) return;
     
     currentAstrodexItem = item;
+
+    // Get list of constellations for select options
+    const constellations = await getConstellationsList();
     
     const mainPicture = getMainPicture(item);
     const imageUrl = mainPicture 
         ? `/api/astrodex/images/${mainPicture.filename}`
-        : '/static/default_astro_object.svg';
+        : '/static/img/default_astro_object.svg';
     
     // Escape values for safe HTML insertion
     const escapedName = escapeHtml(item.name);
@@ -473,46 +555,41 @@ async function showAstrodexItemDetail(itemId) {
     
     const modal = createModal(item.name, `                    
         <h3>Object Information</h3>
-        <form id="edit-item-form-${item.id}">
-            <div class="row mb-3">
-                <label for="edit-type-${item.id}" class="col-sm-2 col-form-label fw-bold">Type</label>
-                <div class="col-sm-10">
-                    <select id="edit-type-${item.id}" class="form-control" data-action="update-field" data-item-id="${item.id}" data-field="type">
-                        <option value="Galaxy" ${item.type === 'Galaxy' ? 'selected' : ''}>Galaxy</option>
-                        <option value="Nebula" ${item.type === 'Nebula' ? 'selected' : ''}>Nebula</option>
-                        <option value="Planetary Nebula" ${item.type === 'Planetary Nebula' ? 'selected' : ''}>Planetary Nebula</option>
-                        <option value="Star Cluster" ${item.type === 'Star Cluster' ? 'selected' : ''}>Star Cluster</option>
-                        <option value="Open Cluster" ${item.type === 'Open Cluster' ? 'selected' : ''}>Open Cluster</option>
-                        <option value="Globular Cluster" ${item.type === 'Globular Cluster' ? 'selected' : ''}>Globular Cluster</option>
-                        <option value="Planet" ${item.type === 'Planet' ? 'selected' : ''}>Planet</option>
-                        <option value="Moon" ${item.type === 'Moon' ? 'selected' : ''}>Moon</option>
-                        <option value="Comet" ${item.type === 'Comet' ? 'selected' : ''}>Comet</option>
-                        <option value="Sun" ${item.type === 'Sun' ? 'selected' : ''}>Sun</option>
-                        <option value="Other" ${item.type === 'Other' ? 'selected' : ''}>Other</option>
-                        <option value="Unknown" ${item.type === 'Unknown' || !item.type ? 'selected' : ''}>Unknown</option>
-                    </select>
-                </div>
+        <form id="edit-item-form-${item.id}" class="form row g-3">
+            <div class="col-md-6">
+                <label for="edit-type-${item.id}" class="col-sm-2 form-label">Type</label>
+                <select id="edit-type-${item.id}" class="form-select" data-action="update-field" data-item-id="${item.id}" data-field="type">
+                    <option value="Galaxy" ${item.type === 'Galaxy' ? 'selected' : ''}>Galaxy</option>
+                    <option value="Nebula" ${item.type === 'Nebula' ? 'selected' : ''}>Nebula</option>
+                    <option value="Planetary Nebula" ${item.type === 'Planetary Nebula' ? 'selected' : ''}>Planetary Nebula</option>
+                    <option value="Star Cluster" ${item.type === 'Star Cluster' ? 'selected' : ''}>Star Cluster</option>
+                    <option value="Open Cluster" ${item.type === 'Open Cluster' ? 'selected' : ''}>Open Cluster</option>
+                    <option value="Globular Cluster" ${item.type === 'Globular Cluster' ? 'selected' : ''}>Globular Cluster</option>
+                    <option value="Planet" ${item.type === 'Planet' ? 'selected' : ''}>Planet</option>
+                    <option value="Moon" ${item.type === 'Moon' ? 'selected' : ''}>Moon</option>
+                    <option value="Comet" ${item.type === 'Comet' ? 'selected' : ''}>Comet</option>
+                    <option value="Sun" ${item.type === 'Sun' ? 'selected' : ''}>Sun</option>
+                    <option value="Other" ${item.type === 'Other' ? 'selected' : ''}>Other</option>
+                    <option value="Unknown" ${item.type === 'Unknown' || !item.type ? 'selected' : ''}>Unknown</option>
+                </select>
             </div>
 
-            <div class="row mb-3">
-                <label for="catalogue-${item.id}" class="col-sm-2 col-form-label fw-bold">Catalogue</label>
-                <div class="col-sm-10">
-                    <input type="text" id="catalogue-${item.id}" class="form-control" value="${escapeHtml(item.catalogue || '')}" data-field="catalogue" readonly>
-                </div>
+            <div class="col-md-6">
+                <label for="edit-constellation-${item.id}" class="form-label">Constellation</label>
+                <select id="edit-constellation-${item.id}" class="form-select" data-action="update-field" data-item-id="${item.id}" data-field="constellation">
+                    <option value=""></option>
+                    ${constellations.map(c => `<option value="${c.toLowerCase()}" ${item.constellation && item.constellation.toLowerCase() === c.toLowerCase() ? 'selected' : ''}>${c}</option>`).join('')}
+                </select>
             </div>
 
-            <div class="row mb-3">
-                <label for="edit-constellation-${item.id}" class="col-sm-2 col-form-label fw-bold">Constellation</label>
-                <div class="col-sm-10">
-                    <input type="text" id="edit-constellation-${item.id}" class="form-control" value="${escapeHtml(item.constellation || '')}" data-action="update-field" data-item-id="${item.id}" data-field="constellation" placeholder="Optional">
-                </div>
+            <div class="col-md-6">
+                <label for="catalogue-${item.id}" class="form-label">Form catalogue</label>
+                <input type="text" id="catalogue-${item.id}" class="form-control" value="${escapeHtml(item.catalogue || '')}" data-field="catalogue" readonly>
             </div>
 
-            <div class="row mb-3">
-                <label for="edit-notes-${item.id}" class="col-sm-2 col-form-label fw-bold">Notes</label>
-                <div class="col-sm-10">
-                    <textarea id="edit-notes-${item.id}" class="form-control" rows="3" data-action="update-field" data-item-id="${item.id}" data-field="notes" placeholder="Add your notes...">${escapeHtml(item.notes || '')}</textarea>
-                </div>
+            <div class="col-md-12">
+                <label for="edit-notes-${item.id}" class="form-label">Notes</label>
+                <textarea id="edit-notes-${item.id}" class="form-control" rows="3" data-action="update-field" data-item-id="${item.id}" data-field="notes" placeholder="Add your notes...">${escapeHtml(item.notes || '')}</textarea>
             </div>
         </form>
 
@@ -619,67 +696,68 @@ function showAddPictureModal(itemId) {
     const filterOptions = filters.map(f => `<option value="${escapeHtml(f)}">`).join('');
     const isoOptions = isos.map(i => `<option value="${escapeHtml(i)}">`).join('');
     
+    // Equipment combination and filter options
+    const equipmentComboOptions = buildEquipmentCombinationOptions();
+    const equipmentFilterOptions = buildEquipmentFilterOptions();
+    
     createModal('Add Photo', `
-        <form id="add-picture-form" class="form">
-            <div class="row mb-3">
-                <label for="picture-file" class="col-sm-3 col-form-label">Image File *</label>
-                <div class="col-sm-9">
-                    <input type="file" class="form-control" id="picture-file" accept="image/*" required>
-                </div>
+        <form id="add-picture-form" class="form row g-3">
+            <div class="col-md-12">
+                <label for="picture-file" class="form-label">Image File *</label>
+                <input type="file" class="form-control" id="picture-file" accept="image/*" required>
             </div>
-            <div class="row mb-3">
-                <label for="picture-date" class="col-sm-3 col-form-label">Observation Date</label>
-                <div class="col-sm-9">
-                    <input type="date" class="form-control" id="picture-date" value="${today}">
-                </div>
+            <div class="col-md-6">
+                <label for="picture-date" class="form-label">Observation Date</label>
+                <input type="date" class="form-control" id="picture-date" value="${today}">
             </div>
-            <div class="row mb-3">
-                <label for="picture-exposition" class="col-sm-3 col-form-label">Exposition Time</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="picture-exposition" placeholder="e.g., 120x30s">
-                </div>
+            <div class="col-md-6">
+                <label for="picture-exposition" class="form-label">Exposition Time</label>
+                <input type="text" class="form-control" id="picture-exposition" placeholder="e.g., 120x30s">
             </div>
-            <div class="row mb-3">
-                <label for="picture-device" class="col-sm-3 col-form-label">Device/Telescope</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="picture-device" list="device-list" autocomplete="off">
-                    <datalist id="device-list">
-                        ${deviceOptions}
-                    </datalist>
-                </div>
+            <div class="col-md-6">
+                <label for="picture-device" class="form-label">Equipment Combinations</label>
+                <select class="form-select" id="picture-device-select" onchange="updateDeviceField()">
+                    <option value="">-- Free text --</option>
+                    ${equipmentComboOptions}
+                </select>
+            </div>            
+            <div class="col-md-6">
+                <label for="picture-device" class="form-label">Or enter custom equipment combination</label>
+                <input type="text" class="form-control" id="picture-device" list="device-list" autocomplete="off">
+                <datalist id="device-list">
+                    ${deviceOptions}
+                </datalist>
             </div>
-            <div class="row mb-3">
-                <label for="picture-filters" class="col-sm-3 col-form-label">Filters</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="picture-filters" placeholder="e.g., LRGB, Ha-OIII" list="filters-list" autocomplete="off">
-                    <datalist id="filters-list">
-                        ${filterOptions}
-                    </datalist>
-                </div>
+            <div class="col-md-6">
+                <label for="picture-filters" class="form-label">Filters</label>
+                <select class="form-select" id="picture-filters-select" onchange="updateFilterField()">
+                    <option value="">-- Free text --</option>
+                    ${equipmentFilterOptions}
+                </select>
             </div>
-            <div class="row mb-3">
-                <label for="picture-iso" class="col-sm-3 col-form-label">ISO</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="picture-iso" list="iso-list" autocomplete="off">
-                    <datalist id="iso-list">
-                        ${isoOptions}
-                    </datalist>
-                </div>
+            <div class="col-md-6">
+                <label for="picture-filters" class="form-label">Or enter custom filters</label>
+                <input type="text" class="form-control" id="picture-filters" placeholder="e.g., LRGB, Ha-OIII" list="filters-list" autocomplete="off">
+                <datalist id="filters-list">
+                    ${filterOptions}
+                </datalist>
             </div>
-            <div class="row mb-3">
-                <label for="picture-frames" class="col-sm-3 col-form-label">Number of Frames</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="picture-frames">
-                </div>
+            <div class="col-md-6">
+                <label for="picture-iso" class="form-label">ISO</label>
+                <input type="text" class="form-control" id="picture-iso" list="iso-list" autocomplete="off">
+                <datalist id="iso-list">
+                    ${isoOptions}
+                </datalist>
             </div>
-            <div class="row mb-3">
-                <label for="picture-notes" class="col-sm-3 col-form-label">Notes</label>
-                <div class="col-sm-9">
-                    <textarea id="picture-notes" class="form-control" rows="3"></textarea>
-                </div>
+            <div class="col-md-6">
+                <label for="picture-frames" class="form-label">Number of Frames</label>
+                <input type="text" class="form-control" id="picture-frames">
+            </div>
+            <div class="col-md-12">
+                <label for="picture-notes" class="form-label">Notes</label>
+                <textarea id="picture-notes" class="form-control" rows="3"></textarea>
             </div>
             <div class="form-actions text-end">
-                <button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button>
                 <button type="submit" class="btn btn-primary">Upload Photo</button>
             </div>
         </form>
@@ -886,48 +964,49 @@ function showEditPictureModal(itemId, pictureId) {
     if (!picture) return;
     
     createModal('Edit Photo', `
-        <form id="edit-picture-form" class="form">
-            <div class="row mb-3">
-                <label for="edit-picture-date" class="col-sm-3 col-form-label">Observation Date</label>
-                <div class="col-sm-9">
-                    <input type="date" class="form-control" id="edit-picture-date" value="${picture.date || ''}">
-                </div>
+        <form id="edit-picture-form" class="form row g-3">            
+            <div class="col-md-6">
+                <label for="edit-picture-date" class="form-label">Observation Date</label>
+                <input type="date" class="form-control" id="edit-picture-date" value="${picture.date || ''}">
             </div>
-            <div class="row mb-3">
-                <label for="edit-picture-exposition" class="col-sm-3 col-form-label">Exposition Time</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="edit-picture-exposition" placeholder="e.g., 120x30s" value="${escapeHtml(picture.exposition_time || '')}">
-                </div>
+            <div class="col-md-6">
+                <label for="edit-picture-exposition" class="form-label">Exposition Time</label>
+                <input type="text" class="form-control" id="edit-picture-exposition" placeholder="e.g., 120x30s" value="${escapeHtml(picture.exposition_time || '')}">
             </div>
-            <div class="row mb-3">
-                <label for="edit-picture-device" class="col-sm-3 col-form-label">Device/Telescope</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="edit-picture-device" list="device-list" autocomplete="off" value="${escapeHtml(picture.device || '')}">
-                </div>
+            <div class="col-md-6">
+                <label for="edit-picture-device" class="form-label">Equipment Combinations</label>                
+                <select class="form-select" id="edit-picture-device-select" onchange="updateEditDeviceField()">
+                    <option value="">-- Free text --</option>
+                    ${buildEquipmentCombinationOptions()}
+                </select>
             </div>
-            <div class="row mb-3">
-                <label for="edit-picture-filters" class="col-sm-3 col-form-label">Filters</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="edit-picture-filters" placeholder="e.g., LRGB, Ha-OIII" list="filters-list" autocomplete="off" value="${escapeHtml(picture.filters || '')}">
-                </div>
+            <div class="col-md-6">
+                <label for="edit-picture-device" class="form-label">Or enter custom equipment combination</label>
+                <input type="text" class="form-control" id="edit-picture-device" list="device-list" autocomplete="off" value="${escapeHtml(picture.device || '')}">
             </div>
-            <div class="row mb-3">
-                <label for="edit-picture-iso" class="col-sm-3 col-form-label">ISO</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="edit-picture-iso" list="iso-list" autocomplete="off" value="${escapeHtml(picture.iso || '')}">
-                </div>
+            <div class="col-md-6">
+                <label for="edit-picture-filters" class="form-label">Filters</label>
+                <select class="form-select" id="edit-picture-filters-select" onchange="updateEditFilterField()">
+                    <option value="">-- Free text --</option>
+                    ${buildEquipmentFilterOptions()}
+                </select>
             </div>
-            <div class="row mb-3">
-                <label for="edit-picture-frames" class="col-sm-3 col-form-label">Number of Frames</label>
-                <div class="col-sm-9">
-                    <input type="text" class="form-control" id="edit-picture-frames" value="${escapeHtml(picture.frames || '')}">
-                </div>
+            <div class="col-md-6">
+                <label for="edit-picture-filters" class="form-label">Or enter custom filters</label>
+                <input type="text" class="form-control" id="edit-picture-filters" placeholder="e.g., LRGB, Ha-OIII" list="filters-list" autocomplete="off" value="${escapeHtml(picture.filters || '')}">
             </div>
-            <div class="row mb-3">
-                <label for="edit-picture-notes" class="col-sm-3 col-form-label">Notes</label>
-                <div class="col-sm-9">
-                    <textarea id="edit-picture-notes" class="form-control" rows="3">${escapeHtml(picture.notes || '')}</textarea>
-                </div>
+            <div class="col-md-6">
+                <label for="edit-picture-iso" class="form-label">ISO</label>
+                <input type="text" class="form-control" id="edit-picture-iso" list="iso-list" autocomplete="off" value="${escapeHtml(picture.iso || '')}">
+            </div>
+            <div class="col-md-6">
+                <label for="edit-picture-frames" class="form-label">Number of Frames</label>
+                <input type="text" class="form-control" id="edit-picture-frames" value="${escapeHtml(picture.frames || '')}">
+            </div>
+            <div class="col-md-12">
+                <label for="edit-picture-notes" class="form-label">Notes</label>
+                <textarea id="edit-picture-notes" class="form-control" rows="3">${escapeHtml(picture.notes || '')}</textarea>
+            </div>
             </div>
             <div class="form-actions text-end">
                 <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -1124,7 +1203,7 @@ function showPictureSlideshow(itemId) {
         `;
         
         // Update the modal content
-        const modalBody = document.getElementById('modal_xl_close_body');
+        const modalBody = document.getElementById('modal_full_close_body');
         if (modalBody) {
             modalBody.innerHTML = modalContent;
             
@@ -1204,17 +1283,17 @@ function showPictureSlideshow(itemId) {
     }
     
     // Create modal using existing Bootstrap structure
-    createModal(`${escapeHtml(item.name)} - Photos`, '', 'xl');
+    createModal(`${escapeHtml(item.name)} - Photos`, '', 'full');
     
     // Show the modal
-    bs_modal = new bootstrap.Modal('#modal_xl_close', {
+    bs_modal = new bootstrap.Modal('#modal_full_close', {
         backdrop: 'static',
         focus: true,
         keyboard: true
     });
     
     // Setup cleanup when modal is hidden
-    document.getElementById('modal_xl_close').addEventListener('hidden.bs.modal', function cleanup() {
+    document.getElementById('modal_full_close').addEventListener('hidden.bs.modal', function cleanup() {
         // Remove keyboard handler
         if (keyHandler) {
             document.removeEventListener('keydown', keyHandler);
@@ -1222,7 +1301,7 @@ function showPictureSlideshow(itemId) {
         }
         
         // Remove this event listener to prevent duplicates
-        document.getElementById('modal_xl_close').removeEventListener('hidden.bs.modal', cleanup);
+        document.getElementById('modal_full_close').removeEventListener('hidden.bs.modal', cleanup);
     });
     
     // Initialize content and show modal
@@ -1388,16 +1467,6 @@ function initializeAstrodexEventListeners() {
                 showAstrodexItemDetail(itemId);
             }
         }
-        
-        // Handle picture image clicks in detail view
-        if (target.tagName === 'IMG' && target.closest('.astrodex-pictures-grid')) {
-            const pictureImg = target.closest('[data-picture-url]');
-            if (pictureImg) {
-                const name = pictureImg.getAttribute('data-picture-name');
-                const url = pictureImg.getAttribute('data-picture-url');
-                showImagePopup(name, url);
-            }
-        }
     });
     
     // Handle keyboard events on Astrodex tab
@@ -1417,12 +1486,7 @@ function initializeAstrodexEventListeners() {
                 e.preventDefault();
                 const itemId = cardBody.getAttribute('data-item-id');
                 if (itemId) showAstrodexItemDetail(itemId);
-            } else if (pictureImg) {
-                e.preventDefault();
-                const name = pictureImg.getAttribute('data-picture-name');
-                const url = pictureImg.getAttribute('data-picture-url');
-                showImagePopup(name, url);
-            }
+            } 
         }
     });
     

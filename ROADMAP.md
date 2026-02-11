@@ -35,20 +35,11 @@ This document describes features that could potentially be integrated into MyAst
 - Automated backup scheduling
 - Configuration & Astrodex
 
-### Equipment Profiles System
-- Telescope profiles (focal length, aperture, type)
-- Camera profiles (sensor size, pixel size, cooling)
-- Mount profiles (payload capacity, tracking accuracy)
-- Filter profiles (transmission curves, narrowband)
-- Field of view calculator
-- Equipment combination recommendations
-- Useable for Astrodex
-
 ## Upgrade Features
 
 ### Enhanced Astrodex
 **Objective: Advanced Management of Astro Collections**
-- Photo Session Timeline
+- Photo Session Timeline (idea https://bootsnipp.com/snippets/P2nW7)
 - Interactive Map of Sky Objects
 - Suggestions based on weather and conditions
 

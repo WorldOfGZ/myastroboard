@@ -9,6 +9,7 @@ import re
 import json
 import sys
 from datetime import datetime, timedelta
+from dataclasses import asdict
 
 import sys
 import yaml
@@ -47,6 +48,9 @@ from auth import (
 
 # Astrodex
 import astrodex
+
+# Equipment Profiles
+import equipment_profiles
 
 # Initialize logger for this module
 logger = get_logger(__name__)
@@ -583,6 +587,7 @@ def health_simple_api():
     """Simple health check endpoint for Docker healthcheck"""
     return jsonify({"status": "healthy", "timestamp": datetime.now().isoformat()})
 
+
 @app.route('/api/cache', methods=['GET'])
 @login_required
 def cache_health_api():
@@ -597,8 +602,6 @@ def cache_health_api():
         "in_progress": status["in_progress"],
         "details": status
     })
-
-
 
 
 @app.route('/api/version', methods=['GET'])
@@ -991,7 +994,7 @@ def get_weather_alerts_api():
         return jsonify({"error": str(e)}), 500
     
 # ============================================================
-# API Moon
+# API Moon & Sun
 # ============================================================
 
 @app.route("/api/moon/report", methods=["GET"])
@@ -1079,7 +1082,6 @@ def get_next_7_nights_api():
     except Exception as e:
         app.logger.exception("Failed to read Moon Planner cache")
         return jsonify({"error": str(e)}), 500
-
 
 
 @app.route("/api/sun/today", methods=["GET"])
@@ -1475,6 +1477,751 @@ def check_item_in_astrodex(item_name):
     except Exception as e:
         logger.error(f"Error checking astrodex: {e}")
         return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/astrodex/constellations', methods=['GET'])
+@login_required
+def get_constellations():
+    """Get list of constellation names"""
+    try:
+        constellations = astrodex.get_constellations_list()
+        return jsonify({
+            'constellations': constellations
+        })
+    except Exception as e:
+        logger.error(f"Error getting constellations: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+# ============================================================
+# Equipment Profiles API
+# ============================================================
+
+# Telescopes
+@app.route('/api/equipment/telescopes', methods=['GET'])
+@login_required
+def get_telescopes():
+    """Get user's telescope profiles"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        data = equipment_profiles.load_user_telescopes(user_id)
+        return jsonify({
+            'data': data.get('items', []),
+            'created_at': data.get('created_at'),
+            'updated_at': data.get('updated_at')
+        })
+    except Exception as e:
+        logger.error(f"Error getting telescopes: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/telescopes', methods=['POST'])
+@login_required
+def create_telescope():
+    """Create a new telescope profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        telescope_data = request.json
+        new_telescope = equipment_profiles.create_telescope(user_id, telescope_data)
+        
+        if new_telescope:
+            return jsonify({
+                'status': 'success',
+                'data': new_telescope
+            }), 201
+        else:
+            return jsonify({'error': 'Failed to create telescope'}), 500
+    except Exception as e:
+        logger.error(f"Error creating telescope: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/telescopes/<telescope_id>', methods=['GET'])
+@login_required
+def get_telescope(telescope_id):
+    """Get a specific telescope profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        telescope = equipment_profiles.get_telescope(user_id, telescope_id)
+        
+        if telescope:
+            return jsonify(telescope)
+        else:
+            return jsonify({'error': 'Telescope not found'}), 404
+    except Exception as e:
+        logger.error(f"Error getting telescope: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/telescopes/<telescope_id>', methods=['PUT'])
+@login_required
+def update_telescope(telescope_id):
+    """Update a telescope profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        telescope_data = request.json
+        updated_telescope = equipment_profiles.update_telescope(user_id, telescope_id, telescope_data)
+        
+        if updated_telescope:
+            return jsonify({
+                'status': 'success',
+                'data': updated_telescope
+            })
+        else:
+            return jsonify({'error': 'Telescope not found or update failed'}), 404
+    except Exception as e:
+        logger.error(f"Error updating telescope: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/telescopes/<telescope_id>', methods=['DELETE'])
+@login_required
+def delete_telescope(telescope_id):
+    """Delete a telescope profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        success = equipment_profiles.delete_telescope(user_id, telescope_id)
+        
+        if success:
+            return jsonify({'status': 'success'})
+        else:
+            return jsonify({'error': 'Failed to delete telescope'}), 500
+    except Exception as e:
+        logger.error(f"Error deleting telescope: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+# Cameras
+@app.route('/api/equipment/cameras', methods=['GET'])
+@login_required
+def get_cameras():
+    """Get user's camera profiles"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        data = equipment_profiles.load_user_cameras(user_id)
+        return jsonify({
+            'data': data.get('items', []),
+            'created_at': data.get('created_at'),
+            'updated_at': data.get('updated_at')
+        })
+    except Exception as e:
+        logger.error(f"Error getting cameras: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/cameras', methods=['POST'])
+@login_required
+def create_camera():
+    """Create a new camera profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        camera_data = request.json
+        new_camera = equipment_profiles.create_camera(user_id, camera_data)
+        
+        if new_camera:
+            return jsonify({
+                'status': 'success',
+                'data': new_camera
+            }), 201
+        else:
+            return jsonify({'error': 'Failed to create camera'}), 500
+    except Exception as e:
+        logger.error(f"Error creating camera: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/cameras/<camera_id>', methods=['GET'])
+@login_required
+def get_camera(camera_id):
+    """Get a specific camera profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        camera = equipment_profiles.get_camera(user_id, camera_id)
+        
+        if camera:
+            return jsonify(camera)
+        else:
+            return jsonify({'error': 'Camera not found'}), 404
+    except Exception as e:
+        logger.error(f"Error getting camera: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/cameras/<camera_id>', methods=['PUT'])
+@login_required
+def update_camera(camera_id):
+    """Update a camera profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        camera_data = request.json
+        updated_camera = equipment_profiles.update_camera(user_id, camera_id, camera_data)
+        
+        if updated_camera:
+            return jsonify({
+                'status': 'success',
+                'data': updated_camera
+            })
+        else:
+            return jsonify({'error': 'Camera not found or update failed'}), 404
+    except Exception as e:
+        logger.error(f"Error updating camera: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/cameras/<camera_id>', methods=['DELETE'])
+@login_required
+def delete_camera(camera_id):
+    """Delete a camera profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        success = equipment_profiles.delete_camera(user_id, camera_id)
+        
+        if success:
+            return jsonify({'status': 'success'})
+        else:
+            return jsonify({'error': 'Failed to delete camera'}), 500
+    except Exception as e:
+        logger.error(f"Error deleting camera: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+# Mounts
+@app.route('/api/equipment/mounts', methods=['GET'])
+@login_required
+def get_mounts():
+    """Get user's mount profiles"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        data = equipment_profiles.load_user_mounts(user_id)
+        return jsonify({
+            'data': data.get('items', []),
+            'created_at': data.get('created_at'),
+            'updated_at': data.get('updated_at')
+        })
+    except Exception as e:
+        logger.error(f"Error getting mounts: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/mounts', methods=['POST'])
+@login_required
+def create_mount():
+    """Create a new mount profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        mount_data = request.json
+        new_mount = equipment_profiles.create_mount(user_id, mount_data)
+        
+        if new_mount:
+            return jsonify({
+                'status': 'success',
+                'data': new_mount
+            }), 201
+        else:
+            return jsonify({'error': 'Failed to create mount'}), 500
+    except Exception as e:
+        logger.error(f"Error creating mount: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/mounts/<mount_id>', methods=['GET'])
+@login_required
+def get_mount(mount_id):
+    """Get a specific mount profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        mount = equipment_profiles.get_mount(user_id, mount_id)
+        
+        if mount:
+            return jsonify(mount)
+        else:
+            return jsonify({'error': 'Mount not found'}), 404
+    except Exception as e:
+        logger.error(f"Error getting mount: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/mounts/<mount_id>', methods=['PUT'])
+@login_required
+def update_mount(mount_id):
+    """Update a mount profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        mount_data = request.json
+        updated_mount = equipment_profiles.update_mount(user_id, mount_id, mount_data)
+        
+        if updated_mount:
+            return jsonify({
+                'status': 'success',
+                'data': updated_mount
+            })
+        else:
+            return jsonify({'error': 'Mount not found or update failed'}), 404
+    except Exception as e:
+        logger.error(f"Error updating mount: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/mounts/<mount_id>', methods=['DELETE'])
+@login_required
+def delete_mount(mount_id):
+    """Delete a mount profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        success = equipment_profiles.delete_mount(user_id, mount_id)
+        
+        if success:
+            return jsonify({'status': 'success'})
+        else:
+            return jsonify({'error': 'Failed to delete mount'}), 500
+    except Exception as e:
+        logger.error(f"Error deleting mount: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+# Filters
+@app.route('/api/equipment/filters', methods=['GET'])
+@login_required
+def get_filters():
+    """Get user's filter profiles"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        data = equipment_profiles.load_user_filters(user_id)
+        return jsonify({
+            'data': data.get('items', []),
+            'created_at': data.get('created_at'),
+            'updated_at': data.get('updated_at')
+        })
+    except Exception as e:
+        logger.error(f"Error getting filters: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/filters', methods=['POST'])
+@login_required
+def create_filter():
+    """Create a new filter profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        filter_data = request.json
+        new_filter = equipment_profiles.create_filter(user_id, filter_data)
+        
+        if new_filter:
+            return jsonify({
+                'status': 'success',
+                'data': new_filter
+            }), 201
+        else:
+            return jsonify({'error': 'Failed to create filter'}), 500
+    except Exception as e:
+        logger.error(f"Error creating filter: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/filters/<filter_id>', methods=['GET'])
+@login_required
+def get_filter(filter_id):
+    """Get a specific filter profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        filter_obj = equipment_profiles.get_filter(user_id, filter_id)
+        
+        if filter_obj:
+            return jsonify(filter_obj)
+        else:
+            return jsonify({'error': 'Filter not found'}), 404
+    except Exception as e:
+        logger.error(f"Error getting filter: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/filters/<filter_id>', methods=['PUT'])
+@login_required
+def update_filter(filter_id):
+    """Update a filter profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        filter_data = request.json
+        updated_filter = equipment_profiles.update_filter(user_id, filter_id, filter_data)
+        
+        if updated_filter:
+            return jsonify({
+                'status': 'success',
+                'data': updated_filter
+            })
+        else:
+            return jsonify({'error': 'Filter not found or update failed'}), 404
+    except Exception as e:
+        logger.error(f"Error updating filter: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/filters/<filter_id>', methods=['DELETE'])
+@login_required
+def delete_filter(filter_id):
+    """Delete a filter profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        success = equipment_profiles.delete_filter(user_id, filter_id)
+        
+        if success:
+            return jsonify({'status': 'success'})
+        else:
+            return jsonify({'error': 'Failed to delete filter'}), 500
+    except Exception as e:
+        logger.error(f"Error deleting filter: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+# Accessories
+@app.route('/api/equipment/accessories', methods=['GET'])
+@login_required
+def get_accessories():
+    """Get user's accessory profiles"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        data = equipment_profiles.load_user_accessories(user_id)
+        return jsonify({
+            'data': data.get('items', []),
+            'created_at': data.get('created_at'),
+            'updated_at': data.get('updated_at')
+        })
+    except Exception as e:
+        logger.error(f"Error getting accessories: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/accessories', methods=['POST'])
+@login_required
+def create_accessory():
+    """Create a new accessory profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        accessory_data = request.json
+        new_accessory = equipment_profiles.create_accessory(user_id, accessory_data)
+        
+        if new_accessory:
+            return jsonify({
+                'status': 'success',
+                'data': new_accessory
+            }), 201
+        else:
+            return jsonify({'error': 'Failed to create accessory'}), 500
+    except Exception as e:
+        logger.error(f"Error creating accessory: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/accessories/<accessory_id>', methods=['GET'])
+@login_required
+def get_accessory(accessory_id):
+    """Get a specific accessory profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        accessory = equipment_profiles.get_accessory(user_id, accessory_id)
+        
+        if accessory:
+            return jsonify(accessory)
+        else:
+            return jsonify({'error': 'Accessory not found'}), 404
+    except Exception as e:
+        logger.error(f"Error getting accessory: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/accessories/<accessory_id>', methods=['PUT'])
+@login_required
+def update_accessory(accessory_id):
+    """Update an accessory profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        accessory_data = request.json
+        updated_accessory = equipment_profiles.update_accessory(user_id, accessory_id, accessory_data)
+        
+        if updated_accessory:
+            return jsonify({
+                'status': 'success',
+                'data': updated_accessory
+            })
+        else:
+            return jsonify({'error': 'Failed to update accessory'}), 500
+    except Exception as e:
+        logger.error(f"Error updating accessory: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/accessories/<accessory_id>', methods=['DELETE'])
+@login_required
+def delete_accessory(accessory_id):
+    """Delete an accessory profile"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        success = equipment_profiles.delete_accessory(user_id, accessory_id)
+        
+        if success:
+            return jsonify({'status': 'success'})
+        else:
+            return jsonify({'error': 'Failed to delete accessory'}), 500
+    except Exception as e:
+        logger.error(f"Error deleting accessory: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+# Equipment Combinations
+@app.route('/api/equipment/combinations', methods=['GET'])
+@login_required
+def get_combinations():
+    """Get user's equipment combinations"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        data = equipment_profiles.load_user_combinations(user_id)
+        return jsonify({
+            'data': data.get('items', []),
+            'created_at': data.get('created_at'),
+            'updated_at': data.get('updated_at')
+        })
+    except Exception as e:
+        logger.error(f"Error getting combinations: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/combinations', methods=['POST'])
+@login_required
+def create_combination():
+    """Create a new equipment combination"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        combination_data = request.json
+        new_combination = equipment_profiles.create_combination(user_id, combination_data)
+        
+        if new_combination:
+            return jsonify({
+                'status': 'success',
+                'data': new_combination
+            }), 201
+        else:
+            return jsonify({'error': 'Failed to create combination. At minimum a telescope or camera must be selected.'}), 400
+    except Exception as e:
+        logger.error(f"Error creating combination: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/combinations/<combination_id>', methods=['GET'])
+@login_required
+def get_combination(combination_id):
+    """Get a specific equipment combination"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        combination = equipment_profiles.get_combination(user_id, combination_id)
+        
+        if combination:
+            return jsonify(combination)
+        else:
+            return jsonify({'error': 'Combination not found'}), 404
+    except Exception as e:
+        logger.error(f"Error getting combination: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/combinations/<combination_id>', methods=['PUT'])
+@login_required
+def update_combination(combination_id):
+    """Update an equipment combination"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        combination_data = request.json
+        updated_combination = equipment_profiles.update_combination(user_id, combination_id, combination_data)
+        
+        if updated_combination:
+            return jsonify({
+                'status': 'success',
+                'data': updated_combination
+            })
+        else:
+            return jsonify({'error': 'Combination not found or update failed'}), 404
+    except Exception as e:
+        logger.error(f"Error updating combination: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/equipment/combinations/<combination_id>', methods=['DELETE'])
+@login_required
+def delete_combination(combination_id):
+    """Delete an equipment combination"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        success = equipment_profiles.delete_combination(user_id, combination_id)
+        
+        if success:
+            return jsonify({'status': 'success'})
+        else:
+            return jsonify({'error': 'Failed to delete combination'}), 500
+    except Exception as e:
+        logger.error(f"Error deleting combination: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+# FOV Calculator (standalone endpoint)
+@app.route('/api/equipment/fov-calculator', methods=['POST'])
+@login_required
+def calculate_fov():
+    """Calculate Field of View for given parameters"""
+    try:
+        data = request.json
+        
+        fov_calculation = equipment_profiles.calculate_fov(
+            telescope_focal_length_mm=float(data['telescope_focal_length_mm']),
+            camera_sensor_width_mm=float(data['camera_sensor_width_mm']),
+            camera_sensor_height_mm=float(data['camera_sensor_height_mm']),
+            camera_pixel_size_um=float(data['camera_pixel_size_um']),
+            seeing_arcsec=float(data.get('seeing_arcsec', 2.0))
+        )
+        
+        return jsonify(asdict(fov_calculation))
+    except Exception as e:
+        logger.error(f"Error calculating FOV: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+# Equipment Summary
+@app.route('/api/equipment/summary', methods=['GET'])
+@login_required
+def get_equipment_summary():
+    """Get summary of all user equipment"""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
+        summary = equipment_profiles.get_all_equipment_summary(user_id)
+        return jsonify(summary)
+    except Exception as e:
+        logger.error(f"Error getting equipment summary: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+# ============================================================
+# Scheduler Management
+# ============================================================
 
 def get_or_create_scheduler():
     """Get the scheduler instance, creating it if necessary"""

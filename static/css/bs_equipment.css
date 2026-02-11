@@ -1,0 +1,47 @@
+/* Equipment Profiles Styling */
+
+/* FOV Calculator Card */
+
+#fov-results {
+    margin-top: 1rem;
+}
+
+.btn-edit-telescope,
+.btn-edit-camera,
+.btn-edit-mount,
+.btn-edit-filter,
+.btn-edit-combination,
+.btn-delete-telescope,
+.btn-delete-camera,
+.btn-delete-mount,
+.btn-delete-filter,
+.btn-delete-combination,
+.btn-analyze-combination {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.card-footer.text-center .btn {
+    margin: 0 0.25rem;
+}
+
+.btn-icon-placeholder {
+    display: inline-block;
+    width: 1rem;
+}
+
+/* Filter Checkboxes */
+.filter-checkbox {
+    margin-right: 0.5rem;
+}
+
+.accessory-checkbox, .filter-checkbox {
+    border: 1px solid var(--border-violet);
+}
+
+.checkbox-popup-box {
+    max-height: 150px; 
+    border: 1px solid var(--bs-border-color);
+    padding: 10px;
+    background-color: var(--bg-light);
+}

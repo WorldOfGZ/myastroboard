@@ -43,6 +43,15 @@ Astrodex is your personal tracker for every celestial object you've captured. Br
 
 ![Astrodex Collection](docs/img/astrodex.png)
 
+### Equipment Profiles System
+- **Telescope profiles**: focal length, aperture, type
+- **Camera profiles**: sensor size, pixel size, ...
+- **Mount profiles**: payload capacity, tracking accuracy
+- **Filter profiles**: transmission curves, narrowband
+- **Field of view calculator**
+- **Equipment combination** recommendations
+- **Useable for Astrodex**
+
 ## 🚀 Quick Start
 
 Maybe now you want install it, and run it ! So you can consult the quick documentation:

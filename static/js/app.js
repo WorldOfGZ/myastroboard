@@ -1353,7 +1353,7 @@ function generateReportTable(report, catalogue, type) {
                         catalogue: catalogue,
                         ra: row['ra'] || row['right ascension'],
                         dec: row['dec'] || row['declination'],
-                        constellation: row['constellation'] || row['const'],
+                        constellation: (row['constellation'] || row['const'] || '').toLowerCase(),
                         mag: row['mag'] || row['visual magnitude'],
                         size: row['size']
                     };

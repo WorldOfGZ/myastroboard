@@ -4,10 +4,12 @@ Manages user collections of celestial objects they have photographed
 """
 import json
 import os
+import re
 import uuid
 from datetime import datetime
 from typing import Dict, List, Optional
 from logging_config import get_logger
+from constellation import Constellation
 
 logger = get_logger(__name__)
 
@@ -533,3 +535,12 @@ def get_astrodex_stats(user_id: str) -> Dict:
         'total_pictures': total_pictures,
         'types': types_count
     }
+
+
+def get_constellations_list() -> List[str]:
+    """Get a human-readable list of constellation names from the Constellation enum"""
+    def humanize(name: str) -> str:
+        # Add a space before each capital letter (except the first one) to humanize the name
+        return re.sub(r'(?<!^)(?=[A-Z])', ' ', name)
+    
+    return [humanize(constellation.name) for constellation in Constellation]

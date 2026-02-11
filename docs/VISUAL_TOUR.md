@@ -7,7 +7,8 @@ A visual walkthrough of MyAstroBoard's interface and capabilities.
 2. [Weather & Conditions](#weather--conditions)
 3. [Celestial Objects](#celestial-objects)
 4. [Astrodex Collections](#astrodex-collections)
-5. [Advanced Features](#advanced-features)
+5. [Equipment Profiles](#equipment-profiles)
+6. [Advanced Features](#advanced-features)
 
 ---
 
@@ -91,6 +92,27 @@ Track comprehensive imaging details:
 - Personal observations and improvements for next time
 
 ![Astrodex Editor](img/astrodex_editor.png)
+
+---
+
+## Equipment Profiles
+
+Create your complete equipement catalogue to see details, and pre-fill fields in Astrodex.
+
+![Equipment combination](img/equipment_combination.png)
+
+### Manage your equipment
+Manage completely your equipment: 
+- Telescopes
+- Camera
+- Mounting
+- Filters
+- Accessories
+- **Combine all these elements to create a equipment**
+
+![Add telescope](img/equipment_add_telescope.png)
+
+![Equipment accessories](img/equipment_accessories.png)
 
 ---
 
