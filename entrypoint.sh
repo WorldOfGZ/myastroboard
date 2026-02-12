@@ -4,6 +4,9 @@ set -e
 echo "[INFO] Fixing permissions on mounted volumes..."
 chown -R appuser:appuser /app/data /app/uptonight_outputs /app/uptonight_configs || true
 
+echo "[INFO] Cleaning temporary files in /app/data..."
+find /app/data -type f \( -name "*.lock" -o -name "*cache*" \) -delete || true
+
 # ---- Docker socket permissions fix ----
 if [ -S /var/run/docker.sock ]; then
     DOCKER_GID=$(stat -c '%g' /var/run/docker.sock)
