@@ -76,3 +76,4 @@ This document describes features that could potentially be integrated into MyAst
   - eclipse.peak
   - eclipse.total_end
   - eclipse.partial_end
+- Check if there is an interest to make a similar graph https://github.com/rejuvenate/lovelace-horizon-card 

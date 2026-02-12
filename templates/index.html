@@ -107,7 +107,10 @@
                         <a class="nav-link sub-tab-btn" href="#" data-subtab="trend">📈 Observation Conditions</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="sunmoon">🌓 Sun & Moon</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="moon">🌘 Moon</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="sun">☀️ Sun</a>
                     </li>
                 </ul>
             </div>
@@ -239,13 +242,8 @@
                 </div>
             </div>
 
-            <!-- Sun & moon Sub-tab -->
-            <div id="sunmoon-subtab" class="sub-tab-content">
-                <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌞 Sun</h2>
-                    <div id="sun-display" class="sun-info-card rounded"></div>
-                </div>
-
+            <!-- Moon Sub-tab -->
+            <div id="moon-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h2>🌓 Moon</h2>
                     <div id="moon-display" class="moon-info-card rounded"></div>
@@ -260,6 +258,14 @@
                         - <b>Illumination</b>: Sun < -18° AND Moon illumination < 15% => Visible moon, but faint
                     </div>
                     <div id="moon-planner-display"></div>
+                </div>
+            </div>
+
+            <!-- Sun Sub-tab -->
+            <div id="sun-subtab" class="sub-tab-content">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>🌞 Sun</h2>
+                    <div id="sun-display" class="sun-info-card rounded"></div>
                 </div>
             </div>
         </div>

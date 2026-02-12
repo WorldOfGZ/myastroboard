@@ -109,10 +109,11 @@ function switchSubTab(parentTab, subtabName) {
         loadBestDarkWindow();
     } else if (subtabName === 'trend') { //Forecast tab - Observation Conditions
         loadAstronomicalCharts();
-    } else if (subtabName === 'sunmoon') { //Forecast sunmoon - Weather
-        loadSun();
+    } else if (subtabName === 'moon') { //Forecast moon - Weather
         loadMoon();
         loadNextMoonPhases();
+    } else if (subtabName === 'sun') { //Forecast sun - Weather
+        loadSun();
     }
 }
 
