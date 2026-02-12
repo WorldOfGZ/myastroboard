@@ -267,9 +267,10 @@ class UserManager:
             # Update last login
             user.last_login = datetime.now().isoformat()
             self.save_users()
-            logger.info(f"User {username} authenticated successfully")
+            logger.info(f"Successful authentication for user {username}")
             return user
-        logger.warning(f"Authentication failed for user {username}")
+        # Log failure without revealing if username exists
+        logger.warning(f"Failed authentication attempt for username: {username}")
         return None
 
 
@@ -283,7 +284,9 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'username' not in session:
-            logger.warning(f"Unauthorized access attempt to {request.path}")
+            # Log failed authentication attempt via cookie
+            client_ip = request.remote_addr
+            logger.warning(f"Unauthorized access attempt to {request.path} from {client_ip} (no valid session cookie)")
             return jsonify({'error': 'Authentication required'}), 401
         return f(*args, **kwargs)
     return decorated_function
@@ -294,12 +297,14 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'username' not in session:
-            logger.warning(f"Unauthorized access attempt to {request.path}")
+            client_ip = request.remote_addr
+            logger.warning(f"Unauthorized access attempt to {request.path} from {client_ip} (no valid session cookie)")
             return jsonify({'error': 'Authentication required'}), 401
         
         user = user_manager.get_user(session['username'])
         if not user or not user.is_admin():
-            logger.warning(f"Non-admin user {session.get('username')} tried to access {request.path}")
+            client_ip = request.remote_addr
+            logger.warning(f"Non-admin user {session.get('username')} from {client_ip} attempted to access {request.path}")
             return jsonify({'error': 'Admin access required'}), 403
         
         return f(*args, **kwargs)

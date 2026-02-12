@@ -59,6 +59,7 @@ Maybe now you want install it, and run it ! So you can consult the quick documen
 - [Installation Guide](docs/1.INSTALLATION.md) - How to install and run MyAstroBoard
 - [Quick Start](docs/2.QUICKSTART.md) - Get up and running in 5 minutes
 - [Update Guide](docs/3.UPDATE.md) - How to update to the latest version
+- [Reverse Proxy & HTTPS Setup](docs/REVERSE_PROXY.md) - Deploy behind NGINX Proxy Manager, Traefik, or other reverse proxies
 - [Release Guide](docs/4.RELEASE.md) - How to publish new versions (for maintainers)
 
 ## Views

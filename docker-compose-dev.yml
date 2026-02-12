@@ -32,7 +32,16 @@ services:
       # If not set, sessions will be invalidated on container restart
       - SECRET_KEY=a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456
       
-      # Session cookie security (for development, keep false)
+      # Reverse Proxy Configuration (NGINX Proxy Manager, Traefik, etc.)
+      # CRITICAL: Set TRUST_PROXY_HEADERS=true when using a reverse proxy with HTTPS termination
+      # This allows Flask to trust X-Forwarded-* headers from the proxy
+      # See docs/6.REVERSE_PROXY.md for complete setup guide
+      - TRUST_PROXY_HEADERS=false
+      
+      # Session cookie security (enable for HTTPS/production)
+      # Set to "true" when using HTTPS to prevent cookie theft over unencrypted connections
+      # When using reverse proxy with HTTPS, set both TRUST_PROXY_HEADERS=true and SESSION_COOKIE_SECURE=true
+      # (for development, keep false)
       - SESSION_COOKIE_SECURE=false
 
       # App

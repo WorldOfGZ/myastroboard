@@ -14,11 +14,16 @@ Welcome to the comprehensive documentation for MyAstroBoard, the integrated astr
 - [Quick Start](2.QUICKSTART.md) - Get up and running in 5 minutes
 - [Updating](3.UPDATE.md) - How to update to new versions
 
+### Deployment & Security
+- [Reverse Proxy & HTTPS Setup](6.REVERSE_PROXY.md) - Deploy behind NGINX Proxy Manager, Traefik, or other reverse proxies with HTTPS
+
 ### For Maintainers
 - [Release Guide](4.RELEASE.md) - How to publish new versions and create releases
 
 ### Advanced Topics
 - [Organization](5.ORGANIZATION.md) - How the repo is organized
+- [Cache System](CACHE_SYSTEM.md) - Understanding the caching architecture
+- [Visual Tour](VISUAL_TOUR.md) - Screenshots and feature walkthrough
 
 ## 🚀 Quick Links
 

@@ -2,8 +2,9 @@
 MyAstroBoard - Flask Backend API
 Provides astronomy planning and configuration management
 """
-from flask import Flask, request, jsonify, render_template, send_file, send_from_directory, session, redirect, url_for
+from flask import Flask, request, jsonify, render_template, send_file, send_from_directory, session, redirect, url_for, g
 from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import re
 import json
@@ -59,6 +60,21 @@ app = Flask(__name__,
             template_folder='../templates',
             static_folder='../static')
 
+# Configure reverse proxy support (e.g., NGINX Proxy Manager with HTTPS termination)
+# When TRUST_PROXY_HEADERS=true, Flask will trust X-Forwarded-* headers from the proxy
+# This is REQUIRED when using NGINX/reverse proxy with HTTPS termination
+# Set TRUST_PROXY_HEADERS=true and SESSION_COOKIE_SECURE=true for production with HTTPS proxy
+if os.environ.get('TRUST_PROXY_HEADERS', 'False').lower() == 'true':
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app,
+        x_for=1,      # Trust X-Forwarded-For (client IP)
+        x_proto=1,    # Trust X-Forwarded-Proto (http/https) - CRITICAL for SESSION_COOKIE_SECURE
+        x_host=1,     # Trust X-Forwarded-Host
+        x_port=1,     # Trust X-Forwarded-Port
+        x_prefix=1    # Trust X-Forwarded-Prefix (for path-based proxying)
+    )
+    logger.info("ProxyFix middleware enabled - trusting X-Forwarded-* headers from reverse proxy")
+
 # Configure session
 # Use SECRET_KEY from environment, or generate random one (will invalidate sessions on restart)
 secret_key = os.environ.get('SECRET_KEY')
@@ -83,6 +99,23 @@ DMS_PATTERN = re.compile(r"([+-]?\d+)[d°]\s*(\d+)[m']\s*([\d.]+)[s\"]?")
 # API Utils
 # ============================================================
 
+@app.before_request
+def log_session_restoration():
+    """Log when a user session is restored from cookie"""
+    # Only log for non-static routes and when session exists
+    if request.endpoint and not request.endpoint.startswith('static'):
+        if 'username' in session and not hasattr(g, 'session_logged'):
+            # Mark that we've logged this session to avoid duplicate logs
+            g.session_logged = True
+            
+            # Check if this is a cookie restoration (not a fresh login)
+            if request.endpoint not in ['login', 'auth_status']:
+                user = get_current_user()
+                if user:
+                    is_permanent = session.permanent
+                    logger.info(f"Session restored from cookie for user {user.username} " +
+                              f"(permanent: {is_permanent}, endpoint: {request.endpoint})")
+
 @app.route('/')
 def index():
     """Render main dashboard or redirect to login"""
@@ -100,10 +133,8 @@ def login_page():
     """Render login page"""
     # Get version for cache busting
     version = get_repo_version()
-    # Pass SESSION_COOKIE_SECURE setting to show/hide remember-me checkbox
-    session_cookie_secure = app.config.get('SESSION_COOKIE_SECURE', False)
     
-    return render_template('login.html', version=version, session_cookie_secure=session_cookie_secure)
+    return render_template('login.html', version=version)
 
 
 # ============================================================
@@ -120,22 +151,26 @@ def login():
         remember_me = data.get('remember_me', False)
         
         if not username or not password:
+            logger.warning(f"Login attempt with missing credentials")
             return jsonify({'error': 'Username and password required'}), 400
         
         user = user_manager.authenticate(username, password)
         if user:
+            # Set session to permanent BEFORE setting session data
+            # This ensures the cookie is created with the correct expiration
+            session.permanent = remember_me
+            
             session['user_id'] = user.user_id
             session['username'] = user.username
             session['role'] = user.role
             
-            # Set session to permanent if remember_me is checked
-            # This will use PERMANENT_SESSION_LIFETIME (30 days)
-            session.permanent = remember_me
-            
             # Check if using default password
             using_default_password = user.is_using_default_password()
             
-            logger.debug(f"User {username} logged in successfully (remember_me: {remember_me})")
+            # Log successful login with remember_me status
+            logger.info(f"Successful login for user {username} " +
+                       f"(remember_me: {remember_me}, permanent_session: {session.permanent})")
+            
             return jsonify({
                 'status': 'success',
                 'user_id': user.user_id,
@@ -144,6 +179,7 @@ def login():
                 'using_default_password': using_default_password
             })
         else:
+            logger.warning(f"Failed login attempt for username: {username}")
             return jsonify({'error': 'Invalid credentials'}), 401
     except Exception as e:
         logger.error(f"Login error: {e}")
@@ -155,14 +191,13 @@ def login():
 def logout():
     """Logout endpoint"""
     username = session.get('username')
+    was_permanent = session.permanent
     session.clear()
-    logger.info(f"User {username} logged out")
     
-    # Create response and clear the session cookie
-    response = jsonify({'status': 'success'})
-    response.set_cookie('session', '', expires=0, httponly=True, samesite='Lax')
+    logger.info(f"User {username} logged out (was_permanent: {was_permanent})")
     
-    return response
+    # session.clear() handles cookie removal properly
+    return jsonify({'status': 'success'})
 
 
 @app.route('/api/auth/status', methods=['GET'])
