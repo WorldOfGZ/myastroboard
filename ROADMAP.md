@@ -48,3 +48,31 @@ This document describes features that could potentially be integrated into MyAst
 - Currently every 6 hours with current weather
 - Idea is to launch at startup, with forecast meteo (from next x hours)
 - Second launch closer to night session with current weather
+
+### Enhanced Sun/Moon page
+**Additional informations usefull**
+- Next solar Eclipse (astronomy-engine)
+- Next lunar Eclipse (astronomy-engine)
+- Astrophotography score classification
+- Graphic altitude vs time (local time)
+- Usefull info for solar, to be checked: 
+  - Visible from lat/lon
+  - Type → visual impact and rarity
+  - Altitude → height above the horizon
+  - Azimuth → direction for setting up
+  - Obscuration → percentage of the sun obscured
+  - Duration → shooting window
+  - Start time (local time)
+  - End time (local time)
+- Usefull info for lunar, to be checked: 
+  - Visible from lat/lon
+  - Peak local time
+  - Type (penumbral / partial / total)
+  - Time of maximum
+  - Overall visibility
+- Check with astronomy already computed
+  - eclipse.partial_begin
+  - eclipse.total_begin
+  - eclipse.peak
+  - eclipse.total_end
+  - eclipse.partial_end
