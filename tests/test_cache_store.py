@@ -4,6 +4,7 @@ Tests the server-side cache management system with TTL-based expiration
 """
 import pytest
 import time
+import os
 from constants import CACHE_TTL, WEATHER_CACHE_TTL
 
 # Import cache variables and functions to test
@@ -23,6 +24,27 @@ from cache_store import (
     get_cache_init_status,
     set_cache_initialization_in_progress
 )
+
+
+@pytest.fixture(autouse=True)
+def reset_location_tracking_state():
+    """Reset location tracking state to avoid cross-test contamination."""
+    import cache_store
+
+    _last_known_location_config.clear()
+    _last_known_location_config.update({
+        "latitude": None,
+        "longitude": None,
+        "elevation": None,
+        "timezone": None
+    })
+    cache_store._last_known_location_config = _last_known_location_config
+
+    location_cache_file = os.path.join(cache_store.DATA_DIR, 'location_cache.json')
+    if os.path.exists(location_cache_file):
+        os.remove(location_cache_file)
+
+    yield
 
 
 class TestCacheStructures:

@@ -170,7 +170,7 @@ def format_file_size(size_bytes: float) -> str:
         if size < 1024:
             return f"{size:.1f} {unit}"
         size /= 1024
-    return f"{size_bytes:.1f} TB"
+    return f"{size:.1f} TB"
 
 
 def get_environment_info() -> Dict[str, str]:

@@ -222,6 +222,30 @@ class FOVCalculation:
     camera_name: str = ""
 
 
+@dataclass
+class CombinationAnalysis:
+    """Equipment combination analysis results"""
+    combination_id: str
+    telescope: Optional[Dict] = None
+    camera: Optional[Dict] = None
+    mount: Optional[Dict] = None
+    filters: Optional[List[Dict]] = None
+    accessories: Optional[List[Dict]] = None
+    fov_calculation: Optional[FOVCalculation] = None
+    suitability: Optional[List[str]] = None
+    recommendations: Optional[List[str]] = None
+
+    def __post_init__(self):
+        if self.filters is None:
+            self.filters = []
+        if self.accessories is None:
+            self.accessories = []
+        if self.suitability is None:
+            self.suitability = []
+        if self.recommendations is None:
+            self.recommendations = []
+
+
 # ============================================================
 # Directory & File Management
 # ============================================================
@@ -1149,6 +1173,101 @@ def delete_combination(user_id: str, combination_id: str) -> bool:
 # ============================================================
 # Equipment Combination Analysis
 # ============================================================
+
+def analyze_combination(user_id: str, combination_id: str) -> Optional[CombinationAnalysis]:
+    """Analyze an equipment combination for imaging suitability"""
+    try:
+        combination = get_combination(user_id, combination_id)
+        if not combination:
+            return None
+
+        telescope_id_value = combination.get('telescope_id')
+        camera_id_value = combination.get('camera_id')
+        mount_id_value = combination.get('mount_id')
+
+        telescope_id: Optional[str] = telescope_id_value if isinstance(telescope_id_value, str) else None
+        camera_id: Optional[str] = camera_id_value if isinstance(camera_id_value, str) else None
+        mount_id: Optional[str] = mount_id_value if isinstance(mount_id_value, str) else None
+
+        telescope = get_telescope(user_id, telescope_id) if telescope_id else None
+        camera = get_camera(user_id, camera_id) if camera_id else None
+        mount = get_mount(user_id, mount_id) if mount_id else None
+
+        filter_items: List[Dict] = []
+        for filter_id in combination.get('filter_ids', []) or []:
+            filter_obj = get_filter(user_id, filter_id)
+            if filter_obj:
+                filter_items.append(filter_obj)
+
+        accessory_items: List[Dict] = []
+        for accessory_id in combination.get('accessory_ids', []) or []:
+            accessory_obj = get_accessory(user_id, accessory_id)
+            if accessory_obj:
+                accessory_items.append(accessory_obj)
+
+        fov_result = None
+        suitability: List[str] = []
+        recommendations: List[str] = []
+
+        if telescope and camera:
+            focal_length = telescope.get('effective_focal_length') or telescope.get('focal_length_mm')
+            if focal_length and camera.get('sensor_width_mm') and camera.get('sensor_height_mm') and camera.get('pixel_size_um'):
+                fov_result = calculate_fov(
+                    telescope_focal_length_mm=float(focal_length),
+                    camera_sensor_width_mm=float(camera['sensor_width_mm']),
+                    camera_sensor_height_mm=float(camera['sensor_height_mm']),
+                    camera_pixel_size_um=float(camera['pixel_size_um'])
+                )
+                fov_result.telescope_name = telescope.get('name', '')
+                fov_result.camera_name = camera.get('name', '')
+
+                if fov_result.sampling_classification == SamplingClassification.OPTIMAL.value:
+                    suitability.append("Balanced setup for typical seeing conditions")
+                elif fov_result.sampling_classification == SamplingClassification.UNDERSAMPLED.value:
+                    suitability.append("Better suited for wide-field targets")
+                    recommendations.append("Use a longer focal length or smaller pixel camera for finer details")
+                else:
+                    suitability.append("Better suited for high-resolution imaging")
+                    recommendations.append("Use binning or shorter focal length for easier guiding")
+
+                if fov_result.diagonal_fov_deg >= 2.0:
+                    suitability.append("Well suited for large nebulae and wide fields")
+                elif fov_result.diagonal_fov_deg <= 0.5:
+                    suitability.append("Well suited for compact targets like galaxies and planetary nebulae")
+            else:
+                recommendations.append("Complete telescope and camera specifications to compute FOV")
+        else:
+            recommendations.append("Select both a telescope and a camera for full optical analysis")
+
+        if mount and telescope:
+            camera_weight = float(camera.get('weight_kg', 0.0) or 0.0) if camera else 0.0
+            total_payload = float(telescope.get('weight_kg', 0.0) or 0.0) + camera_weight
+            recommended_payload = float(mount.get('recommended_payload_kg', 0.0) or 0.0)
+            if total_payload > 0 and recommended_payload > 0:
+                if total_payload <= recommended_payload:
+                    suitability.append("Payload is within recommended mount limits")
+                else:
+                    recommendations.append("Payload may be too high for optimal tracking performance")
+
+        if not suitability:
+            suitability.append("Basic equipment combination is valid")
+        if not recommendations:
+            recommendations.append("No critical issues detected")
+
+        return CombinationAnalysis(
+            combination_id=combination_id,
+            telescope=telescope,
+            camera=camera,
+            mount=mount,
+            filters=filter_items,
+            accessories=accessory_items,
+            fov_calculation=fov_result,
+            suitability=suitability,
+            recommendations=recommendations
+        )
+    except Exception as e:
+        logger.error(f"Error analyzing combination: {e}")
+        return None
 
 # ============================================================
 # Utility Functions

@@ -193,7 +193,7 @@ def test_create_mount(temp_data_dir, test_user_id):
     assert mount is not None
     assert mount['name'] == 'EQ6-R Pro'
     assert mount['payload_capacity_kg'] == 20
-    assert mount['recommended_payload_kg'] == 12.0  # 60% of 20
+    assert mount['recommended_payload_kg'] == 15.0  # 75% of 20
     assert mount['guiding_supported'] is True
 
 
