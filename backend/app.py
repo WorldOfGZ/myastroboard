@@ -110,11 +110,16 @@ def log_session_restoration():
             
             # Check if this is a cookie restoration (not a fresh login)
             if request.endpoint not in ['login', 'auth_status']:
-                user = get_current_user()
-                if user:
-                    is_permanent = session.permanent
-                    logger.info(f"Session restored from cookie for user {user.username} " +
-                              f"(permanent: {is_permanent}, endpoint: {request.endpoint})")
+                if not session.get('_session_restored_logged'):
+                    user = get_current_user()
+                    if user:
+                        is_permanent = session.permanent
+                        logger.info(
+                            f"Session restored from cookie for user {user.username} "
+                            f"(permanent: {is_permanent}, endpoint: {request.endpoint})"
+                        )
+                        # Log once per session to avoid request spam
+                        session['_session_restored_logged'] = True
 
 @app.route('/')
 def index():
