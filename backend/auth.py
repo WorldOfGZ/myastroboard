@@ -192,9 +192,6 @@ class UserManager:
         if not user:
             raise ValueError(f"User with ID {user_id} not found")
         
-        if user.username == DEFAULT_ADMIN_USERNAME:
-            raise ValueError("Cannot delete default admin user")
-        
         # Prevent deleting your own account
         if current_user_id and user_id == current_user_id:
             raise ValueError("Cannot delete your own account")
