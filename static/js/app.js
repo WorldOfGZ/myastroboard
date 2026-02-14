@@ -28,7 +28,7 @@ async function initializeApp() {
     checkCacheStatus();
     
     // Load initial page
-    switchSubTab("forecast", "weather"); 
+    switchSubTab("forecast", "astro-weather"); 
 }
 
 function setupMainTabs() {
