@@ -79,11 +79,33 @@ if os.environ.get('TRUST_PROXY_HEADERS', 'False').lower() == 'true':
     logger.info("ProxyFix middleware enabled - trusting X-Forwarded-* headers from reverse proxy")
 
 # Configure session
-# Use SECRET_KEY from environment, or generate random one (will invalidate sessions on restart)
+# Use SECRET_KEY from environment, or a persisted key in data dir.
+# This avoids session invalidation on reload/restart when SECRET_KEY is not explicitly set.
 secret_key = os.environ.get('SECRET_KEY')
 if not secret_key:
-    secret_key = os.urandom(24)
-    logger.warning("No SECRET_KEY environment variable set. Using random key - sessions will be invalidated on restart.")
+    secret_key_file = os.path.join(DATA_DIR, '.flask_secret_key')
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        if os.path.exists(secret_key_file):
+            with open(secret_key_file, 'r', encoding='utf-8') as key_file:
+                persisted_key = key_file.read().strip()
+                if persisted_key:
+                    secret_key = persisted_key
+        if not secret_key:
+            import secrets
+            secret_key = secrets.token_hex(32)
+            with open(secret_key_file, 'w', encoding='utf-8') as key_file:
+                key_file.write(secret_key)
+            logger.warning(
+                "No SECRET_KEY environment variable set. Generated and persisted a local key in data directory."
+            )
+        else:
+            logger.info("Using persisted Flask secret key from data directory.")
+    except Exception as e:
+        secret_key = os.urandom(24)
+        logger.warning(
+            f"Failed to read/write persisted secret key ({e}). Using random key - sessions may be invalidated on restart."
+        )
 app.secret_key = secret_key
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'

@@ -78,6 +78,7 @@ class UserManager:
     
     def __init__(self):
         self.users = {}
+        self._users_mtime = None
         self.load_users()
         self.ensure_default_admin()
     
@@ -91,13 +92,31 @@ class UserManager:
                         key: User.from_dict(user_data)
                         for key, user_data in data.items()
                     }
+                self._users_mtime = os.path.getmtime(USERS_FILE)
                 logger.debug(f"Loaded {len(self.users)} users from {USERS_FILE}")
             except Exception as e:
                 logger.error(f"Error loading users: {e}")
                 self.users = {}
+                self._users_mtime = None
         else:
             logger.info("No users file found, starting fresh")
             self.users = {}
+            self._users_mtime = None
+
+    def _reload_users_if_changed(self):
+        """Reload users from disk when file changed (multi-worker sync)."""
+        try:
+            if not os.path.exists(USERS_FILE):
+                if self.users:
+                    self.users = {}
+                self._users_mtime = None
+                return
+
+            current_mtime = os.path.getmtime(USERS_FILE)
+            if self._users_mtime is None or current_mtime != self._users_mtime:
+                self.load_users()
+        except Exception as e:
+            logger.warning(f"Failed to check users file freshness: {e}")
     
     def save_users(self):
         """Save users to file"""
@@ -111,6 +130,7 @@ class UserManager:
             }
             with open(USERS_FILE, 'w') as f:
                 json.dump(data, f, indent=2)
+            self._users_mtime = os.path.getmtime(USERS_FILE)
             logger.debug(f"Saved {len(self.users)} users to {USERS_FILE}")
         except Exception as e:
             logger.error(f"Error saving users: {e}")
@@ -129,6 +149,8 @@ class UserManager:
     
     def create_user(self, username, password, role):
         """Create a new user"""
+        self._reload_users_if_changed()
+
         if self.get_user_by_username(username):
             raise ValueError(f"User {username} already exists")
         
@@ -147,6 +169,7 @@ class UserManager:
     
     def get_user_by_username(self, username):
         """Get user by username"""
+        self._reload_users_if_changed()
         for user in self.users.values():
             if user.username == username:
                 return user
@@ -154,6 +177,7 @@ class UserManager:
     
     def get_user_by_id(self, user_id):
         """Get user by UUID"""
+        self._reload_users_if_changed()
         return self.users.get(user_id)
     
     def get_user(self, username):
@@ -162,6 +186,7 @@ class UserManager:
     
     def update_user(self, user_id, username=None, password=None, role=None):
         """Update user username, password and/or role"""
+        self._reload_users_if_changed()
         user = self.get_user_by_id(user_id)
         if not user:
             raise ValueError(f"User with ID {user_id} not found")
@@ -188,6 +213,7 @@ class UserManager:
     
     def delete_user(self, user_id, current_user_id=None):
         """Delete a user"""
+        self._reload_users_if_changed()
         user = self.get_user_by_id(user_id)
         if not user:
             raise ValueError(f"User with ID {user_id} not found")
@@ -246,6 +272,7 @@ class UserManager:
     
     def list_users(self):
         """List all users (without password hashes)"""
+        self._reload_users_if_changed()
         return [
             {
                 'user_id': user.user_id,
@@ -259,6 +286,7 @@ class UserManager:
     
     def authenticate(self, username, password):
         """Authenticate user"""
+        self._reload_users_if_changed()
         user = self.get_user_by_username(username)
         if user and user.check_password(password):
             # Update last login
