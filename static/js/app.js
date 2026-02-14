@@ -112,8 +112,10 @@ function switchSubTab(parentTab, subtabName) {
     } else if (subtabName === 'moon') { //Forecast moon - Weather
         loadMoon();
         loadNextMoonPhases();
+        loadLunarEclipse();
     } else if (subtabName === 'sun') { //Forecast sun - Weather
         loadSun();
+        loadSolarEclipse();
     }
 }
 

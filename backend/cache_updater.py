@@ -13,6 +13,9 @@ from moon_astrotonight import AstroTonightService
 from moon_phases import MoonService
 from moon_planner import MoonPlanner
 from sun_phases import SunService
+from sun_eclipse import SolarEclipseService
+from moon_eclipse import LunarEclipseService
+from horizon_graph import HorizonGraphService
 from weather_openmeteo import get_hourly_forecast
 import cache_store
 
@@ -307,7 +310,201 @@ def update_weather_cache():
         
     except Exception as e:
         logger.error(f"Failed to update Weather forecast cache: {e}")
+
+
+def update_solar_eclipse_cache():
+    """
+    Updates the Solar Eclipse cache
+    """
+    try:
+        logger.debug("Updating Solar Eclipse cache...")
+        config = load_config()
         
+        if not config.get("location"):
+            raise ValueError("Location configuration is missing")
+        
+        location = config["location"]
+        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
+
+        eclipse_service = SolarEclipseService(
+            latitude=location["latitude"],
+            longitude=location["longitude"],
+            timezone=location["timezone"]
+        )
+
+        eclipse = eclipse_service.get_next_eclipse()
+
+        if eclipse is None:
+            response = {
+                "location": config["location"],
+                "solar_eclipse": None,
+                "message": "No solar eclipse found in the next 18 months"
+            }
+        else:
+            # Convert dataclass to dict
+            eclipse_dict = eclipse.__dict__.copy()
+            # Convert altitude_vs_time EclipsePoint objects to dicts
+            if "altitude_vs_time" in eclipse_dict:
+                eclipse_dict["altitude_vs_time"] = [
+                    point.__dict__ for point in eclipse_dict["altitude_vs_time"]
+                ]
+            
+            response = {
+                "location": config["location"],
+                "solar_eclipse": eclipse_dict,
+                "units": {
+                    "times": "ISO format local timezone",
+                    "altitude": "degrees",
+                    "azimuth": "degrees",
+                    "duration": "minutes",
+                    "astrophotography_score": "0-10"
+                }
+            }
+
+        # Update global cache
+        cache_store._solar_eclipse_cache["data"] = response
+        cache_store._solar_eclipse_cache["timestamp"] = time.time()
+        cache_store.update_shared_cache_entry(
+            "solar_eclipse",
+            cache_store._solar_eclipse_cache["data"],
+            cache_store._solar_eclipse_cache["timestamp"]
+        )
+
+        logger.info(f"Solar eclipse cache updated at {datetime.now().isoformat()}")
+
+    except Exception as e:
+        logger.error(f"Failed to update Solar Eclipse cache: {e}", exc_info=True)
+
+
+def update_lunar_eclipse_cache():
+    """
+    Updates the Lunar Eclipse cache
+    """
+    try:
+        logger.debug("Updating Lunar Eclipse cache...")
+        config = load_config()
+        
+        if not config.get("location"):
+            raise ValueError("Location configuration is missing")
+        
+        location = config["location"]
+        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
+
+        eclipse_service = LunarEclipseService(
+            latitude=location["latitude"],
+            longitude=location["longitude"],
+            timezone=location["timezone"]
+        )
+
+        eclipse = eclipse_service.get_next_eclipse()
+
+        if eclipse is None:
+            response = {
+                "location": config["location"],
+                "lunar_eclipse": None,
+                "message": "No lunar eclipse found in the next 18 months"
+            }
+        else:
+            # Convert dataclass to dict
+            eclipse_dict = eclipse.__dict__.copy()
+            # Convert altitude_vs_time EclipsePoint objects to dicts
+            if "altitude_vs_time" in eclipse_dict:
+                eclipse_dict["altitude_vs_time"] = [
+                    point.__dict__ for point in eclipse_dict["altitude_vs_time"]
+                ]
+            
+            response = {
+                "location": config["location"],
+                "lunar_eclipse": eclipse_dict,
+                "units": {
+                    "times": "ISO format local timezone",
+                    "altitude": "degrees",
+                    "azimuth": "degrees",
+                    "duration": "minutes",
+                    "astrophotography_score": "0-10"
+                }
+            }
+
+        # Update global cache
+        cache_store._lunar_eclipse_cache["data"] = response
+        cache_store._lunar_eclipse_cache["timestamp"] = time.time()
+        cache_store.update_shared_cache_entry(
+            "lunar_eclipse",
+            cache_store._lunar_eclipse_cache["data"],
+            cache_store._lunar_eclipse_cache["timestamp"]
+        )
+
+        logger.info(f"Lunar eclipse cache updated at {datetime.now().isoformat()}")
+
+    except Exception as e:
+        logger.error(f"Failed to update Lunar Eclipse cache: {e}", exc_info=True)
+
+def update_horizon_graph_cache():
+    """
+    Updates the Horizon Graph cache (sun and moon positions throughout the day)
+    """
+    try:
+        logger.info("Updating Horizon Graph cache...")
+        config = load_config()
+        
+        if not config.get("location"):
+            raise ValueError("Location configuration is missing")
+        
+        location = config["location"]
+        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
+
+        horizon_service = HorizonGraphService(
+            latitude=location["latitude"],
+            longitude=location["longitude"],
+            timezone=location["timezone"]
+        )
+
+        horizon_data = horizon_service.get_horizon_data()
+
+        if horizon_data is None:
+            response = {
+                "location": config["location"],
+                "horizon_data": None,
+                "message": "Failed to calculate horizon data"
+            }
+        else:
+            # Convert dataclass to dict
+            horizon_dict = horizon_data.__dict__.copy()
+            # Convert HorizonPoint objects to dicts
+            if "sun_data" in horizon_dict:
+                horizon_dict["sun_data"] = [
+                    point.__dict__ for point in horizon_dict["sun_data"]
+                ]
+            if "moon_data" in horizon_dict:
+                horizon_dict["moon_data"] = [
+                    point.__dict__ for point in horizon_dict["moon_data"]
+                ]
+            
+            response = {
+                "location": config["location"],
+                "horizon_data": horizon_dict,
+                "units": {
+                    "altitude": "degrees",
+                    "azimuth": "degrees",
+                    "time": "HH:MM local timezone"
+                }
+            }
+
+        # Update global cache
+        cache_store._horizon_graph_cache["data"] = response
+        cache_store._horizon_graph_cache["timestamp"] = time.time()
+        cache_store.update_shared_cache_entry(
+            "horizon_graph",
+            cache_store._horizon_graph_cache["data"],
+            cache_store._horizon_graph_cache["timestamp"]
+        )
+
+        logger.info(f"Horizon Graph cache updated at {datetime.now().isoformat()}")
+
+    except Exception as e:
+        logger.error(f"Failed to update Horizon Graph cache: {e}", exc_info=True)
+        
+
 def fully_initialize_caches():
     """
     Updates all cache entries with fresh calculations.
@@ -331,6 +528,9 @@ def fully_initialize_caches():
             ("Dark window", update_dark_window_cache),
             ("Moon planner", update_moon_planner_cache),
             ("Sun report", update_sun_report_cache),
+            ("Solar eclipse", update_solar_eclipse_cache),
+            ("Lunar eclipse", update_lunar_eclipse_cache),
+            ("Horizon graph", update_horizon_graph_cache),
             ("Best window", update_best_window_cache),
             ("Weather forecast", update_weather_cache)
         ]

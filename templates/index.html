@@ -160,6 +160,14 @@
                             <h3>🌡️ Current Conditions</h3>
                             <div id="astro-current-conditions" class="row row-cols-1 row-cols-sm-3 row-cols-lg-4 row-cols-xl-5 p-2"></div>
                         </div>
+
+                        <!-- Horizon Graph -->
+                        <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                            <h3>🌅 Horizon Graph</h3>
+                            <div id="horizon-graph-loading" style="display: none;" class="alert alert-info">Loading horizon graph...</div>
+                            <div id="horizon-graph-error" style="display: none;"></div>
+                            <div id="horizon-graph-display" class="row row-cols-1 p-2"></div>
+                        </div>
                         
                         <!-- Best Observation Periods -->
                         <div class="shadow p-2 mb-3 rounded bg-sub-container">
@@ -178,21 +186,9 @@
                         <div class="shadow p-2 mb-3 rounded bg-sub-container">
                             <h3>📊 Advanced Weather Analysis</h3>
                             <div class="row row-cols-1 row-cols-sm-1 row-cols-lg-1 row-cols-xl-2 p-2">
-                                <div class="col mb-3">
-                                    <div class="card h-100">
-                                        <canvas id="astro-seeing-chart"></canvas>
-                                    </div>
-                                </div>
-                                <div class="col mb-3">
-                                    <div class="card h-100">
-                                        <canvas id="astro-clouds-chart"></canvas>
-                                    </div>
-                                </div>
-                                <div class="col mb-3">
-                                    <div class="card h-100">
-                                    <canvas id="astro-conditions-chart"></canvas>
-                                    </div>
-                                </div>
+                                <div id="astro-seeing-chart-container"></div>
+                                <div id="astro-clouds-chart-container"></div>
+                                <div id="astro-conditions-chart-container"></div>
                             </div>
                         </div>
                     </div>
@@ -224,16 +220,8 @@
                     </div>
 
                     <div class="row row-cols-1 row-cols-sm-1 row-cols-lg-1 row-cols-xl-2 p-2 mb-3" id="astro-charts-container">
-                        <div class="col mb-3">
-                            <div class="card h-100 trend-chart-card">
-                                <canvas id="cloudConditionsChart" class="trend-chart-canvas"></canvas>
-                            </div>
-                        </div>
-                        <div class="col mb-3">
-                            <div class="card h-100 trend-chart-card">
-                                <canvas id="seeingConditionsChart" class="trend-chart-canvas"></canvas>
-                            </div>
-                        </div>
+                        <div id="cloudConditionsChartContainer" class="col mb-3"></div>
+                        <div id="seeingConditionsChartContainer" class="col mb-3"></div>
                     </div>
                     
                     <div id="astro-charts-error" class="alert alert-danger" role="alert" style="display: none">
@@ -259,6 +247,11 @@
                     </div>
                     <div id="moon-planner-display"></div>
                 </div>
+
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>🌑 Lunar Eclipse</h2>
+                    <div id="lunar-eclipse-display" class="lunar-eclipse-info-card rounded"></div>
+                </div>
             </div>
 
             <!-- Sun Sub-tab -->
@@ -266,6 +259,11 @@
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h2>🌞 Sun</h2>
                     <div id="sun-display" class="sun-info-card rounded"></div>
+                </div>
+
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>☀️ Solar Eclipse</h2>
+                    <div id="solar-eclipse-display" class="solar-eclipse-info-card rounded"></div>
                 </div>
             </div>
         </div>
@@ -914,6 +912,9 @@
     <script src="/static/js/uptonightScheduler.js?v={{ version }}"></script>
     <script src="/static/js/moon.js?v={{ version }}"></script>
     <script src="/static/js/sun.js?v={{ version }}"></script>
+    <script src="/static/js/solar_eclipse.js?v={{ version }}"></script>
+    <script src="/static/js/lunar_eclipse.js?v={{ version }}"></script>
+    <script src="/static/js/horizon_graph.js?v={{ version }}"></script>
     <script src="/static/js/weather.js?v={{ version }}"></script>
     <script src="/static/js/weather_astro.js?v={{ version }}"></script>
     <script src="/static/js/weather_alerts.js?v={{ version }}"></script>

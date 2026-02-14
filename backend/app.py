@@ -36,6 +36,9 @@ from cache_updater import (
     update_moon_planner_cache,
     update_sun_report_cache,
     update_best_window_cache,
+    update_solar_eclipse_cache,
+    update_lunar_eclipse_cache,
+    update_horizon_graph_cache,
 )
 
 #Cache for heavy computations
@@ -1150,6 +1153,93 @@ def get_sun_today_api():
 
     except Exception as e:
         app.logger.exception("Failed to read Sun report cache")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/sun/next-eclipse", methods=["GET"])
+@login_required
+def get_solar_eclipse_api():
+    """Return next solar eclipse, from cache only"""
+    try:
+        if cache_store.is_cache_valid(cache_store._solar_eclipse_cache, CACHE_TTL):
+            return jsonify(cache_store._solar_eclipse_cache["data"])
+
+        # Try shared cache first (other worker may have computed)
+        if cache_store.sync_cache_from_shared("solar_eclipse", cache_store._solar_eclipse_cache):
+            if cache_store.is_cache_valid(cache_store._solar_eclipse_cache, CACHE_TTL):
+                return jsonify(cache_store._solar_eclipse_cache["data"])
+
+        # Cache not ready in this worker -> attempt to refresh just this cache
+        update_solar_eclipse_cache()
+        if cache_store.is_cache_valid(cache_store._solar_eclipse_cache, CACHE_TTL):
+            return jsonify(cache_store._solar_eclipse_cache["data"])
+
+        # Cache non disponible
+        return jsonify({
+            "status": "pending",
+            "message": "Solar eclipse cache is not ready yet. Please try again shortly."
+        }), 202
+
+    except Exception as e:
+        app.logger.exception("Failed to read Solar Eclipse cache")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/moon/next-eclipse", methods=["GET"])
+@login_required
+def get_lunar_eclipse_api():
+    """Return next lunar eclipse, from cache only"""
+    try:
+        if cache_store.is_cache_valid(cache_store._lunar_eclipse_cache, CACHE_TTL):
+            return jsonify(cache_store._lunar_eclipse_cache["data"])
+
+        # Try shared cache first (other worker may have computed)
+        if cache_store.sync_cache_from_shared("lunar_eclipse", cache_store._lunar_eclipse_cache):
+            if cache_store.is_cache_valid(cache_store._lunar_eclipse_cache, CACHE_TTL):
+                return jsonify(cache_store._lunar_eclipse_cache["data"])
+
+        # Cache not ready in this worker -> attempt to refresh just this cache
+        update_lunar_eclipse_cache()
+        if cache_store.is_cache_valid(cache_store._lunar_eclipse_cache, CACHE_TTL):
+            return jsonify(cache_store._lunar_eclipse_cache["data"])
+
+        # Cache non disponible
+        return jsonify({
+            "status": "pending",
+            "message": "Lunar eclipse cache is not ready yet. Please try again shortly."
+        }), 202
+
+    except Exception as e:
+        app.logger.exception("Failed to read Lunar Eclipse cache")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/astro/horizon-graph", methods=["GET"])
+@login_required
+def get_horizon_graph_api():
+    """Return sun and moon horizon positions for current day"""
+    try:
+        if cache_store.is_cache_valid(cache_store._horizon_graph_cache, CACHE_TTL):
+            return jsonify(cache_store._horizon_graph_cache["data"])
+
+        # Try shared cache first (other worker may have computed)
+        if cache_store.sync_cache_from_shared("horizon_graph", cache_store._horizon_graph_cache):
+            if cache_store.is_cache_valid(cache_store._horizon_graph_cache, CACHE_TTL):
+                return jsonify(cache_store._horizon_graph_cache["data"])
+
+        # Cache not ready in this worker -> attempt to refresh just this cache
+        update_horizon_graph_cache()
+        if cache_store.is_cache_valid(cache_store._horizon_graph_cache, CACHE_TTL):
+            return jsonify(cache_store._horizon_graph_cache["data"])
+
+        # Cache not available
+        return jsonify({
+            "status": "pending",
+            "message": "Horizon graph cache is not ready yet. Please try again shortly."
+        }), 202
+
+    except Exception as e:
+        app.logger.exception("Failed to read Horizon Graph cache")
         return jsonify({"error": str(e)}), 500
 
 

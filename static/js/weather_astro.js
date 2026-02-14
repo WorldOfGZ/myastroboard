@@ -54,6 +54,9 @@ async function loadAstroWeather() {
         renderAstroWeatherCharts(data.hourly_data);
         renderWeatherAlerts(data.weather_alerts);
         
+        // Load horizon graph separately (has its own API call)
+        loadHorizonGraph();
+        
         //console.log('Astro weather data loaded:', data);
         
     } catch (error) {
@@ -251,8 +254,8 @@ function isCompactChart() {
  * Render seeing and transparency chart
  */
 function renderSeeingTransparencyChart(labels, data) {
-    const ctx = document.getElementById('astro-seeing-chart');
-    if (!ctx) return;
+    const container = document.getElementById('astro-seeing-chart-container');
+    if (!container) return;
     
     // Destroy existing chart
     if (window.astroSeeingChart) {
@@ -262,6 +265,35 @@ function renderSeeingTransparencyChart(labels, data) {
     const seeingData = data.map(item => item.seeing_pickering * 10); // Convert to percentage scale
     const transparencyData = data.map(item => item.transparency_score);
     
+    // Create card HTML structure
+    container.innerHTML = `
+        <div class="col mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">👁️ Seeing & ✨ Transparency</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="astro-seeing-chart" style="height: 300px;"></canvas>
+                </div>
+                <div class="card-footer text-muted small">
+                    <div class="row">
+                        <div class="col-auto">
+                            <span class="badge" style="background-color: #3b82f6;">Seeing (Pickering)</span>
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge" style="background-color: #a855f7;">Transparency</span>
+                        </div>
+                        <div class="col-auto">
+                            <span class="text-muted">Quality Score (%)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Render chart
+    const ctx = document.getElementById('astro-seeing-chart');
     const compactChart = isCompactChart();
     window.astroSeeingChart = new Chart(ctx, {
         type: 'line',
@@ -296,12 +328,8 @@ function renderSeeingTransparencyChart(labels, data) {
                 intersect: false,
             },
             plugins: {
-                title: {
-                    display: true,
-                    text: '👁️ Seeing & ✨ Transparency Forecast'
-                },
                 legend: {
-                    display: !compactChart
+                    display: false
                 }
             },
             scales: {
@@ -321,7 +349,19 @@ function renderSeeingTransparencyChart(labels, data) {
                         text: 'Quality Score (%)'
                     },
                     min: 0,
-                    max: 100
+                    max: 105,
+                    ticks: {
+                        stepSize: 20,
+                        callback: function(value) {
+                            if (value === 105) {
+                                return '';
+                            }
+                            return value + '%';
+                        }
+                    },
+                    afterBuildTicks: function(axis) {
+                        axis.ticks = [0, 20, 40, 60, 80, 100, 105].map(value => ({ value }));
+                    }
                 }
             }
         }
@@ -332,8 +372,8 @@ function renderSeeingTransparencyChart(labels, data) {
  * Render cloud layers discrimination chart
  */
 function renderCloudLayersChart(labels, data) {
-    const ctx = document.getElementById('astro-clouds-chart');
-    if (!ctx) return;
+    const container = document.getElementById('astro-clouds-chart-container');
+    if (!container) return;
     
     // Destroy existing chart
     if (window.astroCloudsChart) {
@@ -344,7 +384,37 @@ function renderCloudLayersChart(labels, data) {
     const midCloudImpact = data.map(item => item.mid_cloud_impact);
     const lowCloudImpact = data.map(item => item.low_cloud_impact);
     
+    // Create card HTML structure
+    container.innerHTML = `
+        <div class="col mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">☁️ Cloud Layer Impact</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="astro-clouds-chart" style="height: 300px;"></canvas>
+                </div>
+                <div class="card-footer text-muted small">
+                    <div class="row">
+                        <div class="col-auto">
+                            <span class="badge" style="background-color: #22c55e;">High</span>
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge" style="background-color: #fbbf24;">Mid</span>
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge" style="background-color: #ef4444;">Low</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
     const compactChart = isCompactChart();
+    
+    // Render chart
+    const ctx = document.getElementById('astro-clouds-chart');
     window.astroCloudsChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -384,12 +454,8 @@ function renderCloudLayersChart(labels, data) {
                 intersect: false,
             },
             plugins: {
-                title: {
-                    display: true,
-                    text: '☁️ Cloud Layer Impact Analysis'
-                },
                 legend: {
-                    display: !compactChart
+                    display: false
                 }
             },
             scales: {
@@ -407,7 +473,19 @@ function renderCloudLayersChart(labels, data) {
                         text: 'Cloud Impact (%)'
                     },
                     min: 0,
-                    max: 100
+                    max: 105,
+                    ticks: {
+                        stepSize: 20,
+                        callback: function(value) {
+                            if (value === 105) {
+                                return '';
+                            }
+                            return value + '%';
+                        }
+                    },
+                    afterBuildTicks: function(axis) {
+                        axis.ticks = [0, 20, 40, 60, 80, 100, 105].map(value => ({ value }));
+                    }
                 }
             }
         }
@@ -418,8 +496,8 @@ function renderCloudLayersChart(labels, data) {
  * Render dew point and tracking stability chart
  */
 function renderDewTrackingChart(labels, data) {
-    const ctx = document.getElementById('astro-conditions-chart');
-    if (!ctx) return;
+    const container = document.getElementById('astro-conditions-chart-container');
+    if (!container) return;
     
     // Destroy existing chart
     if (window.astroConditionsChart) {
@@ -429,7 +507,37 @@ function renderDewTrackingChart(labels, data) {
     const dewRiskScore = data.map(item => item.dew_risk_score);
     const trackingScore = data.map(item => item.tracking_stability_score);
     
+    // Create card HTML structure
+    container.innerHTML = `
+        <div class="col mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">💧 Dew Risk & 🎯 Tracking Stability</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="astro-conditions-chart" style="height: 300px;"></canvas>
+                </div>
+                <div class="card-footer text-muted small">
+                    <div class="row">
+                        <div class="col-auto">
+                            <span class="badge" style="background-color: #06b6d4;">Dew Risk</span>
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge" style="background-color: #f56565;">Tracking Stability</span>
+                        </div>
+                        <div class="col-auto">
+                            <span class="text-muted">Score (0-100%)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
     const compactChart = isCompactChart();
+    
+    // Render chart
+    const ctx = document.getElementById('astro-conditions-chart');
     window.astroConditionsChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -461,12 +569,8 @@ function renderDewTrackingChart(labels, data) {
                 intersect: false,
             },
             plugins: {
-                title: {
-                    display: true,
-                    text: '💧 Dew Risk & 🎯 Tracking Stability'
-                },
                 legend: {
-                    display: !compactChart
+                    display: false
                 }
             },
             scales: {
@@ -484,7 +588,19 @@ function renderDewTrackingChart(labels, data) {
                         text: 'Score (0-100%)'
                     },
                     min: 0,
-                    max: 100
+                    max: 105,
+                    ticks: {
+                        stepSize: 20,
+                        callback: function(value) {
+                            if (value === 105) {
+                                return '';
+                            }
+                            return value + '%';
+                        }
+                    },
+                    afterBuildTicks: function(axis) {
+                        axis.ticks = [0, 20, 40, 60, 80, 100, 105].map(value => ({ value }));
+                    }
                 }
             }
         }

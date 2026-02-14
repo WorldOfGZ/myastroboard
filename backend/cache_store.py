@@ -25,6 +25,9 @@ _best_window_cache = {
 }
 _moon_planner_report_cache = {"timestamp": 0, "data": None}
 _dark_window_report_cache = {"timestamp": 0, "data": None}
+_solar_eclipse_cache = {"timestamp": 0, "data": None}
+_lunar_eclipse_cache = {"timestamp": 0, "data": None}
+_horizon_graph_cache = {"timestamp": 0, "data": None}
 
 # Weather cache (separate TTL)
 _weather_cache = {"timestamp": 0, "data": None}
@@ -135,6 +138,9 @@ def _write_all_astronomical_caches_to_shared():
             "best_window_strict": _best_window_cache["strict"],
             "best_window_practical": _best_window_cache["practical"],
             "best_window_illumination": _best_window_cache["illumination"],
+            "solar_eclipse": _solar_eclipse_cache,
+            "lunar_eclipse": _lunar_eclipse_cache,
+            "horizon_graph": _horizon_graph_cache,
         })
         _write_shared_cache(shared_cache)
 
@@ -211,6 +217,7 @@ def reset_all_caches():
     """Reset all astronomical caches (called when location changes)"""
     global _moon_report_cache, _sun_report_cache, _best_window_cache
     global _moon_planner_report_cache, _dark_window_report_cache
+    global _solar_eclipse_cache, _lunar_eclipse_cache, _horizon_graph_cache
     
     _moon_report_cache = {"timestamp": 0, "data": None}
     _sun_report_cache = {"timestamp": 0, "data": None}
@@ -221,6 +228,9 @@ def reset_all_caches():
     }
     _moon_planner_report_cache = {"timestamp": 0, "data": None}
     _dark_window_report_cache = {"timestamp": 0, "data": None}
+    _solar_eclipse_cache = {"timestamp": 0, "data": None}
+    _lunar_eclipse_cache = {"timestamp": 0, "data": None}
+    _horizon_graph_cache = {"timestamp": 0, "data": None}
     _write_all_astronomical_caches_to_shared()
 
 
@@ -250,12 +260,18 @@ def is_astronomical_cache_ready():
     sync_cache_from_shared("best_window_strict", _best_window_cache["strict"])
     sync_cache_from_shared("best_window_practical", _best_window_cache["practical"])
     sync_cache_from_shared("best_window_illumination", _best_window_cache["illumination"])
+    sync_cache_from_shared("solar_eclipse", _solar_eclipse_cache)
+    sync_cache_from_shared("lunar_eclipse", _lunar_eclipse_cache)
+    sync_cache_from_shared("horizon_graph", _horizon_graph_cache)
     all_valid = (
         is_cache_valid(_moon_report_cache, CACHE_TTL) and
         is_cache_valid(_sun_report_cache, CACHE_TTL) and
         is_cache_valid(_best_window_cache["strict"], CACHE_TTL) and
         is_cache_valid(_moon_planner_report_cache, CACHE_TTL) and
-        is_cache_valid(_dark_window_report_cache, CACHE_TTL)
+        is_cache_valid(_dark_window_report_cache, CACHE_TTL) and
+        is_cache_valid(_solar_eclipse_cache, CACHE_TTL) and
+        is_cache_valid(_lunar_eclipse_cache, CACHE_TTL) and
+        is_cache_valid(_horizon_graph_cache, CACHE_TTL)
     )
     return all_valid
 
@@ -269,6 +285,9 @@ def get_cache_init_status():
     sync_cache_from_shared("best_window_strict", _best_window_cache["strict"])
     sync_cache_from_shared("best_window_practical", _best_window_cache["practical"])
     sync_cache_from_shared("best_window_illumination", _best_window_cache["illumination"])
+    sync_cache_from_shared("solar_eclipse", _solar_eclipse_cache)
+    sync_cache_from_shared("lunar_eclipse", _lunar_eclipse_cache)
+    sync_cache_from_shared("horizon_graph", _horizon_graph_cache)
     return {
         "moon_report": is_cache_valid(_moon_report_cache, CACHE_TTL),
         "sun_report": is_cache_valid(_sun_report_cache, CACHE_TTL),
@@ -277,6 +296,9 @@ def get_cache_init_status():
         "best_window_illumination": is_cache_valid(_best_window_cache["illumination"], CACHE_TTL),
         "moon_planner": is_cache_valid(_moon_planner_report_cache, CACHE_TTL),
         "dark_window": is_cache_valid(_dark_window_report_cache, CACHE_TTL),
+        "solar_eclipse": is_cache_valid(_solar_eclipse_cache, CACHE_TTL),
+        "lunar_eclipse": is_cache_valid(_lunar_eclipse_cache, CACHE_TTL),
+        "horizon_graph": is_cache_valid(_horizon_graph_cache, CACHE_TTL),
         "weather_forecast": is_cache_valid(_weather_cache, WEATHER_CACHE_TTL),
         "all_ready": is_astronomical_cache_ready(),
         "in_progress": _cache_initialization_in_progress

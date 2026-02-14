@@ -216,9 +216,41 @@ async function loadAstronomicalCharts() {
         }
         
         // Chart 1: Cloud Conditions & Wind
-        const ctx1 = document.getElementById('cloudConditionsChart').getContext('2d');
+        const container1 = document.getElementById('cloudConditionsChartContainer');
+        if (container1) {
+            container1.innerHTML = `
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">☁️ Clouds & 💨 Wind</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="cloudConditionsChart" style="height: 300px;"></canvas>
+                    </div>
+                    <div class="card-footer text-muted small">
+                        <div class="row">
+                            <div class="col-auto">
+                                <span class="badge" style="background-color: #22c55e;">Cloudless</span>
+                            </div>
+                            <div class="col-auto">
+                                <span class="badge" style="background-color: #ef4444;">Condition</span>
+                            </div>
+                            <div class="col-auto">
+                                <span class="badge" style="background-color: #808080;">Fog</span>
+                            </div>
+                            <div class="col-auto">
+                                <span class="text-muted">Percentage (%)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        const ctx1 = document.getElementById('cloudConditionsChart');
+        if (!ctx1) return;
+        const ctx1_2d = ctx1.getContext('2d');
         const compactChart = isCompactChart();
-        cloudConditionsChartInstance = new Chart(ctx1, {
+        cloudConditionsChartInstance = new Chart(ctx1_2d, {
             type: 'line',
             data: {
                 labels: labels,
@@ -313,13 +345,8 @@ async function loadAstronomicalCharts() {
                     intersect: false,
                 },
                 plugins: {
-                    title: {
-                        display: true,
-                        text: '☁️ Clouds & 💨 Wind'
-                    },
                     legend: {
-                        display: !compactChart,
-                        position: 'top',
+                        display: false
                     },
                     tooltip: {
                         enabled: true,
@@ -345,7 +372,19 @@ async function loadAstronomicalCharts() {
                             text: 'Percentage (%)'
                         },
                         min: 0,
-                        max: 100
+                        max: 105,
+                        ticks: {
+                            stepSize: 20,
+                            callback: function(value) {
+                                if (value === 105) {
+                                    return '';
+                                }
+                                return value + '%';
+                            }
+                        },
+                        afterBuildTicks: function(axis) {
+                            axis.ticks = [0, 20, 40, 60, 80, 100, 105].map(value => ({ value }));
+                        }
                     },
                     x: {
                         title: {
@@ -358,9 +397,47 @@ async function loadAstronomicalCharts() {
         });
         
         // Chart 2: Seeing & Atmospheric Conditions
-        const ctx2 = document.getElementById('seeingConditionsChart').getContext('2d');
+        const container2 = document.getElementById('seeingConditionsChartContainer');
+        if (container2) {
+            container2.innerHTML = `
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">👁️ Seeing & ✨ Atmospheric Conditions</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="seeingConditionsChart" style="height: 300px;"></canvas>
+                    </div>
+                    <div class="card-footer text-muted small">
+                        <div class="row">
+                            <div class="col-auto">
+                                <span class="badge" style="background-color: #808080;">Fog</span>
+                            </div>
+                            <div class="col-auto">
+                                <span class="badge" style="background-color: #ef4444;">Condition</span>
+                            </div>
+                            <div class="col-auto">
+                                <span class="badge" style="background-color: #f97316;">Seeing</span>
+                            </div>
+                            <div class="col-auto">
+                                <span class="badge" style="background-color: #1e3a8a;">Transparency</span>
+                            </div>
+                            <div class="col-auto">
+                                <span class="badge" style="background-color: #06b6d4;">Lifted Index</span>
+                            </div>
+                            <div class="col-auto">
+                                <span class="badge" style="background-color: #2563eb;">Precipitation</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        const ctx2 = document.getElementById('seeingConditionsChart');
+        if (!ctx2) return;
+        const ctx2_2d = ctx2.getContext('2d');
         const compactChart2 = isCompactChart();
-        seeingConditionsChartInstance = new Chart(ctx2, {
+        seeingConditionsChartInstance = new Chart(ctx2_2d, {
             type: 'line',
             data: {
                 labels: labels,
@@ -442,13 +519,8 @@ async function loadAstronomicalCharts() {
                     intersect: false,
                 },
                 plugins: {
-                    title: {
-                        display: true,
-                        text: '👁️ Seeing & 🌤️ Atmosphere'
-                    },
                     legend: {
-                        display: !compactChart2,
-                        position: 'top',
+                        display: false
                     },
                     tooltip: {
                         enabled: true,
@@ -482,7 +554,19 @@ async function loadAstronomicalCharts() {
                             text: 'Percentage (%)'
                         },
                         min: 0,
-                        max: 100
+                        max: 105,
+                        ticks: {
+                            stepSize: 20,
+                            callback: function(value) {
+                                if (value === 105) {
+                                    return '';
+                                }
+                                return value + '%';
+                            }
+                        },
+                        afterBuildTicks: function(axis) {
+                            axis.ticks = [0, 20, 40, 60, 80, 100, 105].map(value => ({ value }));
+                        }
                     },
                     y1: {
                         type: 'linear',

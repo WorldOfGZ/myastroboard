@@ -582,6 +582,134 @@ set_global_log_level('DEBUG')
 - **Cache Updates**: Look for module `cache_updater` and `cache_scheduler` in logs
 - **Weather API**: Look for module `weather_openmeteo` in logs
 
+## UI/UX Graphing Standard
+
+All interactive charts in the UI should follow a consistent, clean presentation format. Use the `horizon-graph.js` implementation as reference for the standard layout.
+
+### Chart Component Structure
+
+Every chart must be wrapped in a Bootstrap card container with the following structure:
+
+```html
+<div class="col mb-3"> <!-- Adjust col size based on grid requirement -->
+    <div class="card h-100">
+        <!-- Header with title -->
+        <div class="card-header">
+            <h5 class="mb-0">🔥 Chart Title</h5>
+        </div>
+        
+        <!-- Chart container -->
+        <div class="card-body">
+            <canvas id="unique-chart-id" style="height: 350px;"></canvas>
+        </div>
+        
+        <!-- Footer with legend and metadata -->
+        <div class="card-footer text-muted small">
+            <div class="row">
+                <div class="col-auto">
+                    <span class="badge" style="background-color: #COLOR1;">Legend Item 1</span>
+                </div>
+                <div class="col-auto">
+                    <span class="badge" style="background-color: #COLOR2;">Legend Item 2</span>
+                </div>
+                <div class="col-auto">
+                    <span class="text-muted">Additional metadata or unit information</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+### Grid Sizes
+- **Full width**: `col-12` (for wide charts like horizon-graph)
+- **Two columns**: `col-6` (for standard side-by-side charts)
+- **Three columns**: `col-4` (for compact displays)
+- **Responsive**: Use Bootstrap responsive classes:
+  - `row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4`
+
+### Chart Configuration Best Practices
+
+When implementing charts with Chart.js:
+
+1. **Always use card wrapper**: Don't render canvas directly without card styling
+2. **Font sizing**: Use responsive units for labels/titles
+3. **Colors**: Use consistent color scheme (reference existing charts)
+4. **Legend**: Display in card footer as badges with color indicators
+5. **Responsiveness**: Use device-aware options like `isCompactChart()` function
+6. **Height**: Set canvas height in card-body or inline style (e.g., `max-height: 350px`)
+7. **Destruction**: Always destroy previous chart instance before creating new one
+8. **Tooltip formatting**: Round to 1 decimal place for readability
+
+### Example Implementation Pattern
+
+```javascript
+/**
+ * Render chart with standard card layout
+ */
+function renderMyChart(data) {
+    const container = document.getElementById('my-chart-display');
+    if (!container) return;
+    
+    // Create card HTML structure
+    container.innerHTML = `
+        <div class="col-12 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">📊 My Chart Title</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="myChartCanvas" style="height: 350px;"></canvas>
+                </div>
+                <div class="card-footer text-muted small">
+                    <div class="row">
+                        <div class="col-auto">
+                            <span class="badge" style="background-color: #3b82f6;">Series 1</span>
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge" style="background-color: #8b5cf6;">Series 2</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Create Chart.js instance
+    const ctx = document.getElementById('myChartCanvas');
+    if (window.myChartInstance) {
+        window.myChartInstance.destroy();
+    }
+    
+    window.myChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.times,
+            datasets: [
+                {
+                    label: 'Series 1',
+                    data: data.series1,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    // ... other options
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+            // ... other options
+        }
+    });
+}
+```
+
+### Files Requiring This Standard
+- `weather_astro.js`: astro-seeing-chart, astro-clouds-chart, astro-conditions-chart
+- `weather.js`: cloudConditionsChart, seeingConditionsChart
+- `solar_eclipse.js`: solar-eclipse-altitude-chart
+- `lunar_eclipse.js`: lunar-eclipse-altitude-chart
+
 ## Resources & References
 
 ### Astronomy
