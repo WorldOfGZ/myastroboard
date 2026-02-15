@@ -17,13 +17,14 @@ Automated UpTonight execution, based on the [mawinkler/uptonight](https://github
 ## 🌟 Features
 
 ### Core Features
+- **Astrodex**: Personal collection system for astrophotography - track objects you've captured, manage photos with detailed metadata, and build your celestial catalog
 - **Weather Forecast**: Real-time weather forecasts using Open Meteo
 - **Observation Conditions**: Usefull graph trend for astro observation
 - **Moon & Sun informations**: Informations on moon & sun, with local calculation
+- **Lunar & Solar Eclipse**: Informations for next lunar and solar eclipse
 - **Easy configuration**: Interface to configurate easily UpTonight settings (location, catalogues, targets, ...)
 - **Multiple catalogues calculation**: Browse celestial objects from UpTonight's catalogues (Messier, Herschel400, OpenNGC, LBN, LDN, etc.)
 - **Dynamic Environment settings** : Pressure, Temperature, Relative Humidity based on Open Meteo
-- **Astrodex**: Personal collection system for astrophotography - track objects you've captured, manage photos with detailed metadata, and build your celestial catalog
 
 ### Modern UI/UX
 - **Tabbed Interface**: Organized sections for Weather, UpTonight, Astrodex, Configuration

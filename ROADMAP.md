@@ -13,6 +13,16 @@ This document describes features that could potentially be integrated into MyAst
 
 ## New Features
 
+### Multilocation
+**Add multiple location possible**
+- Location configurable by an admin
+- Each location can be attributed to individual users
+- Location are stored in uuid
+- Limit to X location (check with weather api limit call)
+- Cache scheduler & Uptonight scheduler by location
+- Switch to select location on main page with persistant selection between main-tabs (astro, weather, uptonight)
+- Add location field to astrodex
+  
 ### Multi-Night Project Manager
 **Project Tracking**
 - Create imaging projects with target integration time goals
@@ -35,6 +45,16 @@ This document describes features that could potentially be integrated into MyAst
 - Automated backup scheduling
 - Configuration & Astrodex
 
+### Aurora Borealis Forecast
+**Compute a location‑specific aurora visibility probability**
+- Must be checked how possible
+
+### Multilanguage
+**Add multiple language**
+- Use of I18n
+- Automatic switch based on local browser settings
+- IA translation possible ?
+
 ## Upgrade Features
 
 ### Enhanced Astrodex
@@ -49,31 +69,10 @@ This document describes features that could potentially be integrated into MyAst
 - Idea is to launch at startup, with forecast meteo (from next x hours)
 - Second launch closer to night session with current weather
 
-### Enhanced Sun/Moon page
-**Additional informations usefull**
-- Next solar Eclipse (astronomy-engine)
-- Next lunar Eclipse (astronomy-engine)
-- Astrophotography score classification
-- Graphic altitude vs time (local time)
-- Usefull info for solar, to be checked: 
-  - Visible from lat/lon
-  - Type → visual impact and rarity
-  - Altitude → height above the horizon
-  - Azimuth → direction for setting up
-  - Obscuration → percentage of the sun obscured
-  - Duration → shooting window
-  - Start time (local time)
-  - End time (local time)
-- Usefull info for lunar, to be checked: 
-  - Visible from lat/lon
-  - Peak local time
-  - Type (penumbral / partial / total)
-  - Time of maximum
-  - Overall visibility
-- Check with astronomy already computed
-  - eclipse.partial_begin
-  - eclipse.total_begin
-  - eclipse.peak
-  - eclipse.total_end
-  - eclipse.partial_end
-- Check if there is an interest to make a similar graph https://github.com/rejuvenate/lovelace-horizon-card 
+### Enhanced static folder
+**Objective: Better organization**
+- Currently all *cache* and *.lock files are in /data
+- Group all in /data/cache
+- Use constants DATA_DIR_CACHE tbd in constants.py
+- Modify entrypoint delete cache section
+- scheduler_status.json in cache ?
