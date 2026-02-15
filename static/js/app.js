@@ -28,7 +28,7 @@ async function initializeApp() {
     checkCacheStatus();
     
     // Load initial page
-    switchSubTab("forecast", "astro-weather"); 
+    switchSubTab("forecast-astro", "astro-weather"); 
 }
 
 function setupMainTabs() {
@@ -43,6 +43,8 @@ function setupMainTabs() {
 }
 
 function switchMainTab(tabName) {
+    //console.log(`Switching to main tab: ${tabName}`);
+
     // Update button states
     document.querySelectorAll('.main-tab-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -62,6 +64,8 @@ function switchMainTab(tabName) {
         loadUptonightResultsTabs();
     } else if (tabName === 'astrodex') {
         loadAstrodex();
+    } else if (tabName === 'forecast-weather') {
+        loadWeather();
     }
 }
 
@@ -96,24 +100,26 @@ function setupNavbarAutoCollapse() {
 function switchSubTab(parentTab, subtabName) {
     activateSubTab(parentTab, subtabName);
 
+    //console.log(`Switched to sub-tab: ${subtabName} under main tab: ${parentTab}`);
+
     // Load subtab-specific content
     if (subtabName === 'logs') { //Parameters tab - Logs
         loadLogs();
     } else if (subtabName === 'users') { //Parameters tab - Users
         loadUsers();
-    } else if (subtabName === 'weather') { //Forecast tab - Weather
+    } else if (subtabName === 'weather') { //Weather Forecast tab - Weather
         loadWeather();
-    } else if (subtabName === 'astro-weather') { //Forecast tab - Astrophotography Weather
+    } else if (subtabName === 'astro-weather') { //Astro Forecast tab - Astrophotography Weather
         loadAstroWeather();
-    } else if (subtabName === 'window') { //Forecast tab - Best Observation Window
+    } else if (subtabName === 'window') { //Astro Forecast tab - Best Observation Window
         loadBestDarkWindow();
-    } else if (subtabName === 'trend') { //Forecast tab - Observation Conditions
+    } else if (subtabName === 'trend') { //Weather Forecast tab - Observation Conditions
         loadAstronomicalCharts();
-    } else if (subtabName === 'moon') { //Forecast moon - Weather
+    } else if (subtabName === 'moon') { //Astro Forecast tab - Moon
         loadMoon();
         loadNextMoonPhases();
         loadLunarEclipse();
-    } else if (subtabName === 'sun') { //Forecast sun - Weather
+    } else if (subtabName === 'sun') { //Astro Forecast tab - Sun
         loadSun();
         loadSolarEclipse();
     }

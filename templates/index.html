@@ -41,7 +41,10 @@
                 <div class="collapse navbar-collapse" id="navBarMyAstroBoard">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0 nav-pills">
                         <li class="nav-item">
-                            <a class="nav-link main-tab-btn active" aria-current="page" href="#" data-tab="forecast">🌞 Forecast</a>
+                            <a class="nav-link main-tab-btn active" aria-current="page" href="#" data-tab="forecast-astro">🌌 Astrophotography</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link main-tab-btn" aria-current="page" href="#" data-tab="forecast-weather">🌦 Weather</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link main-tab-btn" href="#" data-tab="uptonight">📊 UpTonight</a>
@@ -56,7 +59,7 @@
                             <a class="nav-link main-tab-btn" href="#" data-tab="parameters">⚙️ Parameters</a>
                         </li>
                     </ul>
-                    <ul class="navbar-nav nav-pills align-items-center" id="end-navbar">
+                    <ul class="navbar-nav nav-pills align-items-end" id="end-navbar">
                         <li class="nav-item">
                             <a class="nav-link" href="#" id="logout-btn">👋 Logout</a>
                         </li>
@@ -89,22 +92,16 @@
             <div id="global-scheduler-detail" class="global-status-detail">blabla</div>
         </div>
 
-        <!-- Forecast Section -->
-        <div id="forecast-tab" class="main-tab-content active">
+        <!-- Astrophotography forecast Section -->
+        <div id="forecast-astro-tab" class="main-tab-content active">
             <!-- forecast Sub-tabs links -->
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                <ul class="nav nav-pills sub-tabs" id="forecast-subtabs">
+                <ul class="nav nav-pills sub-tabs" id="forecast-astro-subtabs">
                     <li class="nav-item">
                         <a class="nav-link sub-tab-btn active" href="#" data-subtab="astro-weather">🔭 Astrophotography</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" aria-current="page" href="#" data-subtab="weather">🌤️ Weather</a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link sub-tab-btn" href="#" data-subtab="window">🌟 Best window</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="trend">📈 Observation Conditions</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link sub-tab-btn" href="#" data-subtab="moon">🌘 Moon</a>
@@ -113,24 +110,6 @@
                         <a class="nav-link sub-tab-btn" href="#" data-subtab="sun">☀️ Sun</a>
                     </li>
                 </ul>
-            </div>
-
-            <!-- Weather Sub-tab -->
-            <div id="weather-subtab" class="sub-tab-content active">
-                <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌤️ Weather Forecast</h2>
-                    <div id="weather-location" class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 p-2"></div>
-                    <div id="weather-display" class="row row-cols-1 row-cols-sm-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 p-2">
-                        <div class="col">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title">☁️ Loading weather data...</h5>
-                                    <p class="card-text">Fetching forecast and astronomical information</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Astrophotography Weather Sub-tab -->
@@ -210,26 +189,6 @@
                 </div>
             </div>
 
-            <!-- Trend Sub-tab -->
-            <div id="trend-subtab" class="sub-tab-content">
-                <!-- Astronomical Observation Charts -->
-                <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📈 Observation Conditions - Next 12 Hours</h2>
-                    <div id="astro-charts-loading" class="alert alert-info" role="alert">
-                        Loading astronomical data...
-                    </div>
-
-                    <div class="row row-cols-1 row-cols-sm-1 row-cols-lg-1 row-cols-xl-2 p-2 mb-3" id="astro-charts-container">
-                        <div id="cloudConditionsChartContainer" class="col mb-3"></div>
-                        <div id="seeingConditionsChartContainer" class="col mb-3"></div>
-                    </div>
-                    
-                    <div id="astro-charts-error" class="alert alert-danger" role="alert" style="display: none">
-                        Failed to load astronomical data. Please check your internet connection.
-                    </div>
-                </div>
-            </div>
-
             <!-- Moon Sub-tab -->
             <div id="moon-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
@@ -266,6 +225,62 @@
                     <div id="solar-eclipse-display" class="solar-eclipse-info-card rounded"></div>
                 </div>
             </div>
+        
+
+        </div>
+
+        <!-- Weather forecast Section -->
+        <div id="forecast-weather-tab" class="main-tab-content">
+            <!-- forecast Sub-tabs links -->
+            <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                <ul class="nav nav-pills sub-tabs" id="forecast-weather-subtabs">
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="weather">🌤️ Weather</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="trend">📈 Observation Conditions</a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Weather Sub-tab -->
+            <div id="weather-subtab" class="sub-tab-content active">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>🌤️ Weather Forecast</h2>
+                    <div id="weather-location" class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 p-2"></div>
+                    <div id="weather-display" class="row row-cols-1 row-cols-sm-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 p-2">
+                        <div class="col">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">☁️ Loading weather data...</h5>
+                                    <p class="card-text">Fetching forecast and astronomical information</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trend Sub-tab -->
+            <div id="trend-subtab" class="sub-tab-content">
+                <!-- Astronomical Observation Charts -->
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>📈 Observation Conditions - Next 12 Hours</h2>
+                    <div id="astro-charts-loading" class="alert alert-info" role="alert">
+                        Loading astronomical data...
+                    </div>
+
+                    <div class="row row-cols-1 row-cols-sm-1 row-cols-lg-1 row-cols-xl-2 p-2 mb-3" id="astro-charts-container">
+                        <div id="cloudConditionsChartContainer" class="col mb-3"></div>
+                        <div id="seeingConditionsChartContainer" class="col mb-3"></div>
+                    </div>
+                    
+                    <div id="astro-charts-error" class="alert alert-danger" role="alert" style="display: none">
+                        Failed to load astronomical data. Please check your internet connection.
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <!-- UpTonight Section -->
