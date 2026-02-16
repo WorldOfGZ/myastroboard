@@ -10,6 +10,7 @@ This document describes features that could potentially be integrated into MyAst
 - Improved mobile interface (responsive)
 - Customizable dashboard
 - User profile configuration 
+- Navbar has a bad display on tabled, or middle display (too many tabs)
 
 ## New Features
 
