@@ -5,7 +5,15 @@ echo "[INFO] Fixing permissions on mounted volumes..."
 chown -R appuser:appuser /app/data /app/uptonight_outputs /app/uptonight_configs || true
 
 echo "[INFO] Cleaning temporary files in /app/data..."
-find /app/data -type f \( -name "*.lock" -o -name "*cache*" \) -delete || true
+# Old cache storage and lock files
+find /app/data -type f \( \
+  -name "*.lock" -o \
+  -name "*cache*" -o \
+  -name "conditions.json" -o \
+  -name "scheduler_status.json" \
+\) -delete || true
+rm -rf /app/data/cache/* || true # Clear cache directory
+
 
 # ---- Docker socket permissions fix ----
 if [ -S /var/run/docker.sock ]; then

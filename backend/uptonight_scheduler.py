@@ -11,12 +11,13 @@ import json
 from datetime import datetime, timedelta
 from txtconf_loader import get_uptonight_image_name, get_uptonight_version
 from weather_openmeteo import get_uptonight_conditions
-from constants import DATA_DIR, OUTPUT_DIR, CONFIG_DIR, SCHEDULE_INTERVAL
+from constants import DATA_DIR, DATA_DIR_CACHE, OUTPUT_DIR, CONFIG_DIR, SCHEDULE_INTERVAL
 from logging_config import get_logger
 from utils import IndentDumper
 
 # Configure logging and ensure data directory exists
 os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(DATA_DIR_CACHE, exist_ok=True)
 UPTONIGHT_IMAGE = get_uptonight_image_name()
 UPTONIGHT_VERSION = get_uptonight_version()
 
@@ -334,7 +335,7 @@ class UptonightScheduler:
         }
         
         try:
-            status_file = os.path.join(DATA_DIR, 'scheduler_status.json')
+            status_file = os.path.join(DATA_DIR_CACHE, 'scheduler_status.json')
             with open(status_file, 'w') as f:
                 json.dump(status, f, indent=2)
         except Exception as e:

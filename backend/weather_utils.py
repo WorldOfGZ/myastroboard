@@ -8,8 +8,10 @@ import openmeteo_requests
 import requests_cache
 from retry_requests import retry
 from typing import Any
-from constants import WEATHER_CACHE_TTL, OPENMETEO_RETRY_COUNT, OPENMETEO_BACKOFF_FACTOR, DATA_DIR
+from constants import WEATHER_CACHE_TTL, OPENMETEO_RETRY_COUNT, OPENMETEO_BACKOFF_FACTOR, DATA_DIR_CACHE
 
+# Ensure cache directory exists
+os.makedirs(DATA_DIR_CACHE, exist_ok=True)
 
 def create_weather_client():
     """
@@ -17,11 +19,11 @@ def create_weather_client():
     Used for UI forecasts where caching is beneficial.
     
     Returns:
-        openmeteo_requests.Client: Configured client instance with:
+        openmeteo_requests.Client: Configured client instance with: 
             - Cache session (1 hour TTL)
             - Retry logic (5 retries with exponential backoff)
     """
-    cache_session = requests_cache.CachedSession(os.path.join(DATA_DIR, ".weather_cache"), expire_after=WEATHER_CACHE_TTL)
+    cache_session = requests_cache.CachedSession(os.path.join(DATA_DIR_CACHE, ".weather_cache"), expire_after=WEATHER_CACHE_TTL)
     retry_session = retry(cache_session, retries=OPENMETEO_RETRY_COUNT, backoff_factor=OPENMETEO_BACKOFF_FACTOR)
     client = openmeteo_requests.Client(session=retry_session)  # type: ignore[arg-type]
     return client

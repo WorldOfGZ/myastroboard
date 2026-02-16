@@ -4,7 +4,7 @@ import sys
 from datetime import datetime
 from logging_config import get_logger
 from cache_updater import fully_initialize_caches
-from constants import DATA_DIR
+from constants import DATA_DIR_CACHE
 
 # Windows-compatible file locking
 if sys.platform == "win32":
@@ -41,7 +41,7 @@ class CacheScheduler:
     def _acquire_lock(self):
         """Acquire lock file to prevent multiple instances"""
         try:
-            lock_file_path = os.path.join(DATA_DIR, 'cache_scheduler.lock')
+            lock_file_path = os.path.join(DATA_DIR_CACHE, 'cache_scheduler.lock')
             self._lock_file = open(lock_file_path, 'w')
             
             if sys.platform == "win32":
@@ -78,7 +78,7 @@ class CacheScheduler:
                     fcntl.flock(self._lock_file.fileno(), fcntl.LOCK_UN)
                 
                 self._lock_file.close()
-                lock_file_path = os.path.join(DATA_DIR, 'cache_scheduler.lock')
+                lock_file_path = os.path.join(DATA_DIR_CACHE, 'cache_scheduler.lock')
                 if os.path.exists(lock_file_path):
                     os.unlink(lock_file_path)
             except Exception as e:

@@ -7,7 +7,7 @@ import json
 import os
 import sys
 from contextlib import contextmanager
-from constants import CACHE_TTL, WEATHER_CACHE_TTL, DATA_DIR
+from constants import CACHE_TTL, WEATHER_CACHE_TTL, DATA_DIR_CACHE
 
 # Windows-compatible file locking
 if sys.platform == "win32":
@@ -34,7 +34,7 @@ _weather_cache = {"timestamp": 0, "data": None}
 
 # Track the last known location config to detect changes
 # This is loaded from disk to survive restarts
-_LOCATION_CACHE_FILE = os.path.join(DATA_DIR, 'location_cache.json')
+_LOCATION_CACHE_FILE = os.path.join(DATA_DIR_CACHE, 'location_cache.json')
 _last_known_location_config = {
     "latitude": None,
     "longitude": None,
@@ -46,13 +46,13 @@ _last_known_location_config = {
 _cache_initialization_in_progress = False
 
 # Shared cache file (cross-worker)
-_SHARED_CACHE_FILE = os.path.join(DATA_DIR, "astro_cache.json")
-_SHARED_CACHE_LOCK = os.path.join(DATA_DIR, "astro_cache.lock")
+_SHARED_CACHE_FILE = os.path.join(DATA_DIR_CACHE, "astro_cache.json")
+_SHARED_CACHE_LOCK = os.path.join(DATA_DIR_CACHE, "astro_cache.lock")
 
 
 def _ensure_data_dir():
     """Ensure DATA_DIR exists before file operations"""
-    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(DATA_DIR_CACHE, exist_ok=True)
 
 
 @contextmanager

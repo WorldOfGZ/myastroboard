@@ -6,13 +6,14 @@ import os
 
 # Directory paths
 DATA_DIR = os.environ.get('DATA_DIR', '/app/data')
+DATA_DIR_CACHE = os.path.join(DATA_DIR, 'cache')
 OUTPUT_DIR = os.environ.get('OUTPUT_DIR', '/app/uptonight_outputs')
 CONFIG_DIR = os.environ.get('CONFIG_DIR', '/app/uptonight_configs')
 
 # File paths
 CONFIG_FILE = os.path.join(DATA_DIR, 'config.json')
 LOG_FILE = os.path.join(DATA_DIR, 'myastroboard.log')
-CONDITIONS_FILE = os.path.join(DATA_DIR, 'conditions.json')
+CONDITIONS_FILE = os.path.join(DATA_DIR_CACHE, 'conditions.json')
 
 # Environment configuration
 SCHEDULE_INTERVAL = int(os.environ.get('SCHEDULE_INTERVAL', '21601'))  # 6 hours in seconds (1 sec more to see it in logs immediately on startup so not set)

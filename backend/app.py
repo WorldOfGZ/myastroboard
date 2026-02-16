@@ -28,7 +28,7 @@ from txtconf_loader import get_available_catalogues
 from uptonight_parser import get_catalogue_reports 
 from txtconf_loader import get_repo_version
 from repo_config import load_config, save_config
-from constants import DATA_DIR, CONFIG_FILE, OUTPUT_DIR, CONFIG_DIR, CACHE_TTL
+from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, OUTPUT_DIR, CONFIG_DIR, CACHE_TTL
 from logging_config import get_logger
 from cache_updater import (
     update_dark_window_cache,
@@ -735,7 +735,7 @@ def trigger_scheduler_api():
         # Scheduler is running in another worker, we can't trigger it directly
         # But we can create a trigger file that the scheduler will detect
         import os
-        trigger_file = os.path.join(DATA_DIR, 'scheduler_trigger')
+        trigger_file = os.path.join(DATA_DIR_CACHE, 'scheduler_trigger')
         try:
             with open(trigger_file, 'w') as f:
                 f.write('trigger_now')
@@ -2385,7 +2385,7 @@ def get_or_create_scheduler():
     """Get the scheduler instance, creating it if necessary"""
     if 'scheduler' not in app.config:
         # Only start scheduler in one worker process using file locking
-        lock_file_path = os.path.join(DATA_DIR, 'scheduler.lock')
+        lock_file_path = os.path.join(DATA_DIR_CACHE, 'scheduler.lock')
         
         try:
             lock_file = open(lock_file_path, 'w')
@@ -2443,7 +2443,7 @@ def get_scheduler_for_api():
     # If we don't have a local scheduler, check if another worker has it
     # by testing if the lock file exists and is locked
     import os
-    lock_file_path = os.path.join(DATA_DIR, 'scheduler.lock')
+    lock_file_path = os.path.join(DATA_DIR_CACHE, 'scheduler.lock')
     
     if os.path.exists(lock_file_path):
         test_file = None
@@ -2476,7 +2476,7 @@ def get_scheduler_for_api():
 
 def get_remote_scheduler_status():
     """Get scheduler status from shared file for remote workers"""
-    status_file = os.path.join(DATA_DIR, 'scheduler_status.json')
+    status_file = os.path.join(DATA_DIR_CACHE, 'scheduler_status.json')
     try:
         if os.path.exists(status_file):
             with open(status_file, 'r') as f:
@@ -2560,7 +2560,7 @@ if __name__ == '__main__':
             if lock_file:
                 try:
                     lock_file.close()
-                    os.unlink(os.path.join(DATA_DIR, 'scheduler.lock'))
+                    os.unlink(os.path.join(DATA_DIR_CACHE, 'scheduler.lock'))
                     logger.info("Scheduler lock file cleaned up.")
                 except Exception as e:
                     logger.warning(f"Failed to clean up lock file: {e}")
