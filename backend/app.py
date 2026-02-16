@@ -410,6 +410,12 @@ def update_config_api():
             "comets": True,
             "alttime": True
         }
+
+    # Ensure Astrodex config exists with defaults
+    if 'astrodex' not in config:
+        config['astrodex'] = {
+            "private": False
+        }
     
     # Save the new config
     save_config(config)

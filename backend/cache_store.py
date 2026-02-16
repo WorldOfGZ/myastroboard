@@ -93,7 +93,7 @@ def _write_shared_cache(shared_cache):
     """Write shared cache file safely"""
     _ensure_data_dir()
     with open(_SHARED_CACHE_FILE, "w", encoding="utf-8") as f:
-        json.dump(shared_cache, f)
+        json.dump(shared_cache, f, indent=2, ensure_ascii=False)
 
 
 def update_shared_cache_entry(key, data, timestamp):
@@ -161,7 +161,7 @@ def _save_location_cache():
     """Persist location config to disk"""
     try:
         with open(_LOCATION_CACHE_FILE, 'w') as f:
-            json.dump(_last_known_location_config, f)
+            json.dump(_last_known_location_config, f, indent=2, ensure_ascii=False)
     except Exception:
         # Not critical if save fails, just means next restart might trigger false positive
         pass

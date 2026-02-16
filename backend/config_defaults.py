@@ -21,6 +21,12 @@ DEFAULT_FEATURES = {
     "alttime": True
 }
 
+# Default feature flags
+DEFAULT_ASTRODEX = {
+    "private": False
+}
+
+
 # Default constraint values
 DEFAULT_CONSTRAINTS = {
     "altitude_constraint_min": 30,
@@ -53,5 +59,6 @@ DEFAULT_CONFIG = {
     "done_list": [],
     "custom_targets": [],
     "horizon": DEFAULT_HORIZON,
-    "output_datestamp": False
+    "output_datestamp": False,
+    "astrodex": DEFAULT_ASTRODEX
 }

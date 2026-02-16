@@ -62,6 +62,7 @@ This document describes features that could potentially be integrated into MyAst
 - Photo Session Timeline (idea https://bootsnipp.com/snippets/P2nW7)
 - Interactive Map of Sky Objects
 - Suggestions based on weather and conditions
+- Shared or not option with others users
 
 ### Enhanced Uptonight Execution
 **Objective: Better managment, not only a cycle**

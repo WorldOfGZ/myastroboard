@@ -186,6 +186,10 @@ async function loadConfiguration() {
         
         const timezone = document.getElementById('timezone');
         if (timezone) timezone.value = config.location?.timezone || 'UTC';
+
+        // Astrodex options
+        const astrodexPrivate = document.getElementById('astrodex-private');
+        if (astrodexPrivate) astrodexPrivate.checked = config.astrodex?.private !== false;
         
         // Features
         const features = config.features || {};
@@ -358,7 +362,10 @@ async function saveConfiguration() {
         },
         bucket_list: bucketList,
         done_list: doneList,
-        custom_targets: customTargets
+        custom_targets: customTargets, 
+        astrodex: {
+            private: document.getElementById('astrodex-private').checked
+        }
     };
     
     // Only add horizon if it has anchor_points
