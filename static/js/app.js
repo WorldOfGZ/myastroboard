@@ -45,13 +45,29 @@ function setupMainTabs() {
 function switchMainTab(tabName) {
     //console.log(`Switching to main tab: ${tabName}`);
 
+    // For each .main-tab-dropdown remove "active" class
+    document.querySelectorAll('.main-tab-dropdown').forEach(dropdown => {
+        dropdown.classList.remove('active');
+    });
+
     // Update button states
     document.querySelectorAll('.main-tab-btn').forEach(btn => {
         btn.classList.remove('active');
         if (btn.getAttribute('data-tab') === tabName) {
             btn.classList.add('active');
+
+            // Find the parent <li class="dropdown">
+            const dropdownLi = btn.closest('.dropdown');
+
+            if (dropdownLi) {
+                // Find the toggle inside that dropdown
+                const toggle = dropdownLi.querySelector('.main-tab-dropdown');
+                if (toggle) {
+                    toggle.classList.add('active');
+                }
+            }
         }
-    });
+    });    
     
     // Update content visibility
     document.querySelectorAll('.main-tab-content').forEach(content => {
@@ -87,8 +103,11 @@ function setupNavbarAutoCollapse() {
     if (!navbarCollapse) return;
 
     navbarCollapse.addEventListener('click', (event) => {
-        const target = event.target;
-        if (!target || !target.closest('.nav-link')) return;
+        const link = event.target.closest('.nav-link');
+        if (!link) return;
+
+        // Ignore dropdown toggles
+        if (link.matches('[data-bs-toggle="dropdown"]')) return;
 
         if (!navbarCollapse.classList.contains('show')) return;
 

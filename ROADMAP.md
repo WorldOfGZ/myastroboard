@@ -10,7 +10,6 @@ This document describes features that could potentially be integrated into MyAst
 - Improved mobile interface (responsive)
 - Customizable dashboard
 - User profile configuration 
-- Navbar has a bad display on tabled, or middle display (too many tabs)
 
 ## New Features
 
@@ -23,6 +22,7 @@ This document describes features that could potentially be integrated into MyAst
 - Cache scheduler & Uptonight scheduler by location
 - Switch to select location on main page with persistant selection between main-tabs (astro, weather, uptonight)
 - Add location field to astrodex
+- User can order as he want location on it's profile
   
 ### Multi-Night Project Manager
 **Project Tracking**

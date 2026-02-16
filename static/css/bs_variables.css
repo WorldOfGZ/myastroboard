@@ -5,6 +5,7 @@
     --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     --sun-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
     --bg-violet: #764ba26e;
+    --bg-violet-opac: #764ba26e;
     --bg-light: #f3f4f6;
     --surface-1: rgba(255, 255, 255, 0.3);
     --surface-2: rgba(255, 255, 255, 0.18);

@@ -32,9 +32,9 @@
         <!-- Navbar -->
         <nav class="navbar navbar-expand-lg rounded mb-3">
             <div class="container-fluid">
-                <span class="navbar-brand mb-0 h1">
+                <!--<span class="navbar-brand mb-0 h1">
                     Hey! <span id="username-display"></span>
-                </span>
+                </span>-->
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navBarMyAstroBoard" aria-controls="navBarMyAstroBoard" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -52,11 +52,15 @@
                         <li class="nav-item">
                             <a class="nav-link main-tab-btn" href="#" data-tab="astrodex">📚 Astrodex</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link main-tab-btn" href="#" data-tab="equipment">🔭 Equipment</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link main-tab-btn" href="#" data-tab="parameters">⚙️ Parameters</a>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle main-tab-dropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                👤 <span id="username-display"></span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="equipment">🔭 Equipment</a></li>
+                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="my-settings">👤 My settings</a></li>
+                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="parameters">⚙️ App settings</a></li>
+                            </ul>
                         </li>
                     </ul>
                     <ul class="navbar-nav nav-pills align-items-end" id="end-navbar">
@@ -488,6 +492,40 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- My settings Section -->
+        <div id="my-settings-tab" class="main-tab-content">
+            <!-- My settings Sub-tabs -->
+            <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                <ul class="nav nav-pills sub-tabs" id="my-settings-subtabs">
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn active" href="#" data-subtab="customize">🔧 Customize</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" aria-current="page" href="#" data-subtab="security">🔒 Security</a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Customize Sub-tab -->
+            <div id="customize-subtab" class="sub-tab-content active">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>🔧 Customize</h2>
+                    
+                    <div class="alert alert-info" role="alert">This is currently a placeholder for customization settings.</div>
+                </div>
+            </div>
+
+            <!-- Security Sub-tab -->
+            <div id="security-subtab" class="sub-tab-content">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>🔒 Security Settings</h2>
+                    
+                    <div class="alert alert-info" role="alert">This is currently a placeholder for security settings.</div>
+                </div>
+            </div>
+
         </div>
 
         <!-- Parameters Section -->

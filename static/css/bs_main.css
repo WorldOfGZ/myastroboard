@@ -109,9 +109,14 @@ h3 {
     font-weight: var(--font-semibold);
     transition: var(--transition-normal);
     margin-right: 1.25rem;
-    padding-left: 2rem !important;
-    padding-right: 2rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
     white-space: normal;
+
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    line-height: 1.2;
 }
 .navbar .nav-link.active {
     color: var(--text-color) !important;
@@ -120,11 +125,31 @@ h3 {
 
 .navbar .nav-item {    
     min-width: 0;
+    display: block;
 }
 
+@media (max-width: 1024px) {
+    .navbar .nav-link {        
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .navbar .nav-item {
+        text-align: center;
+        vertical-align: middle;
+    }
+}
+
+.navbar .dropdown-menu {
+    background-color: var(--accent-1);
+    border-color: var(--accent-glow-strong);
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+/*
 .navbar .container-fluid {
   overflow-x: auto;
-}
+}*/
 
 .theme-label {
     color: var(--text-light);
@@ -409,7 +434,7 @@ h3 {
 }
 
 /* Main Tab Button Styling */
-.main-tab-btn {
+.main-tab-btn, .main-tab-dropdown {
     position: relative;
     background-color: transparent !important;
     color: var(--text-light) !important;
@@ -424,7 +449,7 @@ h3 {
     overflow: hidden;
 }
 
-.main-tab-btn::before {
+.main-tab-btn::before, .main-tab-dropdown::before {
     content: '';
     position: absolute;
     top: 0;
@@ -436,20 +461,20 @@ h3 {
     z-index: -1;
 }
 
-.main-tab-btn:hover:not(.active) {
+.main-tab-btn:hover:not(.active), .main-tab-dropdown:hover:not(.active) {
     background-color: var(--surface-3) !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     transform: translateY(-1px);
 }
 
-.main-tab-btn.active {
+.main-tab-btn.active, .main-tab-dropdown.active {
     background: var(--surface-4) !important;
     border-color: var(--surface-border-strong);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
     color: var(--text-light) !important;
 }
 
-.main-tab-btn.active::before {
+.main-tab-btn.active::before, .main-tab-dropdown.active::before {
     left: 0;
 }
 
