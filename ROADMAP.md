@@ -56,6 +56,10 @@ This document describes features that could potentially be integrated into MyAst
 - Automatic switch based on local browser settings
 - IA translation possible ?
 
+### Various
+- Package for debugging purpose on github (see birdnet go which is great)
+- Metrics and analytics of system 
+
 ## Upgrade Features
 
 ### Enhanced Astrodex
@@ -70,3 +74,6 @@ This document describes features that could potentially be integrated into MyAst
 - Currently every 6 hours with current weather
 - Idea is to launch at startup, with forecast meteo (from next x hours)
 - Second launch closer to night session with current weather
+
+### Various
+- On march 3rd, will be a red moon during 82 minutes. check how to announve these kind of events. 
