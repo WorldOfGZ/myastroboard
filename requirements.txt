@@ -12,7 +12,7 @@ constellation-enum==0.1.0
 # Data processing
 numpy==2.4.2
 matplotlib==3.10.8
-pandas==3.0.0
+pandas==3.0.1
 
 # HTTP and API
 requests==2.32.5
