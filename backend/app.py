@@ -8,6 +8,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import re
 import json
+import io
 import sys
 from datetime import datetime, timedelta
 from dataclasses import asdict
@@ -28,7 +29,8 @@ else:
 sys.path.insert(0, os.path.dirname(__file__))
 from weather_openmeteo import get_hourly_forecast
 from txtconf_loader import get_available_catalogues
-from uptonight_parser import get_catalogue_reports 
+from uptonight_parser import get_catalogue_reports
+from events_aggregator import EventsAggregator
 from txtconf_loader import get_repo_version
 from repo_config import load_config, save_config
 from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, OUTPUT_DIR, CONFIG_DIR, CACHE_TTL
@@ -1360,6 +1362,67 @@ def get_lunar_eclipse_api():
 
     except Exception as e:
         app.logger.exception("Failed to read Lunar Eclipse cache")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/events/upcoming", methods=["GET"])
+@login_required
+def get_upcoming_events_api():
+    """Return aggregated upcoming astronomical events (eclipses, auroras, etc.)"""
+    try:
+        config = load_config()
+        location = config.get("location", {})
+        latitude = location.get("latitude", 0)
+        longitude = location.get("longitude", 0)
+        timezone = location.get("timezone", "UTC")
+
+        # Get cached event data
+        solar_eclipse_data = None
+        lunar_eclipse_data = None
+        aurora_data = None
+        moon_phases_data = None
+
+        # Try to get solar eclipse data
+        if cache_store.is_cache_valid(cache_store._solar_eclipse_cache, CACHE_TTL):
+            solar_eclipse_data = cache_store._solar_eclipse_cache.get("data")
+        elif cache_store.sync_cache_from_shared("solar_eclipse", cache_store._solar_eclipse_cache):
+            if cache_store.is_cache_valid(cache_store._solar_eclipse_cache, CACHE_TTL):
+                solar_eclipse_data = cache_store._solar_eclipse_cache.get("data")
+
+        # Try to get lunar eclipse data
+        if cache_store.is_cache_valid(cache_store._lunar_eclipse_cache, CACHE_TTL):
+            lunar_eclipse_data = cache_store._lunar_eclipse_cache.get("data")
+        elif cache_store.sync_cache_from_shared("lunar_eclipse", cache_store._lunar_eclipse_cache):
+            if cache_store.is_cache_valid(cache_store._lunar_eclipse_cache, CACHE_TTL):
+                lunar_eclipse_data = cache_store._lunar_eclipse_cache.get("data")
+
+        # Try to get aurora data
+        if cache_store.is_cache_valid(cache_store._aurora_cache, CACHE_TTL):
+            aurora_data = cache_store._aurora_cache.get("data")
+        elif cache_store.sync_cache_from_shared("aurora", cache_store._aurora_cache):
+            if cache_store.is_cache_valid(cache_store._aurora_cache, CACHE_TTL):
+                aurora_data = cache_store._aurora_cache.get("data")
+
+        # Try to get moon phases data
+        if cache_store.is_cache_valid(cache_store._moon_planner_report_cache, CACHE_TTL):
+            moon_phases_data = cache_store._moon_planner_report_cache.get("data")
+        elif cache_store.sync_cache_from_shared("moon_planner", cache_store._moon_planner_report_cache):
+            if cache_store.is_cache_valid(cache_store._moon_planner_report_cache, CACHE_TTL):
+                moon_phases_data = cache_store._moon_planner_report_cache.get("data")
+
+        # Aggregate events
+        aggregator = EventsAggregator(latitude, longitude, timezone)
+        events = aggregator.aggregate_all_events(
+            solar_eclipse_data=solar_eclipse_data,
+            lunar_eclipse_data=lunar_eclipse_data,
+            aurora_data=aurora_data,
+            moon_phases_data=moon_phases_data,
+        )
+
+        return jsonify(events)
+
+    except Exception as e:
+        app.logger.exception("Failed to aggregate upcoming events")
         return jsonify({"error": str(e)}), 500
 
 

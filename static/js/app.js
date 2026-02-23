@@ -89,6 +89,10 @@ function setupSubTabs() {
     // Use event delegation for dynamically added sub-tabs
     document.addEventListener('click', (e) => {
         if (e.target.classList.contains('sub-tab-btn')) {
+            // if element clicked has no id, we exit to prevent errors when clicking on elements that are not sub-tab buttons
+            const subtabId = e.target.getAttribute('data-subtab');
+            if (!subtabId) return;
+
             // prevent default link behavior
             e.preventDefault();
             const subtabName = e.target.getAttribute('data-subtab');

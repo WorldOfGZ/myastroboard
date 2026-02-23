@@ -1,0 +1,144 @@
+/**
+ * Events Alerts System Styles
+ * Styling for the astronomical events alert/banner system
+ */
+
+/* Events alerts container */
+#events-alerts-container {
+    margin-bottom: 1rem;
+    padding: 0;
+}
+
+/* Alert cards styling */
+.events-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+/* Event summary cards */
+.event-summary-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-radius: 0.5rem;
+}
+
+.event-summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.event-summary-card .card-title {
+    font-size: 1rem;
+    color: var(--bs-body-color);
+}
+
+.event-summary-card .card-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.event-summary-card .card-footer {
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Event section title */
+.event-section-title {
+    font-weight: 600;
+    padding-top: 0.5rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid var(--bs-primary);
+    display: inline-block;
+}
+
+/* Alert cards with importance coloring */
+.alert {
+    border-left: 4px solid transparent;
+    border-radius: 0.375rem;
+}
+
+.alert-danger {
+    border-left-color: var(--bs-danger);
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--bs-danger);
+}
+
+.alert-warning {
+    border-left-color: var(--bs-warning);
+    background-color: rgba(255, 193, 7, 0.1);
+    color: var(--bs-warning);
+}
+
+.alert-info {
+    border-left-color: var(--bs-info);
+    background-color: rgba(23, 162, 184, 0.1);
+    color: var(--bs-info);
+}
+
+/* Event card buttons */
+.event-summary-card .btn-link {
+    color: var(--bs-primary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    padding: 0 !important;
+    margin-right: 0.5rem;
+}
+
+.event-summary-card .btn-link:hover {
+    color: var(--bs-primary);
+    text-decoration: underline;
+}
+
+/* Loading indicator */
+#events-loading-indicator {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+}
+
+#events-loading-indicator .spinner-border {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+/* Dark theme adjustments */
+[data-bs-theme="dark"] .event-summary-card {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .event-summary-card:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-bs-theme="dark"] .alert-danger {
+    background-color: rgba(220, 53, 69, 0.2);
+    color: rgba(220, 53, 69, 0.9);
+}
+
+[data-bs-theme="dark"] .alert-warning {
+    background-color: rgba(255, 193, 7, 0.2);
+    color: rgba(255, 193, 7, 0.9);
+}
+
+[data-bs-theme="dark"] .alert-info {
+    background-color: rgba(23, 162, 184, 0.2);
+    color: rgba(23, 162, 184, 0.9);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .event-summary-card {
+        margin-bottom: 0.5rem;
+    }
+
+    .events-grid {
+        gap: 0.5rem;
+    }
+
+    .event-summary-card .card-body {
+        padding: 0.75rem !important;
+    }
+
+    .event-summary-card .card-title {
+        font-size: 0.95rem;
+    }
+}

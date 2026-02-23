@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="/static/css/bs_astrodex.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_equipment.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_metrics.css?v={{ version }}">
+    <link rel="stylesheet" href="/static/css/bs_events.css?v={{ version }}">
     <script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js"></script>
 </head>
 <body>
@@ -96,6 +97,9 @@
             <div id="global-scheduler-progress" class="fw-bold">Processing catalogues...</div>
             <div id="global-scheduler-detail" class="global-status-detail">blabla</div>
         </div>
+
+        <!-- Upcoming Astronomical Events Alerts -->
+        <div id="events-alerts-container" class="mb-4" style="display: none;"></div>
 
         <!-- Astrophotography forecast Section -->
         <div id="forecast-astro-tab" class="main-tab-content active">
@@ -1110,6 +1114,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <script src="/static/js/auth.js?v={{ version }}"></script>
     <script src="/static/js/apiHelper.js?v={{ version }}"></script>
+    <script src="/static/js/events_alerts.js?v={{ version }}"></script>
     <script src="/static/js/domUtils.js?v={{ version }}"></script>
     <script src="/static/js/utils.js?v={{ version }}"></script>
     <script src="/static/js/uptonightScheduler.js?v={{ version }}"></script>
