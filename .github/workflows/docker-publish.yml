@@ -12,9 +12,6 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    concurrency:
-      group: docker-release-${{ github.ref }}
-      cancel-in-progress: true
     permissions:
       packages: write
     strategy:
