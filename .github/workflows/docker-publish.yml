@@ -163,18 +163,23 @@ jobs:
 
       - name: Create multi-arch manifest and push
         working-directory: /tmp/digests
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
         run: |
-          TAG_ARGS=""
-          for tag in ${{ steps.meta.outputs.tags }}; do
-            TAG_ARGS="$TAG_ARGS -t $tag"
-          done
+          set -euo pipefail
+          TAG_ARGS=()
+          while IFS= read -r tag; do
+            [ -n "$tag" ] && TAG_ARGS+=(-t "$tag")
+          done <<< "$TAGS"
 
-          DIGEST_ARGS=""
+          DIGEST_ARGS=()
           for f in *; do
-            DIGEST_ARGS="$DIGEST_ARGS ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}@sha256:$f"
+            DIGEST_ARGS+=("${{ env.REGISTRY }}/${{ steps.image.outputs.name }}@sha256:$f")
           done
 
-          docker buildx imagetools create $TAG_ARGS $DIGEST_ARGS
+          echo "Creating manifest with tags: ${TAG_ARGS[*]}"
+          echo "Using digests: ${DIGEST_ARGS[*]}"
+          docker buildx imagetools create "${TAG_ARGS[@]}" "${DIGEST_ARGS[@]}"
 
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@0.34.1
