@@ -60,6 +60,7 @@ class UptonightScheduler:
         # Ensure directories exist
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         os.makedirs(CONFIG_DIR, exist_ok=True)
+        os.makedirs(DATA_DIR_CACHE, exist_ok=True)
 
     def start(self):
         """Start the scheduler"""
@@ -84,7 +85,7 @@ class UptonightScheduler:
         """Main scheduler loop"""
         while self.running:
             # Check for manual trigger file (check frequently for responsiveness)
-            trigger_file = os.path.join(DATA_DIR, 'scheduler_trigger')
+            trigger_file = os.path.join(DATA_DIR_CACHE, 'scheduler_trigger')
             manual_trigger = False
             if os.path.exists(trigger_file):
                 try:

@@ -1,7 +1,7 @@
 """Generate catalogue configuration and cross-catalogue aliases table.
 
 This script:
-1. Updates catalogues.conf from files present in /targets (without .yaml extension)
+1. Generates backend/catalogues.json from files present in /targets (without .yaml extension)
 2. Generates backend/catalogue_aliases.json for cross-catalogue duplicate detection
 """
 
@@ -20,7 +20,7 @@ from astropy.coordinates import SkyCoord, Angle
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 TARGETS_DIR = ROOT_DIR / 'targets'
-CATALOGUES_CONF = ROOT_DIR / 'catalogues.conf'
+CATALOGUES_OUTPUT = ROOT_DIR / 'backend' / 'catalogues.json'
 ALIASES_OUTPUT = ROOT_DIR / 'backend' / 'catalogue_aliases.json'
 
 # Coordinate matching threshold for considering two entries as the same object
@@ -53,28 +53,16 @@ def parse_skycoord(ra: str, dec: str) -> Optional[SkyCoord]:
         return None
 
 
-def update_catalogues_conf(catalogues: List[str]) -> None:
-    """Update catalogues.conf while preserving comments and surrounding text."""
-    catalogues_sorted = sorted(dict.fromkeys(catalogues), key=lambda item: item.lower())
-
-    if not CATALOGUES_CONF.exists():
-        lines = []
-    else:
-        lines = CATALOGUES_CONF.read_text(encoding='utf-8').splitlines()
-
-    data_line_indexes = [
-        index for index, raw_line in enumerate(lines)
-        if raw_line.strip() and not raw_line.strip().startswith('#')
-    ]
-
-    if data_line_indexes:
-        first = data_line_indexes[0]
-        last = data_line_indexes[-1]
-        new_lines = lines[:first] + catalogues_sorted + lines[last + 1:]
-    else:
-        new_lines = lines + ([''] if lines else []) + catalogues_sorted
-
-    CATALOGUES_CONF.write_text('\n'.join(new_lines) + '\n', encoding='utf-8')
+def write_catalogues_json(catalogues: List[str]) -> None:
+    """Write catalogue list into backend/catalogues.json."""
+    payload = {
+        'generated_at': datetime.now(timezone.utc).isoformat(),
+        'catalogues': sorted(dict.fromkeys(catalogues), key=lambda item: item.lower()),
+    }
+    CATALOGUES_OUTPUT.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False),
+        encoding='utf-8',
+    )
 
 
 def load_targets_objects(catalogue: str, file_path: Path) -> List[Dict]:
@@ -228,7 +216,7 @@ def main() -> None:
     catalogue_files = sorted(TARGETS_DIR.glob('*.yaml'))
     catalogues = [path.stem for path in catalogue_files]
 
-    update_catalogues_conf(catalogues)
+    write_catalogues_json(catalogues)
 
     all_objects: List[Dict] = []
     for catalogue_file in catalogue_files:
@@ -241,7 +229,7 @@ def main() -> None:
         encoding='utf-8',
     )
 
-    print(f"Updated catalogues.conf with {len(catalogues)} catalogues")
+    print(f"Generated catalogues.json with {len(catalogues)} catalogues")
     print(f"Parsed {len(all_objects)} objects from targets")
     print(f"Generated aliases table: {ALIASES_OUTPUT}")
 

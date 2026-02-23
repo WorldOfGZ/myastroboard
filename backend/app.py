@@ -829,6 +829,7 @@ def trigger_scheduler_api():
         # Scheduler is running in another worker, we can't trigger it directly
         # But we can create a trigger file that the scheduler will detect
         import os
+        os.makedirs(DATA_DIR_CACHE, exist_ok=True)
         trigger_file = os.path.join(DATA_DIR_CACHE, 'scheduler_trigger')
         try:
             with open(trigger_file, 'w') as f:
@@ -2599,6 +2600,7 @@ def get_or_create_scheduler():
     """Get the scheduler instance, creating it if necessary"""
     if 'scheduler' not in app.config:
         # Only start scheduler in one worker process using file locking
+        os.makedirs(DATA_DIR_CACHE, exist_ok=True)
         lock_file_path = os.path.join(DATA_DIR_CACHE, 'scheduler.lock')
         
         try:

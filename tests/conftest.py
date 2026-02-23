@@ -117,13 +117,13 @@ def sample_json_file(temp_file, sample_config):
 
 @pytest.fixture
 def mock_catalogues_file(temp_dir):
-    """Create a mock catalogues.conf file"""
-    catalogues_path = os.path.join(temp_dir, 'catalogues.conf')
+    """Create a mock catalogues.json file"""
+    catalogues_path = os.path.join(temp_dir, 'catalogues.json')
     with open(catalogues_path, 'w') as f:
-        f.write("# Test catalogues\n")
-        f.write("Messier\n")
-        f.write("Herschel400\n")
-        f.write("OpenNGC\n")
+        json.dump({
+            "generated_at": "2026-02-23T00:00:00Z",
+            "catalogues": ["Messier", "Herschel400", "OpenNGC"]
+        }, f)
     return catalogues_path
 
 

@@ -34,6 +34,7 @@ myastroboard/
 │   ├── cache_scheduler.py      # Cyclic cache for scheduler data
 │   ├── cache_store.py          # Variable cache storage
 │   ├── cache_updater.py        # Functions to update cache
+│   ├── catalogues.json         # Generated catalogue list
 │   ├── catalogue_aliases.json   # Generated catalogue alias table
 │   ├── catalogue_aliases.py     # Alias lookup helpers
 │   ├── config_defaults.py      # Default config for UpTonight
@@ -65,7 +66,7 @@ myastroboard/
 │   ├── equipments/             # Equipment profile storage
 │   └── myastroboard.log        # Application logs
 ├── scripts/                    # Repository maintenance scripts
-│   └── analyse_catalogues.py   # Update catalogues.conf and aliases table
+│   └── analyse_catalogues.py   # Update catalogues.json and aliases table
 ├── static/
 │   ├── css/
 │   │   ├── bs_astrodex.css (astrodex-specific styles)
@@ -120,7 +121,6 @@ myastroboard/
 │   └── test_weather_utils.py
 ├── uptonight_configs/          # Generated configs (Docker volume)
 ├── uptonight_outputs/          # Generated outputs (Docker volume)
-├── catalogues.conf             # Catalogue configuration from UpTonight
 ├── docker-compose-dev.yml      # Development deployment (local image)
 ├── docker-compose.debug.yml    # Additional docker-compose for debugging (launch with docker-compose-dev.yml)
 ├── docker-compose.yml          # Production deployment (published image)

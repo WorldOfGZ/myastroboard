@@ -7,10 +7,10 @@ import os
 from unittest.mock import patch, mock_open
 from io import StringIO
 
-# Add the parent directory to the Python path to import backend modules
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add backend directory to the Python path to import backend modules
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'backend'))
 
-from backend.txtconf_loader import get_available_catalogues, get_uptonight_version, get_repo_version
+from txtconf_loader import get_available_catalogues, get_uptonight_version, get_repo_version
 
 
 class TestCataloguesLoader(unittest.TestCase):
