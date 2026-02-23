@@ -54,7 +54,7 @@ async function loadSolarEclipse() {
         }
 
         container.innerHTML = `
-            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-2 row-cols-xl-4 p-2 mb-3">
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-2 row-cols-xl-4 mb-3">
                 <div class="col mb-3">
                     <div class="card h-100">
                         <div class="card-header fw-bold">📊 Overview</div>

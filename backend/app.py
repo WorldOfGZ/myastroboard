@@ -42,6 +42,7 @@ from cache_updater import (
     update_solar_eclipse_cache,
     update_lunar_eclipse_cache,
     update_horizon_graph_cache,
+    update_aurora_cache,
 )
 
 #Cache for heavy computations
@@ -1243,6 +1244,35 @@ def get_next_7_nights_api():
 
     except Exception as e:
         app.logger.exception("Failed to read Moon Planner cache")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/aurora/predictions", methods=["GET"])
+@login_required
+def get_aurora_predictions_api():
+    """Return Aurora Borealis predictions report, from cache only"""
+    try:
+        if cache_store.is_cache_valid(cache_store._aurora_cache, CACHE_TTL):
+            return jsonify(cache_store._aurora_cache["data"])
+
+        # Try shared cache first (other worker may have computed)
+        if cache_store.sync_cache_from_shared("aurora", cache_store._aurora_cache):
+            if cache_store.is_cache_valid(cache_store._aurora_cache, CACHE_TTL):
+                return jsonify(cache_store._aurora_cache["data"])
+
+        # Cache not ready in this worker -> attempt to refresh just this cache
+        update_aurora_cache()
+        if cache_store.is_cache_valid(cache_store._aurora_cache, CACHE_TTL):
+            return jsonify(cache_store._aurora_cache["data"])
+
+        # Cache not available
+        return jsonify({
+            "status": "pending",
+            "message": "Aurora predictions cache is not ready yet. Please try again shortly."
+        }), 202
+
+    except Exception as e:
+        app.logger.exception("Failed to read Aurora predictions cache")
         return jsonify({"error": str(e)}), 500
 
 

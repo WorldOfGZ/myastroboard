@@ -16,6 +16,7 @@ from sun_phases import SunService
 from sun_eclipse import SolarEclipseService
 from moon_eclipse import LunarEclipseService
 from horizon_graph import HorizonGraphService
+from aurora_predictions import get_aurora_report
 from weather_openmeteo import get_hourly_forecast
 import cache_store
 
@@ -503,6 +504,45 @@ def update_horizon_graph_cache():
 
     except Exception as e:
         logger.error(f"Failed to update Horizon Graph cache: {e}", exc_info=True)
+
+
+def update_aurora_cache():
+    """
+    Updates the Aurora Borealis predictions cache
+    """
+    try:
+        logger.info("Updating Aurora Borealis predictions cache...")
+        config = load_config()
+        
+        if not config.get("location"):
+            raise ValueError("Location configuration is missing")
+        
+        location = config["location"]
+        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
+
+        # Get aurora report
+        report = get_aurora_report(
+            latitude=location["latitude"],
+            longitude=location["longitude"],
+            timezone_str=location["timezone"]
+        )
+
+        if report is None:
+            raise ValueError("Failed to generate aurora report")
+
+        # Update global cache
+        cache_store._aurora_cache["data"] = report
+        cache_store._aurora_cache["timestamp"] = time.time()
+        cache_store.update_shared_cache_entry(
+            "aurora",
+            cache_store._aurora_cache["data"],
+            cache_store._aurora_cache["timestamp"]
+        )
+
+        logger.info(f"Aurora cache updated at {datetime.now().isoformat()}")
+
+    except Exception as e:
+        logger.error(f"Failed to update Aurora cache: {e}", exc_info=True)
         
 
 def fully_initialize_caches():
@@ -531,6 +571,7 @@ def fully_initialize_caches():
             ("Solar eclipse", update_solar_eclipse_cache),
             ("Lunar eclipse", update_lunar_eclipse_cache),
             ("Horizon graph", update_horizon_graph_cache),
+            ("Aurora", update_aurora_cache),
             ("Best window", update_best_window_cache),
             ("Weather forecast", update_weather_cache)
         ]

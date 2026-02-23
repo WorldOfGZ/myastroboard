@@ -148,6 +148,8 @@ function switchSubTab(parentTab, subtabName) {
     } else if (subtabName === 'sun') { //Astro Forecast tab - Sun
         loadSun();
         loadSolarEclipse();
+    } else if (subtabName === 'aurora') { //Astro Forecast tab - Aurora Borealis
+        loadAurora();
     }
 }
 

@@ -46,10 +46,6 @@ This document describes features that could potentially be integrated into MyAst
 - Automated backup scheduling
 - Configuration & Astrodex
 
-### Aurora Borealis Forecast
-**Compute a location‑specific aurora visibility probability**
-- Must be checked how possible
-
 ### Multilanguage
 **Add multiple language**
 - Use of I18n
