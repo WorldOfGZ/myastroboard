@@ -1,23 +1,24 @@
 # Multi-stage build for smaller production image
-FROM python:3.14-alpine AS builder
+FROM python:3.12-slim AS builder
 
 # Build environment
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV MPLBACKEND=Agg
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /build
 
-# Install build dependencies for Alpine
-RUN apk add --no-cache --virtual .build-deps \
-    gcc \
-    g++ \
-    musl-dev \
+# Install build dependencies (Debian)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     python3-dev \
     libffi-dev \
-    openssl-dev \
+    libssl-dev \
     cargo \
-    rust
+    rustc \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy and install Python dependencies
 COPY requirements.txt .
@@ -27,25 +28,27 @@ RUN pip install --no-cache-dir --user -r requirements.txt \
 # ================================
 # Production stage
 # ================================
-FROM python:3.14-alpine AS production
+FROM python:3.12-slim AS production
 
 # Prevents .pyc files and enables immediate logging
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV MPLBACKEND=Agg
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 ENV PATH=/root/.local/bin:/usr/local/bin:$PATH
 
 WORKDIR /app
 
-# Install only runtime dependencies for Alpine
-RUN apk add --no-cache \
+# Install only runtime dependencies (Debian)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     gnupg \
     tzdata \
     docker-cli \
-    shadow \
-    && rm -rf /tmp/* /var/cache/apk/*
+    passwd \
+    && rm -rf /var/lib/apt/lists/* /tmp/*
 
 # Copy Python packages from builder and make accessible to appuser
 COPY --from=builder /root/.local /usr/local
@@ -63,7 +66,7 @@ COPY static/ ./static/
 RUN mkdir -p /app/data /app/uptonight_outputs /app/uptonight_configs
 
 # Create non-root user
-RUN adduser -D -u 1000 appuser
+RUN useradd -m -u 1000 appuser
 
 # Copy entrypoint script and make it executable
 COPY entrypoint.sh /entrypoint.sh
