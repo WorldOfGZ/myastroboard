@@ -30,6 +30,7 @@ async function loadAurora() {
 
         // Determine color for probability bar
         const probability = current.probability || 0;
+        const probabilityLevel = current.probability_level || '';
         let probabilityColor = '#dc3545'; // red
         if (probability > 70) {
             probabilityColor = '#28a745'; // green
@@ -64,7 +65,7 @@ async function loadAurora() {
                             <li class="list-group-item">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span>📊 Aurora Probability:</span>
-                                    <span class="fw-bold">${probability.toFixed(0)}%</span>
+                                    <span class="fw-bold">${probability.toFixed(0)}%${probabilityLevel ? ` (${probabilityLevel})` : ''}</span>
                                 </div>
                                 <div class="progress" role="progressbar" aria-valuenow="${probability}" aria-valuemin="0" aria-valuemax="100">
                                     <div class="progress-bar" style="width: ${probability}%; background-color: ${probabilityColor};"></div>

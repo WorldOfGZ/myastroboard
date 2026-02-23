@@ -913,7 +913,7 @@ def get_catalogue_reports_api(catalogue):
         for item in result['report']:
             item_name = item.get('id', '')
             if item_name:
-                item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name)
+                item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name, catalogue)
             else:
                 item['in_astrodex'] = False
         
@@ -925,7 +925,7 @@ def get_catalogue_reports_api(catalogue):
             for item in result['bodies']:
                 item_name = item.get('target name', '')
                 if item_name:
-                    item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name)
+                    item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name, catalogue)
                 else:
                     item['in_astrodex'] = False
         
@@ -936,7 +936,7 @@ def get_catalogue_reports_api(catalogue):
             for item in result['comets']:
                 item_name = item.get('target name', '')
                 if item_name:
-                    item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name)
+                    item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name, catalogue)
                 else:
                     item['in_astrodex'] = False
         
@@ -1547,6 +1547,8 @@ def get_astrodex():
             return jsonify({'error': 'User not authenticated'}), 401
             
         astrodex_data = astrodex.load_user_astrodex(user_id, user.username)
+        for item in astrodex_data.get('items', []):
+            astrodex.enrich_item_with_catalogue_aliases(item)
         stats = astrodex.get_astrodex_stats(user_id)
         
         return jsonify({
@@ -1575,8 +1577,8 @@ def add_astrodex_item():
         if not item_data.get('name'):
             return jsonify({'error': 'Item name is required'}), 400
         
-        # Check if item already exists
-        if astrodex.is_item_in_astrodex(user_id, item_data['name']):
+        # Check if item already exists (exact name or catalogue aliases)
+        if astrodex.is_item_in_astrodex(user_id, item_data['name'], item_data.get('catalogue', '')):
             return jsonify({'error': 'Item already exists in Astrodex'}), 400
         
         new_item = astrodex.create_astrodex_item(user_id, item_data, user.username)
@@ -1590,6 +1592,34 @@ def add_astrodex_item():
             return jsonify({'error': 'Failed to create item'}), 500
     except Exception as e:
         logger.error(f"Error adding astrodex item: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/astrodex/items/<item_id>/catalogue-name', methods=['POST'])
+@login_required
+def switch_astrodex_item_catalogue_name(item_id):
+    """Switch Astrodex item displayed name to a catalogue-specific alias."""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        data = request.json or {}
+        target_catalogue = data.get('catalogue', '')
+
+        if not target_catalogue:
+            return jsonify({'error': 'Target catalogue is required'}), 400
+
+        updated_item = astrodex.switch_item_catalogue_name(user_id, item_id, target_catalogue)
+        if updated_item:
+            return jsonify({'status': 'success', 'item': updated_item})
+
+        return jsonify({'error': 'Item not found'}), 404
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error switching astrodex item catalogue name: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
 

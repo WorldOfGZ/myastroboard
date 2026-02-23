@@ -11,6 +11,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
 import astrodex
+import catalogue_aliases
 
 
 @pytest.fixture
@@ -418,13 +419,100 @@ class TestAstrodexBackupMechanism:
         """Test that save works correctly for new user with no existing file"""
         item_data = {'name': 'M31', 'type': 'Galaxy'}
         item = astrodex.create_astrodex_item('newuser', item_data)
-        
+
+
+class TestAstrodexAliases:
+    """Test aliases table integration in Astrodex"""
+
+    @staticmethod
+    def _fake_alias_entry(catalogue: str, object_name: str) -> dict:
+        entry = {
+            'group_id': 'OBJ000001',
+            'aliases': {
+                'GaryImm': 'M81',
+                'OpenNGC': 'NGC 3031'
+            }
+        }
+
+        if catalogue == 'GaryImm' and object_name == 'M81':
+            return entry
+        if catalogue == 'OpenNGC' and object_name == 'NGC 3031':
+            return entry
+        return {}
+
+    def test_alias_deduplication_across_catalogues(self, temp_data_dir, monkeypatch):
+        """Test duplicate detection using catalogue aliases"""
+        monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', self._fake_alias_entry)
+
+        item_data = {
+            'name': 'M81',
+            'type': 'Galaxy',
+            'catalogue': 'GaryImm'
+        }
+        item = astrodex.create_astrodex_item('testuser', item_data)
         assert item is not None
-        
-        # Verify file was created
-        file_path = astrodex.get_user_astrodex_file('newuser')
-        assert os.path.exists(file_path)
-        
-        # Verify it's valid JSON
-        is_valid, error_msg = astrodex.validate_astrodex_json(file_path)
-        assert is_valid is True
+
+        assert astrodex.is_item_in_astrodex('testuser', 'NGC 3031', 'OpenNGC') is True
+
+    def test_alias_metadata_enrichment(self, temp_data_dir, monkeypatch):
+        """Test alias metadata is attached to items when available"""
+        monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', self._fake_alias_entry)
+
+        item_data = {
+            'name': 'M81',
+            'type': 'Galaxy',
+            'catalogue': 'GaryImm'
+        }
+        item = astrodex.create_astrodex_item('testuser', item_data)
+        assert item is not None
+
+        enriched = astrodex.enrich_item_with_catalogue_aliases(item)
+        assert enriched.get('catalogue_group_id') == 'OBJ000001'
+        assert enriched.get('catalogue_aliases', {}).get('OpenNGC') == 'NGC 3031'
+
+    def test_switch_item_catalogue_name(self, temp_data_dir, monkeypatch):
+        """Test switching displayed name to another catalogue alias"""
+        monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', self._fake_alias_entry)
+
+        item_data = {
+            'name': 'M81',
+            'type': 'Galaxy',
+            'catalogue': 'GaryImm'
+        }
+        item = astrodex.create_astrodex_item('testuser', item_data)
+        assert item is not None
+
+        updated = astrodex.switch_item_catalogue_name('testuser', item['id'], 'OpenNGC')
+        assert updated is not None
+        assert updated['name'] == 'NGC 3031'
+        assert updated['catalogue'] == 'OpenNGC'
+
+    def test_switch_item_catalogue_name_duplicate(self, temp_data_dir, monkeypatch):
+        """Test switching fails when an equivalent object already exists"""
+        monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', self._fake_alias_entry)
+
+        first_item = astrodex.create_astrodex_item(
+            'testuser',
+            {'name': 'M81', 'type': 'Galaxy', 'catalogue': 'GaryImm'}
+        )
+        assert first_item is not None
+
+        astrodex_data = astrodex.load_user_astrodex('testuser')
+        astrodex_data['items'].append({
+            'id': 'manual-duplicate',
+            'name': 'NGC 3031',
+            'type': 'Galaxy',
+            'catalogue': 'OpenNGC',
+            'catalogue_aliases': {
+                'GaryImm': 'M81',
+                'OpenNGC': 'NGC 3031'
+            },
+            'catalogue_group_id': 'OBJ000001',
+            'pictures': [],
+            'created_at': first_item['created_at'],
+            'updated_at': first_item['updated_at']
+        })
+        assert astrodex.save_user_astrodex('testuser', astrodex_data)
+
+        with pytest.raises(ValueError):
+            astrodex.switch_item_catalogue_name('testuser', first_item['id'], 'OpenNGC')

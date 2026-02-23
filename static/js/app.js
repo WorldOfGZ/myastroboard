@@ -1142,6 +1142,10 @@ function showCatalogueType(catalogue, type) {
                      alt="${catalogue} plot" 
                      class="img-fluid rounded" 
                      onclick="showPlotPopup('${catalogue} Plot', this.src)">
+                <div class="text-muted small mt-2">
+                    These data and plots come from
+                    <a href="https://github.com/mawinkler/uptonight" target="_blank" rel="noopener noreferrer">mawinkler/uptonight</a>.
+                </div>
             </div>
         `;
     }
@@ -1394,25 +1398,24 @@ function generateReportTable(report, catalogue, type) {
                 // Generate Astrodex action button
                 const itemName = row['id'] || row['target name'];
                 const isInAstrodex = row['in_astrodex'] || false;
+                const itemData = {
+                    id: row['id'],
+                    'target name': row['target name'],
+                    name: itemName,
+                    type: row['type'] || row['targettype'],
+                    catalogue: catalogue,
+                    ra: row['ra'] || row['right ascension'],
+                    dec: row['dec'] || row['declination'],
+                    constellation: (row['constellation'] || row['const'] || '').toLowerCase(),
+                    mag: row['mag'] || row['visual magnitude'],
+                    size: row['size']
+                };
+                const itemDataJson = JSON.stringify(itemData).replace(/"/g, '&quot;');
                 
                 if (isInAstrodex) {
-                    html += `<td style="text-align: ${col.align}"><span class="in-astrodex-badge">✓ Captured</span></td>`;
+                    html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><span class="in-astrodex-badge">✓ Captured</span></td>`;
                 } else if (itemName) {
-                    // Use data attributes to avoid JSON injection issues
-                    const itemData = {
-                        id: row['id'],
-                        'target name': row['target name'],
-                        name: itemName,
-                        type: row['type'] || row['targettype'],
-                        catalogue: catalogue,
-                        ra: row['ra'] || row['right ascension'],
-                        dec: row['dec'] || row['declination'],
-                        constellation: (row['constellation'] || row['const'] || '').toLowerCase(),
-                        mag: row['mag'] || row['visual magnitude'],
-                        size: row['size']
-                    };
-                    const itemDataJson = JSON.stringify(itemData).replace(/"/g, '&quot;');
-                    html += `<td style="text-align: ${col.align}"><button class="btn btn-sm btn-outline-primary astrodex-add-btn" data-item="${itemDataJson}">➕ Add</button></td>`;
+                    html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><button class="btn btn-sm btn-outline-primary astrodex-add-btn" data-item="${itemDataJson}">➕ Add</button></td>`;
                 } else {
                     html += `<td style="text-align: ${col.align}">-</td>`;
                 }
@@ -2054,8 +2057,23 @@ function validateYAML(textarea, container, statusElement) {
  * @param {string} itemName - Name of the item to update
  * @param {boolean} isInAstrodex - Whether the item is now in Astrodex
  */
-async function updateCatalogueCapturedBadge(itemName, isInAstrodex) {
-    if (!itemName) return;
+async function updateCatalogueCapturedBadge(itemDataOrName, isInAstrodex) {
+    if (!itemDataOrName) return;
+
+    const normalize = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+    const targetNames = new Set();
+    if (typeof itemDataOrName === 'string') {
+        targetNames.add(normalize(itemDataOrName));
+    } else {
+        targetNames.add(normalize(itemDataOrName.name || itemDataOrName['target name'] || itemDataOrName.id));
+        const aliases = itemDataOrName.catalogue_aliases;
+        if (aliases && typeof aliases === 'object') {
+            Object.values(aliases).forEach(name => targetNames.add(normalize(name)));
+        }
+    }
+    targetNames.delete('');
+    if (targetNames.size === 0) return;
     
     // Find all table rows with matching item name
     const tables = document.querySelectorAll('table[id^="table-"]');
@@ -2071,46 +2089,26 @@ async function updateCatalogueCapturedBadge(itemName, isInAstrodex) {
             });
             
             if (!astrodexCell) return;
+
+            const rawItem = astrodexCell.getAttribute('data-item');
+            if (!rawItem) return;
+
+            let rowItemData = null;
+            try {
+                rowItemData = JSON.parse(rawItem.replace(/&quot;/g, '"'));
+            } catch (error) {
+                return;
+            }
+
+            const rowItemName = rowItemData.name || rowItemData['target name'] || rowItemData.id;
+            const rowNormalizedName = normalize(rowItemName);
+            if (!targetNames.has(rowNormalizedName)) return;
             
-            // Check if this row is for our item
-            const button = astrodexCell.querySelector('.astrodex-add-btn');
-            if (button) {
-                try {
-                    const itemData = JSON.parse(button.getAttribute('data-item').replace(/&quot;/g, '"'));
-                    const rowItemName = itemData.name || itemData['target name'] || itemData.id;
-                    
-                    if (rowItemName === itemName) {
-                        // Update the cell
-                        if (isInAstrodex) {
-                            // Replace button with badge
-                            astrodexCell.innerHTML = '<span class="in-astrodex-badge">✓ Captured</span>';
-                        }
-                    }
-                } catch (e) {
-                    // Ignore parse errors
-                }
+            if (isInAstrodex) {
+                astrodexCell.innerHTML = '<span class="in-astrodex-badge">✓ Captured</span>';
             } else {
-                // Check if badge exists and we need to remove it
-                const badge = astrodexCell.querySelector('.in-astrodex-badge');
-                if (badge && !isInAstrodex) {
-                    // Find the item name from other cells in this row
-                    const nameCell = row.querySelector('td:nth-child(1)');
-                    if (nameCell && nameCell.textContent.trim() === itemName) {
-                        // Item was removed from Astrodex - add back the button
-                        // Get catalogue from table ID
-                        const tableId = table.id;
-                        const match = tableId.match(/table-([^-]+)-/);
-                        const catalogue = match ? match[1] : '';
-                        
-                        // Create a basic item data for the button
-                        const itemData = {
-                            name: itemName,
-                            catalogue: catalogue
-                        };
-                        const itemDataJson = JSON.stringify(itemData).replace(/"/g, '&quot;');
-                        astrodexCell.innerHTML = `<button class="btn btn-sm astrodex-add-btn" data-item="${itemDataJson}">➕ Add</button>`;
-                    }
-                }
+                const itemDataJson = JSON.stringify(rowItemData).replace(/"/g, '&quot;');
+                astrodexCell.innerHTML = `<button class="btn btn-sm btn-outline-primary astrodex-add-btn" data-item="${itemDataJson}">➕ Add</button>`;
             }
         });
     });

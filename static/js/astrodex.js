@@ -360,7 +360,7 @@ async function addToAstrodex(itemData) {
             
             // Update catalogue badges if the function exists (from app.js)
             if (typeof updateCatalogueCapturedBadge === 'function') {
-                updateCatalogueCapturedBadge(itemData.name, true);
+                updateCatalogueCapturedBadge(response.item || itemData, true);
             }
             
             return true;
@@ -552,6 +552,7 @@ async function showAstrodexItemDetail(itemId) {
     // Escape for JavaScript context
     const jsEscapedName = escapeForJs(item.name);
     const jsEscapedImageUrl = escapeForJs(imageUrl);
+    const catalogueAliasesSection = renderCatalogueAliasesSection(item);
     
     const modal = createModal(item.name, `                    
         <h3>Object Information</h3>
@@ -582,10 +583,7 @@ async function showAstrodexItemDetail(itemId) {
                 </select>
             </div>
 
-            <div class="col-md-6">
-                <label for="catalogue-${item.id}" class="form-label">Form catalogue</label>
-                <input type="text" id="catalogue-${item.id}" class="form-control" value="${escapeHtml(item.catalogue || '')}" data-field="catalogue" readonly>
-            </div>
+            ${catalogueAliasesSection}
 
             <div class="col-md-12">
                 <label for="edit-notes-${item.id}" class="form-label">Notes</label>
@@ -617,6 +615,44 @@ async function showAstrodexItemDetail(itemId) {
         keyboard: true
     });
     bs_modal.show();
+}
+
+function renderCatalogueAliasesSection(item) {
+    const aliases = item.catalogue_aliases;
+    if (!aliases || typeof aliases !== 'object' || Object.keys(aliases).length === 0) {
+        return '';
+    }
+
+    const rows = Object.entries(aliases)
+        .sort(([catalogueA], [catalogueB]) => catalogueA.localeCompare(catalogueB))
+        .map(([catalogueName, objectName]) => {
+            const isCurrent = (item.catalogue || '') === catalogueName;
+            return `
+                <div class="astrodex-catalogue-alias-row">
+                    <div class="astrodex-catalogue-alias-label">${escapeHtml(catalogueName)}:</div>
+                    <div class="astrodex-catalogue-alias-value">${escapeHtml(objectName)}</div>
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-primary"
+                        data-action="switch-catalogue-name"
+                        data-item-id="${escapeForJs(item.id)}"
+                        data-catalogue="${escapeForJs(catalogueName)}"
+                        ${isCurrent ? 'disabled' : ''}
+                        title="Use this catalogue name"
+                    >✏️</button>
+                </div>
+            `;
+        })
+        .join('');
+
+    return `
+        <div class="col-md-12">
+            <label class="form-label">Catalogue Names</label>
+            <div class="astrodex-catalogue-alias-list">
+                ${rows}
+            </div>
+        </div>
+    `;
 }
 
 function renderPicturesGrid(item) {
@@ -904,7 +940,7 @@ async function deletePicture(itemId, pictureId) {
 async function deleteAstrodexItem(itemId) {
     // Get the item name before deleting
     const item = astrodexData.items.find(i => i.id === itemId);
-    const itemName = item ? item.name : null;
+    const itemPayload = item ? item : null;
     
     if (window.confirm("Are you sure you want to remove this object from your Astrodex? This will also delete all associated photos. This action cannot be undone.")) {
         try {
@@ -916,8 +952,8 @@ async function deleteAstrodexItem(itemId) {
             await loadAstrodex();
             
             // Update catalogue badges if the function exists (from app.js)
-            if (itemName && typeof updateCatalogueCapturedBadge === 'function') {
-                updateCatalogueCapturedBadge(itemName, false);
+            if (itemPayload && typeof updateCatalogueCapturedBadge === 'function') {
+                updateCatalogueCapturedBadge(itemPayload, false);
             }
             
             closeModal();
@@ -925,6 +961,29 @@ async function deleteAstrodexItem(itemId) {
             console.error('Error deleting item:', error);
             showMessage('error', 'Failed to remove object');
         }
+    }
+}
+
+async function switchItemCatalogueName(itemId, catalogue) {
+    try {
+        const response = await fetchJSON(`/api/astrodex/items/${itemId}/catalogue-name`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ catalogue })
+        });
+
+        if (response.status === 'success') {
+            await loadAstrodex();
+            showAstrodexItemDetail(itemId);
+            showMessage('success', 'Object name updated');
+        } else {
+            showMessage('error', response.error || 'Failed to update object name');
+        }
+    } catch (error) {
+        console.error('Error switching catalogue name:', error);
+        showMessage('error', 'Failed to update object name');
     }
 }
 
@@ -1389,6 +1448,7 @@ function initializeAstrodexEventListeners() {
             const action = button.getAttribute('data-action');
             const itemId = button.getAttribute('data-item-id');
             const pictureId = button.getAttribute('data-picture-id');
+            const catalogue = button.getAttribute('data-catalogue');
             
             switch(action) {
                 case 'close-modal':
@@ -1418,6 +1478,10 @@ function initializeAstrodexEventListeners() {
                 case 'delete-picture':
                     e.preventDefault();
                     deletePicture(itemId, pictureId);
+                    break;
+                case 'switch-catalogue-name':
+                    e.preventDefault();
+                    switchItemCatalogueName(itemId, catalogue);
                     break;
             }
         }

@@ -27,7 +27,6 @@ data/
 # Uptonight outputs
 uptonight_outputs/
 uptonight_configs/
-targets/*.yaml
 
 # IDE
 .vscode/

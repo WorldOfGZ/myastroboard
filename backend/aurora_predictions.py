@@ -16,9 +16,8 @@ from logging_config import get_logger
 logger = get_logger(__name__)
 
 # NOAA Space Weather API endpoints
-NOAA_KP_API = "https://services.swpc.noaa.gov/products/noaa-estimated-planetary-kp-index-1m.json"
-NOAA_3DAY_FORECAST = "https://services.swpc.noaa.gov/products/noaa-3-day-forecast.json"
-NOAA_GEOMAGNETIC_ALERT = "https://services.swpc.noaa.gov/products/noaa-estimated-planetary-kp-index.json"
+NOAA_KP_API = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json"
+NOAA_3DAY_FORECAST = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json"
 
 # Timeout for API requests
 REQUEST_TIMEOUT = 10
@@ -48,7 +47,7 @@ class AuroraService:
             Latest Kp index value or None if fetch fails
         """
         try:
-            response = requests.get(NOAA_GEOMAGNETIC_ALERT, timeout=REQUEST_TIMEOUT)
+            response = requests.get(NOAA_KP_API, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()
             data = response.json()
             
@@ -85,17 +84,29 @@ class AuroraService:
             
             forecast_data = []
             
-            # Find the Kp index forecast section
-            if isinstance(data, dict):
-                # Structure varies, look for forecast array
-                for key in ['kp_forecast', 'Kp']:
-                    if key in data and isinstance(data[key], list):
-                        for entry in data[key]:
-                            if isinstance(entry, dict) and 'Kp' in entry:
-                                forecast_data.append({
-                                    'timestamp': entry.get('TimeStamp', ''),
-                                    'kp': float(entry.get('Kp', 0))
-                                })
+            # Expected list format with header row
+            if isinstance(data, list) and len(data) > 1 and isinstance(data[0], list):
+                header = data[0]
+                time_idx = header.index('time_tag') if 'time_tag' in header else None
+                kp_idx = header.index('kp') if 'kp' in header else None
+
+                if kp_idx is not None:
+                    for row in data[1:]:
+                        if not isinstance(row, list) or len(row) <= kp_idx:
+                            continue
+                        try:
+                            kp_value = float(row[kp_idx])
+                        except (TypeError, ValueError):
+                            continue
+
+                        timestamp = ''
+                        if time_idx is not None and len(row) > time_idx:
+                            timestamp = row[time_idx]
+
+                        forecast_data.append({
+                            'timestamp': timestamp,
+                            'kp': kp_value
+                        })
             
             logger.debug(f"Fetched Kp forecast: {len(forecast_data)} entries")
             return forecast_data if forecast_data else None
@@ -118,30 +129,44 @@ class AuroraService:
         """
         # Absolute latitude is used (aurora visible at both poles)
         abs_latitude = abs(self.latitude)
-        
+
         # Base aurora oval extends from approximately 65-72 degrees magnetic latitude
         # Magnetic latitude differs from geographic, simplified here
         base_aurora_latitude = 67
-        
+
         # Rule of thumb: Aurora oval expands equatorward when Kp is high
         # Each Kp increase lowers the aurora latitude by ~3-4 degrees
         aurora_edge_latitude = base_aurora_latitude - (kp_index * 3.5)
-        
-        # Probability based on proximity to aurora oval
-        if abs_latitude < aurora_edge_latitude - 5:
-            # Well inside aurora oval
-            probability = min(100, 80 + (kp_index * 2))
-        elif abs_latitude < aurora_edge_latitude:
-            # At edge of aurora oval
-            probability = min(100, 50 + (kp_index * 3))
-        elif abs_latitude < aurora_edge_latitude + 5:
-            # Just outside aurora oval
-            probability = min(100, max(0, 30 + (kp_index * 2)))
+
+        # Positive distance means observer is poleward (inside) of the oval edge
+        distance_from_edge = abs_latitude - aurora_edge_latitude
+
+        if distance_from_edge >= 10:
+            # Deep inside aurora oval
+            probability = 25 + (kp_index * 7)
+        elif distance_from_edge >= 0:
+            # Inside near the edge
+            probability = 15 + (kp_index * 6)
+        elif distance_from_edge >= -5:
+            # Just outside the oval edge
+            probability = 5 + (kp_index * 4)
         else:
-            # Far from aurora oval
-            probability = max(0, (kp_index - 2) * 5)
-        
+            # Far equatorward from the oval
+            probability = max(0, (kp_index - 3) * 6)
+
         return max(0, min(100, probability))
+
+    def get_probability_level(self, probability: float) -> str:
+        """Translate probability into a user-friendly label."""
+        if probability < 10:
+            return "Very Low"
+        if probability < 25:
+            return "Low"
+        if probability < 50:
+            return "Moderate"
+        if probability < 75:
+            return "High"
+        return "Very High"
 
     def get_aurora_score(self, kp_index: float) -> Dict[str, Any]:
         """
@@ -154,6 +179,7 @@ class AuroraService:
             Dictionary with aurora score and details
         """
         probability = self.calculate_aurora_probability(kp_index)
+        probability_level = self.get_probability_level(probability)
         
         # Determine visibility level
         if kp_index < 3:
@@ -186,6 +212,7 @@ class AuroraService:
             "kp_index": kp_index,
             "kp_index_max": 9,
             "probability": round(probability, 1),
+            "probability_level": probability_level,
             "visibility_level": visibility,
             "visibility_description": visibility_description,
             "observer_latitude": self.latitude,

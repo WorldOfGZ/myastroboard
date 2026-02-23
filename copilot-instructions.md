@@ -28,34 +28,54 @@ MyAstroBoard is a web-based astronomy observation planning system that integrate
 myastroboard/
 ├── backend/
 │   ├── app.py                  # Main Flask application with modern API
+│   ├── astrodex.py              # Astrodex collection management
+│   ├── aurora_predictions.py    # Aurora borealis predictions
 │   ├── auth.py                 # Authentication and user management
 │   ├── cache_scheduler.py      # Cyclic cache for scheduler data
 │   ├── cache_store.py          # Variable cache storage
 │   ├── cache_updater.py        # Functions to update cache
+│   ├── catalogue_aliases.json   # Generated catalogue alias table
+│   ├── catalogue_aliases.py     # Alias lookup helpers
 │   ├── config_defaults.py      # Default config for UpTonight
 │   ├── constants.py            # Centralization of constants
+│   ├── equipment_profiles.py    # Equipment profiles management
+│   ├── events_aggregator.py     # Aggregated events for dashboard
+│   ├── horizon_graph.py         # Horizon plot generation
 │   ├── logging_config.py       # Centralization of logging
 │   ├── moon_astrotonight.py    # Computes the best astrophotography imaging window tonight
+│   ├── moon_eclipse.py          # Lunar eclipse calculations
 │   ├── moon_phases.py          # Computes locally the moon phases
 │   ├── moon_planner.py         # Computes locally the moon phase for a range of dates
 │   ├── repo_config.py          # Manages repository configuration file
+│   ├── sun_eclipse.py           # Solar eclipse calculations
 │   ├── sun_phases.py           # Computes locally the sun phases
 │   ├── txtconf_loader.py       # Loads flat txtconf files
 │   ├── uptonight_parser.py     # Parses uptonight JSON reports
 │   ├── uptonight_scheduler.py  # Manages periodic uptonight execution
 │   ├── utils.py                # Utils functions
+│   ├── weather_astro.py         # Astro weather analysis
 │   └── weather_openmeteo.py    # Parses weather data from Open-Meteo API
+│   └── weather_utils.py         # Weather helper utilities
 ├── docs/                       # Comprehensive documentation
 ├── data/                       # User configuration (Docker volume, persists)
 │   ├── config.json             # Main configuration file
 │   ├── users.json              # User accounts and credentials (hashed passwords)
+│   ├── astrodex/               # Astrodex data and images
+│   ├── cache/                  # Cached astronomy data
+│   ├── equipments/             # Equipment profile storage
 │   └── myastroboard.log        # Application logs
+├── scripts/                    # Repository maintenance scripts
+│   └── analyse_catalogues.py   # Update catalogues.conf and aliases table
 ├── static/
 │   ├── css/
 │   │   ├── bs_astrodex.css (astrodex-specific styles)
+│   │   ├── bs_equipment.css (equipment-specific styles)
+│   │   ├── bs_events.css (events-specific styles)
+│   │   ├── bs_login.css (login page styles)
 │   │   ├── bs_imports.css (import orchestrator)
 │   │   ├── bs_logs.css (logs-specific styles)
 │   │   ├── bs_main.css (common styles for all pages)
+│   │   ├── bs_metrics.css (metrics-specific styles)
 │   │   ├── bs_uptonight.css (uptonight-specific styles)
 │   │   ├── bs_variables.css (common variables for all pages)
 │   │   ├── bs_weather.css (weather-specific styles)
@@ -64,18 +84,40 @@ myastroboard/
 │   │   ├── apiHelper.js
 │   │   ├── app.js
 │   │   ├── auth.js (authentication and user management)
+│   │   ├── astrodex.js
+│   │   ├── aurora.js
 │   │   ├── domUtils.js
+│   │   ├── equipment.js
+│   │   ├── events_alerts.js
+│   │   ├── horizon_graph.js
+│   │   ├── lunar_eclipse.js
 │   │   ├── moon.js
+│   │   ├── solar_eclipse.js
 │   │   ├── scheduler.js
 │   │   ├── sun.js
+│   │   ├── theme.js
+│   │   ├── uptonightScheduler.js
 │   │   ├── utils.js
 │   │   ├── weather.js
 │   │   ├── weather_alerts.js
 │   │   └── weather_astro.js
 │   └── favicon.svg
+├── targets/                    # UpTonight catalogues (*.yaml)
 ├── templates/
 │   ├── index.html              # Modern tabbed dashboard
 │   └── login.html              # User login page
+├── tests/                      # Unit tests
+│   ├── test_astrodex.py
+│   ├── test_astrodex_api.py
+│   ├── test_auth.py
+│   ├── test_cache_store.py
+│   ├── test_config.py
+│   ├── test_constants.py
+│   ├── test_equipment_profiles.py
+│   ├── test_txtconf_loader.py
+│   ├── test_uptonight_parser.py
+│   ├── test_utils.py
+│   └── test_weather_utils.py
 ├── uptonight_configs/          # Generated configs (Docker volume)
 ├── uptonight_outputs/          # Generated outputs (Docker volume)
 ├── catalogues.conf             # Catalogue configuration from UpTonight
@@ -85,6 +127,7 @@ myastroboard/
 ├── Dockerfile                  # Production container image
 ├── entrypoint.sh               # Production container entrypoint script
 ├── README.md                   # Project overview and instructions
+├── requirements-dev.txt        # Development dependencies
 ├── requirements.txt            # Python dependencies
 ├── UPTONIGHT_VERSION           # Specified uptonight Docker image version
 └── VERSION                     # Semantic version number

@@ -33,7 +33,7 @@ FROM python:3.14-alpine AS production
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV MPLBACKEND=Agg
-ENV PATH=/usr/local/bin:$PATH
+ENV PATH=/root/.local/bin:/usr/local/bin:$PATH
 
 WORKDIR /app
 

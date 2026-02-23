@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from logging_config import get_logger
 from constellation import Constellation
+import catalogue_aliases
 
 logger = get_logger(__name__)
 
@@ -19,6 +20,49 @@ ASTRODEX_IMAGES_DIR = os.path.join(ASTRODEX_DIR, 'images')
 
 # Default image for items without pictures
 DEFAULT_IMAGE = 'default_astro_object.png'
+
+
+def _normalize_name(name: str) -> str:
+    """Normalize names for resilient comparisons."""
+    return catalogue_aliases.normalize_object_name(name)
+
+
+def _get_alias_metadata(catalogue: str, object_name: str) -> tuple[str, Dict[str, str]]:
+    """Get aliases group metadata from generated catalogue aliases table."""
+    if not catalogue or not object_name:
+        return '', {}
+
+    entry = catalogue_aliases.get_alias_entry(catalogue, object_name)
+    if not entry:
+        return '', {}
+
+    group_id = str(entry.get('group_id', '') or '')
+    aliases = entry.get('aliases', {})
+    if not isinstance(aliases, dict):
+        aliases = {}
+
+    return group_id, aliases
+
+
+def _get_item_alias_metadata(item: Dict) -> tuple[str, Dict[str, str]]:
+    """Get item aliases metadata, enriching from lookup when possible."""
+    group_id = str(item.get('catalogue_group_id', '') or '')
+    aliases = item.get('catalogue_aliases', {})
+
+    if not isinstance(aliases, dict):
+        aliases = {}
+
+    if group_id and aliases:
+        return group_id, aliases
+
+    inferred_group_id, inferred_aliases = _get_alias_metadata(item.get('catalogue', ''), item.get('name', ''))
+
+    if inferred_group_id:
+        item['catalogue_group_id'] = inferred_group_id
+    if inferred_aliases:
+        item['catalogue_aliases'] = inferred_aliases
+
+    return inferred_group_id, inferred_aliases
 
 
 def ensure_astrodex_directories():
@@ -253,11 +297,14 @@ def create_astrodex_item(user_id: str, item_data: Dict, username: Optional[str] 
         logger.error("Item name is required")
         return None
     
-    # Check for duplicate
-    for item in astrodex['items']:
-        if item['name'].lower() == item_name.lower():
-            logger.warning(f"Item {item_name} already exists in astrodex")
-            return None
+    source_catalogue = item_data.get('catalogue', '')
+
+    # Check for duplicate (same exact name OR same cross-catalogue object)
+    if is_item_in_astrodex(user_id, item_name, source_catalogue):
+        logger.warning(f"Item {item_name} already exists in astrodex")
+        return None
+
+    group_id, aliases = _get_alias_metadata(source_catalogue, item_name)
     
     # Create new item
     new_item = {
@@ -272,6 +319,8 @@ def create_astrodex_item(user_id: str, item_data: Dict, username: Optional[str] 
         'size': item_data.get('size', ''),
         'notes': item_data.get('notes', ''),
         'pictures': [],
+        'catalogue_aliases': aliases,
+        'catalogue_group_id': group_id,
         'created_at': datetime.now().isoformat(),
         'updated_at': datetime.now().isoformat()
     }
@@ -502,16 +551,98 @@ def get_main_picture(item: Dict) -> Optional[Dict]:
     return item['pictures'][0] if item['pictures'] else None
 
 
-def is_item_in_astrodex(user_id: str, item_name: str) -> bool:
-    """Check if an item is already in user's astrodex by name"""
+def is_item_in_astrodex_with_catalogue(user_id: str, item_name: str, catalogue: str = '') -> bool:
+    """Check if an item exists by exact name or cross-catalogue aliases group."""
     astrodex = load_user_astrodex(user_id)
-    
-    item_name_lower = item_name.lower().strip()
+
+    item_name_normalized = _normalize_name(item_name)
+    requested_group_id, requested_aliases = _get_alias_metadata(catalogue, item_name)
+    requested_alias_names = {_normalize_name(value) for value in requested_aliases.values() if value}
+
     for item in astrodex['items']:
-        if item['name'].lower().strip() == item_name_lower:
+        existing_name_normalized = _normalize_name(item.get('name', ''))
+        if existing_name_normalized == item_name_normalized:
             return True
+
+        existing_group_id, existing_aliases = _get_item_alias_metadata(item)
+
+        if requested_group_id and existing_group_id and requested_group_id == existing_group_id:
+            return True
+
+        if requested_alias_names:
+            existing_alias_names = {
+                _normalize_name(value)
+                for value in existing_aliases.values()
+                if value
+            }
+            if existing_alias_names and (requested_alias_names & existing_alias_names):
+                return True
+            if existing_name_normalized in requested_alias_names:
+                return True
+
+        if catalogue and existing_aliases:
+            alias_name = existing_aliases.get(catalogue)
+            if alias_name and _normalize_name(alias_name) == item_name_normalized:
+                return True
     
     return False
+
+
+def is_item_in_astrodex(user_id: str, item_name: str, catalogue: str = '') -> bool:
+    """Compatibility wrapper to support optional catalogue context."""
+    return is_item_in_astrodex_with_catalogue(user_id, item_name, catalogue)
+
+
+def enrich_item_with_catalogue_aliases(item: Dict) -> Dict:
+    """Ensure item contains catalogue aliases metadata when available."""
+    return catalogue_aliases.merge_item_with_alias_entry(item)
+
+
+def switch_item_catalogue_name(user_id: str, item_id: str, target_catalogue: str) -> Optional[Dict]:
+    """Switch displayed object name to one of its catalogue aliases."""
+    astrodex = load_user_astrodex(user_id)
+
+    for item in astrodex['items']:
+        if item['id'] != item_id:
+            continue
+
+        enrich_item_with_catalogue_aliases(item)
+        aliases = item.get('catalogue_aliases', {})
+        if not isinstance(aliases, dict) or not aliases:
+            raise ValueError('No catalogue aliases available for this item')
+
+        if target_catalogue not in aliases:
+            raise ValueError('Requested catalogue name is not available for this item')
+
+        target_name = aliases[target_catalogue]
+        target_group_id, target_aliases = _get_alias_metadata(target_catalogue, target_name)
+        if not target_aliases:
+            target_aliases = aliases
+
+        # Prevent duplicates on rename/switch
+        for existing_item in astrodex['items']:
+            if existing_item['id'] == item_id:
+                continue
+
+            existing_group_id, _ = _get_item_alias_metadata(existing_item)
+
+            if target_group_id and existing_group_id and target_group_id == existing_group_id:
+                raise ValueError('An equivalent object already exists in your Astrodex')
+
+            if _normalize_name(existing_item.get('name', '')) == _normalize_name(target_name):
+                raise ValueError('An item with this name already exists in your Astrodex')
+
+        item['name'] = target_name
+        item['catalogue'] = target_catalogue
+        item['catalogue_aliases'] = target_aliases
+        item['catalogue_group_id'] = target_group_id
+        item['updated_at'] = datetime.now().isoformat()
+
+        if save_user_astrodex(user_id, astrodex):
+            return item
+        return None
+
+    return None
 
 
 def get_astrodex_stats(user_id: str) -> Dict:
