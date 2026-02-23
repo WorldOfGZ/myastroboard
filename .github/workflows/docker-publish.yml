@@ -32,6 +32,10 @@ jobs:
         with:
           fetch-depth: 0  # Fetch all history for accurate versioning
 
+      - name: Normalize image name (lowercase)
+        id: image
+        run: echo "name=${GITHUB_REPOSITORY,,}" >> $GITHUB_OUTPUT
+
       - name: Read VERSION
         id: version
         run:  |
@@ -56,7 +60,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}
           tags: |
             type=semver,pattern={{version}},value=${{ steps.version.outputs.VERSION }}
             type=semver,pattern={{major}}.{{minor}},value=${{ steps.version.outputs.VERSION }}
@@ -76,18 +80,18 @@ jobs:
           context: .
           push: true
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ steps.image.outputs.name }},push-by-digest=true,name-canonical=true,push=true
           pull: true
           provenance: true
           sbom: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
             type=gha,scope=${{ matrix.platform_slug }}
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-${{ matrix.platform_slug }}
+            type=registry,ref=${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:buildcache-${{ matrix.platform_slug }}
           cache-to: |
             type=gha,scope=${{ matrix.platform_slug }},mode=max
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-${{ matrix.platform_slug }},mode=max
+            type=registry,ref=${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:buildcache-${{ matrix.platform_slug }},mode=max
 
       - name: Export digest
         run: |
@@ -115,6 +119,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Normalize image name (lowercase)
+        id: image
+        run: echo "name=${GITHUB_REPOSITORY,,}" >> $GITHUB_OUTPUT
+
       - name: Read VERSION
         id: version
         run:  |
@@ -139,7 +147,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}
           tags: |
             type=semver,pattern={{version}},value=${{ steps.version.outputs.VERSION }}
             type=semver,pattern={{major}}.{{minor}},value=${{ steps.version.outputs.VERSION }}
@@ -166,7 +174,7 @@ jobs:
 
           DIGEST_ARGS=""
           for f in *; do
-            DIGEST_ARGS="$DIGEST_ARGS ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:$f"
+            DIGEST_ARGS="$DIGEST_ARGS ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}@sha256:$f"
           done
 
           docker buildx imagetools create $TAG_ARGS $DIGEST_ARGS
@@ -174,7 +182,7 @@ jobs:
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@0.34.1
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
+          image-ref: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ steps.version.outputs.VERSION }}
           format: table
           exit-code: 0
 
@@ -222,7 +230,7 @@ jobs:
           echo "" >> release_notes.md
           echo "Pull the image with:" >> release_notes.md
           echo '```bash' >> release_notes.md
-          echo "docker pull ghcr.io/${{ github.repository }}:${{ steps.version.outputs.VERSION }}" >> release_notes.md
+          echo "docker pull ghcr.io/${{ steps.image.outputs.name }}:${{ steps.version.outputs.VERSION }}" >> release_notes.md
           echo '```' >> release_notes.md
 
       - name: Create GitHub Release
