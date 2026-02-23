@@ -1,0 +1,114 @@
+/* Metrics Section Styling */
+
+#metrics-subtab .card {
+    transition: all var(--transition-normal);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#metrics-subtab .card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+#metrics-subtab .card-body {
+    padding: 1.25rem;
+}
+
+#metrics-subtab .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-color);
+    border-bottom: 2px solid var(--surface-border);
+    padding-bottom: 0.5rem;
+}
+
+#metrics-subtab .progress {
+    background-color: var(--surface-card);
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#metrics-subtab .progress-bar {
+    font-weight: 600;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 0.6s ease, background-color 0.3s ease;
+}
+
+#metrics-subtab .bg-success {
+    background: linear-gradient(90deg, var(--success-color), var(--success-hover));
+}
+
+#metrics-subtab .bg-warning {
+    background: linear-gradient(90deg, #ffc107, #ff9800);
+}
+
+#metrics-subtab .bg-danger {
+    background: linear-gradient(90deg, #dc3545, #c82333);
+}
+
+#metrics-subtab h3 {
+    color: var(--text-color);
+    font-weight: 600;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--accent-color);
+}
+
+#metrics-subtab p {
+    margin-bottom: 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+#metrics-subtab p strong {
+    color: var(--text-color);
+    font-weight: 600;
+    min-width: 140px;
+    display: inline-block;
+}
+
+#metrics-subtab small {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #metrics-subtab .col-md-6 {
+        margin-bottom: 1rem;
+    }
+    
+    #metrics-subtab h3 {
+        font-size: 1.1rem;
+    }
+    
+    #metrics-subtab .card-title {
+        font-size: 0.95rem;
+    }
+}
+
+/* Animation for value changes */
+#metrics-subtab [id^="cpu-"],
+#metrics-subtab [id^="memory-"],
+#metrics-subtab [id^="swap-"],
+#metrics-subtab [id^="disk-"],
+#metrics-subtab [id^="platform-"],
+#metrics-subtab [id^="system-"],
+#metrics-subtab [id^="process-"],
+#metrics-subtab [id^="network-"] {
+    transition: color 0.3s ease;
+}
+
+/* Alert styling in metrics */
+#metrics-subtab .alert-info {
+    background-color: var(--accent-soft);
+    border: 1px solid var(--accent-color);
+    color: var(--text-color);
+    font-size: 0.9rem;
+}

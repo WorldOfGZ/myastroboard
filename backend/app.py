@@ -14,6 +14,9 @@ from dataclasses import asdict
 
 import sys
 import yaml
+import psutil
+import shutil
+import platform
 
 # Windows-compatible file locking
 if sys.platform == "win32":
@@ -432,6 +435,94 @@ def update_config_api():
         "cache_reset": location_changed,
         "message": "Configuration updated" + (" and cache reset" if location_changed else "")
     })
+
+
+@app.route('/api/metrics', methods=['GET'])
+@login_required
+def get_system_metrics():
+    """Get system metrics (CPU, memory, disk, etc.)"""
+    try:
+        # CPU Information
+        cpu_percent = psutil.cpu_percent(interval=1)
+        cpu_count_logical = psutil.cpu_count(logical=True)
+        cpu_count_physical = psutil.cpu_count(logical=False)
+        cpu_freq = psutil.cpu_freq()
+        
+        # Memory Information
+        memory = psutil.virtual_memory()
+        swap = psutil.swap_memory()
+        
+        # Disk Information
+        disk = psutil.disk_usage('/')
+        
+        # Process Information
+        process_count = len(psutil.pids())
+        
+        # System uptime
+        boot_time = psutil.boot_time()
+        uptime_seconds = datetime.now().timestamp() - boot_time
+        
+        # Network stats (optional)
+        net_io = psutil.net_io_counters()
+        
+        # Platform info
+        platform_info = {
+            'system': platform.system(),
+            'release': platform.release(),
+            'version': platform.version(),
+            'machine': platform.machine(),
+            'processor': platform.processor(),
+            'python_version': platform.python_version()
+        }
+        
+        return jsonify({
+            'cpu': {
+                'percent': cpu_percent,
+                'count_logical': cpu_count_logical,
+                'count_physical': cpu_count_physical,
+                'frequency': {
+                    'current': cpu_freq.current if cpu_freq else None,
+                    'min': cpu_freq.min if cpu_freq else None,
+                    'max': cpu_freq.max if cpu_freq else None
+                } if cpu_freq else None
+            },
+            'memory': {
+                'total': memory.total,
+                'available': memory.available,
+                'used': memory.used,
+                'percent': memory.percent,
+                'free': memory.free
+            },
+            'swap': {
+                'total': swap.total,
+                'used': swap.used,
+                'free': swap.free,
+                'percent': swap.percent
+            },
+            'disk': {
+                'total': disk.total,
+                'used': disk.used,
+                'free': disk.free,
+                'percent': disk.percent
+            },
+            'process': {
+                'count': process_count
+            },
+            'uptime': {
+                'seconds': uptime_seconds,
+                'boot_time': boot_time
+            },
+            'network': {
+                'bytes_sent': net_io.bytes_sent,
+                'bytes_recv': net_io.bytes_recv,
+                'packets_sent': net_io.packets_sent,
+                'packets_recv': net_io.packets_recv
+            },
+            'platform': platform_info
+        })
+    except Exception as e:
+        logger.error(f"Error getting system metrics: {e}")
+        return jsonify({'error': 'Failed to retrieve system metrics'}), 500
 
 
 @app.route('/api/config/view', methods=['GET'])

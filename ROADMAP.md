@@ -58,7 +58,6 @@ This document describes features that could potentially be integrated into MyAst
 
 ### Various
 - Package for debugging purpose on github (see birdnet go which is great)
-- Metrics and analytics of system 
 
 ## Upgrade Features
 
@@ -76,4 +75,4 @@ This document describes features that could potentially be integrated into MyAst
 - Second launch closer to night session with current weather
 
 ### Various
-- On march 3rd, will be a red moon during 82 minutes. check how to announve these kind of events. 
+- Check how highlight nice astro events for current location

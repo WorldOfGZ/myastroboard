@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="/static/css/bs_uptonight.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_astrodex.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_equipment.css?v={{ version }}">
+    <link rel="stylesheet" href="/static/css/bs_metrics.css?v={{ version }}">
     <script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js"></script>
 </head>
 <body>
@@ -545,6 +546,9 @@
                     <li class="nav-item">
                         <a class="nav-link sub-tab-btn" href="#" data-subtab="users">👥 Users</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="metrics">📊 Metrics</a>
+                    </li>
                 </ul>
             </div>
 
@@ -876,6 +880,120 @@
                     <!-- Users List -->
                     <h2>👥 Existing Users</h2>
                     <div id="users-list"></div>
+                </div>
+            </div>
+
+            <!-- Metrics Sub-tab -->
+            <div id="metrics-subtab" class="sub-tab-content">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>📊 System Metrics</h2>
+                    <div class="alert alert-info" role="alert">
+                        System performance and resource monitoring. Data refreshes automatically every 5 seconds.
+                    </div>
+                </div>
+
+                <!-- CPU Metrics -->
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h3>💻 CPU</h3>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="card bg-card-container border-0">
+                                <div class="card-body">
+                                    <h5 class="card-title">CPU Usage</h5>
+                                    <div class="progress" style="height: 30px;">
+                                        <div id="cpu-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-card-container border-0">
+                                <div class="card-body">
+                                    <h5 class="card-title">CPU Info</h5>
+                                    <p class="mb-1"><strong>Logical Cores:</strong> <span id="cpu-logical">-</span></p>
+                                    <p class="mb-1"><strong>Physical Cores:</strong> <span id="cpu-physical">-</span></p>
+                                    <p class="mb-0"><strong>Frequency:</strong> <span id="cpu-frequency">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Memory Metrics -->
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h3>🧠 Memory</h3>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="card bg-card-container border-0">
+                                <div class="card-body">
+                                    <h5 class="card-title">RAM Usage</h5>
+                                    <div class="progress" style="height: 30px;">
+                                        <div id="memory-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small><span id="memory-used">-</span> / <span id="memory-total">-</span></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-card-container border-0">
+                                <div class="card-body">
+                                    <h5 class="card-title">Swap Usage</h5>
+                                    <div class="progress" style="height: 30px;">
+                                        <div id="swap-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small><span id="swap-used">-</span> / <span id="swap-total">-</span></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Disk Metrics -->
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h3>💾 Disk Storage</h3>
+                    <div class="card bg-card-container border-0">
+                        <div class="card-body">
+                            <div class="progress" style="height: 30px;">
+                                <div id="disk-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                            </div>
+                            <div class="mt-2">
+                                <small><span id="disk-used">-</span> / <span id="disk-total">-</span> (<span id="disk-free">-</span> free)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Info -->
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h3>🖥️ System Information</h3>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="card bg-card-container border-0">
+                                <div class="card-body">
+                                    <h5 class="card-title">Platform</h5>
+                                    <p class="mb-1"><strong>OS:</strong> <span id="platform-system">-</span></p>
+                                    <p class="mb-1"><strong>Release:</strong> <span id="platform-release">-</span></p>
+                                    <p class="mb-1"><strong>Machine:</strong> <span id="platform-machine">-</span></p>
+                                    <p class="mb-0"><strong>Python:</strong> <span id="platform-python">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-card-container border-0">
+                                <div class="card-body">
+                                    <h5 class="card-title">System Status</h5>
+                                    <p class="mb-1"><strong>Uptime:</strong> <span id="system-uptime">-</span></p>
+                                    <p class="mb-1"><strong>Processes:</strong> <span id="process-count">-</span></p>
+                                    <p class="mb-1"><strong>Network Sent:</strong> <span id="network-sent">-</span></p>
+                                    <p class="mb-0"><strong>Network Received:</strong> <span id="network-recv">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
