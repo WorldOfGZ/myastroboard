@@ -301,16 +301,16 @@ class UptonightScheduler:
         logger.debug(f"Cleaning up old upTonight images, keeping version: {version_to_keep}")
 
         try:
-            # Get list of all upTonight image tags
+            # Get list of all mawinkler/uptonight image tags
             result = subprocess.check_output(
-                ["docker", "images", "upTonight", "--format", "{{.Tag}}"]
+                ["docker", "images", "mawinkler/uptonight", "--format", "{{.Tag}}"]
             )
             tags = result.decode().splitlines()
 
             for tag in tags:
                 if tag != version_to_keep:
-                    logger.warning(f"Removing old upTonight image: {tag}")
-                    subprocess.run(["docker", "rmi", "-f", f"upTonight:{tag}"], check=False)
+                    logger.warning(f"Removing old upTonight image: mawinkler/uptonight:{tag}")
+                    subprocess.run(["docker", "rmi", "-f", f"mawinkler/uptonight:{tag}"], check=False)
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to list or remove images: {e}")
         except Exception as e:
