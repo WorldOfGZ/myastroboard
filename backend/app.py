@@ -959,10 +959,15 @@ def get_catalogue_reports_api(catalogue):
 @login_required
 def get_catalogue_log(catalogue):
     """Get log file for a specific catalogue"""
+    if not re.match(r'^[a-zA-Z0-9_-]+$', catalogue):
+        logger.warning(f"Invalid catalogue name: {catalogue}")
+        return jsonify({"error": "Invalid catalogue name"}), 400
+
     try:
         catalogue_dir = os.path.join(OUTPUT_DIR, catalogue)
         log_file = os.path.join(catalogue_dir, 'uptonight.log')
         
+        # Check if log file exists
         if not os.path.exists(log_file):
             return jsonify({"error": "Log file not found"}), 404
         
