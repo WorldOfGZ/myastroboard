@@ -1,6 +1,8 @@
 """
 Unit tests for constants (constants.py)
 """
+from urllib.parse import urlparse
+
 import pytest
 import os
 
@@ -72,12 +74,16 @@ class TestFilePathConstants:
 
 class TestURLConstants:
     """Test URL constants"""
-    
+
     def test_openmeteo_url(self):
         """Test Open Meteo URL is valid"""
         assert isinstance(URL_OPENMETEO, str)
-        assert URL_OPENMETEO.startswith('https://')
-        assert 'open-meteo.com' in URL_OPENMETEO
+        
+        parsed = urlparse(URL_OPENMETEO)
+        # Scheme must be HTTPS
+        assert parsed.scheme == "https"
+        # Domain must match exactly
+        assert parsed.netloc in ("api.open-meteo.com", "open-meteo.com")
 
 
 class TestCacheConstants:
