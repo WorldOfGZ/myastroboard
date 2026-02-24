@@ -103,3 +103,8 @@ This document describes features that could potentially be integrated into MyAst
   - Planetary Events (to be implemented)
   - Special Phenomena (to be implemented)
   - Solar System Events (to be implemented)
+
+### Metrics
+- Adapt metrics for Container, currently this is for server (CPU, CPU info, RAM usage, Swap Usage)
+- List of process usefull ?
+- Detail of Disk storage
