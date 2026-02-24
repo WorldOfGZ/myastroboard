@@ -853,17 +853,28 @@ def trigger_scheduler_api():
 @app.route('/api/uptonight/outputs', methods=['GET'])
 @login_required
 def get_uptonight_outputs_api():
-    """Get list of uptonight output directories"""
+    """Get list of UpTonight output directories safely"""
     try:
+        outputs = []
+
         if not os.path.exists(OUTPUT_DIR):
             return jsonify([])
-        
-        outputs = []
+
+        OUTPUT_DIR_ABS = os.path.abspath(OUTPUT_DIR)
+
         for target_dir in os.listdir(OUTPUT_DIR):
-            target_path = os.path.join(OUTPUT_DIR, target_dir)
+            # Normalize path and confine
+            target_path = os.path.normpath(os.path.join(OUTPUT_DIR_ABS, target_dir))
+            if not target_path.startswith(OUTPUT_DIR_ABS):
+                continue  # skip invalid path
+
             if os.path.isdir(target_path):
                 files = []
                 for filename in os.listdir(target_path):
+                    # Only allow safe filename characters
+                    if not re.match(r'^[a-zA-Z0-9_.-]+$', filename):
+                        continue
+
                     file_path = os.path.join(target_path, filename)
                     if os.path.isfile(file_path):
                         files.append({
@@ -871,27 +882,46 @@ def get_uptonight_outputs_api():
                             'size': os.path.getsize(file_path),
                             'modified': datetime.fromtimestamp(os.path.getmtime(file_path)).isoformat()
                         })
-                
+
                 outputs.append({
                     'target': target_dir,
                     'files': files
                 })
-        
+
         return jsonify(outputs)
-    except Exception as e:
-        logger.error(f"Error getting uptonight outputs: {e}")
+
+    except Exception:
+        logger.exception("Error getting UpTonight outputs")
         return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/uptonight/outputs/<target>/<filename>', methods=['GET'])
 @login_required
 def get_uptonight_file_api(target, filename):
-    """Download a specific uptonight output file"""
+    """Download a specific UpTonight output file safely"""
+    # Validate target and filename
+    if not re.match(r'^[a-zA-Z0-9_-]+$', target):
+        return jsonify({"error": "Invalid target name"}), 400
+    if not re.match(r'^[a-zA-Z0-9_.-]+$', filename):
+        return jsonify({"error": "Invalid filename"}), 400
+
     try:
-        target_dir = os.path.join(OUTPUT_DIR, target)
-        return send_from_directory(target_dir, filename)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 404
+        # Normalize and confine target_dir
+        target_dir = os.path.normpath(os.path.join(OUTPUT_DIR, target))
+        if not target_dir.startswith(os.path.abspath(OUTPUT_DIR)):
+            return jsonify({"error": "Invalid path"}), 400
+
+        # Normalize filename to prevent traversal
+        safe_file_path = os.path.normpath(os.path.join(target_dir, filename))
+        if not safe_file_path.startswith(target_dir):
+            return jsonify({"error": "Invalid file path"}), 400
+
+        # Send file
+        return send_from_directory(target_dir, filename, as_attachment=True)
+
+    except Exception:
+        logger.exception(f"Error sending UpTonight file {filename} for target {target}")
+        return jsonify({"error": "File not found"}), 404
 
 
 @app.route('/api/uptonight/reports/<catalogue>', methods=['GET'])
