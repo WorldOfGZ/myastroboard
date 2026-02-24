@@ -291,7 +291,7 @@ class AuroraService:
                     kp_val = forecast_entry.get('kp', 0)
                     report["forecast"].append(self.get_aurora_score(kp_val))
             
-            logger.info(f"Generated aurora report for lat={self.latitude}, lon={self.longitude}")
+            logger.info(f"Generated aurora report for lat={int(self.latitude)}, lon={int(self.longitude)}, tz=***")
             return report
             
         except Exception as e:

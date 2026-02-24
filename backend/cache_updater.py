@@ -66,7 +66,7 @@ def update_moon_report_cache():
             raise ValueError("Location configuration is missing")
         
         location = config["location"]
-        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
+        logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
 
         moon = MoonService(
             latitude=location["latitude"],
@@ -115,7 +115,7 @@ def update_dark_window_cache():
             raise ValueError("Location configuration is missing")
         
         location = config["location"]
-        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
+        logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
 
         moon = MoonService(
             latitude=location["latitude"],
@@ -159,7 +159,7 @@ def update_moon_planner_cache():
             raise ValueError("Location configuration is missing")
         
         location = config["location"]
-        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
+        logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
 
         planner = MoonPlanner(
             latitude=location["latitude"],
@@ -206,7 +206,7 @@ def update_sun_report_cache():
             raise ValueError("Location configuration is missing")
         
         location = config["location"]
-        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
+        logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
 
         sun = SunService(
             latitude=location["latitude"],
@@ -253,7 +253,7 @@ def update_best_window_cache():
             raise ValueError("Location configuration is missing")
         
         location = config["location"]
-        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
+        logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
 
         service = AstroTonightService(
             latitude=location["latitude"],
@@ -325,7 +325,7 @@ def update_solar_eclipse_cache():
             raise ValueError("Location configuration is missing")
         
         location = config["location"]
-        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
+        logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
 
         eclipse_service = SolarEclipseService(
             latitude=location["latitude"],
@@ -389,7 +389,7 @@ def update_lunar_eclipse_cache():
             raise ValueError("Location configuration is missing")
         
         location = config["location"]
-        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
+        logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
 
         eclipse_service = LunarEclipseService(
             latitude=location["latitude"],
@@ -452,7 +452,7 @@ def update_horizon_graph_cache():
             raise ValueError("Location configuration is missing")
         
         location = config["location"]
-        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
+        logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
 
         horizon_service = HorizonGraphService(
             latitude=location["latitude"],
@@ -518,7 +518,7 @@ def update_aurora_cache():
             raise ValueError("Location configuration is missing")
         
         location = config["location"]
-        logger.debug(f"Using location: lat={location.get('latitude')}, lon={location.get('longitude')}, tz={location.get('timezone')}")
+        logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
 
         # Get aurora report
         report = get_aurora_report(
