@@ -79,7 +79,7 @@ class HorizonGraphService:
         now_local = datetime.datetime.now(self.timezone)
         today = now_local.date()
         
-        # Generate points for entire day: 00:00 to 23:00 (hourly)
+        # Generate points for entire day: 00:00 to 24:00 (hourly)
         sun_data = self._generate_body_positions(today, "sun")
         moon_data = self._generate_body_positions(today, "moon")
         
@@ -102,10 +102,15 @@ class HorizonGraphService:
         
         points = []
         
-        # Generate points for each hour: 0, 1, 2, ..., 23
-        for hour in range(24):
-            # Create time at this hour in local timezone
-            dt_local = datetime.datetime.combine(date, datetime.time(hour, 0, 0))
+        # Generate points for each hour: 0, 1, 2, ..., 24 (includes midnight at end of day)
+        for hour in range(25):
+            # Handle hour 24 as 00:00 of next day
+            if hour == 24:
+                dt_local = datetime.datetime.combine(date + datetime.timedelta(days=1), datetime.time(0, 0, 0))
+            else:
+                # Create time at this hour in local timezone
+                dt_local = datetime.datetime.combine(date, datetime.time(hour, 0, 0))
+            
             dt_local = dt_local.replace(tzinfo=self.timezone)
             
             # Convert to UTC
@@ -133,7 +138,12 @@ class HorizonGraphService:
             alt = alt if alt is not None else 0.0
             az = az if az is not None else 0.0
             
-            time_str = dt_local.strftime("%H:%M")
+            # Format time as "HH:MM", with hour 24 displayed as "24:00"
+            if hour == 24:
+                time_str = "24:00"
+            else:
+                time_str = dt_local.strftime("%H:%M")
+            
             points.append(HorizonPoint(
                 hour=hour,
                 time=time_str,
