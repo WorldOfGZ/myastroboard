@@ -7,9 +7,9 @@ body:
     attributes:
       value: |
         Have a question? We're here to help! Please check the documentation first:
-        - [Installation Guide](../docs/1.INSTALLATION.md)
-        - [Quick Start](../docs/2.QUICKSTART.md)
-        - [README](../README.md)
+        - [Installation Guide](docs/1.INSTALLATION.md)
+        - [Quick Start](docs/2.QUICKSTART.md)
+        - [README](README.md)
         
   - type: textarea
     id: question

@@ -42,6 +42,7 @@ body:
       description: What area of the application does this feature relate to?
       options:
         - Weather & Conditions
+        - Astrodex
         - Astronomy Calculations
         - Target Management
         - Catalogues

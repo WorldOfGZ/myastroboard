@@ -40,15 +40,6 @@ body:
       required: true
       
   - type: textarea
-    id: actual
-    attributes:
-      label: Actual Behavior
-      description: What actually happened?
-      placeholder: Instead, the application...
-    validations:
-      required: true
-      
-  - type: textarea
     id: screenshots
     attributes:
       label: Screenshots
@@ -64,6 +55,8 @@ body:
       description: Which component is affected?
       options:
         - Weather Forecast
+        - Astrodex
+        - Astronomy Calculations
         - Observation Conditions
         - Sun & Moon Information
         - UpTonight Integration
