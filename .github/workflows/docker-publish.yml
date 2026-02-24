@@ -168,20 +168,20 @@ jobs:
           set -euo pipefail
 
           echo "Parsing tags..."
-          TAG_ARGS=""
-          while IFS= read -r tag; do
-            [ -n "$tag" ] && TAG_ARGS="$TAG_ARGS -t \"$tag\""
-          done <<< "$TAGS"
-          echo "TAG_ARGS: $TAG_ARGS"
+          TAG_ARGS=()
+          for tag in $TAGS; do
+            [ -n "$tag" ] && TAG_ARGS+=("-t" "$tag")
+          done
+          echo "TAG_ARGS: ${TAG_ARGS[*]}"
 
           echo "Parsing digests..."
-          DIGEST_ARGS=""
+          DIGEST_ARGS=()
           for f in *; do
-            [ -n "$f" ] && DIGEST_ARGS="$DIGEST_ARGS \"$REGISTRY/$IMAGE_NAME@sha256:$f\""
+            [ -n "$f" ] && DIGEST_ARGS+=("$REGISTRY/$IMAGE_NAME@sha256:$f")
           done
-          echo "DIGEST_ARGS: $DIGEST_ARGS"
+          echo "DIGEST_ARGS: ${DIGEST_ARGS[*]}"
 
-          eval "docker buildx imagetools create $TAG_ARGS $DIGEST_ARGS"
+          docker buildx imagetools create "${TAG_ARGS[@]}" "${DIGEST_ARGS[@]}"
 
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@0.34.1
