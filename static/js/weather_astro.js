@@ -158,6 +158,9 @@ function renderBestObservationPeriods(periods) {
     const container = document.getElementById('astro-best-periods');
     if (!container) return;
 
+    const mainContainer = document.getElementById('best-observation-periods-main');
+    if (mainContainer) mainContainer.style.display = 'block';
+
     // Fake periods for testing
     /*
     periods = [
@@ -498,6 +501,9 @@ function renderCloudLayersChart(labels, data) {
 function renderDewTrackingChart(labels, data) {
     const container = document.getElementById('astro-conditions-chart-container');
     if (!container) return;
+
+    const mainContainer = document.getElementById('astro-advanced-weather-main');
+    if (mainContainer) mainContainer.style.display = 'block';
     
     // Destroy existing chart
     if (window.astroConditionsChart) {
@@ -613,6 +619,9 @@ function renderDewTrackingChart(labels, data) {
 function renderWeatherAlerts(alerts) {
     const container = document.getElementById('astro-weather-alerts');
     if (!container) return;
+
+    const mainContainer = document.getElementById('astro-weather-alerts-main');
+    if (mainContainer) mainContainer.style.display = 'block';
     
     if (!alerts || alerts.length === 0) {
         container.innerHTML = `

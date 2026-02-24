@@ -13,10 +13,12 @@ async function loadHorizonGraph() {
     
     const loadingDiv = document.getElementById('horizon-graph-loading');
     const errorDiv = document.getElementById('horizon-graph-error');
+    const mainContainer = document.getElementById('horizon-graph-main');
     
     if (loadingDiv) loadingDiv.style.display = 'block';
     if (errorDiv) errorDiv.style.display = 'none';
     if (container) container.style.display = 'none';
+    if (mainContainer) mainContainer.style.display = 'none';
     
     try {
         const data = await fetchJSONWithRetry('/api/astro/horizon-graph', {}, {
@@ -45,6 +47,7 @@ async function loadHorizonGraph() {
         
         if (loadingDiv) loadingDiv.style.display = 'none';
         if (container) container.style.display = 'block';
+        if (mainContainer) mainContainer.style.display = 'block';
         
         // Render horizon graph
         if (data.horizon_data) {

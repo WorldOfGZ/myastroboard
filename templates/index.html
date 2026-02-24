@@ -127,7 +127,7 @@
             <!-- Astrophotography Weather Sub-tab -->
             <div id="astro-weather-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🔭 Astrophotography Weather Analysis</h2>
+                    <h2>🌡️ Current Conditions</h2>
                     
                     <!-- Loading State -->
                     <div id="astro-weather-loading" class="row row-cols-1">
@@ -147,41 +147,42 @@
                     <!-- Main Content -->
                     <div id="astro-weather-display" style="display: none;">
                         <!-- Current Conditions -->
-                        <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                            <h3>🌡️ Current Conditions</h3>
-                            <div id="astro-current-conditions" class="row row-cols-1 row-cols-sm-3 row-cols-lg-4 row-cols-xl-5"></div>
-                        </div>
+                        <div id="astro-current-conditions" class="row row-cols-1 row-cols-sm-3 row-cols-lg-4 row-cols-xl-5"></div>
+                    </div>
+                </div>
 
-                        <!-- Horizon Graph -->
-                        <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                            <h3 class="mb-2">🌅 Horizon</h3>
-                            <div id="horizon-graph-loading" style="display: none;" class="alert alert-info">Loading horizon graph...</div>
-                            <div id="horizon-graph-error" style="display: none;"></div>
-                            <div id="horizon-graph-display" class="row row-cols-1"></div>
-                        </div>
+
+                <!-- Horizon Graph -->
+                <div class="shadow p-2 mb-3 rounded bg-sub-container" id="horizon-graph-main" style="display: none;">
+                    <h2>🌅 Horizon</h2>
+                    <div id="horizon-graph-loading" style="display: none;" class="alert alert-info">Loading horizon graph...</div>
+                    <div id="horizon-graph-error" style="display: none;"></div>
+                    <div id="horizon-graph-display" class="row row-cols-1"></div>
+                </div>
+
+                <div class="shadow p-2 mb-3 rounded bg-sub-container" id="best-observation-periods-main" style="display: none;">
+                    <h2>⏳ Best Observation Periods</h2>
+                    
+                    <!-- Best Observation Periods -->
+                    <div>Optimal periods for astrophotography in the next 24 hours</div>
+                    <div id="astro-best-periods"></div>
+                </div>
+
+                <div class="shadow p-2 mb-3 rounded bg-sub-container" id="astro-weather-alerts-main" style="display: none;">
+                    <h2>⚠️ Weather Alerts</h2>
                         
-                        <!-- Best Observation Periods -->
-                        <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                            <h3>⏳ Best Observation Periods</h3>
-                            <div>Optimal periods for astrophotography in the next 24 hours</div>
-                            <div id="astro-best-periods"></div>
-                        </div>
-                        
-                        <!-- Weather Alerts -->
-                        <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                            <h3>⚠️ Weather Alerts</h3>
-                            <div id="astro-weather-alerts"></div>
-                        </div>
-                        
-                        <!-- Advanced Charts -->
-                        <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                            <h3>📊 Advanced Weather Analysis</h3>
-                            <div class="row row-cols-1 row-cols-sm-1 row-cols-lg-1 row-cols-xl-2">
-                                <div id="astro-seeing-chart-container"></div>
-                                <div id="astro-clouds-chart-container"></div>
-                                <div id="astro-conditions-chart-container"></div>
-                            </div>
-                        </div>
+                    <!-- Weather Alerts -->
+                    <div id="astro-weather-alerts"></div>
+                </div>
+
+                <div class="shadow p-2 mb-3 rounded bg-sub-container" id="astro-advanced-weather-main" style="display: none;">
+                    <h2>📊 Advanced Weather Analysis</h2>
+
+                    <!-- Advanced Charts -->
+                    <div class="row row-cols-1 row-cols-sm-1 row-cols-lg-1 row-cols-xl-2">
+                        <div id="astro-seeing-chart-container"></div>
+                        <div id="astro-clouds-chart-container"></div>
+                        <div id="astro-conditions-chart-container"></div>
                     </div>
                 </div>
             </div>
