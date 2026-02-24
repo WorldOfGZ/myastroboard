@@ -287,7 +287,8 @@ def create_user():
             }
         })
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        logger.warning(f"User creation failed: {e}")
+        return jsonify({'error': 'Invalid input'}), 400
     except Exception as e:
         logger.error(f"Error creating user: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -317,7 +318,8 @@ def update_user(user_id):
             }
         })
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        logger.warning(f"User update failed for user_id {user_id}: {e}")
+        return jsonify({'error': 'Invalid input'}), 400
     except Exception as e:
         logger.error(f"Error updating user: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -332,7 +334,8 @@ def delete_user(user_id):
         user_manager.delete_user(user_id, current_user_id)
         return jsonify({'status': 'success'})
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        logger.warning(f"User deletion failed for user_id {user_id}: {e}")
+        return jsonify({'error': 'Invalid input'}), 400
     except Exception as e:
         logger.error(f"Error deleting user: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -1629,7 +1632,8 @@ def switch_astrodex_item_catalogue_name(item_id):
 
         return jsonify({'error': 'Item not found'}), 404
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        logger.warning(f"Value error switching astrodex item catalogue name: {e}")
+        return jsonify({'error': 'Invalid input'}), 400
     except Exception as e:
         logger.error(f"Error switching astrodex item catalogue name: {e}")
         return jsonify({'error': 'Internal server error'}), 500
