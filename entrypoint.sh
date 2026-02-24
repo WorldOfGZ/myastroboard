@@ -13,6 +13,8 @@ find /app/data -type f \( \
   -name "scheduler_status.json" \
 \) -delete || true
 rm -rf /app/data/cache/* || true # Clear cache directory
+rm -rf /app/uptonight_outputs/* || true # Clear outputs directory
+rm -rf /app/uptonight_configs/* || true # Clear configs directory
 
 
 # ---- Docker socket permissions fix ----
