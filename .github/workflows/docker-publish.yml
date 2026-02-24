@@ -22,12 +22,14 @@ jobs:
             platform_slug: linux-amd64
           - platform: linux/arm64
             platform_slug: linux-arm64
+    outputs:
+      UNIQUE_TAGS: ${{ steps.dedup_tags.outputs.unique_tags }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0  # Fetch all history for accurate versioning
+          fetch-depth: 0
 
       - name: Normalize image name (lowercase)
         id: image
@@ -35,10 +37,10 @@ jobs:
 
       - name: Read VERSION
         id: version
-        run:  |
+        run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-      
+
       - name: Validate version format
         run: |
           if ! [[ "${{ steps.version.outputs.VERSION }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -63,7 +65,13 @@ jobs:
             type=semver,pattern={{major}}.{{minor}},value=${{ steps.version.outputs.VERSION }}
             type=semver,pattern={{major}},value=${{ steps.version.outputs.VERSION }}
             type=raw,value=latest
-      
+
+      - name: Deduplicate tags
+        id: dedup_tags
+        run: |
+          UNIQUE_TAGS=$(echo "${{ steps.meta.outputs.tags }}" | tr ' ' '\n' | sort -u | tr '\n' ' ')
+          echo "unique_tags=$UNIQUE_TAGS" >> $GITHUB_OUTPUT
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -94,7 +102,7 @@ jobs:
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
+          [ -n "$digest" ] && touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
         uses: actions/upload-artifact@v4
@@ -110,6 +118,9 @@ jobs:
     permissions:
       contents: write
       packages: write
+    env:
+      TAGS: ${{ needs.build-and-push.outputs.UNIQUE_TAGS }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -122,7 +133,7 @@ jobs:
 
       - name: Read VERSION
         id: version
-        run:  |
+        run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
@@ -140,20 +151,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}
-          tags: |
-            type=semver,pattern={{version}},value=${{ steps.version.outputs.VERSION }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ steps.version.outputs.VERSION }}
-            type=semver,pattern={{major}},value=${{ steps.version.outputs.VERSION }}
-            type=raw,value=latest
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
@@ -163,18 +160,28 @@ jobs:
 
       - name: Create multi-arch manifest and push
         working-directory: /tmp/digests
+        env:
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_NAME: ${{ steps.image.outputs.name }}
+          TAGS: ${{ env.TAGS }}
         run: |
-          TAG_ARGS=""
-          for tag in ${{ steps.meta.outputs.tags }}; do
-            TAG_ARGS="$TAG_ARGS -t $tag"
-          done
+          set -euo pipefail
 
+          echo "Parsing tags..."
+          TAG_ARGS=""
+          while IFS= read -r tag; do
+            [ -n "$tag" ] && TAG_ARGS="$TAG_ARGS -t \"$tag\""
+          done <<< "$TAGS"
+          echo "TAG_ARGS: $TAG_ARGS"
+
+          echo "Parsing digests..."
           DIGEST_ARGS=""
           for f in *; do
-            DIGEST_ARGS="$DIGEST_ARGS ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}@sha256:$f"
+            [ -n "$f" ] && DIGEST_ARGS="$DIGEST_ARGS \"$REGISTRY/$IMAGE_NAME@sha256:$f\""
           done
+          echo "DIGEST_ARGS: $DIGEST_ARGS"
 
-          docker buildx imagetools create $TAG_ARGS $DIGEST_ARGS
+          eval "docker buildx imagetools create $TAG_ARGS $DIGEST_ARGS"
 
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@0.34.1
@@ -187,47 +194,28 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         id: release_notes
         run: |
-          # Get the current tag
-          # CURRENT_TAG=$(git describe --tags --abbrev=0)
           CURRENT_TAG=${GITHUB_REF#refs/tags/}
-          
-          # Get the previous tag (sorted by version)
-          # PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           PREVIOUS_TAG=$(git tag --sort=-version:refname | sed -n 2p)
-          
-          # Generate release notes
-          echo "## 🚀 What's Changed" >> release_notes.md
-          echo "" >> release_notes.md
 
+          echo "## 🚀 What's Changed" > release_notes.md
           if [ -n "$PREVIOUS_TAG" ]; then
             echo "### 📋 Commits since $PREVIOUS_TAG:" >> release_notes.md
-            echo "" >> release_notes.md
             git log "$PREVIOUS_TAG..$CURRENT_TAG" \
-              --reverse \
-               --date-order \
+              --reverse --date-order \
               --pretty=format:"- %s (%an) - %h" \
-              --invert-grep \
-              --grep="Merge" >> release_notes.md
+              --invert-grep --grep="Merge" >> release_notes.md
           else
             echo "### 📋 Initial Release Commits:" >> release_notes.md
-            echo "" >> release_notes.md
-            git log \
-              --reverse \
-               --date-order \
+            git log --reverse --date-order \
               --pretty=format:"- %s (%an) - %h" \
-              --invert-grep \
-              --grep="Merge" >> release_notes.md
+              --invert-grep --grep="Merge" >> release_notes.md
           fi
 
           echo "" >> release_notes.md
-          echo "" >> release_notes.md
-          
-          # Add Docker image information
           echo "## 🐳 Docker Image" >> release_notes.md
-          echo "" >> release_notes.md
           echo "Pull the image with:" >> release_notes.md
           echo '```bash' >> release_notes.md
-          echo "docker pull ghcr.io/${{ steps.image.outputs.name }}:${{ steps.version.outputs.VERSION }}" >> release_notes.md
+          echo "docker pull \"ghcr.io/${{ steps.image.outputs.name }}:${{ steps.version.outputs.VERSION }}\"" >> release_notes.md
           echo '```' >> release_notes.md
 
       - name: Create GitHub Release
