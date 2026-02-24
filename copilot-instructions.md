@@ -436,7 +436,8 @@ def new_endpoint():
         # Implementation
         return jsonify({"status": "success", "data": result})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error in new endpoint: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 ```
 
 2. Add corresponding JavaScript in `static/app.js`:

@@ -554,7 +554,8 @@ def view_configs_api():
             "configs": configs
         })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error viewing configs: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/config/export', methods=['GET'])
@@ -573,7 +574,8 @@ def export_config_api():
         )
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error exporting config: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/logs', methods=['GET'])
@@ -627,7 +629,7 @@ def get_logs_api():
             })
     except Exception as e:
         logger.error(f"Error reading logs: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route("/api/logs/clear", methods=["POST"])
@@ -647,7 +649,8 @@ def clear_logs_api():
         })
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error clearing logs: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/convert-coordinates', methods=['POST'])
@@ -691,7 +694,8 @@ def convert_coordinates_api():
             }), 400
             
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error converting coordinates: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/timezones', methods=['GET'])
@@ -872,7 +876,8 @@ def get_uptonight_outputs_api():
         
         return jsonify(outputs)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting uptonight outputs: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/uptonight/outputs/<target>/<filename>', methods=['GET'])
@@ -943,7 +948,8 @@ def get_catalogue_reports_api(catalogue):
         
         return jsonify(result)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting catalogue reports: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/uptonight/logs/<catalogue>', methods=['GET'])
@@ -972,7 +978,8 @@ def get_catalogue_log(catalogue):
         })
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting catalogue log: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/uptonight/logs/<catalogue>/exists', methods=['GET'])
@@ -991,7 +998,8 @@ def check_catalogue_log_exists(catalogue):
         })
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error checking if catalogue log exists: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/uptonight/reports/<catalogue>/<report_type>', methods=['GET'])
@@ -1032,7 +1040,8 @@ def get_catalogue_report_text(catalogue, report_type):
         })
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting catalogue report text: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/uptonight/reports/<catalogue>/available', methods=['GET'])
@@ -1060,7 +1069,8 @@ def check_catalogue_reports_available(catalogue):
         })
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error checking catalogue reports availability: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 # ============================================================
@@ -1098,7 +1108,8 @@ def get_hourly_forecast_api():
         })
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting hourly forecast: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/weather/astro-analysis', methods=['GET'])
 @login_required
@@ -1118,8 +1129,8 @@ def get_astro_weather_analysis_api():
         return jsonify(analysis)
         
     except Exception as e:
-        app.logger.exception("Failed to get astro weather analysis")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting astro weather analysis: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/weather/astro-current', methods=['GET'])
 @login_required
@@ -1135,8 +1146,8 @@ def get_current_astro_conditions_api():
         return jsonify(conditions)
         
     except Exception as e:
-        app.logger.exception("Failed to get current astro conditions")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting current astro conditions: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/weather/alerts', methods=['GET'])
 @login_required
@@ -1156,8 +1167,8 @@ def get_weather_alerts_api():
         })
         
     except Exception as e:
-        app.logger.exception("Failed to get weather alerts")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting weather alerts: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
     
 # ============================================================
 # API Moon & Sun
@@ -1188,8 +1199,8 @@ def get_moon_report_api():
         }), 202
 
     except Exception as e:
-        app.logger.exception("Failed to read Moon report cache")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting Moon report cache: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route("/api/moon/dark-window", methods=["GET"])
@@ -1217,8 +1228,8 @@ def get_next_dark_window_api():
         }), 202
 
     except Exception as e:
-        app.logger.exception("Failed to read Dark Window cache")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting Dark Window cache: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route("/api/moon/next-7-nights", methods=["GET"])
@@ -1246,8 +1257,8 @@ def get_next_7_nights_api():
         }), 202
 
     except Exception as e:
-        app.logger.exception("Failed to read Moon Planner cache")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting Moon Planner cache: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route("/api/aurora/predictions", methods=["GET"])
@@ -1275,8 +1286,8 @@ def get_aurora_predictions_api():
         }), 202
 
     except Exception as e:
-        app.logger.exception("Failed to read Aurora predictions cache")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting Aurora predictions cache: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route("/api/sun/today", methods=["GET"])
@@ -1304,8 +1315,8 @@ def get_sun_today_api():
         }), 202
 
     except Exception as e:
-        app.logger.exception("Failed to read Sun report cache")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting Sun report cache: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route("/api/sun/next-eclipse", methods=["GET"])
@@ -1333,8 +1344,8 @@ def get_solar_eclipse_api():
         }), 202
 
     except Exception as e:
-        app.logger.exception("Failed to read Solar Eclipse cache")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting Solar Eclipse cache: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route("/api/moon/next-eclipse", methods=["GET"])
@@ -1362,8 +1373,8 @@ def get_lunar_eclipse_api():
         }), 202
 
     except Exception as e:
-        app.logger.exception("Failed to read Lunar Eclipse cache")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting Lunar Eclipse cache: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route("/api/events/upcoming", methods=["GET"])
@@ -1423,8 +1434,8 @@ def get_upcoming_events_api():
         return jsonify(events)
 
     except Exception as e:
-        app.logger.exception("Failed to aggregate upcoming events")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error aggregating upcoming events: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route("/api/astro/horizon-graph", methods=["GET"])
@@ -1452,8 +1463,8 @@ def get_horizon_graph_api():
         }), 202
 
     except Exception as e:
-        app.logger.exception("Failed to read Horizon Graph cache")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting Horizon Graph cache: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route("/api/tonight/best-window", methods=["GET"])
@@ -1529,8 +1540,8 @@ def best_window_api():
         }), 202
 
     except Exception as e:
-        app.logger.exception("Failed to read Best Window cache")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error getting Best Window cache: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 # ============================================================
