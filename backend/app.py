@@ -998,19 +998,28 @@ def get_catalogue_log(catalogue):
 @login_required
 def check_catalogue_log_exists(catalogue):
     """Check if log file exists for a specific catalogue"""
+    # Strict catalogue name validation
+    if not re.match(r'^[a-zA-Z0-9_-]+$', catalogue):
+        logger.warning(f"Invalid catalogue name: {catalogue}")
+        return jsonify({"error": "Invalid catalogue name"}), 400
+
     try:
-        catalogue_dir = os.path.join(OUTPUT_DIR, catalogue)
+        # Normalize path and confine to OUTPUT_DIR
+        catalogue_dir = os.path.normpath(os.path.join(OUTPUT_DIR, catalogue))
+        if not catalogue_dir.startswith(os.path.abspath(OUTPUT_DIR)):
+            return jsonify({"error": "Invalid path"}), 400
+
         log_file = os.path.join(catalogue_dir, 'uptonight.log')
-        
-        exists = os.path.exists(log_file) and os.path.getsize(log_file) > 0
-        
+
+        log_exists = os.path.exists(log_file) and os.path.getsize(log_file) > 0
+
         return jsonify({
             "catalogue": catalogue,
-            "log_exists": exists
+            "log_exists": log_exists
         })
-        
-    except Exception as e:
-        logger.error(f"Error checking if catalogue log exists: {e}")
+
+    except Exception:
+        logger.exception("Error checking if catalogue log exists")
         return jsonify({'error': 'Internal server error'}), 500
 
 
@@ -1018,41 +1027,47 @@ def check_catalogue_log_exists(catalogue):
 @login_required
 def get_catalogue_report_text(catalogue, report_type):
     """Get report text file for a specific catalogue and report type"""
+    # Validate catalogue name
+    if not re.match(r'^[a-zA-Z0-9_-]+$', catalogue):
+        logger.warning(f"Invalid catalogue name: {catalogue}")
+        return jsonify({"error": "Invalid catalogue name"}), 400
+
+    # Map report type to filenames
+    report_files = {
+        'general': 'uptonight-report.txt',
+        'bodies': 'uptonight-bodies-report.txt',
+        'comets': 'uptonight-comets-report.txt'
+    }
+
+    if report_type not in report_files:
+        return jsonify({"error": f"Invalid report type: {report_type}"}), 400
+
     try:
-        catalogue_dir = os.path.join(OUTPUT_DIR, catalogue)
-        
-        # Map report type to filename
-        report_files = {
-            'general': 'uptonight-report.txt',
-            'bodies': 'uptonight-bodies-report.txt',
-            'comets': 'uptonight-comets-report.txt'
-        }
-        
-        if report_type not in report_files:
-            return jsonify({"error": f"Invalid report type: {report_type}"}), 400
-        
+        # Normalize path and confine to OUTPUT_DIR
+        catalogue_dir = os.path.normpath(os.path.join(OUTPUT_DIR, catalogue))
+        if not catalogue_dir.startswith(os.path.abspath(OUTPUT_DIR)):
+            return jsonify({"error": "Invalid path"}), 400
+
         report_file = os.path.join(catalogue_dir, report_files[report_type])
-        
+
         if not os.path.exists(report_file):
             return jsonify({"error": "Report file not found"}), 404
-        
-        # Check if file is not empty
+
         if os.path.getsize(report_file) == 0:
             return jsonify({"error": "Report file is empty"}), 404
-        
-        # Read the report file
+
         with open(report_file, 'r', encoding='utf-8') as f:
             report_content = f.read()
-        
+
         return jsonify({
             "catalogue": catalogue,
             "report_type": report_type,
             "report_content": report_content,
             "file_size": os.path.getsize(report_file)
         })
-        
-    except Exception as e:
-        logger.error(f"Error getting catalogue report text: {e}")
+
+    except Exception:
+        logger.exception("Error getting catalogue report text")
         return jsonify({'error': 'Internal server error'}), 500
 
 
@@ -1060,28 +1075,37 @@ def get_catalogue_report_text(catalogue, report_type):
 @login_required
 def check_catalogue_reports_available(catalogue):
     """Check which report files exist for a specific catalogue"""
+    # Validate catalogue name
+    if not re.match(r'^[a-zA-Z0-9_-]+$', catalogue):
+        logger.warning(f"Invalid catalogue name: {catalogue}")
+        return jsonify({"error": "Invalid catalogue name"}), 400
+
     try:
-        catalogue_dir = os.path.join(OUTPUT_DIR, catalogue)
-        
+        # Normalize path and confine to OUTPUT_DIR
+        catalogue_dir = os.path.normpath(os.path.join(OUTPUT_DIR, catalogue))
+        if not catalogue_dir.startswith(os.path.abspath(OUTPUT_DIR)):
+            return jsonify({"error": "Invalid path"}), 400
+
+        # Map report types to filenames
         report_files = {
             'general': 'uptonight-report.txt',
             'bodies': 'uptonight-bodies-report.txt',
             'comets': 'uptonight-comets-report.txt'
         }
-        
+
         available = {}
         for report_type, filename in report_files.items():
             report_file = os.path.join(catalogue_dir, filename)
             available[report_type] = os.path.exists(report_file) and os.path.getsize(report_file) > 0
-        
+
         return jsonify({
             "catalogue": catalogue,
             "available": available,
             "has_any": any(available.values())
         })
-        
-    except Exception as e:
-        logger.error(f"Error checking catalogue reports availability: {e}")
+
+    except Exception:
+        logger.exception("Error checking catalogue reports availability")
         return jsonify({'error': 'Internal server error'}), 500
 
 

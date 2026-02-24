@@ -10,18 +10,27 @@ from logging_config import get_logger
 # Initialize logger for this module
 logger = get_logger(__name__)
 
-def parse_uptonight_report(file_path: str, report_type: str, catalogue_dir: str) -> Optional[Dict]:
+def parse_uptonight_report(file_path: str, report_type: str, catalogue_dir: str) -> Optional[dict]:
     """
-    Parse UpTonight JSON report file
-    Returns parsed data or None if file doesn't exist or is invalid
+    Parse UpTonight JSON report file safely.
+    Returns parsed data or None if file doesn't exist or is invalid.
     """
     try:
+        # Normalize and confine paths
+        catalogue_dir = os.path.normpath(catalogue_dir)
+        file_path = os.path.normpath(file_path)
+
+        if not file_path.startswith(os.path.abspath(catalogue_dir)):
+            # Path traversal attempt, ignore
+            logger.warning(f"Attempted access outside catalogue_dir: {file_path}")
+            return None
+
         if not os.path.exists(file_path):
             return None
-        
-        with open(file_path, 'r') as f:
+
+        with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        
+
         if report_type == 'objects':
             return parse_objects_report(data, catalogue_dir)
         elif report_type == 'comets':
@@ -30,32 +39,34 @@ def parse_uptonight_report(file_path: str, report_type: str, catalogue_dir: str)
             return parse_bodies_report(data, catalogue_dir)
         else:
             return {'type': 'unknown', 'raw': data}
-    
-    except Exception as e:
-        logger.error(f"Error parsing UpTonight report {file_path}: {e}")
+
+    except Exception:
+        logger.exception(f"Error parsing UpTonight report {file_path}")
         return None
 
 
-def parse_objects_report(data: Dict, catalogue_dir: str) -> Dict:
-    """Parse objects (targets) report into list of objects"""
+def parse_objects_report(data: dict, catalogue_dir: str) -> dict:
+    """Parse objects (targets) report into list of objects with safe Alttime filenames"""
     objects = []
-    
-    # Get number of entries
+
     if 'id' not in data:
         return {'type': 'objects', 'objects': []}
-    
+
     num_entries = len(data['id'])
-    
+
+    # Normalize catalogue_dir once
+    catalogue_dir = os.path.normpath(catalogue_dir)
+
     for i in range(num_entries):
         obj = {}
         for key, values in data.items():
             if str(i) in values:
-                # Add a new key (alttime_file) for Alttime compatibility
                 if key == 'id':
+                    # Use safe file path generator
                     obj['alttime_file'] = get_alttime_file_name(values[str(i)], catalogue_dir)
                 obj[key] = values[str(i)]
         objects.append(obj)
-    
+
     return {
         'type': 'objects',
         'count': len(objects),
@@ -63,25 +74,28 @@ def parse_objects_report(data: Dict, catalogue_dir: str) -> Dict:
     }
 
 
-def parse_comets_report(data: Dict, catalogue_dir: str) -> Dict:
-    """Parse comets report into list of comets"""
+def parse_comets_report(data: dict, catalogue_dir: str) -> dict:
+    """Parse comets report into list of comets with safe Alttime filenames"""
     comets = []
-    
+
     if 'target name' not in data:
         return {'type': 'comets', 'comets': []}
-    
+
     num_entries = len(data['target name'])
-    
+
+    # Normalize catalogue_dir once
+    catalogue_dir = os.path.normpath(catalogue_dir)
+
     for i in range(num_entries):
         comet = {}
         for key, values in data.items():
             if str(i) in values:
-                # Add a new key (alttime_file) for Alttime compatibility
                 if key == 'target name':
+                    # Use safe file path generator
                     comet['alttime_file'] = get_alttime_file_name(values[str(i)], catalogue_dir)
                 comet[key] = values[str(i)]
         comets.append(comet)
-    
+
     return {
         'type': 'comets',
         'count': len(comets),
@@ -89,25 +103,30 @@ def parse_comets_report(data: Dict, catalogue_dir: str) -> Dict:
     }
 
 
-def parse_bodies_report(data: Dict, catalogue_dir: str) -> Dict:
-    """Parse bodies (planets/moon) report into list of bodies"""
+def parse_bodies_report(data: dict, catalogue_dir: str) -> dict:
+    """Parse bodies (planets/moons) report into a list of bodies with safe Alttime filenames"""
     bodies = []
-    
+
     if 'target name' not in data:
         return {'type': 'bodies', 'bodies': []}
-    
+
     num_entries = len(data['target name'])
-    
+
+    # Normalize catalogue_dir once
+    catalogue_dir = os.path.normpath(catalogue_dir)
+    if not os.path.exists(catalogue_dir):
+        return {'type': 'bodies', 'count': 0, 'bodies': []}
+
     for i in range(num_entries):
         body = {}
         for key, values in data.items():
             if str(i) in values:
-                # Add a new key (alttime_file) for Alttime compatibility
                 if key == 'target name':
+                    # Use safe file path generator
                     body['alttime_file'] = get_alttime_file_name(values[str(i)], catalogue_dir)
                 body[key] = values[str(i)]
         bodies.append(body)
-    
+
     return {
         'type': 'bodies',
         'count': len(bodies),
@@ -115,16 +134,18 @@ def parse_bodies_report(data: Dict, catalogue_dir: str) -> Dict:
     }
 
 
-def get_catalogue_reports(catalogue_dir: str) -> Dict:
+def get_catalogue_reports(catalogue_dir: str) -> dict:
     """
     Get all available reports for a target
     Returns dictionary with report types and their data
     """
     reports = {}
-    
+
+    # Normalize path and confine to catalogue_dir
+    catalogue_dir = os.path.normpath(catalogue_dir)
     if not os.path.exists(catalogue_dir):
         return reports
-    
+
     # UpTonight output file names
     report_files = {
         'objects': 'uptonight-report.json',
@@ -132,10 +153,14 @@ def get_catalogue_reports(catalogue_dir: str) -> Dict:
         'bodies': 'uptonight-bodies-report.json',
         'plot': 'uptonight-plot.png'
     }
-    
+
     for report_type, filename in report_files.items():
-        file_path = os.path.join(catalogue_dir, filename)
-        
+        file_path = os.path.normpath(os.path.join(catalogue_dir, filename))
+
+        # Ensure file_path stays inside catalogue_dir
+        if not file_path.startswith(os.path.abspath(catalogue_dir)):
+            continue  # ignore invalid / malicious path
+
         if filename.endswith('.json'):
             parsed = parse_uptonight_report(file_path, report_type, catalogue_dir)
             if parsed:
@@ -143,7 +168,7 @@ def get_catalogue_reports(catalogue_dir: str) -> Dict:
         elif os.path.exists(file_path):
             # Just mark that the file exists
             reports[report_type] = {'available': True, 'path': filename}
-    
+
     return reports
 
 
@@ -183,13 +208,20 @@ def sanitize_alttime_target_name(name: str) -> str:
 
 def get_alttime_file_name(target_name: str, catalogue_dir: str) -> str:
     """
-    Generate Alttime-compatible file name from target name
-    Return file name if exists, else empty string
+    Generate Alttime-compatible file name from target name.
+    Return file name if exists, else empty string.
     """
     sanitized = sanitize_alttime_target_name(target_name)
 
-    file = os.path.join(catalogue_dir, f"uptonight-alttime-{sanitized}.png")
-    if os.path.exists(file):
-        return f"uptonight-alttime-{sanitized}.png"
+    # Normalize path and confine to catalogue_dir
+    filename = f"uptonight-alttime-{sanitized}.png"
+    file_path = os.path.normpath(os.path.join(catalogue_dir, filename))
+
+    if not file_path.startswith(os.path.abspath(catalogue_dir)):
+        # Path traversal attempt, ignore
+        return ""
+
+    if os.path.exists(file_path):
+        return filename
     else:
         return ""
