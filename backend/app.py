@@ -964,7 +964,11 @@ def get_catalogue_log(catalogue):
         return jsonify({"error": "Invalid catalogue name"}), 400
 
     try:
-        catalogue_dir = os.path.join(OUTPUT_DIR, catalogue)
+        catalogue_dir = os.path.normpath(os.path.join(OUTPUT_DIR, catalogue))
+        if not catalogue_dir.startswith(os.path.abspath(OUTPUT_DIR)):
+            logger.error(f"Attempted path traversal attack with catalogue: {catalogue}")
+            return jsonify({"error": "Invalid path"}), 400
+
         log_file = os.path.join(catalogue_dir, 'uptonight.log')
         
         # Check if log file exists
