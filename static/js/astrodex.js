@@ -19,12 +19,6 @@ let astrodexFilters = {
 // Helper Functions
 // ============================================
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
 function escapeForJs(text) {
     // Escape for JavaScript string context (single and double quotes, backslashes, etc.)
     return text.replace(/\\/g, '\\\\')

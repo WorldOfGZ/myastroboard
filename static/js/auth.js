@@ -232,12 +232,6 @@ function displayUsers(users) {
     });
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
 // Create user form handler
 function setupCreateUserForm() {
     const form = document.getElementById('create-user-form');

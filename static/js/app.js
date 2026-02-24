@@ -1138,10 +1138,10 @@ function showCatalogueType(catalogue, type) {
     if (type === 'plot' && reports.plot_image) {
         html += `
             <div class="plot-container mt-3">
-                <img src="${API_BASE}/api/uptonight/outputs/${catalogue}/uptonight-plot.png" 
-                     alt="${catalogue} plot" 
+                <img src="${API_BASE}/api/uptonight/outputs/${encodeURIComponent(catalogue)}/uptonight-plot.png" 
+                     alt="${escapeHtml(catalogue)} plot" 
                      class="img-fluid rounded" 
-                     onclick="showPlotPopup('${catalogue} Plot', this.src)">
+                     onclick="showPlotPopup('${escapeHtml(catalogue)} Plot', this.src)">
                 <div class="text-muted small mt-2">
                     These data and plots come from
                     <a href="https://github.com/mawinkler/uptonight" target="_blank" rel="noopener noreferrer">mawinkler/uptonight</a>.
@@ -1154,12 +1154,6 @@ function showCatalogueType(catalogue, type) {
         container.innerHTML = '<div class="loading">Loading log content...</div>';
         loadCatalogueLog(catalogue).then(logContent => {
             if (logContent) {
-                // Helper function to escape HTML
-                function escapeHtml(text) {
-                    const div = document.createElement('div');
-                    div.textContent = text;
-                    return div.innerHTML;
-                }
                 
                 html = `
                     <div class="logs-container mt-3 rounded">
@@ -1176,13 +1170,6 @@ function showCatalogueType(catalogue, type) {
     // Show reports content with dropdown selector if type is 'reports'
     else if (type === 'reports') {
         const availability = window.catalogueReportsAvailability?.[catalogue] || {};
-        
-        // Helper function to escape HTML
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
         
         // Build dropdown options based on available reports
         let dropdownOptions = '';
@@ -1206,12 +1193,12 @@ function showCatalogueType(catalogue, type) {
         html = `
             <div class="mt-3">
                 <div class="mb-3">
-                    <label for="report-selector-${catalogue}" class="form-label">Select Report Type:</label>
-                    <select class="form-select" id="report-selector-${catalogue}" onchange="loadSelectedReport('${catalogue}', this.value)">
+                    <label for="report-selector-${escapeHtml(catalogue)}" class="form-label">Select Report Type:</label>
+                    <select class="form-select" id="report-selector-${escapeHtml(catalogue)}" onchange="loadSelectedReport('${escapeHtml(catalogue)}', this.value)">
                         ${dropdownOptions}
                     </select>
                 </div>
-                <div id="report-content-${catalogue}" class="logs-container rounded">
+                <div id="report-content-${escapeHtml(catalogue)}" class="logs-container rounded">
                     <div class="loading">Loading report content...</div>
                 </div>
             </div>
@@ -1238,13 +1225,6 @@ function showCatalogueType(catalogue, type) {
 
 function generateReportTable(report, catalogue, type) {
     if (!report || report.length === 0) return '<p>No targets in report</p>';
-    
-    // Helper function to escape HTML
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
     
     // Define column order and configuration for Report type
     const reportColumns = [
@@ -2162,12 +2142,6 @@ async function loadSelectedReport(catalogue, reportType) {
         const result = await fetchJSON(`/api/uptonight/reports/${catalogue}/${reportType}`);
         
         if (result && result.report_content) {
-            // Helper function to escape HTML
-            function escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            }
             
             contentDiv.innerHTML = `<pre>${escapeHtml(result.report_content)}</pre>`;
         } else {
