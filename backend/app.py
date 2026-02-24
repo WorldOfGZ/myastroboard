@@ -219,7 +219,7 @@ def login():
             return jsonify({'error': 'Invalid credentials'}), 401
     except Exception as e:
         logger.error(f"Login error: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/auth/logout', methods=['POST'])
@@ -290,7 +290,7 @@ def create_user():
         return jsonify({'error': str(e)}), 400
     except Exception as e:
         logger.error(f"Error creating user: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/users/<user_id>', methods=['PUT'])
@@ -320,7 +320,7 @@ def update_user(user_id):
         return jsonify({'error': str(e)}), 400
     except Exception as e:
         logger.error(f"Error updating user: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/users/<user_id>', methods=['DELETE'])
@@ -335,7 +335,7 @@ def delete_user(user_id):
         return jsonify({'error': str(e)}), 400
     except Exception as e:
         logger.error(f"Error deleting user: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/config', methods=['GET'])
