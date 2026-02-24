@@ -38,7 +38,12 @@ This document describes features that could potentially be integrated into MyAst
 - PWA notifications for improving conditions (weather, ... ?)
 - Progressive weather updates during sessions
 - Sudden weather change warnings
-- Profile settings (notifications, and others)
+
+### User profile
+- Allow to change his own password
+- Notification (when/if available in future)
+- Modify Roles: Admin, User (no app settings, but use Astrodex and others), Read-Only (can only consult, not fill Astrodex)
+- Customize interface: usefull ??
 
 ### Backup & Sync Features
 **Easy backup/restore of data config**
@@ -53,7 +58,7 @@ This document describes features that could potentially be integrated into MyAst
 - IA translation possible ?
 
 ### Various
-- Package for debugging purpose on github (see birdnet go which is great)
+- Package for debugging purpose on github (see birdnet-go which is great)
 
 ## Upgrade Features
 
@@ -70,5 +75,31 @@ This document describes features that could potentially be integrated into MyAst
 - Idea is to launch at startup, with forecast meteo (from next x hours)
 - Second launch closer to night session with current weather
 
-### Various
-- Check how highlight nice astro events for current location
+### Astro Events 
+- Possibility to edit a picture for social networks. Usefull ?
+- Check for new events possibilities for location, as usual, based on location & timezone + cache managment: 
+  - Planetary Events
+    - **Planetary Conjunctions** – when two planets appear very close in the sky.
+    - **Planetary Oppositions** – best visibility of outer planets.
+    - **Planetary Elongations** – maximum angular distance from the Sun.
+    - **Retrograde Motion** – apparent backward motion of planets.
+  - Special Phenomena
+    - **Equinoxes and Solstices** – start of seasons.
+    - **Zodiacal Light Visibility Windows** – faint diffuse light from interplanetary dust.
+    - **Ecliptic and Galactic Alignments** – e.g., Milky Way core visibility.
+  - Solar System Events
+    - **Meteor Showers** – peak times and radiant positions.
+    - **Comet Appearances** – perihelion passages or brightest dates.
+    - **Asteroid Occultations** – when an asteroid passes in front of a star.
+  - **Sidereal Time** – useful for equatorial mounts and star tracking.
+    - Integrated on existing section ?
+- Section with a calendar resume for all events (with visible/not visible from location)
+  - Celestial Events (already implemented)
+    - **Solar and Lunar Eclipses** – total, partial, and annular eclipses.
+    - **Lunar Phases** – New Moon, Full Moon, First Quarter, Last Quarter.
+    - **Supermoons** – unusually large apparent size of the Moon.
+    - **Blue Moon** – second full moon in a calendar month.
+    - **Blood Moon / Lunar Eclipse Coloring** – total lunar eclipses causing reddish tint.
+  - Planetary Events (to be implemented)
+  - Special Phenomena (to be implemented)
+  - Solar System Events (to be implemented)
