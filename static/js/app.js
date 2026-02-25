@@ -1097,130 +1097,150 @@ async function loadCatalogueResults(catalogue) {
 function showCatalogueType(catalogue, type) {
     const reports = window.catalogueReports[catalogue];
     if (!reports) return;
-    
+
     // Update active button
     const buttons = document.querySelectorAll(`#catalogue-${catalogue}-type-buttons .catalogue-type-btn`);
     buttons.forEach(btn => {
         btn.classList.remove('active');
         let btnType = '';
         switch(type) {
-            case 'plot':
-                btnType = 'Plot';
-                break;
-            case 'report':
-                btnType = 'Deep sky objects';
-                break;
-            case 'bodies':
-                btnType = 'Bodies';
-                break;
-            case 'comets':
-                btnType = 'Comets';
-                break;
-            case 'log':
-                btnType = 'Log';
-                break;
-            case 'reports':
-                btnType = 'Reports';
-                break;
-            default:
-                console.warn(`Unknown catalogue type: ${type}`);
-                return;
+            case 'plot': btnType = 'Plot'; break;
+            case 'report': btnType = 'Deep sky objects'; break;
+            case 'bodies': btnType = 'Bodies'; break;
+            case 'comets': btnType = 'Comets'; break;
+            case 'log': btnType = 'Log'; break;
+            case 'reports': btnType = 'Reports'; break;
+            default: console.warn(`Unknown catalogue type: ${type}`); return;
         }
-        if (btn.textContent.includes(btnType)) {
-            btn.classList.add('active');
-        }
+        if (btn.textContent.includes(btnType)) btn.classList.add('active');
     });
-    
+
     const container = document.getElementById(`catalogue-${catalogue}-content`);
-    let html = '';
-    
-    // Show plot if type is 'plot' and plot exists
+    container.innerHTML = ''; // Clear previous content
+
+    // --- Plot ---
     if (type === 'plot' && reports.plot_image) {
-        html += `
-            <div class="plot-container mt-3">
-                <img src="${API_BASE}/api/uptonight/outputs/${encodeURIComponent(catalogue)}/uptonight-plot.png" 
-                     alt="${escapeHtml(catalogue)} plot" 
-                     class="img-fluid rounded" 
-                     onclick="showPlotPopup('${escapeHtml(catalogue)} Plot', this.src)">
-                <div class="text-muted small mt-2">
-                    These data and plots come from
-                    <a href="https://github.com/mawinkler/uptonight" target="_blank" rel="noopener noreferrer">mawinkler/uptonight</a>.
-                </div>
-            </div>
-        `;
+        const plotDiv = document.createElement('div');
+        plotDiv.className = 'plot-container mt-3';
+
+        const img = document.createElement('img');
+        img.src = `${API_BASE}/api/uptonight/outputs/${encodeURIComponent(catalogue)}/uptonight-plot.png`;
+        img.alt = `${catalogue} plot`;
+        img.className = 'img-fluid rounded';
+        img.onclick = () => showPlotPopup(`${catalogue} Plot`, img.src);
+
+        const info = document.createElement('div');
+        info.className = 'text-muted small mt-2';
+        info.innerHTML = `These data and plots come from 
+            <a href="https://github.com/mawinkler/uptonight" target="_blank" rel="noopener noreferrer">mawinkler/uptonight</a>.`;
+
+        plotDiv.appendChild(img);
+        plotDiv.appendChild(info);
+        container.appendChild(plotDiv);
+        return;
     }
-    // Show log content if type is 'log'
-    else if (type === 'log') {
-        container.innerHTML = '<div class="loading">Loading log content...</div>';
+
+    // --- Log ---
+    if (type === 'log') {
+        const loading = document.createElement('div');
+        loading.className = 'loading';
+        loading.textContent = 'Loading log content...';
+        container.appendChild(loading);
+
         loadCatalogueLog(catalogue).then(logContent => {
+            container.innerHTML = '';
+            const logContainer = document.createElement('div');
+            logContainer.className = 'logs-container mt-3 rounded';
+
             if (logContent) {
-                
-                html = `
-                    <div class="logs-container mt-3 rounded">
-                        <pre>${escapeHtml(logContent)}</pre>
-                    </div>
-                `;
+                const pre = document.createElement('pre');
+                pre.textContent = logContent; // safe
+                logContainer.appendChild(pre);
             } else {
-                html = '<div class="error-box">Failed to load log content</div>';
+                const error = document.createElement('div');
+                error.className = 'error-box';
+                error.textContent = 'Failed to load log content';
+                logContainer.appendChild(error);
             }
-            container.innerHTML = html;
+
+            container.appendChild(logContainer);
         });
-        return; // Early return for async log loading
+        return;
     }
-    // Show reports content with dropdown selector if type is 'reports'
-    else if (type === 'reports') {
+
+    // --- Reports ---
+    if (type === 'reports') {
         const availability = window.catalogueReportsAvailability?.[catalogue] || {};
-        
-        // Build dropdown options based on available reports
-        let dropdownOptions = '';
-        if (availability.general) {
-            dropdownOptions += '<option value="general">General</option>';
-        }
-        if (availability.bodies) {
-            dropdownOptions += '<option value="bodies">Bodies</option>';
-        }
-        if (availability.comets) {
-            dropdownOptions += '<option value="comets">Comets</option>';
-        }
-        
-        // If no reports available, show message
-        if (!dropdownOptions) {
-            container.innerHTML = '<div class="alert alert-info mt-3">No reports available for this catalogue.</div>';
+        const dropdownOptions = [];
+        if (availability.general) dropdownOptions.push(['general', 'General']);
+        if (availability.bodies) dropdownOptions.push(['bodies', 'Bodies']);
+        if (availability.comets) dropdownOptions.push(['comets', 'Comets']);
+
+        if (!dropdownOptions.length) {
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-info mt-3';
+            alert.textContent = 'No reports available for this catalogue.';
+            container.appendChild(alert);
             return;
         }
-        
-        // Create the reports interface with dropdown
-        html = `
-            <div class="mt-3">
-                <div class="mb-3">
-                    <label for="report-selector-${escapeHtml(catalogue)}" class="form-label">Select Report Type:</label>
-                    <select class="form-select" id="report-selector-${escapeHtml(catalogue)}" onchange="loadSelectedReport('${escapeHtml(catalogue)}', this.value)">
-                        ${dropdownOptions}
-                    </select>
-                </div>
-                <div id="report-content-${escapeHtml(catalogue)}" class="logs-container rounded">
-                    <div class="loading">Loading report content...</div>
-                </div>
-            </div>
-        `;
-        
-        container.innerHTML = html;
-        
-        // Load the first available report by default
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mt-3';
+
+        const selectDiv = document.createElement('div');
+        selectDiv.className = 'mb-3';
+
+        const label = document.createElement('label');
+        label.className = 'form-label';
+        label.setAttribute('for', `report-selector-${catalogue}`);
+        label.textContent = 'Select Report Type:';
+        selectDiv.appendChild(label);
+
+        const select = document.createElement('select');
+        select.className = 'form-select';
+        select.id = `report-selector-${catalogue}`;
+        select.onchange = () => loadSelectedReport(catalogue, select.value);
+
+        dropdownOptions.forEach(([val, text]) => {
+            const option = document.createElement('option');
+            option.value = val;
+            option.textContent = text;
+            select.appendChild(option);
+        });
+
+        selectDiv.appendChild(select);
+        wrapper.appendChild(selectDiv);
+
+        const reportContent = document.createElement('div');
+        reportContent.id = `report-content-${catalogue}`;
+        reportContent.className = 'logs-container rounded';
+
+        const loading = document.createElement('div');
+        loading.className = 'loading';
+        loading.textContent = 'Loading report content...';
+        reportContent.appendChild(loading);
+
+        wrapper.appendChild(reportContent);
+        container.appendChild(wrapper);
+
         const firstReportType = availability.general ? 'general' : (availability.bodies ? 'bodies' : 'comets');
         loadSelectedReport(catalogue, firstReportType);
-        return; // Early return for async report loading
+        return;
     }
-    // Show appropriate table based on type (not for plot or log)
-    else if (type === 'report' && reports.report) {
-        html += generateReportTable(reports.report, catalogue, 'report');
-    } else if (type === 'bodies' && reports.bodies) {
-        html += generateReportTable(reports.bodies, catalogue, 'bodies');
-    } else if (type === 'comets' && reports.comets) {
-        html += generateReportTable(reports.comets, catalogue, 'comets');
+
+    // --- Tables ---
+    let tableHtml = '';
+    if (type === 'report' && reports.report) tableHtml = generateReportTable(reports.report, catalogue, 'report');
+    else if (type === 'bodies' && reports.bodies) tableHtml = generateReportTable(reports.bodies, catalogue, 'bodies');
+    else if (type === 'comets' && reports.comets) tableHtml = generateReportTable(reports.comets, catalogue, 'comets');
+
+    if (tableHtml) {
+        container.innerHTML = tableHtml;
+    } else {
+        const p = document.createElement('p');
+        p.textContent = 'No data available';
+        container.appendChild(p);
     }
-    
-    container.innerHTML = html || '<p>No data available</p>';
 }
 
 function generateReportTable(report, catalogue, type) {
