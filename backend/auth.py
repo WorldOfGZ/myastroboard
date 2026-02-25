@@ -5,6 +5,7 @@ Handles user authentication, authorization, and session management
 import json
 import os
 import uuid
+import re
 from datetime import datetime
 from functools import wraps
 from flask import session, jsonify, request
@@ -212,63 +213,106 @@ class UserManager:
         return user
     
     def delete_user(self, user_id, current_user_id=None):
-        """Delete a user"""
+        """Delete a user and safely clean related astrodex data"""
+
         self._reload_users_if_changed()
+
+        # --- Validate user_id strictly (adjust if UUID instead of int) ---
+        try:
+            user_id = int(user_id)
+        except (TypeError, ValueError):
+            raise ValueError("Invalid user ID format")
+
         user = self.get_user_by_id(user_id)
         if not user:
             raise ValueError(f"User with ID {user_id} not found")
-        
+
         # Prevent deleting your own account
-        if current_user_id and user_id == current_user_id:
+        if current_user_id and int(current_user_id) == user_id:
             raise ValueError("Cannot delete your own account")
-        
+
         username = user.username
+
+        # Remove user from memory + persist
         del self.users[user_id]
         self.save_users()
+
         logger.info(f"Deleted user {username} (ID: {user_id})")
-        
-        # Also delete user's astrodex file and images
+
+        # --- Cleanup astrodex files safely ---
         try:
             from astrodex import ASTRODEX_DIR, ASTRODEX_IMAGES_DIR
-            astrodex_file = os.path.join(ASTRODEX_DIR, f'{user_id}_astrodex.json')
+
+            base_astrodex_dir = os.path.abspath(ASTRODEX_DIR)
+            base_images_dir = os.path.abspath(ASTRODEX_IMAGES_DIR)
+
+            astrodex_file = os.path.normpath(
+                os.path.join(base_astrodex_dir, f"{user_id}_astrodex.json")
+            )
+
+            # Ensure confinement
+            if not astrodex_file.startswith(base_astrodex_dir):
+                raise ValueError("Invalid astrodex file path")
+
             image_filenames = set()
 
+            # Read astrodex file safely
             if os.path.exists(astrodex_file):
                 try:
-                    with open(astrodex_file, 'r') as f:
+                    with open(astrodex_file, "r", encoding="utf-8") as f:
                         astrodex_data = json.load(f)
-                    for item in astrodex_data.get('items', []):
-                        for picture in item.get('pictures', []):
-                            filename = picture.get('filename')
-                            if filename:
+
+                    for item in astrodex_data.get("items", []):
+                        for picture in item.get("pictures", []):
+                            filename = picture.get("filename")
+                            if filename and re.match(r"^[a-zA-Z0-9_.-]+$", filename):
                                 image_filenames.add(filename)
+
                 except Exception as read_error:
                     logger.warning(f"Failed to read astrodex file for cleanup: {read_error}")
 
-            # Delete images referenced by the astrodex file
+            # Delete referenced images safely
             for filename in image_filenames:
-                file_path = os.path.join(ASTRODEX_IMAGES_DIR, filename)
+                file_path = os.path.normpath(
+                    os.path.join(base_images_dir, filename)
+                )
+
+                if not file_path.startswith(base_images_dir):
+                    continue
+
                 if os.path.exists(file_path):
                     try:
                         os.remove(file_path)
                     except Exception as remove_error:
-                        logger.warning(f"Failed to delete astrodex image {filename}: {remove_error}")
+                        logger.warning(
+                            f"Failed to delete astrodex image {filename}: {remove_error}"
+                        )
 
-            # Delete any remaining images that match the user_id prefix
-            if os.path.exists(ASTRODEX_IMAGES_DIR):
-                for filename in os.listdir(ASTRODEX_IMAGES_DIR):
-                    if filename.startswith(f"{user_id}_"):
-                        file_path = os.path.join(ASTRODEX_IMAGES_DIR, filename)
-                        try:
-                            os.remove(file_path)
-                        except Exception as remove_error:
-                            logger.warning(f"Failed to delete astrodex image {filename}: {remove_error}")
+            # Delete remaining images matching user_id prefix
+            if os.path.exists(base_images_dir):
+                for filename in os.listdir(base_images_dir):
+                    if filename.startswith(f"{user_id}_") and re.match(
+                        r"^[a-zA-Z0-9_.-]+$", filename
+                    ):
+                        file_path = os.path.normpath(
+                            os.path.join(base_images_dir, filename)
+                        )
 
+                        if file_path.startswith(base_images_dir):
+                            try:
+                                os.remove(file_path)
+                            except Exception as remove_error:
+                                logger.warning(
+                                    f"Failed to delete astrodex image {filename}: {remove_error}"
+                                )
+
+            # Delete astrodex file itself
             if os.path.exists(astrodex_file):
                 os.remove(astrodex_file)
                 logger.info(f"Deleted astrodex file for {username}")
+
         except Exception as e:
-            logger.warning(f"Failed to delete astrodex file: {e}")
+            logger.warning(f"Failed to delete astrodex data for user {user_id}: {e}")
     
     def list_users(self):
         """List all users (without password hashes)"""

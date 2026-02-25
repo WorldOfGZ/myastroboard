@@ -2,18 +2,24 @@
 MyAstroBoard - Flask Backend API
 Provides astronomy planning and configuration management
 """
+
+
+import secrets
+
 from flask import Flask, request, jsonify, render_template, send_file, send_from_directory, session, redirect, url_for, g
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import re
 import json
+import uuid
 import io
 import sys
 from datetime import datetime, timedelta
 from dataclasses import asdict
 
 import sys
+from werkzeug.utils import secure_filename
 import yaml
 import psutil
 import shutil
@@ -85,33 +91,16 @@ if os.environ.get('TRUST_PROXY_HEADERS', 'False').lower() == 'true':
     logger.info("ProxyFix middleware enabled - trusting X-Forwarded-* headers from reverse proxy")
 
 # Configure session
-# Use SECRET_KEY from environment, or a persisted key in data dir.
-# This avoids session invalidation on reload/restart when SECRET_KEY is not explicitly set.
-secret_key = os.environ.get('SECRET_KEY')
+secret_key = os.environ.get("SECRET_KEY")
+
 if not secret_key:
-    secret_key_file = os.path.join(DATA_DIR, '.flask_secret_key')
-    try:
-        os.makedirs(DATA_DIR, exist_ok=True)
-        if os.path.exists(secret_key_file):
-            with open(secret_key_file, 'r', encoding='utf-8') as key_file:
-                persisted_key = key_file.read().strip()
-                if persisted_key:
-                    secret_key = persisted_key
-        if not secret_key:
-            import secrets
-            secret_key = secrets.token_hex(32)
-            with open(secret_key_file, 'w', encoding='utf-8') as key_file:
-                key_file.write(secret_key)
-            logger.warning(
-                "No SECRET_KEY environment variable set. Generated and persisted a local key in data directory."
-            )
-        else:
-            logger.info("Using persisted Flask secret key from data directory.")
-    except Exception as e:
-        secret_key = os.urandom(24)
-        logger.warning(
-            f"Failed to read/write persisted secret key ({e}). Using random key - sessions may be invalidated on restart."
-        )
+    if app.debug:
+        secret_key = secrets.token_hex(32)
+        logger.warning("Generated temporary dev SECRET_KEY")
+    else:
+        logger.error("SECRET_KEY is not set. Refusing to start.")
+        raise RuntimeError("SECRET_KEY must be set in production")
+
 app.secret_key = secret_key
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
@@ -123,7 +112,9 @@ CORS(app, supports_credentials=True)
 # Coordinate conversion regex pattern (module-level constant)
 # Matches DMS format: 48d38m36.16s or 48°38'36.16"
 # Pattern: optional sign, degrees, minutes, seconds
-DMS_PATTERN = re.compile(r"([+-]?\d+)[d°]\s*(\d+)[m']\s*([\d.]+)[s\"]?")
+DMS_PATTERN = re.compile(
+    r"^([+-]?\d{1,3})[d°]\s*(\d{1,2})[m']\s*(\d{1,2}(?:\.\d{1,6})?)[s\"]?$"
+)
 
 
 # ============================================================
@@ -663,6 +654,10 @@ def convert_coordinates_api():
     try:
         data = request.json
         dms_str = data.get('dms', '')
+
+        if not isinstance(dms_str, str) or len(dms_str) > 50:
+            logger.warning(f"Invalid DMS input: {dms_str}")
+            return jsonify({"status": "error", "message": "Invalid input"}), 400
         
         # Use module-level DMS_PATTERN constant
         match = DMS_PATTERN.match(dms_str.strip())
@@ -1861,42 +1856,59 @@ def set_main_picture_api(item_id, picture_id):
 @app.route('/api/astrodex/upload', methods=['POST'])
 @login_required
 def upload_astrodex_image():
-    """Upload an image for astrodex"""
+    """Upload an image for astrodex safely"""
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
-        
+
         file = request.files['file']
-        if not file.filename:
+        if not file or not file.filename:
             return jsonify({'error': 'No file selected'}), 400
-        
-        # Validate file type
+
+        # Strict extension validation
         allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-        filename = file.filename.lower()
-        if not any(filename.endswith(ext) for ext in allowed_extensions):
-            return jsonify({'error': 'Invalid file type. Allowed: png, jpg, jpeg, gif, webp'}), 400
-        
-        # Generate unique filename
+
+        original_filename = secure_filename(file.filename)
+        if '.' not in original_filename:
+            return jsonify({'error': 'Invalid file name'}), 400
+
+        file_ext = original_filename.rsplit('.', 1)[1].lower()
+        if file_ext not in allowed_extensions:
+            return jsonify({'error': 'Invalid file type'}), 400
+
+        # Validate user
         user = get_current_user()
-        user_id = user.user_id if user else None
-        if not user_id:
+        if not user or not user.user_id:
             return jsonify({'error': 'User not authenticated'}), 401
-            
-        import uuid
-        file_ext = filename.rsplit('.', 1)[1]
+
+        try:
+            user_id = int(user.user_id)
+        except (TypeError, ValueError):
+            return jsonify({'error': 'Invalid user ID'}), 400
+
+        # Generate safe unique filename
         unique_filename = f"{user_id}_{uuid.uuid4()}.{file_ext}"
-        
-        # Save file
+
+        # Ensure directory exists
         astrodex.ensure_astrodex_directories()
-        file_path = os.path.join(astrodex.ASTRODEX_IMAGES_DIR, unique_filename)
+
+        base_dir = os.path.abspath(astrodex.ASTRODEX_IMAGES_DIR)
+        file_path = os.path.normpath(os.path.join(base_dir, unique_filename))
+
+        # Confinement check (anti path traversal)
+        if not file_path.startswith(base_dir):
+            return jsonify({'error': 'Invalid file path'}), 400
+
+        # Save file
         file.save(file_path)
-        
+
         return jsonify({
             'status': 'success',
             'filename': unique_filename
         })
-    except Exception as e:
-        logger.error(f"Error uploading image: {e}")
+
+    except Exception:
+        logger.exception("Error uploading astrodex image")
         return jsonify({'error': 'Internal server error'}), 500
 
 
