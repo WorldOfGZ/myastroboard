@@ -17,21 +17,13 @@ async function loadLunarEclipse() {
         if (!data.lunar_eclipse) {
             container.innerHTML = `
                 <div class="alert alert-info" role="alert">
-                    ℹ️ ${data.message || 'No lunar eclipse data available'}
+                    ℹ️ ${escapeHtml(data.message) || 'No lunar eclipse data available'}
                 </div>
             `;
             return;
         }
 
-        const eclipse = data.lunar_eclipse;
-
-        // Helper function to format ISO date to local time string
-        function formatEclipseTime(isoString) {
-            if (!isoString) return 'N/A';
-            const date = new Date(isoString);
-            return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'}) + 
-                   ' (' + date.toLocaleDateString([], {month: "numeric", day: "numeric"}) + ')';
-        }
+        const eclipse = data.lunar_eclipse;        
 
         let visibilityBadge = '';
         if (!eclipse.visible) {
@@ -60,29 +52,21 @@ async function loadLunarEclipse() {
                     <div class="card h-100">
                         <div class="card-header fw-bold">📊 Overview</div>
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item">
-                                <div class="d-flex justify-content-between">
-                                    <span>Type:</span>
-                                    <span class="fw-bold">${eclipse.type}</span>
-                                </div>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Type:</span>
+                                <span class="fw-bold">${escapeHtml(eclipse.type)}</span>
                             </li>
-                            <li class="list-group-item">
-                                <div class="d-flex justify-content-between">
-                                    <span>Visibility:</span>
-                                    <span>${visibilityBadge}</span>
-                                </div>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Visibility:</span>
+                                <span>${visibilityBadge}</span>
                             </li>
-                            <li class="list-group-item">
-                                <div class="d-flex justify-content-between">
-                                    <span>Total Duration:</span>
-                                    <span class="fw-bold">${eclipse.total_duration_minutes > 0 ? eclipse.total_duration_minutes + ' min' : 'None'}</span>
-                                </div>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Total Duration:</span>
+                                <span class="fw-bold">${escapeHtml(eclipse.total_duration_minutes > 0 ? eclipse.total_duration_minutes + ' min' : 'None')}</span>
                             </li>
-                            <li class="list-group-item">
-                                <div class="d-flex justify-content-between">
-                                    <span>Partial Duration:</span>
-                                    <span class="fw-bold">${eclipse.partial_duration_minutes} min</span>
-                                </div>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Partial Duration:</span>
+                                <span class="fw-bold">${escapeHtml(eclipse.partial_duration_minutes > 0 ? eclipse.partial_duration_minutes + ' min' : 'None')}</span>
                             </li>
                         </ul>
                     </div>
@@ -93,22 +77,22 @@ async function loadLunarEclipse() {
                         <div class="card-header fw-bold">⏱️ Timing</div>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Partial begin:
-                                <span class="fw-bold fs-6">${formatEclipseTime(eclipse.partial_begin)}</span>
+                                <span>Partial begin:</span>
+                                <span class="fw-bold">${formatTimeThenDate(eclipse.partial_begin)}</span>
                             </li>
                             ${eclipse.total_begin ? `
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Total begin:
-                                <span class="fw-bold fs-6">${formatEclipseTime(eclipse.total_begin)}</span>
+                                <span>Total begin:</span>
+                                <span class="fw-bold">${formatTimeThenDate(eclipse.total_begin)}</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Total end:
-                                <span class="fw-bold fs-6">${formatEclipseTime(eclipse.total_end)}</span>
+                                <span>Total end:</span>
+                                <span class="fw-bold">${formatTimeThenDate(eclipse.total_end)}</span>
                             </li>
                             ` : ''}
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Partial end:
-                                <span class="fw-bold fs-6">${formatEclipseTime(eclipse.partial_end)}</span>
+                                <span>Partial end:</span>
+                                <span class="fw-bold">${formatTimeThenDate(eclipse.partial_end)}</span>
                             </li>
                         </ul>
                     </div>
@@ -118,24 +102,21 @@ async function loadLunarEclipse() {
                     <div class="card h-100">
                         <div class="card-header fw-bold">📍 Position at Peak</div>
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item">
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span>Peak Time:</span>
-                                    <span class="fw-bold small">${formatEclipseTime(eclipse.peak_time)}</span>
-                                </div>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Peak Time:</span>
+                                <span class="fw-bold">${formatTimeThenDate(eclipse.peak_time)}</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Altitude:
-                                <span class="fw-bold fs-6">${eclipse.peak_altitude_deg.toFixed(2)}°</span>
+                                <span>Altitude:</span>
+                                <span class="fw-bold">${eclipse.peak_altitude_deg.toFixed(2)}°</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Azimuth:
-                                <span class="fw-bold fs-6">${eclipse.peak_azimuth_deg.toFixed(2)}°</span>
+                                <span>Azimuth:</span>
+                                <span class="fw-bold">${eclipse.peak_azimuth_deg.toFixed(2)}°</span>
                             </li>
-                            <li class="list-group-item">
-                                <div class="text-muted small">
-                                    Direction: ${getCardinalDirection(eclipse.peak_azimuth_deg)}
-                                </div>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Direction:</span>
+                                <span class="fw-bold">${getCardinalDirection(eclipse.peak_azimuth_deg)}</span>
                             </li>
                         </ul>
                     </div>
@@ -145,11 +126,11 @@ async function loadLunarEclipse() {
                     <div class="card h-100">
                         <div class="card-header fw-bold">⭐ Astrophotography Score</div>
                         <div class="p-3" style="text-align: center;">
-                            <div class="display-4 fw-bold" style="color: var(--bs-${scoreColor});">
+                            <div class="display-4 fw-bold" style="color: var(--bs-${escapeHtml(scoreColor)});">
                                 ${eclipse.astrophotography_score.toFixed(1)}/10
                             </div>
-                            <div class="badge bg-${scoreColor} mt-2">
-                                ${eclipse.score_classification}
+                            <div class="badge bg-${escapeHtml(scoreColor)} mt-2">
+                                ${escapeHtml(eclipse.score_classification)}
                             </div>
                             <div class="small text-muted mt-2">
                                 Score based on type, visibility, altitude, and duration
@@ -171,14 +152,6 @@ async function loadLunarEclipse() {
         console.error('Error loading lunar eclipse data:', error);
         container.innerHTML = '<div class="error-box">Failed to load Lunar Eclipse data</div>';
     }
-}
-
-// Helper function to get cardinal direction from azimuth
-function getCardinalDirection(azimuth) {
-    const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 
-                       'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
-    const index = Math.round((azimuth % 360) / 22.5);
-    return directions[index % 16];
 }
 
 // Render altitude vs time chart

@@ -28,9 +28,9 @@ async function loadMoon() {
 
         container.innerHTML = `
             <div class="d-flex flex-row align-items-center mb-3">
-                <div class="p-2 icon-weather-lg">${moonEmoji}</div>
+                <div class="p-2 icon-weather-lg">${escapeHtml(moonEmoji)}</div>
                 <div class="p-2">
-                    <div class="fw-bold fs-4">${moon.phase_name}</div>
+                    <div class="fw-bold fs-4">${escapeHtml(moon.phase_name)}</div>
                     <div>${moon.illumination_percent.toFixed(0)}% illuminated</div>
                 </div>
             </div>
@@ -41,15 +41,15 @@ async function loadMoon() {
                         <div class="card-header fw-bold">🌑 Moon</div>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                🌅 Rise:
-                                <span class="fw-bold fs-6">
-                                    ${new Date(moon.next_moonrise).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(moon.next_moonrise).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                <span>🌅 Rise:</span>
+                                <span class="fw-bold">
+                                    ${formatTimeThenDate(moon.next_moonrise)}
                                 </span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                🌇 Set:
-                                <span class="fw-bold fs-6">
-                                    ${new Date(moon.next_moonset).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(moon.next_moonset).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                <span>🌇 Set:</span>
+                                <span class="fw-bold">
+                                    ${formatTimeThenDate(moon.next_moonset)}
                                 </span>
                             </li>
                         </ul>
@@ -61,21 +61,21 @@ async function loadMoon() {
                         <div class="card-header fw-bold">📐 Position</div>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                📏 Distance:
-                                <span class="fw-bold fs-6">
-                                    ${moon.distance_km ? Math.round(moon.distance_km).toLocaleString() + ' km' : 'N/A'}
+                                <span>📏 Distance:</span>
+                                <span class="fw-bold">
+                                    ${escapeHtml(moon.distance_km ? Math.round(moon.distance_km).toLocaleString() + ' km' : 'N/A')}
                                 </span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                📐 Altitude:
-                                <span class="fw-bold fs-6">
-                                    ${moon.altitude_deg}°
+                                <span>📐 Altitude:</span>
+                                <span class="fw-bold">
+                                    ${escapeHtml(moon.altitude_deg ? moon.altitude_deg.toFixed(2) + '°' : 'N/A')}
                                 </span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                🧭 Azimuth:
-                                <span class="fw-bold fs-6">
-                                    ${moon.azimuth_deg}°
+                                <span>🧭 Azimuth:</span>
+                                <span class="fw-bold">
+                                    ${escapeHtml(moon.azimuth_deg ? moon.azimuth_deg.toFixed(2) + '°' : 'N/A')}
                                 </span>
                             </li>
                         </ul>
@@ -87,21 +87,21 @@ async function loadMoon() {
                         <div class="card-header fw-bold">🌕 Next Events</div>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                               🌕 Next Full Moon:
-                                <span class="fw-bold fs-6">
-                                    ${new Date(moon.next_full_moon).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(moon.next_full_moon).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                <span>🌕 Next Full Moon:</span>
+                                <span class="fw-bold">
+                                    ${formatTimeThenDate(moon.next_full_moon)}
                                 </span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                🌑 Next New Moon:
-                                <span class="fw-bold fs-6">
-                                    ${new Date(moon.next_new_moon).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(moon.next_new_moon).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                <span>🌑 Next New Moon:</span>
+                                <span class="fw-bold">
+                                    ${formatTimeThenDate(moon.next_new_moon)}
                                 </span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                🌌 Next Dark Night:
-                                <span class="fw-bold fs-6">
-                                    ${new Date(moon.next_dark_night_start).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(moon.next_dark_night_start).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                <span>🌌 Next Dark Night:</span>
+                                <span class="fw-bold">
+                                    ${formatTimeThenDate(moon.next_dark_night_start)}
                                 </span>
                             </li>
                         </ul>
@@ -168,34 +168,34 @@ async function loadNextMoonPhases() {
                 item.className = 'col mb-3';
                 item.innerHTML = `
                     <div class="card h-100">
-                        <div class="card-header ${qualityClass}">
-                            <strong>${quality}</strong>
+                        <div class="card-header ${escapeHtml(qualityClass)}">
+                            <strong>${escapeHtml(quality)}</strong>
                         </div>
                         <div class="card-body">
-                            <h5 class="card-title card-title-weather">${date.toLocaleDateString()}</h5>
+                            <h5 class="card-title card-title-weather mb-2">${formatDateFull(date)}</h5>
                             <ul class="list-group list-group-flush">
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     🌗 Illumination:
-                                    <span>${illumination_percent}%</span>
+                                    <span>${escapeHtml(illumination_percent + '%')}</span>
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     📐 Max Altitude:
-                                    <span >${max_altitude}°</span>
+                                    <span >${escapeHtml(max_altitude + '°')}</span>
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     🌌 Dark-time:
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     &nbsp;>&nbsp;Strict:
-                                    <span>${dark_hours_strict} h</span>
+                                    <span>${escapeHtml(dark_hours_strict + ' h')}</span>
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     &nbsp;>&nbsp;Practical:
-                                    <span>${dark_hours_practical} h</span>
+                                    <span>${escapeHtml(dark_hours_practical + ' h')}</span>
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     &nbsp;>&nbsp;Illumination:
-                                    <span>${dark_hours_illumination} h</span>
+                                    <span>${escapeHtml(dark_hours_illumination + ' h')}</span>
                                 </li>                         
                             </ul>
                         </div>
@@ -245,7 +245,7 @@ async function loadBestDarkWindow() {
 
         // Cache pending (retries exhausted)
         if (data.status && data.status === 'pending') {
-            container.innerHTML = `<div class="info-notice">${data.message}</div>`;
+            container.innerHTML = `<div class="info-notice">${escapeHtml(data.message)}</div>`;
             containerLoader.style.display = 'none';
             return;
         }
@@ -271,17 +271,15 @@ async function loadBestDarkWindow() {
                 </div>
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        🌆 Start:
+                        <span>🌆 Start:</span>
                         <span>
-                            ${start.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})}
-                            (${start.toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                            ${formatTimeThenDate(start)}
                         </span>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        🌅 End:
+                        <span>🌅 End:</span>
                         <span>
-                            ${end.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})}
-                            (${end.toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                            ${formatTimeThenDate(end)}
                         </span>
                     </li>
                 </ul>
@@ -314,11 +312,11 @@ async function loadBestDarkWindow() {
                 errorItem.innerHTML = `
                     <div class="card h-100">
                         <div class="card-header">
-                            ${mode.toUpperCase()}
+                            ${escapeHtml(mode.toUpperCase())}
                         </div>
                         <div class="card-body">
                             <div class="card-text">
-                                ${message}
+                                ${escapeHtml(message)}
                             </div>
                         </div>
                     </div>
@@ -334,14 +332,14 @@ async function loadBestDarkWindow() {
                 start_txt = 'Not found';
             } else {
                 const start = new Date(modeData.best_window.start);
-                start_txt = `${start.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})} (${start.toLocaleDateString([], {month: "numeric", day: "numeric"})})`;
+                start_txt = `${formatTimeThenDate(start)}`;
                 
             }
             if(modeData.best_window.end == 'Not found') {
                 end_txt = 'Not found';
             } else {
                 const end = new Date(modeData.best_window.end);
-                end_txt = `${end.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})} (${end.toLocaleDateString([], {month: "numeric", day: "numeric"})})`;
+                end_txt = `${formatTimeThenDate(end)}`;
                 
             }
 
@@ -352,24 +350,24 @@ async function loadBestDarkWindow() {
             item.innerHTML = `
                 <div class="card h-100">
                     <div class="card-header">
-                        ${mode.toUpperCase()}
+                        ${escapeHtml(mode.toUpperCase())}
                     </div>
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             💯 Score:
-                            <span>${modeData.best_window.score}</span>
+                            <span>${escapeHtml(modeData.best_window.score)}</span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             🌚 Moon condition:
-                            <span>${modeData.best_window.moon_condition}</span>
+                            <span>${escapeHtml(capitalizeWords(modeData.best_window.moon_condition))}</span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             🌗 Start:
-                            <span>${start_txt}</span>
+                            <span>${escapeHtml(start_txt)}</span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             🌗 End:
-                            <span>${end_txt}</span>
+                            <span>${escapeHtml(end_txt)}</span>
                         </li>
                     </ul>
                 </div>

@@ -8,29 +8,38 @@
     margin-bottom: 0.5rem;
 }
 
-.astrodex-card-image, .astrodex-card-image-no-hover {
+.astrodex-card-image, 
+.astrodex-card-image-no-hover {
     position: relative;
     width: 100%;
-    height: 200px;
     overflow: hidden;
     background: var(--bs-secondary-bg-subtle);
     transition: opacity 0.2s, box-shadow 0.2s;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.astrodex-card-image {
+    height: 200px;
 }
 
 .astrodex-card-image-no-hover {
     height: 150px;
 }
 
+.astrodex-card-image img,
+.astrodex-card-image-no-hover img {
+    min-height: 100%;
+    width: 100%;
+    object-fit: cover;
+}
+
 .astrodex-card-image:hover,
 .astrodex-card-image:focus-within {
     opacity: 0.9;
     box-shadow: 0 0 0 2px var(--bs-primary);
-}
-
-.astrodex-card-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
 }
 
 .main-badge {

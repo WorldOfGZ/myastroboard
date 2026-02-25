@@ -84,18 +84,107 @@ async function checkCacheStatus() {
     }
 }
 
+// =======================
+// Helpers strings manipulation
+// =======================
+
+// Helper function to capitalize each word in a string, including accented characters
 function capitalizeWords(str) {
   return str.replace(/\b[a-zA-ZÀ-ÿ](?:(?:'[a-zA-ZÀ-ÿ])|(?:-[a-zA-ZÀ-ÿ]))*/g, word => {
     return word
-      .split(/([-'])/) // garde les séparateurs - et '
+      .split(/([-'])/) // kept separator - and '
       .map(part => part.match(/[-']/) ? part : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
       .join('');
   });
 }
 
 // Helper function to escape HTML
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+// Helper function to escape text for JavaScript string context
+function escapeForJs(text) {
+    return text.replace(/\\/g, '\\\\')
+               .replace(/'/g, "\\'")
+               .replace(/"/g, '\\"')
+               .replace(/\n/g, '\\n')
+               .replace(/\r/g, '\\r');
+}
+
+// =======================
+// Helpers date formating
+// =======================
+
+// Helper function to format ISO date to local time string
+function formatTimeThenDate(isoString, locale = navigator.language) {
+    if (!isoString) return 'N/A';
+    const date = new Date(isoString);
+
+    // Format the time
+    const timeFormatter = new Intl.DateTimeFormat(locale, {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    // Format the date (month/day)
+    const dateFormatter = new Intl.DateTimeFormat(locale, {
+        month: 'numeric',
+        day: 'numeric'
+    });
+
+    return `${timeFormatter.format(date)} (${dateFormatter.format(date)})`;
+}
+
+// Helper function to format ISO date to localized date string
+// Example output: "6/30/2024" in US locale, "30/06/2024" in many European locales
+function formatDateFull(isoString, locale = navigator.language) {
+    if (!isoString) return 'N/A';
+    const date = new Date(isoString);
+
+    // Format the date
+    const dateFormatter = new Intl.DateTimeFormat(locale, {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric'
+    });
+
+    return dateFormatter.format(date);
+}
+
+
+// Helper function to format date from YYYY-MM-DD to DD/MM/YYYY
+function formatStringToDate(dateInput, locale = navigator.language) {
+    if (!dateInput) return '';
+
+    // Convert string to Date if needed
+    const date = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
+
+    // If invalid date, return original input
+    if (isNaN(date)) return dateInput;
+
+    // Format the date
+    return new Intl.DateTimeFormat(locale, {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(date);
+}
+
+
+// ======================
+// Helpers for calculations
+// ======================
+
+// Helper function to get cardinal direction from azimuth
+function getCardinalDirection(azimuth) {
+    const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 
+                       'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    const index = Math.round((azimuth % 360) / 22.5);
+    return directions[index % 16];
 }

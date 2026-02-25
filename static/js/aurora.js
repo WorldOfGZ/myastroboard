@@ -42,10 +42,10 @@ async function loadAurora() {
             <div class="row row-cols-1 mb-3">
                 <div class="col">
                     <div class="d-flex flex-row align-items-center">
-                        <div class="p-2 icon-weather-lg">${emoji}</div>
+                        <div class="p-2 icon-weather-lg">${escapeHtml(emoji)}</div>
                         <div class="p-2">
-                            <div class="fw-bold fs-4">${current.visibility_level}</div>
-                            <div class="text-muted">${current.visibility_description}</div>
+                            <div class="fw-bold fs-4">${escapeHtml(current.visibility_level)}</div>
+                            <div class="text-muted">${escapeHtml(current.visibility_description)}</div>
                         </div>
                     </div>
                 </div>
@@ -57,18 +57,18 @@ async function loadAurora() {
                         <div class="card-header fw-bold">⚡ Geomagnetic Activity</div>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                🔴 Kp Index:
-                                <span class="fw-bold fs-6">
-                                    ${current.kp_index.toFixed(1)} / ${current.kp_index_max}
+                                <span>🔴 Kp Index:</span>
+                                <span class="fw-bold">
+                                    ${current.kp_index.toFixed(1)} / ${current.kp_index_max.toFixed(1)}
                                 </span>
                             </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>📊 Aurora Probability:</span>
+                                <span class="fw-bold">${probability.toFixed(0)}%${probabilityLevel ? ` (${escapeHtml(probabilityLevel)})` : ''}</span>
+                            </li>
                             <li class="list-group-item">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span>📊 Aurora Probability:</span>
-                                    <span class="fw-bold">${probability.toFixed(0)}%${probabilityLevel ? ` (${probabilityLevel})` : ''}</span>
-                                </div>
-                                <div class="progress" role="progressbar" aria-valuenow="${probability}" aria-valuemin="0" aria-valuemax="100">
-                                    <div class="progress-bar" style="width: ${probability}%; background-color: ${probabilityColor};"></div>
+                                <div class="progress mb-2 mt-1" role="progressbar" aria-valuenow="${probability.toFixed(0)}" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="progress-bar" style="width: ${probability.toFixed(0)}%; background-color: ${escapeHtml(probabilityColor)};"></div>
                                 </div>
                             </li>
                         </ul>
@@ -80,13 +80,13 @@ async function loadAurora() {
                         <div class="card-header fw-bold">🕐 Best Viewing Window</div>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                ⏰ Local Time:
-                                <span class="fw-bold fs-6">
-                                    ${current.best_viewing_window.start_hour}:00 - ${current.best_viewing_window.end_hour}:00
+                                <span>⏰ Local Time:</span>
+                                <span class="fw-bold">
+                                    ${escapeHtml(current.best_viewing_window.start_hour)}:00 - ${escapeHtml(current.best_viewing_window.end_hour)}:00
                                 </span>
                             </li>
                             <li class="list-group-item">
-                                <small class="text-muted">${current.best_viewing_window.description}</small>
+                                <small class="text-muted">${escapeHtml(current.best_viewing_window.description)}</small>
                             </li>
                             <li class="list-group-item">
                                 <small class="text-muted">
@@ -103,7 +103,7 @@ async function loadAurora() {
                         <ul class="list-group list-group-flush">
                             ${Object.entries(current.color_description).map(([color, description]) => `
                                 <li class="list-group-item">
-                                    <small>${description}</small>
+                                    <small>${escapeHtml(description)}</small>
                                 </li>
                             `).join('')}
                         </ul>
@@ -153,8 +153,8 @@ async function loadAurora() {
                                         return `
                                             <div class="col">
                                                 <div class="text-center p-2">
-                                                    <div class="fw-bold small">+${index}h</div>
-                                                    <div style="font-size: 24px; color: ${color};">◯</div>
+                                                    <div class="fw-bold small">+${escapeHtml(index)}h</div>
+                                                    <div style="font-size: 24px; color: ${escapeHtml(color)};">◯</div>
                                                     <div class="small">Kp ${kp.toFixed(1)}</div>
                                                 </div>
                                             </div>

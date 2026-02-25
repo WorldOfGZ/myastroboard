@@ -16,27 +16,6 @@ let astrodexFilters = {
 };
 
 // ============================================
-// Helper Functions
-// ============================================
-
-function escapeForJs(text) {
-    // Escape for JavaScript string context (single and double quotes, backslashes, etc.)
-    return text.replace(/\\/g, '\\\\')
-               .replace(/'/g, "\\'")
-               .replace(/"/g, '\\"')
-               .replace(/\n/g, '\\n')
-               .replace(/\r/g, '\\r');
-}
-
-function formatDate(dateString) {
-    // Format date from YYYY-MM-DD to DD/MM/YYYY
-    if (!dateString) return '';
-    const parts = dateString.split('-');
-    if (parts.length !== 3) return dateString;
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-}
-
-// ============================================
 // Equipment Integration
 // ============================================
 
@@ -160,7 +139,7 @@ function renderAstrodexStats() {
         <div class="col">
             <div class="card h-100">
                 <div class="card-body text-center">
-                    <div class="astrodex-insight-value text-primary">${stats.total_items || 0}</div>
+                    <div class="astrodex-insight-value text-primary">${stats.total_items.toFixed(0) || 0}</div>
                     <div class="fw-light fst-italic">Total Objects</div>
                 </div>
             </div>
@@ -168,7 +147,7 @@ function renderAstrodexStats() {
         <div class="col">
             <div class="card h-100">
                 <div class="card-body text-center">
-                    <div class="astrodex-insight-value text-primary">${stats.items_with_pictures || 0}</div>
+                    <div class="astrodex-insight-value text-primary">${stats.items_with_pictures.toFixed(0) || 0}</div>
                     <div class="fw-light fst-italic">With Photos</div>
                 </div>
             </div>
@@ -176,7 +155,7 @@ function renderAstrodexStats() {
         <div class="col">
             <div class="card h-100">
                 <div class="card-body text-center">
-                    <div class="astrodex-insight-value text-primary">${stats.total_pictures || 0}</div>
+                    <div class="astrodex-insight-value text-primary">${stats.total_pictures.toFixed(0) || 0}</div>
                     <div class="fw-light fst-italic">Total Photos</div>
                 </div>
             </div>
@@ -184,7 +163,7 @@ function renderAstrodexStats() {
         <div class="col">
             <div class="card h-100">
                 <div class="card-body text-center">
-                    <div class="astrodex-insight-value text-primary">${Object.keys(stats.types || {}).length}</div>
+                    <div class="astrodex-insight-value text-primary">${Object.keys(stats.types || {}).length.toFixed(0) || 0}</div>
                     <div class="fw-light fst-italic">Object Types</div>
                 </div>
             </div>
@@ -218,7 +197,7 @@ function renderAstrodexGrid(items) {
     gridContainer.innerHTML = items.map(item => {
         const mainPicture = getMainPicture(item);
         const imageUrl = mainPicture 
-            ? `/api/astrodex/images/${mainPicture.filename}`
+            ? `/api/astrodex/images/${escapeHtml(mainPicture.filename)}`
             : '/static/img/default_astro_object.svg';
         
         const photoCount = item.pictures ? item.pictures.length : 0;
@@ -469,7 +448,7 @@ async function showAddAstrodexItemModal() {
                 <label for="item-constellation" class="form-label">Constellation</label>
                 <select id="item-constellation" class="form-select">
                     <option value=""></option>
-                    ${constellations.map(c => `<option value="${c.toLowerCase()}">${c}</option>`).join('')}
+                    ${constellations.map(c => `<option value="${escapeHtml(c.toLowerCase())}">${escapeHtml(c)}</option>`).join('')}
                 </select>
             </div>
             <div class="col-md-12">
@@ -536,7 +515,7 @@ async function showAstrodexItemDetail(itemId) {
     
     const mainPicture = getMainPicture(item);
     const imageUrl = mainPicture 
-        ? `/api/astrodex/images/${mainPicture.filename}`
+        ? `/api/astrodex/images/${escapeHtml(mainPicture.filename)}`
         : '/static/img/default_astro_object.svg';
     
     // Escape values for safe HTML insertion
@@ -550,10 +529,10 @@ async function showAstrodexItemDetail(itemId) {
     
     const modal = createModal(item.name, `                    
         <h3>Object Information</h3>
-        <form id="edit-item-form-${item.id}" class="form row g-3">
+        <form id="edit-item-form-${escapeHtml(item.id)}" class="form row g-3">
             <div class="col-md-6">
-                <label for="edit-type-${item.id}" class="col-sm-2 form-label">Type</label>
-                <select id="edit-type-${item.id}" class="form-select" data-action="update-field" data-item-id="${item.id}" data-field="type">
+                <label for="edit-type-${escapeHtml(item.id)}" class="col-sm-2 form-label">Type</label>
+                <select id="edit-type-${escapeHtml(item.id)}" class="form-select" data-action="update-field" data-item-id="${escapeHtml(item.id)}" data-field="type">
                     <option value="Galaxy" ${item.type === 'Galaxy' ? 'selected' : ''}>Galaxy</option>
                     <option value="Nebula" ${item.type === 'Nebula' ? 'selected' : ''}>Nebula</option>
                     <option value="Planetary Nebula" ${item.type === 'Planetary Nebula' ? 'selected' : ''}>Planetary Nebula</option>
@@ -570,24 +549,24 @@ async function showAstrodexItemDetail(itemId) {
             </div>
 
             <div class="col-md-6">
-                <label for="edit-constellation-${item.id}" class="form-label">Constellation</label>
-                <select id="edit-constellation-${item.id}" class="form-select" data-action="update-field" data-item-id="${item.id}" data-field="constellation">
+                <label for="edit-constellation-${escapeHtml(item.id)}" class="form-label">Constellation</label>
+                <select id="edit-constellation-${escapeHtml(item.id)}" class="form-select" data-action="update-field" data-item-id="${escapeHtml(item.id)}" data-field="constellation">
                     <option value=""></option>
-                    ${constellations.map(c => `<option value="${c.toLowerCase()}" ${item.constellation && item.constellation.toLowerCase() === c.toLowerCase() ? 'selected' : ''}>${c}</option>`).join('')}
+                    ${constellations.map(c => `<option value="${escapeHtml(c.toLowerCase())}" ${item.constellation && item.constellation.toLowerCase() === c.toLowerCase() ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
                 </select>
             </div>
 
             ${catalogueAliasesSection}
 
             <div class="col-md-12">
-                <label for="edit-notes-${item.id}" class="form-label">Notes</label>
-                <textarea id="edit-notes-${item.id}" class="form-control" rows="3" data-action="update-field" data-item-id="${item.id}" data-field="notes" placeholder="Add your notes...">${escapeHtml(item.notes || '')}</textarea>
+                <label for="edit-notes-${escapeHtml(item.id)}" class="form-label">Notes</label>
+                <textarea id="edit-notes-${escapeHtml(item.id)}" class="form-control" rows="3" data-action="update-field" data-item-id="${escapeHtml(item.id)}" data-field="notes" placeholder="Add your notes...">${escapeHtml(item.notes || '')}</textarea>
             </div>
         </form>
 
         <div class="mt-3 mb-3 text-end">
-            <button class="btn btn-sm btn-primary me-3" data-action="add-picture" data-item-id="${item.id}">📷 Add Photo</button>
-            <button class="btn btn-sm btn-danger" data-action="delete-item" data-item-id="${item.id}">🗑️ Remove</button>
+            <button class="btn btn-sm btn-primary me-3" data-action="add-picture" data-item-id="${escapeHtml(item.id)}">📷 Add Photo</button>
+            <button class="btn btn-sm btn-danger" data-action="delete-item" data-item-id="${escapeHtml(item.id)}">🗑️ Remove</button>
         </div>
 
         <h3>Photos (${item.pictures ? item.pictures.length : 0})</h3>
@@ -682,7 +661,7 @@ function renderPicturesGrid(item) {
                     </div>
                     <div class="card-body">
                         <p class="card-text">
-                            ${picture.date ? `<div>📅 ${escapeHtml(formatDate(picture.date))}</div>` : ''}
+                            ${picture.date ? `<div>📅 ${escapeHtml(formatStringToDate(picture.date))}</div>` : ''}
                             ${picture.exposition_time ? `<div>⏱️ ${escapeHtml(picture.exposition_time)}</div>` : ''}
                             ${picture.device ? `<div>🔭 ${escapeHtml(picture.device)}</div>` : ''}
                         </p>
@@ -738,7 +717,7 @@ function showAddPictureModal(itemId) {
             </div>
             <div class="col-md-6">
                 <label for="picture-date" class="form-label">Observation Date</label>
-                <input type="date" class="form-control" id="picture-date" value="${today}">
+                <input type="date" class="form-control" id="picture-date" value="${escapeHtml(today)}">
             </div>
             <div class="col-md-6">
                 <label for="picture-exposition" class="form-label">Exposition Time</label>
@@ -1020,7 +999,7 @@ function showEditPictureModal(itemId, pictureId) {
         <form id="edit-picture-form" class="form row g-3">            
             <div class="col-md-6">
                 <label for="edit-picture-date" class="form-label">Observation Date</label>
-                <input type="date" class="form-control" id="edit-picture-date" value="${picture.date || ''}">
+                <input type="date" class="form-control" id="edit-picture-date" value="${escapeHtml(picture.date || '')}">
             </div>
             <div class="col-md-6">
                 <label for="edit-picture-exposition" class="form-label">Exposition Time</label>
@@ -1142,112 +1121,126 @@ function showPictureSlideshow(itemId) {
         const imageUrl = `/api/astrodex/images/${picture.filename}`;
         
         const pictureInfo = `
-            <div class="slideshow-info mt-4">
-                <div class="row mb-3">
-                    <div class="col text-center">
-                        <span class="badge bg-primary fs-6">Photo ${currentIndex + 1} of ${item.pictures.length}</span>
+        <div class="slideshow-info mt-4">
+            <div class="row mb-3">
+                <div class="col text-center">
+                    <span class="badge bg-primary fs-6">Photo ${escapeHtml((currentIndex + 1).toString())} of ${escapeHtml(item.pictures.length.toString())}</span>
+                </div>
+            </div>
+            <div class="row g-3">
+                ${picture.date ? `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
+                            <div class="me-3 fs-4">📅</div>
+                            <div>
+                                <small class="text-muted d-block">Observation Date</small>
+                                <strong class="text-dark">${escapeHtml(formatStringToDate(picture.date))}</strong>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="row g-3">
-                    ${picture.date ? `
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center">
-                                <span class="me-2">📅</span>
-                                <div>
-                                    <small class="text-muted d-block">Observation Date</small>
-                                    <strong>${escapeHtml(formatDate(picture.date))}</strong>
-                                </div>
+                ` : ''}
+                ${picture.exposition_time ? `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
+                            <div class="me-3 fs-4">⏱️</div>
+                            <div>
+                                <small class="text-muted d-block">Exposition Time</small>
+                                <strong class="text-dark">${escapeHtml(picture.exposition_time)}</strong>
                             </div>
                         </div>
-                    ` : ''}
-                    ${picture.exposition_time ? `
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center">
-                                <span class="me-2">⏱️</span>
-                                <div>
-                                    <small class="text-muted d-block">Exposition Time</small>
-                                    <strong>${escapeHtml(picture.exposition_time)}</strong>
-                                </div>
+                    </div>
+                ` : ''}
+                ${picture.device ? `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
+                            <div class="me-3 fs-4">🔭</div>
+                            <div>
+                                <small class="text-muted d-block">Device/Telescope</small>
+                                <strong class="text-dark">${escapeHtml(picture.device)}</strong>
                             </div>
                         </div>
-                    ` : ''}
-                    ${picture.device ? `
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center">
-                                <span class="me-2">🔭</span>
-                                <div>
-                                    <small class="text-muted d-block">Device/Telescope</small>
-                                    <strong>${escapeHtml(picture.device)}</strong>
-                                </div>
+                    </div>
+                ` : ''}
+                ${picture.filters ? `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
+                            <div class="me-3 fs-4">🎨</div>
+                            <div>
+                                <small class="text-muted d-block">Filters</small>
+                                <strong class="text-dark">${escapeHtml(picture.filters)}</strong>
                             </div>
                         </div>
-                    ` : ''}
-                    ${picture.filters ? `
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center">
-                                <span class="me-2">🎨</span>
-                                <div>
-                                    <small class="text-muted d-block">Filters</small>
-                                    <strong>${escapeHtml(picture.filters)}</strong>
-                                </div>
+                    </div>
+                ` : ''}
+                ${picture.iso ? `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
+                            <div class="me-3 fs-4">📷</div>
+                            <div>
+                                <small class="text-muted d-block">ISO</small>
+                                <strong class="text-dark">${escapeHtml(picture.iso)}</strong>
                             </div>
                         </div>
-                    ` : ''}
-                    ${picture.iso ? `
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center">
-                                <span class="me-2">📷</span>
-                                <div>
-                                    <small class="text-muted d-block">ISO</small>
-                                    <strong>${escapeHtml(picture.iso)}</strong>
-                                </div>
-                            </div>
-                        </div>
-                    ` : ''}
-                    ${picture.frames ? `
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center">
-                                <span class="me-2">🎞️</span>
-                                <div>
-                                    <small class="text-muted d-block">Frames</small>
-                                    <strong>${escapeHtml(picture.frames)}</strong>
-                                </div>
-                            </div>
-                        </div>
-                    ` : ''}
-                </div>
-                ${picture.notes ? `
-                    <div class="row mt-3">
-                        <div class="col">
-                            <div class="d-flex align-items-start">
-                                <span class="me-2">📝</span>
-                                <div>
-                                    <small class="text-muted d-block">Notes</small>
-                                    <p class="mb-0">${escapeHtml(picture.notes)}</p>
-                                </div>
+                    </div>
+                ` : ''}
+                ${picture.frames ? `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
+                            <div class="me-3 fs-4">🎞️</div>
+                            <div>
+                                <small class="text-muted d-block">Frames</small>
+                                <strong class="text-dark">${escapeHtml(picture.frames)}</strong>
                             </div>
                         </div>
                     </div>
                 ` : ''}
             </div>
+            ${picture.notes ? `
+                <div class="row mt-3">
+                    <div class="col">
+                        <div class="d-flex align-items-start p-2 rounded shadow-sm bg-light">
+                            <div class="me-3 fs-4">📝</div>
+                            <div>
+                                <small class="text-muted d-block">Notes</small>
+                                <p class="mb-0" style="white-space: pre-wrap;">${escapeHtml(picture.notes)}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+        </div>
         `;
         
         const leftArrow = item.pictures.length > 1 && currentIndex > 0 ? `
-            <button type="button" class="btn btn-dark btn-lg slideshow-arrow slideshow-prev position-absolute top-50 start-0 translate-middle-y ms-3" aria-label="Previous photo" style="z-index: 10; opacity: 0.7; border-radius: 50%; width: 50px; height: 50px;">
-                <i class="fas fa-chevron-left"></i>
+            <button type="button" 
+                class="btn btn-dark btn-lg slideshow-arrow slideshow-prev position-absolute top-50 start-0 translate-middle-y ms-3 
+                    d-flex align-items-center justify-content-center" 
+                aria-label="Previous photo" 
+                style="z-index: 10; opacity: 0.7; border-radius: 50%; width: 50px; height: 50px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-chevron-double-left" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8.354 1.646a.5.5 0 0 1 0 .708L2.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
+                    <path fill-rule="evenodd" d="M12.354 1.646a.5.5 0 0 1 0 .708L6.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
+                </svg>
             </button>
         ` : '';
         
         const rightArrow = item.pictures.length > 1 && currentIndex < item.pictures.length - 1 ? `
-            <button type="button" class="btn btn-dark btn-lg slideshow-arrow slideshow-next position-absolute top-50 end-0 translate-middle-y me-3" aria-label="Next photo" style="z-index: 10; opacity: 0.7; border-radius: 50%; width: 50px; height: 50px;">
-                <i class="fas fa-chevron-right"></i>
+            <button type="button" 
+                class="btn btn-dark btn-lg slideshow-arrow slideshow-next position-absolute top-50 end-0 translate-middle-y me-3 
+                    d-flex align-items-center justify-content-center"
+                aria-label="Next photo"
+                style="z-index: 10; opacity: 0.7; border-radius: 50%; width: 50px; height: 50px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-chevron-double-right" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M3.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L9.293 8 3.646 2.354a.5.5 0 0 1 0-.708"/>
+                    <path fill-rule="evenodd" d="M7.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L13.293 8 7.646 2.354a.5.5 0 0 1 0-.708"/>
+                </svg>
             </button>
         ` : '';
         
         const modalContent = `
             <div class="slideshow-body">
                 <div class="slideshow-container position-relative text-center mb-4">
-                    <img src="${escapeHtml(imageUrl)}" alt="Photo ${currentIndex + 1}" class="slideshow-image img-fluid" style="max-height: 70vh; border-radius: 8px;">
+                    <img src="${escapeHtml(imageUrl)}" alt="Photo ${escapeHtml((currentIndex + 1).toString())}" class="slideshow-image img-fluid" style="max-height: 70vh; border-radius: 8px;">
                     ${leftArrow}
                     ${rightArrow}
                 </div>

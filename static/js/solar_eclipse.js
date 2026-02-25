@@ -17,20 +17,13 @@ async function loadSolarEclipse() {
         if (!data.solar_eclipse) {
             container.innerHTML = `
                 <div class="alert alert-info" role="alert">
-                    ℹ️ ${data.message || 'No solar eclipse data available'}
+                    ℹ️ ${escapeHtml(data.message) || 'No solar eclipse data available'}
                 </div>
             `;
             return;
         }
 
         const eclipse = data.solar_eclipse;
-
-        // Helper function to format ISO date to local time string
-        function formatEclipseTime(isoString) {
-            const date = new Date(isoString);
-            return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'}) + 
-                   ' (' + date.toLocaleDateString([], {month: "numeric", day: "numeric"}) + ')';
-        }
 
         let visibilityBadge = '';
         if (!eclipse.visible) {
@@ -59,29 +52,21 @@ async function loadSolarEclipse() {
                     <div class="card h-100">
                         <div class="card-header fw-bold">📊 Overview</div>
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item">
-                                <div class="d-flex justify-content-between">
-                                    <span>Type:</span>
-                                    <span class="fw-bold">${eclipse.type}</span>
-                                </div>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Type:</span>
+                                <span class="fw-bold">${escapeHtml(eclipse.type)}</span>
                             </li>
-                            <li class="list-group-item">
-                                <div class="d-flex justify-content-between">
-                                    <span>Visibility:</span>
-                                    <span>${visibilityBadge}</span>
-                                </div>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Visibility:</span>
+                                <span>${visibilityBadge}</span>
                             </li>
-                            <li class="list-group-item">
-                                <div class="d-flex justify-content-between">
-                                    <span>Magnitude:</span>
-                                    <span class="fw-bold">${eclipse.magnitude.toFixed(4)}</span>
-                                </div>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Magnitude:</span>
+                                <span class="fw-bold">${eclipse.magnitude.toFixed(4)}</span>
                             </li>
-                            <li class="list-group-item">
-                                <div class="d-flex justify-content-between">
-                                    <span>Obscuration:</span>
-                                    <span class="fw-bold">${eclipse.obscuration_percent.toFixed(1)}%</span>
-                                </div>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Obscuration:</span>
+                                <span class="fw-bold">${eclipse.obscuration_percent.toFixed(1)}%</span>
                             </li>
                         </ul>
                     </div>
@@ -92,20 +77,20 @@ async function loadSolarEclipse() {
                         <div class="card-header fw-bold">⏱️ Timing</div>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Start:
-                                <span class="fw-bold fs-6">${formatEclipseTime(eclipse.start_time)}</span>
+                                <span>Start:</span>
+                                <span class="fw-bold">${formatTimeThenDate(eclipse.start_time)}</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Peak:
-                                <span class="fw-bold fs-6">${formatEclipseTime(eclipse.peak_time)}</span>
+                                <span>Peak:</span>
+                                <span class="fw-bold">${formatTimeThenDate(eclipse.peak_time)}</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                End:
-                                <span class="fw-bold fs-6">${formatEclipseTime(eclipse.end_time)}</span>
+                                <span>End:</span>
+                                <span class="fw-bold">${formatTimeThenDate(eclipse.end_time)}</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Duration:
-                                <span class="fw-bold fs-6">${eclipse.duration_minutes} min</span>
+                                <span>Duration:</span>
+                                <span class="fw-bold">${escapeHtml(eclipse.duration_minutes)} min</span>
                             </li>
                         </ul>
                     </div>
@@ -116,17 +101,16 @@ async function loadSolarEclipse() {
                         <div class="card-header fw-bold">📍 Position at Peak</div>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Altitude:
-                                <span class="fw-bold fs-6">${eclipse.peak_altitude_deg.toFixed(2)}°</span>
+                                <span>Altitude:</span>
+                                <span class="fw-bold">${eclipse.peak_altitude_deg.toFixed(2)}°</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Azimuth:
-                                <span class="fw-bold fs-6">${eclipse.peak_azimuth_deg.toFixed(2)}°</span>
+                                <span>Azimuth:</span>
+                                <span class="fw-bold">${eclipse.peak_azimuth_deg.toFixed(2)}°</span>
                             </li>
-                            <li class="list-group-item">
-                                <div class="text-muted small">
-                                    Direction: ${getCardinalDirection(eclipse.peak_azimuth_deg)}
-                                </div>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Direction:</span>
+                                <span class="fw-bold">${getCardinalDirection(eclipse.peak_azimuth_deg)}</span>
                             </li>
                         </ul>
                     </div>
@@ -136,11 +120,11 @@ async function loadSolarEclipse() {
                     <div class="card h-100">
                         <div class="card-header fw-bold">⭐ Astrophotography Score</div>
                         <div class="p-3" style="text-align: center;">
-                            <div class="display-4 fw-bold" style="color: var(--bs-${scoreColor});">
+                            <div class="display-4 fw-bold" style="color: var(--bs-${escapeHtml(scoreColor)});">
                                 ${eclipse.astrophotography_score.toFixed(1)}/10
                             </div>
-                            <div class="badge bg-${scoreColor} mt-2">
-                                ${eclipse.score_classification}
+                            <div class="badge bg-${escapeHtml(scoreColor)} mt-2">
+                                ${escapeHtml(eclipse.score_classification)}
                             </div>
                             <div class="small text-muted mt-2">
                                 Score based on type, visibility, altitude, and duration
@@ -162,14 +146,6 @@ async function loadSolarEclipse() {
         console.error('Error loading solar eclipse data:', error);
         container.innerHTML = '<div class="error-box">Failed to load Solar Eclipse data</div>';
     }
-}
-
-// Helper function to get cardinal direction from azimuth
-function getCardinalDirection(azimuth) {
-    const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 
-                       'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
-    const index = Math.round((azimuth % 360) / 22.5);
-    return directions[index % 16];
 }
 
 // Render altitude vs time chart

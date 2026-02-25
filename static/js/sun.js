@@ -30,15 +30,15 @@ async function loadSun() {
                         <div class="card-header fw-bold">☀️ Sun</div>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                🌇 Set:
-                                <span class="fw-bold fs-6">
-                                    ${new Date(data.sun.sunset).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.sunset).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                <span>🌇 Set:</span>
+                                <span class="fw-bold">
+                                    ${formatTimeThenDate(new Date(data.sun.sunset))}
                                 </span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                🌅 Rise:
-                                <span class="fw-bold fs-6">
-                                    ${new Date(data.sun.sunrise).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.sunrise).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                <span>🌅 Rise:</span>
+                                <span class="fw-bold">
+                                    ${formatTimeThenDate(new Date(data.sun.sunrise))}
                                 </span>
                             </li>
                         </ul>
@@ -50,15 +50,15 @@ async function loadSun() {
                         <div class="card-header fw-bold">🌆 Civil Twilight</div>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Dusk:
-                                <span class="fw-bold fs-6">
-                                    ${new Date(data.sun.civil_dusk).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.civil_dusk).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                <span>Dusk:</span>
+                                <span class="fw-bold">
+                                    ${formatTimeThenDate(new Date(data.sun.civil_dusk))}
                                 </span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Dawn:
-                                <span class="fw-bold fs-6">
-                                    ${new Date(data.sun.civil_dawn).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.civil_dawn).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                <span>Dawn:</span>
+                                <span class="fw-bold">
+                                    ${formatTimeThenDate(new Date(data.sun.civil_dawn))}
                                 </span>
                             </li>
                         </ul>
@@ -70,15 +70,15 @@ async function loadSun() {
                         <div class="card-header fw-bold">⚓ Nautical Twilight</div>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Dusk:
-                                <span class="fw-bold fs-6">
-                                    ${new Date(data.sun.nautical_dusk).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.nautical_dusk).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                <span>Dusk:</span>
+                                <span class="fw-bold">
+                                    ${formatTimeThenDate(new Date(data.sun.nautical_dusk))}
                                 </span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Dawn:
-                                <span class="fw-bold fs-6">
-                                    ${new Date(data.sun.nautical_dawn).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.nautical_dawn).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                <span>Dawn:</span>
+                                <span class="fw-bold">
+                                    ${formatTimeThenDate(new Date(data.sun.nautical_dawn))}
                                 </span>
                             </li>
                         </ul>
@@ -90,15 +90,15 @@ async function loadSun() {
                         <div class="card-header fw-bold">🌌 Astronomical Twilight</div>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Dusk:
-                                <span class="fw-bold fs-6">
-                                    ${new Date(data.sun.astronomical_dusk).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.astronomical_dusk).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                <span>Dusk:</span>
+                                <span class="fw-bold">
+                                    ${formatTimeThenDate(new Date(data.sun.astronomical_dusk))}
                                 </span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Dawn:
-                                <span class="fw-bold fs-6">
-                                    ${new Date(data.sun.astronomical_dawn).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} (${new Date(data.sun.astronomical_dawn).toLocaleDateString([], {month: "numeric", day: "numeric"})})
+                                <span>Dawn:</span>
+                                <span class="fw-bold">
+                                    ${formatTimeThenDate(new Date(data.sun.astronomical_dawn))}
                                 </span>
                             </li>
                         </ul>
