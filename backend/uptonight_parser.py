@@ -47,59 +47,74 @@ def parse_uptonight_report(file_path: str, report_type: str, catalogue_dir: str)
 
 
 def parse_objects_report(data: dict, catalogue_dir: str) -> dict:
-    """Parse objects (targets) report into a list with Alttime filenames."""
+    """Parse objects (targets) report into list of objects with safe Alttime filenames"""
     objects = []
 
     if 'id' not in data:
         return {'type': 'objects', 'objects': []}
 
     num_entries = len(data['id'])
-    base_path = Path(catalogue_dir).resolve()
+
+    # Normalize catalogue_dir once
+    catalogue_dir = os.path.normpath(catalogue_dir)
 
     for i in range(num_entries):
         obj = {}
         for key, values in data.items():
             if str(i) in values:
-                value = values[str(i)]
                 if key == 'id':
-                    obj['alttime_file'] = get_alttime_file_name(value, str(base_path))
-                obj[key] = value
+                    # Use safe file path generator
+                    obj['alttime_file'] = get_alttime_file_name(values[str(i)], catalogue_dir)
+                obj[key] = values[str(i)]
         objects.append(obj)
 
-    return {'type': 'objects', 'count': len(objects), 'objects': objects}
+    return {
+        'type': 'objects',
+        'count': len(objects),
+        'objects': objects
+    }
 
 
 def parse_comets_report(data: dict, catalogue_dir: str) -> dict:
-    """Parse comets report into a list with Alttime filenames."""
+    """Parse comets report into list of comets with safe Alttime filenames"""
     comets = []
 
     if 'target name' not in data:
         return {'type': 'comets', 'comets': []}
 
     num_entries = len(data['target name'])
-    base_path = Path(catalogue_dir).resolve()
+
+    # Normalize catalogue_dir once
+    catalogue_dir = os.path.normpath(catalogue_dir)
 
     for i in range(num_entries):
         comet = {}
         for key, values in data.items():
             if str(i) in values:
-                value = values[str(i)]
                 if key == 'target name':
-                    comet['alttime_file'] = get_alttime_file_name(value, str(base_path))
-                comet[key] = value
+                    # Use safe file path generator
+                    comet['alttime_file'] = get_alttime_file_name(values[str(i)], catalogue_dir)
+                comet[key] = values[str(i)]
         comets.append(comet)
 
-    return {'type': 'comets', 'count': len(comets), 'comets': comets}
+    return {
+        'type': 'comets',
+        'count': len(comets),
+        'comets': comets
+    }
 
 
 def parse_bodies_report(data: dict, catalogue_dir: str) -> dict:
-    """Parse bodies (planets/moons) report into a list with Alttime filenames."""
+    """Parse bodies (planets/moons) report into a list of bodies with safe Alttime filenames"""
+
     bodies = []
 
     if 'target name' not in data:
         return {'type': 'bodies', 'bodies': []}
 
     num_entries = len(data['target name'])
+
+    # Safe absolute path for catalogue_dir
     base_path = Path(catalogue_dir).resolve()
     if not base_path.exists() or not base_path.is_dir():
         return {'type': 'bodies', 'count': 0, 'bodies': []}
@@ -108,13 +123,24 @@ def parse_bodies_report(data: dict, catalogue_dir: str) -> dict:
         body = {}
         for key, values in data.items():
             if str(i) in values:
-                value = values[str(i)]
                 if key == 'target name':
-                    body['alttime_file'] = get_alttime_file_name(value, str(base_path))
-                body[key] = value
+                    # Safe Alttime filename generator
+                    alttime_file = get_alttime_file_name(values[str(i)], str(base_path))
+                    # Ensure resulting path is confined
+                    if alttime_file:
+                        file_path = (base_path / alttime_file).resolve()
+                        if base_path in file_path.parents or file_path == base_path:
+                            body['alttime_file'] = alttime_file
+                        else:
+                            body['alttime_file'] = None
+                body[key] = values[str(i)]
         bodies.append(body)
 
-    return {'type': 'bodies', 'count': len(bodies), 'bodies': bodies}
+    return {
+        'type': 'bodies',
+        'count': len(bodies),
+        'bodies': bodies
+    }
 
 
 def get_catalogue_reports(catalogue_dir: str) -> dict:
