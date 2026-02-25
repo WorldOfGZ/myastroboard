@@ -896,8 +896,10 @@ def get_uptonight_file_api(target, filename):
     """Download a specific UpTonight output file safely"""
     # Validate target and filename
     if not re.match(r'^[a-zA-Z0-9_-]+$', target):
+        logger.warning(f"Invalid target name: {target}")
         return jsonify({"error": "Invalid target name"}), 400
-    if not re.match(r'^[a-zA-Z0-9_.-]+$', filename):
+    if not re.match(r'^[a-zA-Z0-9_.\-\(\)]+$', filename):
+        logger.warning(f"Invalid filename: {filename} for target: {target}")
         return jsonify({"error": "Invalid filename"}), 400
 
     try:
