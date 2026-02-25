@@ -1861,10 +1861,12 @@ def upload_astrodex_image():
     """Upload an image for astrodex safely"""
     try:
         if 'file' not in request.files:
+            logger.warning("No file part in the request")
             return jsonify({'error': 'No file provided'}), 400
 
         file = request.files['file']
         if not file or not file.filename:
+            logger.warning("No file selected for upload")
             return jsonify({'error': 'No file selected'}), 400
 
         # Strict extension validation
@@ -1872,20 +1874,25 @@ def upload_astrodex_image():
 
         original_filename = secure_filename(file.filename)
         if '.' not in original_filename:
+            logger.warning(f"File name does not have an extension: {original_filename}")
             return jsonify({'error': 'Invalid file name'}), 400
 
         file_ext = original_filename.rsplit('.', 1)[1].lower()
         if file_ext not in allowed_extensions:
+            logger.warning(f"Invalid file type: {file_ext}")
             return jsonify({'error': 'Invalid file type'}), 400
 
         # Validate user
-        user = get_current_user()
-        if not user or not user.user_id:
-            return jsonify({'error': 'User not authenticated'}), 401
-
         try:
-            user_id = int(user.user_id)
+            user = get_current_user()
+            user_id = user.user_id if user else None
+            if not user_id:
+                logger.warning("User not authenticated for file upload")
+                return jsonify({'error': 'User not authenticated'}), 401
+
+        
         except (TypeError, ValueError):
+            logger.warning(f"Invalid user ID")
             return jsonify({'error': 'Invalid user ID'}), 400
 
         # Generate safe unique filename
@@ -1899,6 +1906,7 @@ def upload_astrodex_image():
 
         # Confinement check (anti path traversal)
         if not file_path.startswith(base_dir):
+            logger.warning(f"Attempted path traversal attack: {file_path}")
             return jsonify({'error': 'Invalid file path'}), 400
 
         # Save file
