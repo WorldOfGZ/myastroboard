@@ -1673,35 +1673,35 @@ function filterTable(catalogue, type) {
 }
 
 function showPlotPopup(title, src) {
-    // Modal modal_full_close
     const modalElement = document.getElementById('modal_full_close');
     if (!modalElement) {
         console.error('Modal element not found');
         return;
     }
-    
+
     const modal = new bootstrap.Modal(modalElement);
 
-    // Prepare modal content
+    // Title
     const titleElement = document.getElementById('modal_full_close_title');
     if (titleElement) {
-        titleElement.textContent = title;
-    }
-    
-    const bodyElement = document.getElementById('modal_full_close_body');
-    if (bodyElement) {
-        bodyElement.innerHTML = `
-            <img 
-                id="image-display" 
-                src="${src}" 
-                alt="Plot" 
-                title="${title}" 
-                class="img-fluid rounded" 
-            >
-        `;
+        titleElement.textContent = title; // safe
     }
 
-    // Show the modal
+    const bodyElement = document.getElementById('modal_full_close_body');
+    if (bodyElement) {
+        // Clear existing content safely
+        bodyElement.innerHTML = '';
+
+        const img = document.createElement('img');
+        img.id = 'image-display';
+        img.src = src;                // property assignment = safe
+        img.alt = 'Plot';
+        img.title = title;            // safe
+        img.className = 'img-fluid rounded';
+
+        bodyElement.appendChild(img);
+    }
+
     modal.show();
 }
 
@@ -1723,15 +1723,17 @@ function showAlttimePopup(title, src) {
     
     const bodyElement = document.getElementById('modal_xl_close_body');
     if (bodyElement) {
-        bodyElement.innerHTML = `
-            <img 
-                id="image-display" 
-                src="${src}" 
-                alt="Altitude-Time Plot" 
-                title="${title}" 
-                class="img-fluid rounded" 
-            >
-        `;
+        // Clear existing content safely
+        bodyElement.innerHTML = '';
+
+        const img = document.createElement('img');
+        img.id = 'image-display';
+        img.src = src;                // property assignment = safe
+        img.alt = 'Altitude-Time Plot';
+        img.title = title;            // safe
+        img.className = 'img-fluid rounded';
+
+        bodyElement.appendChild(img);
     }
 
     // Show the modal
@@ -1745,7 +1747,7 @@ function showMorePopup(popupId) {
         // Use BS modal
         //Prepare modal title
         const titleElement = document.getElementById('modal_lg_close_title');
-        titleElement.innerHTML = `More informations`;
+        titleElement.textContent = `More informations`;
         
         //Prepare modal content
         const contentElement = document.getElementById('modal_lg_close_body');
@@ -2156,22 +2158,38 @@ async function loadSelectedReport(catalogue, reportType) {
     try {
         const contentDiv = document.getElementById(`report-content-${catalogue}`);
         if (!contentDiv) return;
+
+        contentDiv.innerHTML = '';
         
-        contentDiv.innerHTML = '<div class="loading">Loading report content...</div>';
-        
+        const loading = document.createElement('div');
+        loading.className = 'loading';
+        loading.textContent = 'Loading report content...';
+        contentDiv.appendChild(loading);
+
         const result = await fetchJSON(`/api/uptonight/reports/${catalogue}/${reportType}`);
-        
+
+        contentDiv.innerHTML = '';
+
         if (result && result.report_content) {
-            
-            contentDiv.innerHTML = `<pre>${escapeHtml(result.report_content)}</pre>`;
+            const pre = document.createElement('pre');
+            pre.textContent = result.report_content; // SAFE
+            contentDiv.appendChild(pre);
         } else {
-            contentDiv.innerHTML = '<div class="alert alert-warning">Report file is empty or not available.</div>';
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-warning';
+            alert.textContent = 'Report file is empty or not available.';
+            contentDiv.appendChild(alert);
         }
+
     } catch (error) {
         console.error('Error loading report:', error);
         const contentDiv = document.getElementById(`report-content-${catalogue}`);
         if (contentDiv) {
-            contentDiv.innerHTML = '<div class="alert alert-danger">Failed to load report content.</div>';
+            contentDiv.innerHTML = '';
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-danger';
+            alert.textContent = 'Failed to load report content.';
+            contentDiv.appendChild(alert);
         }
     }
 }
