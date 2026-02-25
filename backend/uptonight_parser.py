@@ -124,15 +124,8 @@ def parse_bodies_report(data: dict, catalogue_dir: str) -> dict:
         for key, values in data.items():
             if str(i) in values:
                 if key == 'target name':
-                    # Safe Alttime filename generator
-                    alttime_file = get_alttime_file_name(values[str(i)], str(base_path))
-                    # Ensure resulting path is confined
-                    if alttime_file:
-                        file_path = (base_path / alttime_file).resolve()
-                        if base_path in file_path.parents or file_path == base_path:
-                            body['alttime_file'] = alttime_file
-                        else:
-                            body['alttime_file'] = None
+                    # Use safe file path generator
+                    body['alttime_file'] = get_alttime_file_name(values[str(i)], catalogue_dir)
                 body[key] = values[str(i)]
         bodies.append(body)
 
