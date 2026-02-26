@@ -1,8 +1,5 @@
-"""Generate catalogue configuration and cross-catalogue aliases table.
-
-This script:
-1. Generates backend/catalogues.json from files present in /targets (without .yaml extension)
-2. Generates backend/catalogue_aliases.json for cross-catalogue duplicate detection
+"""
+Generate cross-catalogue aliases table.
 """
 
 from __future__ import annotations
@@ -20,7 +17,6 @@ from astropy.coordinates import SkyCoord, Angle
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 TARGETS_DIR = ROOT_DIR / 'targets'
-CATALOGUES_OUTPUT = ROOT_DIR / 'backend' / 'catalogues.json'
 ALIASES_OUTPUT = ROOT_DIR / 'backend' / 'catalogue_aliases.json'
 
 # Coordinate matching threshold for considering two entries as the same object
@@ -51,18 +47,6 @@ def parse_skycoord(ra: str, dec: str) -> Optional[SkyCoord]:
         return SkyCoord(str(ra).strip(), str(dec).strip(), unit=(u.hourangle, u.deg), frame='icrs')
     except Exception:
         return None
-
-
-def write_catalogues_json(catalogues: List[str]) -> None:
-    """Write catalogue list into backend/catalogues.json."""
-    payload = {
-        'generated_at': datetime.now(timezone.utc).isoformat(),
-        'catalogues': sorted(dict.fromkeys(catalogues), key=lambda item: item.lower()),
-    }
-    CATALOGUES_OUTPUT.write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False),
-        encoding='utf-8',
-    )
 
 
 def load_targets_objects(catalogue: str, file_path: Path) -> List[Dict]:
@@ -215,8 +199,6 @@ def main() -> None:
     """Run full analysis and generation process."""
     catalogue_files = sorted(TARGETS_DIR.glob('*.yaml'))
     catalogues = [path.stem for path in catalogue_files]
-
-    write_catalogues_json(catalogues)
 
     all_objects: List[Dict] = []
     for catalogue_file in catalogue_files:

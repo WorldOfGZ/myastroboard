@@ -43,5 +43,7 @@ LOG_BACKUP_COUNT = 5
 LOG_LEVEL = os.environ.get('LOG_LEVEL', 'WARNING').upper()  # Global log level for file output
 CONSOLE_LOG_LEVEL = os.environ.get('CONSOLE_LOG_LEVEL', 'WARNING').upper()  # Console log level
 
-# Version and image configuration
-UPTONIGHT_VERSION_FILE = '/app/UPTONIGHT_VERSION'
+# UpTonight version and image configuration
+UPTONIGHT_VERSION = '2.6'
+UPTONIGHT_IMAGE = f'mawinkler/uptonight:{UPTONIGHT_VERSION}'
+UPTONIGHT_CATALOGUES = ['GaryImm', 'Herschel400', 'LBN', 'LDN', 'Messier', 'OpenIC', 'OpenNGC', 'Pensack500']

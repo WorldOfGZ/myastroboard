@@ -9,17 +9,14 @@ import time
 import yaml
 import json
 from datetime import datetime, timedelta
-from txtconf_loader import get_uptonight_image_name, get_uptonight_version
 from weather_openmeteo import get_uptonight_conditions
-from constants import DATA_DIR, DATA_DIR_CACHE, OUTPUT_DIR, CONFIG_DIR, SCHEDULE_INTERVAL
+from constants import DATA_DIR, DATA_DIR_CACHE, OUTPUT_DIR, CONFIG_DIR, SCHEDULE_INTERVAL, UPTONIGHT_IMAGE, UPTONIGHT_VERSION
 from logging_config import get_logger
 from utils import IndentDumper
 
 # Configure logging and ensure data directory exists
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(DATA_DIR_CACHE, exist_ok=True)
-UPTONIGHT_IMAGE = get_uptonight_image_name()
-UPTONIGHT_VERSION = get_uptonight_version()
 
 # Create logger with centralized configuration
 logger = get_logger(__name__)

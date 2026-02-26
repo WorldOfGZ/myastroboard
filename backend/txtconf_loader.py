@@ -12,7 +12,7 @@ from logging_config import get_logger
 logger = get_logger(__name__)
 
 
-def get_available_catalogues():
+def get_available_catalogues_TODELETE():
     """
     Load the list of available catalogues from backend/catalogues.json
     This is the SINGLE source of truth for which catalogues are available.
@@ -39,35 +39,6 @@ def get_available_catalogues():
         logger.error(f"Error loading catalogues list: {e}")
         # Fallback to defaults
         return ['GaryImm', 'Herschel400', 'LBN', 'LDN', 'Messier', 'OpenIC', 'OpenNGC']
-
-def get_uptonight_version():
-    """
-    Load the Uptonight version from UPTONIGHT_VERSION file
-    
-    Returns:
-        str: Uptonight version string (e.g., "v1.2.3")
-    """
-    version_file = os.path.join(os.path.dirname(__file__), '..', 'UPTONIGHT_VERSION')
-    
-    try:
-        with open(version_file, 'r') as f:
-            version = f.read().strip()
-            return version
-    except Exception as e:
-        logger.error(f"Error loading Uptonight version: {e}")
-        return "2.5"
-    
-
-def get_uptonight_image_name():
-    """
-    Load the Uptonight version from UPTONIGHT_VERSION file
-    
-    Returns:
-        str: Uptonight image string with version (e.g., "mawinkler/uptonight:2.3")
-    """
-    version = get_uptonight_version()
-    version = version.strip()
-    return f'mawinkler/uptonight:{version}'
 
 def get_repo_version():
     """

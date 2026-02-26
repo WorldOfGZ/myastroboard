@@ -34,12 +34,11 @@ else:
 # Add backend to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
 from weather_openmeteo import get_hourly_forecast
-from txtconf_loader import get_available_catalogues
 from uptonight_parser import get_catalogue_reports
 from events_aggregator import EventsAggregator
 from txtconf_loader import get_repo_version
 from repo_config import load_config, save_config
-from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, OUTPUT_DIR, CONFIG_DIR, CACHE_TTL
+from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, OUTPUT_DIR, CONFIG_DIR, CACHE_TTL, UPTONIGHT_CATALOGUES
 from logging_config import get_logger
 from cache_updater import (
     update_dark_window_cache,
@@ -789,7 +788,7 @@ def get_version_api():
 def get_catalogues_api():
     """Get available target catalogues from uptonight repository"""
     try:
-        catalogues = get_available_catalogues()
+        catalogues = UPTONIGHT_CATALOGUES
         # Sort alphabetically
         catalogues.sort()
         return jsonify(catalogues)

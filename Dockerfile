@@ -55,7 +55,6 @@ COPY --from=builder /root/.local /usr/local
 
 # Version files
 COPY VERSION /app/VERSION
-COPY UPTONIGHT_VERSION /app/UPTONIGHT_VERSION
 
 # Application code
 COPY backend/ ./backend/
