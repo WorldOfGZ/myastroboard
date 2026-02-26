@@ -59,6 +59,12 @@ class TestAstrodexDataModel:
         assert item['constellation'] == 'Andromeda'
         assert 'id' in item
         assert item['pictures'] == []
+        assert 'ra' not in item
+        assert 'dec' not in item
+        assert 'magnitude' not in item
+        assert 'size' not in item
+        assert 'catalogue_aliases' not in item
+        assert 'catalogue_group_id' not in item
     
     def test_duplicate_item(self, temp_data_dir):
         """Test that duplicate items are rejected"""
@@ -495,8 +501,32 @@ class TestAstrodexAliases:
         assert item is not None
 
         enriched = astrodex.enrich_item_with_catalogue_aliases(item)
-        assert enriched.get('catalogue_group_id') == 'OBJ000001'
+        assert 'catalogue_group_id' not in enriched
         assert enriched.get('catalogue_aliases', {}).get('OpenNGC') == 'NGC 3031'
+
+    def test_save_sanitizes_legacy_transient_and_unused_fields(self, temp_data_dir):
+        """Test persisted astrodex drops transient aliases/group and unused data fields."""
+        item = astrodex.create_astrodex_item('testuser', {'name': 'M42', 'type': 'Nebula'})
+        assert item is not None
+
+        astrodex_data = astrodex.load_user_astrodex('testuser')
+        astrodex_data['items'][0]['catalogue_aliases'] = {'OpenNGC': 'NGC 1976'}
+        astrodex_data['items'][0]['catalogue_group_id'] = 'OBJ000111'
+        astrodex_data['items'][0]['ra'] = '05h35m'
+        astrodex_data['items'][0]['dec'] = '-05d23m'
+        astrodex_data['items'][0]['magnitude'] = '4.0'
+        astrodex_data['items'][0]['size'] = '65x60'
+
+        assert astrodex.save_user_astrodex('testuser', astrodex_data)
+
+        reloaded = astrodex.load_user_astrodex('testuser')
+        persisted_item = reloaded['items'][0]
+        assert 'catalogue_aliases' not in persisted_item
+        assert 'catalogue_group_id' not in persisted_item
+        assert 'ra' not in persisted_item
+        assert 'dec' not in persisted_item
+        assert 'magnitude' not in persisted_item
+        assert 'size' not in persisted_item
 
     def test_switch_item_catalogue_name(self, temp_data_dir, monkeypatch):
         """Test switching displayed name to another catalogue alias"""
@@ -531,11 +561,6 @@ class TestAstrodexAliases:
             'name': 'NGC 3031',
             'type': 'Galaxy',
             'catalogue': 'OpenNGC',
-            'catalogue_aliases': {
-                'GaryImm': 'M81',
-                'OpenNGC': 'NGC 3031'
-            },
-            'catalogue_group_id': 'OBJ000001',
             'pictures': [],
             'created_at': first_item['created_at'],
             'updated_at': first_item['updated_at']

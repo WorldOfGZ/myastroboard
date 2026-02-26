@@ -21,6 +21,9 @@ ASTRODEX_IMAGES_DIR = os.path.join(ASTRODEX_DIR, 'images')
 # Default image for items without pictures
 DEFAULT_IMAGE = 'default_astro_object.png'
 
+TRANSIENT_ITEM_FIELDS = {'catalogue_aliases', 'catalogue_group_id'}
+UNUSED_ITEM_FIELDS = {'ra', 'dec', 'magnitude', 'size'}
+
 
 def _normalize_name(name: str) -> str:
     """Normalize names for resilient comparisons."""
@@ -97,24 +100,34 @@ def _get_alias_metadata(catalogue: str, object_name: str) -> tuple[str, Dict[str
 
 
 def _get_item_alias_metadata(item: Dict) -> tuple[str, Dict[str, str]]:
-    """Get item aliases metadata, enriching from lookup when possible."""
-    group_id = str(item.get('catalogue_group_id', '') or '')
-    aliases = item.get('catalogue_aliases', {})
-
-    if not isinstance(aliases, dict):
-        aliases = {}
-
-    if group_id and aliases:
-        return group_id, aliases
-
+    """Get item aliases metadata from current aliases table (no persisted cache)."""
     inferred_group_id, inferred_aliases = _get_alias_metadata(item.get('catalogue', ''), item.get('name', ''))
-
-    if inferred_group_id:
-        item['catalogue_group_id'] = inferred_group_id
     if inferred_aliases:
-        item['catalogue_aliases'] = inferred_aliases
+        return inferred_group_id, inferred_aliases
 
-    return inferred_group_id, inferred_aliases
+    return '', {}
+
+
+def _sanitize_item_for_persistence(item: Dict) -> None:
+    """Remove transient and unused fields from a persisted astrodex item."""
+    if not isinstance(item, dict):
+        return
+
+    for field_name in (TRANSIENT_ITEM_FIELDS | UNUSED_ITEM_FIELDS):
+        item.pop(field_name, None)
+
+
+def _sanitize_astrodex_for_persistence(astrodex_data: Dict) -> None:
+    """Normalize astrodex payload before writing to disk."""
+    if not isinstance(astrodex_data, dict):
+        return
+
+    items = astrodex_data.get('items', [])
+    if not isinstance(items, list):
+        return
+
+    for item in items:
+        _sanitize_item_for_persistence(item)
 
 
 def ensure_astrodex_directories():
@@ -254,6 +267,8 @@ def save_user_astrodex(user_id: str, astrodex_data: Dict, username: Optional[str
         astrodex_data['user_id'] = user_id
         if username:
             astrodex_data['username'] = username
+
+        _sanitize_astrodex_for_persistence(astrodex_data)
         
         # Step 1: Create backup of existing file
         if os.path.exists(file_path):
@@ -331,11 +346,7 @@ def create_astrodex_item(user_id: str, item_data: Dict, username: Optional[str] 
             - name: Object name (required)
             - type: Object type (galaxy, nebula, etc.)
             - catalogue: Source catalogue
-            - ra: Right ascension
-            - dec: Declination
             - constellation: Constellation
-            - magnitude: Magnitude
-            - size: Angular size
             - notes: User notes
     
     Returns:
@@ -356,23 +367,15 @@ def create_astrodex_item(user_id: str, item_data: Dict, username: Optional[str] 
         logger.warning(f"Item {item_name} already exists in astrodex")
         return None
 
-    group_id, aliases = _get_alias_metadata(source_catalogue, item_name)
-    
     # Create new item
     new_item = {
         'id': str(uuid.uuid4()),
         'name': item_name,
         'type': item_data.get('type', 'Unknown'),
         'catalogue': item_data.get('catalogue', ''),
-        'ra': item_data.get('ra', ''),
-        'dec': item_data.get('dec', ''),
         'constellation': item_data.get('constellation', ''),
-        'magnitude': item_data.get('magnitude', ''),
-        'size': item_data.get('size', ''),
         'notes': item_data.get('notes', ''),
         'pictures': [],
-        'catalogue_aliases': aliases,
-        'catalogue_group_id': group_id,
         'created_at': datetime.now().isoformat(),
         'updated_at': datetime.now().isoformat()
     }
@@ -402,7 +405,7 @@ def update_astrodex_item(user_id: str, item_id: str, updates: Dict) -> Optional[
     for item in astrodex['items']:
         if item['id'] == item_id:
             # Update allowed fields
-            allowed_fields = ['type', 'constellation', 'magnitude', 'size', 'notes']
+            allowed_fields = ['type', 'constellation', 'notes']
             for field in allowed_fields:
                 if field in updates:
                     item[field] = updates[field]
@@ -664,7 +667,7 @@ def is_item_in_astrodex(user_id: str, item_name: str, catalogue: str = '') -> bo
 
 
 def enrich_item_with_catalogue_aliases(item: Dict) -> Dict:
-    """Ensure item contains catalogue aliases metadata when available."""
+    """Attach aliases metadata at runtime (not persisted)."""
     return catalogue_aliases.merge_item_with_alias_entry(item)
 
 
@@ -704,8 +707,11 @@ def switch_item_catalogue_name(user_id: str, item_id: str, target_catalogue: str
 
         item['name'] = target_name
         item['catalogue'] = target_catalogue
-        item['catalogue_aliases'] = target_aliases
-        item['catalogue_group_id'] = target_group_id
+        if target_aliases:
+            item['catalogue_aliases'] = target_aliases
+        else:
+            item.pop('catalogue_aliases', None)
+        item.pop('catalogue_group_id', None)
         item['updated_at'] = datetime.now().isoformat()
 
         if save_user_astrodex(user_id, astrodex):

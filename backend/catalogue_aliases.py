@@ -76,28 +76,28 @@ def get_group_id(catalogue: str, object_name: str) -> str:
 
 
 def merge_item_with_alias_entry(item: Dict) -> Dict:
-    """Ensure an astrodex item contains aliases metadata when available."""
+    """Attach runtime aliases metadata from current aliases table."""
     if not isinstance(item, dict):
         return item
 
-    if item.get('catalogue_aliases') and item.get('catalogue_group_id'):
-        return item
+    item.pop('catalogue_group_id', None)
 
     catalogue = item.get('catalogue', '')
     name = item.get('name', '')
     if not catalogue or not name:
+        item.pop('catalogue_aliases', None)
         return item
 
     entry = get_alias_entry(catalogue, name)
     if not entry:
+        item.pop('catalogue_aliases', None)
         return item
 
     aliases = entry.get('aliases', {})
-    group_id = entry.get('group_id', '')
 
     if isinstance(aliases, dict) and aliases:
         item['catalogue_aliases'] = aliases
-    if group_id:
-        item['catalogue_group_id'] = group_id
+    else:
+        item.pop('catalogue_aliases', None)
 
     return item
