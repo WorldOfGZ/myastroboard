@@ -151,6 +151,7 @@ def _load_location_cache():
     """Load persisted location config from disk"""
     global _last_known_location_config
     try:
+        _ensure_data_dir()
         if os.path.exists(_LOCATION_CACHE_FILE):
             with open(_LOCATION_CACHE_FILE, 'r') as f:
                 _last_known_location_config = json.load(f)
@@ -162,6 +163,7 @@ def _load_location_cache():
 def _save_location_cache():
     """Persist location config to disk"""
     try:
+        _ensure_data_dir()
         with open(_LOCATION_CACHE_FILE, 'w') as f:
             json.dump(_last_known_location_config, f, indent=2, ensure_ascii=False)
     except Exception:

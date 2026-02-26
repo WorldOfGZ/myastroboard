@@ -5,7 +5,7 @@ Tests the server-side cache management system with TTL-based expiration
 import pytest
 import time
 import os
-from constants import CACHE_TTL, WEATHER_CACHE_TTL
+from constants import CACHE_TTL, WEATHER_CACHE_TTL, DATA_DIR_CACHE
 
 # Import cache variables and functions to test
 from cache_store import (
@@ -40,7 +40,7 @@ def reset_location_tracking_state():
     })
     cache_store._last_known_location_config = _last_known_location_config
 
-    location_cache_file = os.path.join(cache_store.DATA_DIR, 'location_cache.json')
+    location_cache_file = os.path.join(DATA_DIR_CACHE, 'location_cache.json')
     if os.path.exists(location_cache_file):
         os.remove(location_cache_file)
 

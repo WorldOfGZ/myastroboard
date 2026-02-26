@@ -214,7 +214,6 @@ def sanitize_alttime_target_name(name: str) -> str:
     # autoriser a-z, 0-9, ., _, -, (, )
     name = re.sub(r'[^a-z0-9._\-\(\)]', '-', name)
     name = re.sub(r'\.{2,}', '.', name)    # collapse multiple dots
-    name = re.sub(r'-{2,}', '-', name)     # collapse multiple dashes
     name = name.strip('-.')                 # trim leading/trailing dash/dot
     return name or "target"
 

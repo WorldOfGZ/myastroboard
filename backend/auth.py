@@ -217,18 +217,14 @@ class UserManager:
 
         self._reload_users_if_changed()
 
-        # --- Validate user_id strictly (adjust if UUID instead of int) ---
-        try:
-            user_id = int(user_id)
-        except (TypeError, ValueError):
-            raise ValueError("Invalid user ID format")
+        user_id = str(user_id)
 
         user = self.get_user_by_id(user_id)
         if not user:
             raise ValueError(f"User with ID {user_id} not found")
 
         # Prevent deleting your own account
-        if current_user_id and int(current_user_id) == user_id:
+        if current_user_id and str(current_user_id) == user_id:
             raise ValueError("Cannot delete your own account")
 
         username = user.username

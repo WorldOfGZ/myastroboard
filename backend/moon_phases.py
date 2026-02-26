@@ -176,6 +176,9 @@ class MoonService:
         Convert an astronomy.Time (or equivalent result) to local string.
         Uses Time.Utc() as defined in Astronomy Engine.
         """
+        if astro_time_obj is None:
+            return "Not found"
+
         # Time.Utc() returns a datetime.datetime UTC object
         dt_utc = astro_time_obj.Utc()
         # convert to local timezone
