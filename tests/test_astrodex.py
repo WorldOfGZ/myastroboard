@@ -430,11 +430,14 @@ class TestAstrodexAliases:
             'group_id': 'OBJ000001',
             'aliases': {
                 'GaryImm': 'M81',
+                'Messier': 'M 81',
                 'OpenNGC': 'NGC 3031'
             }
         }
 
         if catalogue == 'GaryImm' and object_name == 'M81':
+            return entry
+        if catalogue == 'Messier' and object_name == 'M 81':
             return entry
         if catalogue == 'OpenNGC' and object_name == 'NGC 3031':
             return entry
@@ -453,6 +456,31 @@ class TestAstrodexAliases:
         assert item is not None
 
         assert astrodex.is_item_in_astrodex('testuser', 'NGC 3031', 'OpenNGC') is True
+
+    def test_alias_matching_with_decorated_target_name(self, temp_data_dir, monkeypatch):
+        """Test matching still works when target labels contain extra description text."""
+        monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', self._fake_alias_entry)
+
+        item = astrodex.create_astrodex_item(
+            'testuser',
+            {'name': 'M81', 'type': 'Galaxy', 'catalogue': 'GaryImm'}
+        )
+        assert item is not None
+
+        label = 'Bode\'s Galaxy (M 81, size: 27\', foto: 0.65, mag: 6.9)'
+        assert astrodex.is_item_in_astrodex('testuser', label, 'Messier') is True
+
+    def test_alias_matching_catalogue_key_case_insensitive(self, temp_data_dir, monkeypatch):
+        """Test matching with different catalogue key casing."""
+        monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', self._fake_alias_entry)
+
+        item = astrodex.create_astrodex_item(
+            'testuser',
+            {'name': 'M81', 'type': 'Galaxy', 'catalogue': 'GaryImm'}
+        )
+        assert item is not None
+
+        assert astrodex.is_item_in_astrodex('testuser', 'NGC 3031', 'openngc') is True
 
     def test_alias_metadata_enrichment(self, temp_data_dir, monkeypatch):
         """Test alias metadata is attached to items when available"""

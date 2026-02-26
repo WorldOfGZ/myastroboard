@@ -27,6 +27,58 @@ def _normalize_name(name: str) -> str:
     return catalogue_aliases.normalize_object_name(name)
 
 
+def _extract_name_candidates(name: str) -> List[str]:
+    """Extract likely catalogue identifier candidates from a raw target label."""
+    raw = str(name or '').strip()
+    if not raw:
+        return []
+
+    candidates: List[str] = [raw]
+
+    no_parentheses = re.sub(r'\([^)]*\)', ' ', raw)
+    no_parentheses = re.sub(r'\s+', ' ', no_parentheses).strip()
+    if no_parentheses and no_parentheses not in candidates:
+        candidates.append(no_parentheses)
+
+    identifier_patterns = [
+        r'\bM\s*\d+\b',
+        r'\bNGC\s*\d+[A-Z]?\b',
+        r'\bIC\s*\d+[A-Z]?\b',
+        r'\bLBN\s*\d+\b',
+        r'\bLDN\s*\d+\b',
+        r'\bARP\s*\d+\b',
+        r'\bABELL\s*\d+\b',
+        r'\bBARNARD\s*\d+\b',
+        r'\bVDB\s*\d+\b',
+        r'\bSH2[-\s]?\d+\b',
+    ]
+
+    for pattern in identifier_patterns:
+        for match in re.findall(pattern, raw, flags=re.IGNORECASE):
+            match_value = re.sub(r'\s+', ' ', str(match).strip())
+            if match_value and match_value not in candidates:
+                candidates.append(match_value)
+
+    return candidates
+
+
+def _get_alias_for_catalogue(aliases: Dict[str, str], catalogue: str) -> str:
+    """Return alias name for a catalogue using case-insensitive key lookup."""
+    if not catalogue or not isinstance(aliases, dict):
+        return ''
+
+    direct = aliases.get(catalogue)
+    if direct:
+        return str(direct)
+
+    catalogue_normalized = str(catalogue).strip().lower()
+    for key, value in aliases.items():
+        if str(key).strip().lower() == catalogue_normalized:
+            return str(value or '')
+
+    return ''
+
+
 def _get_alias_metadata(catalogue: str, object_name: str) -> tuple[str, Dict[str, str]]:
     """Get aliases group metadata from generated catalogue aliases table."""
     if not catalogue or not object_name:
@@ -555,18 +607,36 @@ def is_item_in_astrodex_with_catalogue(user_id: str, item_name: str, catalogue: 
     """Check if an item exists by exact name or cross-catalogue aliases group."""
     astrodex = load_user_astrodex(user_id)
 
-    item_name_normalized = _normalize_name(item_name)
-    requested_group_id, requested_aliases = _get_alias_metadata(catalogue, item_name)
-    requested_alias_names = {_normalize_name(value) for value in requested_aliases.values() if value}
+    requested_candidates = _extract_name_candidates(item_name)
+    requested_normalized_names = {
+        _normalize_name(candidate)
+        for candidate in requested_candidates
+        if _normalize_name(candidate)
+    }
+
+    requested_group_ids = set()
+    requested_alias_names = set()
+    for candidate in requested_candidates or [item_name]:
+        group_id, aliases = _get_alias_metadata(catalogue, candidate)
+        if group_id:
+            requested_group_ids.add(group_id)
+        if aliases:
+            requested_alias_names.update(
+                _normalize_name(value)
+                for value in aliases.values()
+                if value
+            )
+
+    requested_alias_names.discard('')
 
     for item in astrodex['items']:
         existing_name_normalized = _normalize_name(item.get('name', ''))
-        if existing_name_normalized == item_name_normalized:
+        if existing_name_normalized and existing_name_normalized in requested_normalized_names:
             return True
 
         existing_group_id, existing_aliases = _get_item_alias_metadata(item)
 
-        if requested_group_id and existing_group_id and requested_group_id == existing_group_id:
+        if existing_group_id and existing_group_id in requested_group_ids:
             return True
 
         if requested_alias_names:
@@ -581,8 +651,8 @@ def is_item_in_astrodex_with_catalogue(user_id: str, item_name: str, catalogue: 
                 return True
 
         if catalogue and existing_aliases:
-            alias_name = existing_aliases.get(catalogue)
-            if alias_name and _normalize_name(alias_name) == item_name_normalized:
+            alias_name = _get_alias_for_catalogue(existing_aliases, catalogue)
+            if alias_name and _normalize_name(alias_name) in requested_normalized_names:
                 return True
     
     return False
