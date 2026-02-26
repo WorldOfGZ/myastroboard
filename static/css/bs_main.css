@@ -1,12 +1,12 @@
 /* Main style page common for all components */
 
 /* List Group Styling */
-.list-group {
+/*.list-group {
     border-radius: calc(var(--border-radius) + 2px);
     overflow: hidden;
     background-color: var(--surface-card) !important;
     border: 1px solid var(--surface-border) !important;
-}
+}*/
 
 .list-group-flush {
     border-radius: 0;
