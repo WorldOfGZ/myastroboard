@@ -5,7 +5,7 @@ Provides astronomy planning and configuration management
 
 
 import secrets
-
+from datetime import timezone
 from flask import Flask, request, jsonify, render_template, send_file, send_from_directory, session, redirect, url_for, g
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -17,6 +17,7 @@ import io
 import sys
 from datetime import datetime, timedelta
 from dataclasses import asdict
+from zoneinfo import ZoneInfo, available_timezones
 
 import sys
 from werkzeug.utils import secure_filename
@@ -698,48 +699,24 @@ def convert_coordinates_api():
 @app.route('/api/timezones', methods=['GET'])
 @login_required
 def get_timezones_api():
-    """Get list of common IANA timezones"""
-    common_timezones = [
-        "UTC",
-        "America/New_York",
-        "America/Chicago",
-        "America/Denver",
-        "America/Los_Angeles",
-        "America/Anchorage",
-        "Pacific/Honolulu",
-        "Europe/London",
-        "Europe/Paris",
-        "Europe/Berlin",
-        "Europe/Madrid",
-        "Europe/Rome",
-        "Europe/Amsterdam",
-        "Europe/Brussels",
-        "Europe/Vienna",
-        "Europe/Zurich",
-        "Europe/Stockholm",
-        "Europe/Warsaw",
-        "Europe/Prague",
-        "Europe/Athens",
-        "Europe/Istanbul",
-        "Asia/Tokyo",
-        "Asia/Shanghai",
-        "Asia/Hong_Kong",
-        "Asia/Singapore",
-        "Asia/Seoul",
-        "Asia/Dubai",
-        "Asia/Kolkata",
-        "Australia/Sydney",
-        "Australia/Melbourne",
-        "Australia/Perth",
-        "Pacific/Auckland",
-        "America/Sao_Paulo",
-        "America/Mexico_City",
-        "America/Toronto",
-        "America/Vancouver",
-        "Africa/Johannesburg",
-        "Africa/Cairo"
-    ]
-    return jsonify(common_timezones)
+    now = datetime.now(timezone.utc)
+    result = []
+
+    for tz in sorted(available_timezones()):
+        if not (
+            tz.startswith("posix/")
+            or tz.startswith("right/")
+            or tz == "localtime"
+        ):
+            local_time = now.astimezone(ZoneInfo(tz))
+            offset = local_time.strftime('%z')
+
+            result.append({
+                "name": tz,
+                "offset": offset
+            })
+
+    return jsonify(result)
 
 
 @app.route('/api/health', methods=['GET'])
@@ -1448,7 +1425,7 @@ def get_upcoming_events_api():
         location = config.get("location", {})
         latitude = location.get("latitude", 0)
         longitude = location.get("longitude", 0)
-        timezone = location.get("timezone", "UTC")
+        user_timezone = location.get("timezone", "UTC")
 
         # Get cached event data
         solar_eclipse_data = None
@@ -1485,7 +1462,7 @@ def get_upcoming_events_api():
                 moon_phases_data = cache_store._moon_planner_report_cache.get("data")
 
         # Aggregate events
-        aggregator = EventsAggregator(latitude, longitude, timezone)
+        aggregator = EventsAggregator(latitude, longitude, user_timezone)
         events = aggregator.aggregate_all_events(
             solar_eclipse_data=solar_eclipse_data,
             lunar_eclipse_data=lunar_eclipse_data,

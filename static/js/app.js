@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initializeApp() {
     setupMainTabs(); 
     setupSubTabs();
-    loadTimezones();
+    await loadTimezones();
     await loadConfiguration();  // Wait for config to load before loading catalogues
     await loadCatalogues();  // Also await catalogues to ensure proper sequencing
     setupEventListeners();
@@ -181,6 +181,8 @@ function activateSubTab(parentTab, subtabName) {
 async function loadTimezones() {
     try {
         const timezones = await fetchJSON('/api/timezones');
+
+        //console.log(`Loaded ${timezones.length} timezones from API`);
         
         const select = document.getElementById('timezone');
         if (!select) return; // Element doesn't exist on this page view
@@ -189,8 +191,8 @@ async function loadTimezones() {
         
         timezones.forEach(tz => {
             const option = document.createElement('option');
-            option.value = tz;
-            option.textContent = tz;
+            option.value = tz.name;
+            option.textContent = `${tz.name} (UTC${tz.offset})`;
             select.appendChild(option);
         });
     } catch (error) {
