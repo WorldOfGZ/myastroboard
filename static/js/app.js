@@ -1002,9 +1002,14 @@ async function loadUptonightResultsTabs() {
         // Activate first available subtab once DOM is ready
         requestAnimationFrame(() => {
             if (outputs && outputs.length > 0) {
+                //Get data-subtab value of the first subtab button
+                const firstSubTabBtn = document.querySelector('#uptonight-subtabs > li:nth-child(1) > a');
+                const firstSubTab = firstSubTabBtn ? firstSubTabBtn.getAttribute('data-subtab') : null;
+                //console.log(`Activating first subtab: ${firstSubTab}`);
+                activateSubTab('uptonight', firstSubTab);
 
-
-                activateSubTab('uptonight', `catalogue-${outputs[eltFirstTab].target}`);
+                //console.log(`Activating first subtab: catalogue-${outputs[eltFirstTab].target}`);
+                //activateSubTab('uptonight', `catalogue-${outputs[eltFirstTab].target}`);
             }
         });
                 
