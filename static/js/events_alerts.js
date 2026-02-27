@@ -66,9 +66,10 @@ function displayEvents(eventsData) {
 
     // Check if we have any upcoming events
     const nextEvent = eventsData.next_event;
-    const eventsIn7Days = eventsData.events_next_7_days || [];
+    const eventsIn7Days = eventsData.events_next_7_days || [];    
+    const visibleEvents = eventsIn7Days.filter(event => event.visibility);
 
-    if (!nextEvent && eventsIn7Days.length === 0) {
+    if (!nextEvent || visibleEvents.length === 0) {
         // No events to display
         container.style.display = 'none';
         return;
@@ -83,7 +84,6 @@ function displayEvents(eventsData) {
     }
 
     // Display upcoming events in next 7 days (only visible events)
-    const visibleEvents = eventsIn7Days.filter(event => event.visibility);
     if (visibleEvents.length > 0) {
         const sectionTitle = document.createElement('div');
         sectionTitle.className = 'event-section-title mt-3 mb-2';
