@@ -143,23 +143,22 @@ async function loadAurora() {
                         <div class="card h-100">
                             <div class="card-header fw-bold">📅 Forecast</div>
                             <div class="card-body">
-                                <div class="row row-cols-2 row-cols-sm-3 row-cols-lg-4">
-                                    ${data.forecast.slice(0, 8).map((forecast, index) => {
-                                        const kp = forecast.kp_index || 0;
-                                        let color = '#dc3545';
-                                        if (kp >= 7) color = '#28a745';
-                                        else if (kp >= 5) color = '#ffc107';
-                                        
-                                        return `
-                                            <div class="col">
-                                                <div class="text-center p-2">
-                                                    <div class="fw-bold small">+${escapeHtml(index)}h</div>
-                                                    <div style="font-size: 24px; color: ${escapeHtml(color)};">◯</div>
-                                                    <div class="small">Kp ${kp.toFixed(1)}</div>
-                                                </div>
-                                            </div>
-                                        `;
-                                    }).join('')}
+                                <div class="row row-cols-2 row-cols-sm-3 row-cols-lg-4 text-center g-3">
+                                ${data.forecast.slice(0, 8).map((f,i)=>{
+                                    const kp = f.kp_index || 0;
+                                    let color='danger';
+                                    if(kp>=7) color='success';
+                                    else if(kp>=5) color='warning';
+                                    const size = 24 + kp*2; // Round bubble slightly larger if Kp is high
+                                    return `
+                                    <div class="col d-flex flex-column align-items-center">
+                                        <div class="fw-bold small mb-1">+${i}h</div>
+                                        <div class="rounded-circle bg-${color} shadow-sm mb-1" 
+                                            style="width:${size}px; height:${size}px; line-height:${size}px;"></div>
+                                        <div class="small">Kp ${kp.toFixed(1)}</div>
+                                    </div>
+                                    `;
+                                }).join('')}
                                 </div>
                             </div>
                         </div>
