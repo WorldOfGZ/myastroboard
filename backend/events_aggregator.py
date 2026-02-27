@@ -125,27 +125,28 @@ class EventsAggregator:
         # Add solar eclipse if available
         if solar_eclipse_data:
             try:
-                eclipse_events = self._extract_solar_eclipse_events(solar_eclipse_data)
-                events.extend(eclipse_events)
+                solar_eclipse_events = self._extract_solar_eclipse_events(solar_eclipse_data)
+                events.extend(solar_eclipse_events)
             except Exception as e:
                 logger.warning(f"Error extracting solar eclipse events: {e}")
 
         # Add lunar eclipse if available
         if lunar_eclipse_data:
             try:
-                eclipse_events = self._extract_lunar_eclipse_events(lunar_eclipse_data)
-                events.extend(eclipse_events)
+                lunar_eclipse_events = self._extract_lunar_eclipse_events(lunar_eclipse_data)
+                events.extend(lunar_eclipse_events)
             except Exception as e:
                 logger.warning(f"Error extracting lunar eclipse events: {e}")
 
         # Add aurora if available
         if aurora_data:
+            logger.debug(f"Aurora data received for aggregation: {aurora_data}")
             try:
                 aurora_events = self._extract_aurora_events(aurora_data)
                 events.extend(aurora_events)
             except Exception as e:
                 logger.warning(f"Error extracting aurora events: {e}")
-
+        
         # Add moon phases if available
         if moon_phases_data:
             try:
@@ -165,7 +166,7 @@ class EventsAggregator:
             "next_event": asdict(events[0]) if events else None,
             "events_next_7_days": [
                 asdict(e) for e in events 
-                if e.days_until_event <= 7 and e.visibility
+                if e.days_until_event <= 7
             ],
             "events_next_30_days": [
                 asdict(e) for e in events 
@@ -272,31 +273,39 @@ class EventsAggregator:
         return events
 
     def _extract_aurora_events(self, aurora_data: Dict[str, Any]) -> List[AstronomicalEvent]:
-        """Extract aurora event(s) from raw aurora data"""
+        """Extract aurora event(s) from raw aurora data (supports 'next_visible_nights' or 'forecast')"""
         events = []
 
-        # Check if aurora conditions exist
-        if not aurora_data or "status" not in aurora_data:
+        # Accept data even if 'status' is missing (for compatibility)
+        if not aurora_data:
             return events
 
-        if aurora_data.get("status") == "pending":
-            return events  # Data not ready yet
-
-        # Aurora events are based on daily forecasts
-        forecast = aurora_data.get("forecast", {})
-        aurora_days = aurora_data.get("next_visible_nights", [])
+        # Prefer 'next_visible_nights' if present
+        aurora_days = aurora_data.get("next_visible_nights")
+        if not aurora_days:
+            # Fallback: use 'forecast' if available
+            aurora_days = aurora_data.get("forecast", [])
 
         for day_entry in aurora_days[:3]:  # Only next 3 days
+            # Try to get a date (from 'date' or fallback to 'timestamp' if present)
             forecast_date = day_entry.get("date")
             if not forecast_date:
-                continue
+                # Try to use 'timestamp' if available
+                forecast_date = aurora_data.get("timestamp")
+                if not forecast_date:
+                    continue
 
             kp_index = day_entry.get("kp_index", 0)
-            visibility_percent = day_entry.get("visibility_likelihood", 0)
+            # Try both 'visibility_likelihood' and 'probability'
+            visibility_percent = day_entry.get("visibility_likelihood")
+            if visibility_percent is None:
+                visibility_percent = day_entry.get("probability", 0)
 
-            event_date = datetime.datetime.fromisoformat(forecast_date).replace(
-                tzinfo=self.timezone
-            )
+            # Parse date
+            try:
+                event_date = datetime.datetime.fromisoformat(forecast_date).replace(tzinfo=self.timezone)
+            except Exception:
+                continue
             days_until = (event_date.date() - self.local_now.date()).days
 
             # Determine importance based on visibility likelihood and Kp index
@@ -330,49 +339,81 @@ class EventsAggregator:
         return events
 
     def _extract_moon_phase_events(self, moon_data: Dict[str, Any]) -> List[AstronomicalEvent]:
-        """Extract upcoming moon phase event(s) from raw moon data"""
+        """Extract moon phase events from 'phases' or 'next_7_nights' format"""
         events = []
 
+        # 1. Standard 'phases' format
         phases = moon_data.get("phases", [])
-        for phase in phases[:2]:  # Next 2 phases
-            phase_type = phase.get("phase")
-            phase_date_str = phase.get("date")
-            
-            if not phase_date_str:
+        if phases:
+            for phase in phases[:2]:  # Next 2 phases
+                phase_type = phase.get("phase")
+                phase_date_str = phase.get("date")
+                if not phase_date_str:
+                    continue
+                phase_date = datetime.datetime.fromisoformat(phase_date_str).replace(tzinfo=self.timezone)
+                days_until = (phase_date.date() - self.local_now.date()).days
+                phase_info = {
+                    "New Moon": {"emoji": "🌑", "importance": EventImportance.MEDIUM.value},
+                    "First Quarter": {"emoji": "🌓", "importance": EventImportance.LOW.value},
+                    "Full Moon": {"emoji": "🌕", "importance": EventImportance.MEDIUM.value},
+                    "Last Quarter": {"emoji": "🌗", "importance": EventImportance.LOW.value},
+                }
+                phase_details = phase_info.get(phase_type, {"emoji": "🌙", "importance": EventImportance.LOW.value})
+                event = AstronomicalEvent(
+                    id=f"moon_phase_{phase_date_str}_{phase_type.lower().replace(' ', '_')}",
+                    event_type=EventType.MOON_PHASE.value,
+                    emoji=phase_details["emoji"],
+                    title=phase_type,
+                    description=f"{phase_type} occurs. Good time for {self._get_moon_phase_activity(phase_type)}.",
+                    start_time=None,
+                    peak_time=phase_date_str,
+                    end_time=None,
+                    days_until_event=days_until,
+                    visibility=True,
+                    importance=phase_details["importance"],
+                    score=None,
+                    raw_data=moon_data,
+                )
+                events.append(event)
+            return events
+
+        # 2. Adapted for 'next_7_nights' format
+        nights = moon_data.get("next_7_nights", [])
+        for night in nights:
+            date_str = night.get("date")
+            moon_info = night.get("moon", {})
+            illumination = moon_info.get("illumination_percent")
+            if date_str is None or illumination is None:
                 continue
-
-            phase_date = datetime.datetime.fromisoformat(phase_date_str).replace(
-                tzinfo=self.timezone
-            )
+            # Heuristic: Full Moon >98%, New Moon <2%, else ignore
+            if illumination >= 98:
+                phase_type = "Full Moon"
+                emoji = "🌕"
+                importance = EventImportance.MEDIUM.value
+            elif illumination <= 2:
+                phase_type = "New Moon"
+                emoji = "🌑"
+                importance = EventImportance.MEDIUM.value
+            else:
+                continue  # Ignore other phases for now
+            phase_date = datetime.datetime.fromisoformat(date_str).replace(tzinfo=self.timezone)
             days_until = (phase_date.date() - self.local_now.date()).days
-
-            # Map phase names to emojis and importance
-            phase_info = {
-                "New Moon": {"emoji": "🌑", "importance": EventImportance.MEDIUM.value},
-                "First Quarter": {"emoji": "🌓", "importance": EventImportance.LOW.value},
-                "Full Moon": {"emoji": "🌕", "importance": EventImportance.MEDIUM.value},
-                "Last Quarter": {"emoji": "🌗", "importance": EventImportance.LOW.value},
-            }
-
-            phase_details = phase_info.get(phase_type, {"emoji": "🌙", "importance": EventImportance.LOW.value})
-
             event = AstronomicalEvent(
-                id=f"moon_phase_{phase_date_str}_{phase_type.lower().replace(' ', '_')}",
+                id=f"moon_phase_{date_str}_{phase_type.lower().replace(' ', '_')}",
                 event_type=EventType.MOON_PHASE.value,
-                emoji=phase_details["emoji"],
+                emoji=emoji,
                 title=phase_type,
                 description=f"{phase_type} occurs. Good time for {self._get_moon_phase_activity(phase_type)}.",
                 start_time=None,
-                peak_time=phase_date_str,
+                peak_time=date_str,
                 end_time=None,
                 days_until_event=days_until,
                 visibility=True,
-                importance=phase_details["importance"],
+                importance=importance,
                 score=None,
                 raw_data=moon_data,
             )
             events.append(event)
-
         return events
 
     def _get_moon_phase_activity(self, phase_type: str) -> str:

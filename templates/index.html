@@ -31,6 +31,31 @@
     <!-- Main Container -->
     <div class="mainContainer mt-3">
 
+        <!-- Default Password Warning Banner -->
+        <div id="default-password-warning" class="alert alert-warning alert-dismissible fade show mb-3" role="alert" style="display: none;">
+            ⚠️ <b>You are using the default password</b>. Please change it in the Users section for security.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        
+        <!-- Global cache Status Banner -->
+        <div id="global-cache-banner" class="alert alert-info mb-3" role="alert" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <span id="cache-banner-text" class="ps-4">
+                Updating astronomical data, please wait...
+            </span>
+        </div>
+
+        <!-- Global UpTonight Scheduler Status Banner -->
+        <div id="global-scheduler-banner" class="alert alert-info mb-3" role="alert" style="display: none;">
+            <div id="global-scheduler-progress" class="fw-bold">Processing catalogues...</div>
+            <div id="global-scheduler-detail" class="global-status-detail">blabla</div>
+        </div>
+
+        <!-- Upcoming Astronomical Events Alerts -->
+        <div id="events-alerts-container" class="mb-3" style="display: none;"></div>
+
         <!-- Navbar -->
         <nav class="navbar navbar-expand-lg rounded mb-3">
             <div class="container-fluid">
@@ -73,33 +98,6 @@
                 </div>
             </div>
         </nav>
-   
-
-    
-        <!-- Default Password Warning Banner -->
-        <div id="default-password-warning" class="alert alert-warning alert-dismissible fade show mb-3" role="alert" style="display: none;">
-            ⚠️ <b>You are using the default password</b>. Please change it in the Users section for security.
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        
-        <!-- Global cache Status Banner -->
-        <div id="global-cache-banner" class="alert alert-info mb-3" role="alert" style="display: none;">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <span id="cache-banner-text" class="ps-4">
-                Updating astronomical data, please wait...
-            </span>
-        </div>
-
-        <!-- Global UpTonight Scheduler Status Banner -->
-        <div id="global-scheduler-banner" class="alert alert-info mt-3" role="alert" style="display: none;">
-            <div id="global-scheduler-progress" class="fw-bold">Processing catalogues...</div>
-            <div id="global-scheduler-detail" class="global-status-detail">blabla</div>
-        </div>
-
-        <!-- Upcoming Astronomical Events Alerts -->
-        <div id="events-alerts-container" class="mb-4" style="display: none;"></div>
 
         <!-- Astrophotography forecast Section -->
         <div id="forecast-astro-tab" class="main-tab-content active">
