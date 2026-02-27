@@ -89,7 +89,7 @@ async function loadWeather() {
             item.className = 'col mb-3';
             item.innerHTML = `
                 <div class="card h-100">
-                    <div class="card-header ${qualityClass}">
+                    <div class="card-header quality-box ${qualityClass}">
                         <strong>${quality}</strong>
                     </div>
                     <div class="card-body">

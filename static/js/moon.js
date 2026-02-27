@@ -168,7 +168,7 @@ async function loadNextMoonPhases() {
                 item.className = 'col mb-3';
                 item.innerHTML = `
                     <div class="card h-100">
-                        <div class="card-header ${escapeHtml(qualityClass)}">
+                        <div class="card-header quality-box ${escapeHtml(qualityClass)}">
                             <strong>${escapeHtml(quality)}</strong>
                         </div>
                         <div class="card-body">

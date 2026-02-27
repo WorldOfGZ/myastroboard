@@ -99,7 +99,7 @@ function renderCurrentAstroConditions(conditions) {
                 <div class="card-body">👁️ Seeing</div>
                 <div class="card-body text-center">
                     <div class="astro-main-value text-primary">${conditions.seeing_pickering}/10</div>
-                    <div class="astro-quality-text ${seeingQuality.class}">${seeingQuality.text}</div>
+                    <div class="astro-quality-text quality-box ${seeingQuality.class}">${seeingQuality.text}</div>
                     <div class="fw-light fst-italic">Pickering Scale</div>
                 </div>
             </div>
@@ -110,7 +110,7 @@ function renderCurrentAstroConditions(conditions) {
                 <div class="card-body">✨ Transparency</div>
                 <div class="card-body text-center">
                     <div class="astro-main-value text-primary">${conditions.limiting_magnitude}m</div>
-                    <div class="astro-quality-text ${transparencyQuality.class}">${transparencyQuality.text}</div>
+                    <div class="astro-quality-text quality-box ${transparencyQuality.class}">${transparencyQuality.text}</div>
                     <div class="fw-light fst-italic">Limiting Magnitude</div>
                 </div>
             </div>
@@ -121,7 +121,7 @@ function renderCurrentAstroConditions(conditions) {
                 <div class="card-body">☁️ Cloud Layers</div>
                 <div class="card-body text-center">
                     <div class="astro-main-value text-primary">${Math.round(conditions.cloud_discrimination)}%</div>
-                    <div class="astro-quality-text ${cloudQuality.class}">${cloudQuality.text}</div>
+                    <div class="astro-quality-text quality-box ${cloudQuality.class}">${cloudQuality.text}</div>
                     <div class="fw-light fst-italic">Discrimination Score</div>
                 </div>
             </div>
@@ -132,7 +132,7 @@ function renderCurrentAstroConditions(conditions) {
                 <div class="card-body">💧 Dew Risk</div>
                 <div class="card-body text-center">
                     <div class="astro-main-value text-primary">${Math.round(conditions.dew_point_spread * 10) / 10}°C</div>
-                    <div class="astro-quality-text ${dewRiskColor}">${conditions.dew_risk_level}</div>
+                    <div class="astro-quality-text dew-box ${dewRiskColor}">${conditions.dew_risk_level}</div>
                     <div class="fw-light fst-italic">Temperature Spread</div>
                 </div>
             </div>
@@ -143,7 +143,7 @@ function renderCurrentAstroConditions(conditions) {
                 <div class="card-body">🎯 Tracking</div>
                 <div class="card-body text-center">
                     <div class="astro-main-value text-primary">${conditions.tracking_stability_score}%</div>
-                    <div class="astro-quality-text ${trackingQuality.class}">${trackingQuality.text}</div>
+                    <div class="astro-quality-text quality-box ${trackingQuality.class}">${trackingQuality.text}</div>
                     <div class="fw-light fst-italic">Wind Stability</div>
                 </div>
             </div>
