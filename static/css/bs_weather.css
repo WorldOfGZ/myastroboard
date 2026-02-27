@@ -194,7 +194,6 @@
     color: var(--dew-moderate-text) !important;
     border: 1px solid var(--dew-moderate-border);
     border-radius: var(--border-radius);
-    padding: 0.5rem 0.75rem;
     font-weight: var(--font-semibold);
     box-shadow: 0 2px 8px var(--dew-moderate-shadow);
     transition: all var(--transition-normal);
