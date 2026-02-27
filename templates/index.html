@@ -50,7 +50,7 @@
         <!-- Global UpTonight Scheduler Status Banner -->
         <div id="global-scheduler-banner" class="alert alert-info mb-3" role="alert" style="display: none;">
             <div id="global-scheduler-progress" class="fw-bold">Processing catalogues...</div>
-            <div id="global-scheduler-detail" class="global-status-detail">blabla</div>
+            <div id="global-scheduler-detail" class="global-status-detail"></div>
         </div>
 
         <!-- Upcoming Astronomical Events Alerts -->
@@ -118,6 +118,9 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link sub-tab-btn" href="#" data-subtab="aurora">🌌 Aurora Borealis</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="calendar">📅 Events Calendar</a>
                     </li>
                 </ul>
             </div>
@@ -242,6 +245,16 @@
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h2>🌌 Aurora Borealis Predictions</h2>
                     <div id="aurora-display" class="aurora-info-card rounded"></div>
+                </div>
+            </div>
+
+            <!-- Events Calendar Sub-tab -->
+            <div id="calendar-subtab" class="sub-tab-content">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>📅 Events Calendar</h2>
+                    <div id="calendar-display" class="calendar-info-card rounded">
+                        <div class="alert alert-info" role="alert">This is currently a placeholder for a future function.</div>
+                    </div>
                 </div>
             </div>
         
