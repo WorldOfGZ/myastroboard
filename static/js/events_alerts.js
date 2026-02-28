@@ -52,7 +52,7 @@ async function loadAndDisplayEvents() {
 }
 
 /**
- * Display events in the alerts container
+ * Display events in the alerts container & timeline section
  */
 function displayEvents(eventsData) {
     const container = document.getElementById('events-alerts-container');
@@ -61,8 +61,15 @@ function displayEvents(eventsData) {
         return;
     }
 
+    const timelineContainer = document.getElementById('calendar-display');
+    if (!timelineContainer) {
+        console.warn("Events timeline container not found in DOM");
+        return;
+    }
+
     // Clear existing alerts
     container.innerHTML = '';
+    timelineContainer.innerHTML = '';
 
     // Check if we have any upcoming events
     const nextEvent = eventsData.next_event;
@@ -75,12 +82,31 @@ function displayEvents(eventsData) {
     //console.log("All events in next 30 days:", eventsIn30Days);
     //console.log("Visible events in next 30 days:", visibleEvents);
 
+
+    // TIMELINE EVENTS MANAGEMENTS
+    // No events to display in timeline
+    if (!nextEvent || eventsIn30Days.length === 0) {
+        const noEventsMsg = document.createElement('div');
+        noEventsMsg.className = 'alert alert-info';
+        noEventsMsg.innerHTML = 'No significant astronomical events in the next 30 days.';
+        timelineContainer.appendChild(noEventsMsg);
+
+    // Events to display in timeline 
+    } else {
+        // Create event timeline
+        const eventTimelineItems = createEventTimeline(eventsIn30Days);        
+        timelineContainer.appendChild(eventTimelineItems);
+    }
+
+    // BANNER EVENTS MANAGEMENT
+    // If no next event or no visible events, hide the events banner
     if (!nextEvent || visibleEvents.length === 0) {
         // No events to display
         container.style.display = 'none';
         return;
     }
 
+    // Show the events banner
     container.style.display = 'block';
 
     // Display next event prominently if within 30 days and visible
@@ -115,7 +141,7 @@ function createEventAlertCard(event) {
     card.appendChild(header);
 
     // Add timing information if available
-    if (event.peak_time) {
+    if (event.peak_time && event.days_until_event !== undefined) {
         const timingDiv = document.createElement('div');
         timingDiv.className = 'mt-2 small';
 
@@ -143,6 +169,60 @@ function createEventAlertCard(event) {
 
     return card;
 }
+
+/**
+ * Create timeline items for a list of events
+ */
+function createEventTimeline(events) {
+    const timelineListUl = document.createElement('ul');
+    timelineListUl.className = 'timeline-with-icons ms-3';
+
+    events.forEach(event => {
+        const item = document.createElement('li');
+        item.className = 'timeline-item mb-3 rounded p-2 ps-3';
+
+        // Icon
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'timeline-icon';
+        iconSpan.textContent = event.emoji ?? '';
+        // Class following the event visibility true/false
+        if (event.visibility) {
+            iconSpan.classList.add('bg-success');
+            var labelVisible = '<span class="badge bg-success ms-2 bg-opacity-75">Visible</span>';
+        } else {
+            iconSpan.classList.add('bg-danger');
+            var labelVisible = '<span class="badge bg-danger ms-2 bg-opacity-75">Invisible</span>';
+        }
+        // Add opacity to bg
+        iconSpan.classList.add('bg-opacity-75');
+        item.appendChild(iconSpan);
+
+        // Title
+        const title = document.createElement('h5');
+        title.className = 'fw-bold';
+        title.innerHTML = `${event.title} ${labelVisible ?? ''}`;
+        item.appendChild(title);
+
+        // Add timing information if available
+        if (event.peak_time && event.days_until_event !== undefined) {
+            const date = document.createElement('p');
+            date.className = 'text-muted fw-bold';
+            date.textContent = `📅 ${formatTimeThenDate(new Date(event.peak_time))} - ${getDaysUntilText(event.days_until_event)}`;
+            item.appendChild(date);
+        }
+
+        // Description
+        const description = document.createElement('p');
+        description.className = 'text-muted';
+        description.textContent = event.description ?? '';
+        item.appendChild(description);
+
+        timelineListUl.appendChild(item);
+    });
+
+    return timelineListUl;
+}
+
 
 /**
  * Get human-readable text for days until event

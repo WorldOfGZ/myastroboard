@@ -10,6 +10,8 @@ async function loadAurora() {
     const data = await fetchJSONWithUI('/api/aurora/predictions', container, 'Loading Aurora Borealis predictions...');
     if (!data) return;
 
+    console.log("Aurora data received:", data);
+    
     // Display aurora information if data is available
     if (data.current) {
         const current = data.current;
@@ -86,9 +88,6 @@ async function loadAurora() {
                                 </span>
                             </li>
                             <li class="list-group-item">
-                                <small class="text-muted">${escapeHtml(current.best_viewing_window.description)}</small>
-                            </li>
-                            <li class="list-group-item">
                                 <small class="text-muted">
                                     <strong>📍 Location:</strong> ${location.latitude.toFixed(2)}°, ${location.longitude.toFixed(2)}°
                                 </small>
@@ -143,6 +142,10 @@ async function loadAurora() {
                         <div class="card h-100">
                             <div class="card-header fw-bold">📅 Forecast</div>
                             <div class="card-body">
+                                <div class="alert alert-info" role="alert">
+                                    The Kp index values are provided by NOAA. Sudden changes between 'Now' and forecasted values may indicate predicted geomagnetic events or storms.<br>
+                                    These forecasts are subject to change and reflect NOAA's latest predictions.
+                                </div>
                                 <div class="row row-cols-2 row-cols-sm-3 row-cols-lg-4 text-center g-3">
                                 ${data.forecast.slice(0, 8).map((f,i)=>{
                                     const kp = f.kp_index || 0;
@@ -150,12 +153,14 @@ async function loadAurora() {
                                     if(kp>=7) color='success';
                                     else if(kp>=5) color='warning';
                                     const size = 24 + kp*2; // Round bubble slightly larger if Kp is high
+
                                     return `
                                     <div class="col d-flex flex-column align-items-center">
-                                        <div class="fw-bold small mb-1">+${i}h</div>
+                                        <div class="fw-bold small mb-1">${formatTimeThenDate(new Date(f.timestamp))}</div>
                                         <div class="rounded-circle bg-${color} shadow-sm mb-1" 
                                             style="width:${size}px; height:${size}px; line-height:${size}px;"></div>
-                                        <div class="small">Kp ${kp.toFixed(1)}</div>
+                                        <div class="small">Kp ${kp.toFixed(1)}<br>
+                                        ${probability.toFixed(0)}%${probabilityLevel ? ` (${escapeHtml(probabilityLevel)})` : ''}</div>
                                     </div>
                                     `;
                                 }).join('')}
@@ -183,11 +188,12 @@ async function loadAurora() {
             </div>
         `;
     } else {
-        container.innerHTML = `
-            <div class="alert alert-warning" role="alert">
-                Failed to load aurora predictions. Please try again later.
-            </div>
-        `;
+        // Error block
+        const errorBlock = document.createElement('div');
+        errorBlock.className = 'alert alert-warning';
+        errorBlock.setAttribute('role', 'alert');
+        errorBlock.textContent = 'Failed to load aurora predictions. Please try again later.';
+        container.appendChild(errorBlock);
     }
 }
 

@@ -140,7 +140,7 @@ class EventsAggregator:
 
         # Add aurora if available
         if aurora_data:
-            logger.debug(f"Aurora data received for aggregation: {aurora_data}")
+            #logger.debug(f"Aurora data received for aggregation: {aurora_data}")
             try:
                 aurora_events = self._extract_aurora_events(aurora_data)
                 events.extend(aurora_events)
@@ -273,42 +273,39 @@ class EventsAggregator:
         return events
 
     def _extract_aurora_events(self, aurora_data: Dict[str, Any]) -> List[AstronomicalEvent]:
-        """Extract aurora event(s) from raw aurora data (supports 'next_visible_nights' or 'forecast')"""
-        events = []
+        """Return only the first strong aurora visibility event.
+           The aurora event is different because it is a forecast with multiple time slots (8 x 3h), 
+           so we will extract the most relevant one based on visibility likelihood and timing.
+        """
 
-        # Accept data even if 'status' is missing (for compatibility)
         if not aurora_data:
-            return events
+            return []
 
-        # Prefer 'next_visible_nights' if present
-        aurora_days = aurora_data.get("next_visible_nights")
-        if not aurora_days:
-            # Fallback: use 'forecast' if available
-            aurora_days = aurora_data.get("forecast", [])
+        forecast = aurora_data.get("forecast", [])
+        if not forecast:
+            return []
 
-        for day_entry in aurora_days[:3]:  # Only next 3 days
-            # Try to get a date (from 'date' or fallback to 'timestamp' if present)
-            forecast_date = day_entry.get("date")
-            if not forecast_date:
-                # Try to use 'timestamp' if available
-                forecast_date = aurora_data.get("timestamp")
-                if not forecast_date:
-                    continue
-
-            kp_index = day_entry.get("kp_index", 0)
-            # Try both 'visibility_likelihood' and 'probability'
-            visibility_percent = day_entry.get("visibility_likelihood")
+        for entry in forecast:
+            visibility_percent = entry.get("visibility_likelihood")
             if visibility_percent is None:
-                visibility_percent = day_entry.get("probability", 0)
+                visibility_percent = entry.get("probability", 0)
 
-            # Parse date
+            # Only consider events with at least 70% visibility likelihood as worth reporting
+            if visibility_percent < 70:
+                continue
+
+            timestamp = entry.get("timestamp")
+            if not timestamp:
+                continue
+
             try:
-                event_date = datetime.datetime.fromisoformat(forecast_date).replace(tzinfo=self.timezone)
+                event_date = datetime.datetime.fromisoformat(timestamp).astimezone(self.timezone)
             except Exception:
                 continue
-            days_until = (event_date.date() - self.local_now.date()).days
 
-            # Determine importance based on visibility likelihood and Kp index
+            days_until = (event_date.date() - self.local_now.date()).days
+            kp_index = entry.get("kp_index", 0)
+
             if visibility_percent >= 70:
                 importance = EventImportance.HIGH.value
             elif visibility_percent >= 40:
@@ -317,7 +314,7 @@ class EventsAggregator:
                 importance = EventImportance.LOW.value
 
             event = AstronomicalEvent(
-                id=f"aurora_{forecast_date}",
+                id=f"aurora_{timestamp}",
                 event_type=EventType.AURORA.value,
                 emoji="🌌",
                 title="Aurora Borealis",
@@ -329,14 +326,15 @@ class EventsAggregator:
                 peak_time=event_date.isoformat(),
                 end_time=None,
                 days_until_event=days_until,
-                visibility=visibility_percent > 0,
+                visibility=True,
                 importance=importance,
                 score=visibility_percent,
-                raw_data=aurora_data,
+                raw_data=entry,
             )
-            events.append(event)
 
-        return events
+            return [event]  # Immediately return the first strong event
+
+        return []  # No strong events found
 
     def _extract_moon_phase_events(self, moon_data: Dict[str, Any]) -> List[AstronomicalEvent]:
         """Extract moon phase events from 'phases' or 'next_7_nights' format"""

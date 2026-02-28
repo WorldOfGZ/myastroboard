@@ -22,6 +22,10 @@ NOAA_3DAY_FORECAST = "https://services.swpc.noaa.gov/products/noaa-planetary-k-i
 # Timeout for API requests
 REQUEST_TIMEOUT = 10
 
+# Aurora best window hours (local time)
+AURORA_BEST_WINDOW_START = 22
+AURORA_BEST_WINDOW_END = 2
+
 
 class AuroraService:
     """Service for aurora predictions and analysis"""
@@ -168,12 +172,13 @@ class AuroraService:
             return "High"
         return "Very High"
 
-    def get_aurora_score(self, kp_index: float) -> Dict[str, Any]:
+    def get_aurora_score(self, kp_index: float, forecast_timestamp: Optional[str] = None) -> Dict[str, Any]:
         """
         Calculate comprehensive aurora visibility score
         
         Args:
             kp_index: Current geomagnetic Kp index (0-9)
+            forecast_timestamp: ISO timestamp string from forecast (optional)
         
         Returns:
             Dictionary with aurora score and details
@@ -204,10 +209,25 @@ class AuroraService:
             visibility = "Severe Storm"
             visibility_description = "Intense aurora activity, visible at lower latitudes"
         
-        # Best viewing window (typically between 22:00 and 02:00 local time)
-        best_window_start = 22
-        best_window_end = 2
-        
+        # Get local timestamp for the report
+        try:
+            from zoneinfo import ZoneInfo
+            tzinfo = ZoneInfo(self.timezone_str)
+        except Exception:
+            tzinfo = timezone.utc
+        if forecast_timestamp:
+            try:
+                # NOAA timestamp is usually in ISO format and UTC
+                dt_utc = datetime.fromisoformat(forecast_timestamp)
+                if dt_utc.tzinfo is None:
+                    dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+                local_timestamp = dt_utc.astimezone(tzinfo).isoformat()
+            except Exception:
+                local_timestamp = datetime.now(tzinfo).isoformat()
+        else:
+            now_utc = datetime.now(timezone.utc)
+            now_local = now_utc.astimezone(tzinfo)
+            local_timestamp = now_local.isoformat()
         return {
             "kp_index": kp_index,
             "kp_index_max": 9,
@@ -216,10 +236,11 @@ class AuroraService:
             "visibility_level": visibility,
             "visibility_description": visibility_description,
             "observer_latitude": self.latitude,
+            "timestamp": local_timestamp,
             "best_viewing_window": {
-                "start_hour": best_window_start,
-                "end_hour": best_window_end,
-                "description": "22:00 - 02:00 local time (best aurora activity period)"
+                "start_hour": AURORA_BEST_WINDOW_START,
+                "end_hour": AURORA_BEST_WINDOW_END,
+                "description": f"{AURORA_BEST_WINDOW_START:02d}:00 - {AURORA_BEST_WINDOW_END:02d}:00 local time (best aurora activity period)"
             },
             "color_description": self._get_aurora_color_description(kp_index),
         }
@@ -271,9 +292,20 @@ class AuroraService:
             # Calculate aurora score
             aurora_score = self.get_aurora_score(current_kp)
             
+            # Convert timestamp to observer's local timezone
+            try:
+                from zoneinfo import ZoneInfo
+                tzinfo = ZoneInfo(self.timezone_str)
+            except Exception:
+                tzinfo = timezone.utc
+            now_utc = datetime.now(timezone.utc)
+            now_local = now_utc.astimezone(tzinfo)
+            local_timestamp = now_local.isoformat()
+
             # Build report
+            aurora_score["best_viewing_window"]["description"] = f"{AURORA_BEST_WINDOW_START:02d}:00 - {AURORA_BEST_WINDOW_END:02d}:00 local time (best aurora activity period)"
             report = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": local_timestamp,
                 "location": {
                     "latitude": self.latitude,
                     "longitude": self.longitude,
@@ -287,9 +319,31 @@ class AuroraService:
             # Try to fetch forecast
             kp_forecast = self.fetch_kp_forecast()
             if kp_forecast:
-                for forecast_entry in kp_forecast[:8]:  # Use first 8 forecast entries (3 days)
-                    kp_val = forecast_entry.get('kp', 0)
-                    report["forecast"].append(self.get_aurora_score(kp_val))
+                try:
+                    from zoneinfo import ZoneInfo
+                    tzinfo = ZoneInfo(self.timezone_str)
+                except Exception:
+                    tzinfo = timezone.utc
+                now_local = datetime.now(tzinfo)
+                # Filter forecast entries to those after now
+                filtered = []
+                for entry in kp_forecast:
+                    ts = entry.get('timestamp')
+                    if isinstance(ts, str) and ts:
+                        try:
+                            dt_utc = datetime.fromisoformat(ts)
+                            if dt_utc.tzinfo is None:
+                                dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+                            dt_local = dt_utc.astimezone(tzinfo)
+                            if dt_local > now_local:
+                                filtered.append((dt_local, entry))
+                        except Exception:
+                            continue
+                # Sort by local time and take next 8
+                filtered = sorted(filtered, key=lambda x: x[0])[:8]
+                for dt_local, entry in filtered:
+                    kp_val = entry.get('kp', 0)
+                    report["forecast"].append(self.get_aurora_score(kp_val, entry.get('timestamp')))
             
             logger.info(f"Generated aurora report for lat={int(self.latitude)}, lon={int(self.longitude)}, tz=***")
             return report
