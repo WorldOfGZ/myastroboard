@@ -19,7 +19,16 @@ let equipmentFilters = {
 // Initialize Equipment Module
 // ============================================
 
-function initializeEquipment() {
+async function initializeEquipment() {
+    // Get role user
+    const roleUser = await getUserRole();
+    
+    // If user is not admin, not user, we don't load equipment management features
+    if (roleUser !== 'admin' && roleUser !== 'user') {
+        //console.log('User does not have permission to access equipment management');
+        return;
+    }
+    
     loadAllEquipment();
     setupEquipmentEventListeners();
 }
@@ -58,6 +67,7 @@ function setupEquipmentEventListeners() {
 // ============================================
 
 async function loadAllEquipment() {
+   
     try {
         const response = await fetchJSON('/api/equipment/summary');
         

@@ -30,26 +30,44 @@ async function checkAuthStatus() {
     }
 }
 
+// Get current user role from api
+async function getUserRole() {
+    try {
+        const data = await fetchJSONWithRetry('/api/auth/status', {
+            credentials: 'include'
+        }, {
+            maxAttempts: 3,
+            timeoutMs: 10000
+        });
+        
+        if (data.authenticated) {
+            return data.role;
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error('Error checking auth status:', error);
+        return null;
+    }
+}
+
 // Update UI based on user role
 function updateUserInterface() {
     if (!currentUser) return;
+
+    //console.log(`[Auth] Logged in as: ${currentUser.username} (Role: ${currentUser.role})`);
+    //console.log(`[Auth] currentUser: ${JSON.stringify(currentUser)}`);
     
     // Update header with user info
     const usernameDisplay = document.getElementById('username-display');
-    const userRoleDisplay = document.getElementById('user-role');
     
     if (usernameDisplay) {
         usernameDisplay.textContent = currentUser.username;
     }
     
-    if (userRoleDisplay) {
-        const roleText = currentUser.role === 'admin' ? '(Admin)' : '(user)';
-        userRoleDisplay.textContent = roleText;
-    }
-    
-    // Remove parameters tab for read-only users
+    // Remove parameters tab for read-only and regular users
     const parametersTab = document.querySelector('[data-tab="parameters"]');
-    if (currentUser.role === 'read-only' && parametersTab) {
+    if ((currentUser.role === 'read-only' || currentUser.role === 'user') && parametersTab) {
         // Remove dom element
         parametersTab.remove();
 
@@ -58,6 +76,24 @@ function updateUserInterface() {
         if (parametersTabContent) {
             parametersTabContent.remove();
         }
+    }
+
+    // Remove some tabs for read-only users
+    if (currentUser.role === 'read-only') {
+        // Remove equipment tab
+        const equipmentLink = document.querySelector('[data-tab="equipment"]');
+        const equipmentTabContent = document.getElementById('equipment-tab');
+        if (equipmentLink) {
+            equipmentLink.remove();
+        }
+        if (equipmentTabContent) {
+            equipmentTabContent.remove();
+        }
+        // Remove astrodex button add button
+        const addAstrodexBtn = document.getElementById('add-astrodex-item');
+        if (addAstrodexBtn) {
+            addAstrodexBtn.remove();
+        }   
     }
 
     /*// Show/hide parameters tab for read-only users
@@ -371,6 +407,7 @@ function editRole(userId, username, currentRole) {
                 <label for="new-role-select" class="form-label">New Role:</label>
                 <select id="new-role-select" class="form-select" required>
                     <option value="admin" ${currentRole === 'admin' ? 'selected' : ''}>Admin</option>
+                    <option value="user" ${currentRole === 'user' ? 'selected' : ''}>User</option>
                     <option value="read-only" ${currentRole === 'read-only' ? 'selected' : ''}>Read-Only</option>
                 </select>
             </div>

@@ -1022,6 +1022,7 @@ async function loadCatalogueResults(catalogue) {
     //console.log(`Loading results for catalogue: ${catalogue}`);
     currentCatalogueTab = catalogue; // Track current catalogue
     try {
+
         const reports = await fetchJSON(`/api/uptonight/reports/${catalogue}`);
         //console.log('Catalogue reports:', reports);
         const buttonsContainer = document.getElementById(`catalogue-${catalogue}-type-buttons`);
@@ -1101,7 +1102,13 @@ async function loadCatalogueResults(catalogue) {
     }
 }
 
-function showCatalogueType(catalogue, type) {
+async function showCatalogueType(catalogue, type) {
+           
+    // Get role user
+    const roleUser = await getUserRole();
+    // Display Astrodex if roleUser is user or admin
+    const displayAstrodex = roleUser === 'user' || roleUser === 'admin';
+
     const reports = window.catalogueReports[catalogue];
     if (!reports) return;
 
@@ -1237,9 +1244,9 @@ function showCatalogueType(catalogue, type) {
 
     // --- Tables ---
     let tableHtml = '';
-    if (type === 'report' && reports.report) tableHtml = generateReportTable(reports.report, catalogue, 'report');
-    else if (type === 'bodies' && reports.bodies) tableHtml = generateReportTable(reports.bodies, catalogue, 'bodies');
-    else if (type === 'comets' && reports.comets) tableHtml = generateReportTable(reports.comets, catalogue, 'comets');
+    if (type === 'report' && reports.report) tableHtml = generateReportTable(reports.report, catalogue, 'report', displayAstrodex);
+    else if (type === 'bodies' && reports.bodies) tableHtml = generateReportTable(reports.bodies, catalogue, 'bodies', displayAstrodex);
+    else if (type === 'comets' && reports.comets) tableHtml = generateReportTable(reports.comets, catalogue, 'comets', displayAstrodex);
 
     if (tableHtml) {
         container.innerHTML = tableHtml;
@@ -1250,7 +1257,7 @@ function showCatalogueType(catalogue, type) {
     }
 }
 
-function generateReportTable(report, catalogue, type) {
+function generateReportTable(report, catalogue, type, displayAstrodex = true) {
     if (!report || report.length === 0) return '<p>No targets in report</p>';
     
     // Define column order and configuration for Report type
@@ -1264,7 +1271,7 @@ function generateReportTable(report, catalogue, type) {
         { key: 'type', label: 'Type', align: 'center' },
         { key: 'altitude', label: 'Altitude', align: 'center', unit: '°', decimals: 2 },
         { key: 'azimuth', label: 'Azimuth', align: 'center', unit: '°', decimals: 2 },
-        { key: 'astrodex', label: 'Astrodex', align: 'center' },
+        ...(displayAstrodex ? [{ key: 'astrodex', label: 'Astrodex', align: 'center' }] : []),
         { key: 'more', label: 'More', align: 'center' }
     ];
     
@@ -1277,7 +1284,7 @@ function generateReportTable(report, catalogue, type) {
         { key: 'visual magnitude', label: 'Visual magnitude', align: 'center', decimals: 2 },
         { key: 'foto', label: 'Foto', align: 'center' },
         { key: 'type', label: 'Type', align: 'center' },
-        { key: 'astrodex', label: 'Astrodex', align: 'center' },
+        ...(displayAstrodex ? [{ key: 'astrodex', label: 'Astrodex', align: 'center' }] : []),
         { key: 'more', label: 'More', align: 'center' }
     ];
     
@@ -1288,7 +1295,7 @@ function generateReportTable(report, catalogue, type) {
         { key: 'azimuth', label: 'Azimuth', align: 'center', unit: '°', decimals: 2 },
         { key: 'visual magnitude', label: 'Visual magnitude', align: 'center', decimals: 2 },
         { key: 'distance earth au', label: 'Distance Earth', align: 'center', unit: ' au', decimals: 2 },
-        { key: 'astrodex', label: 'Astrodex', align: 'center' },
+        ...(displayAstrodex ? [{ key: 'astrodex', label: 'Astrodex', align: 'center' }] : []),
         { key: 'more', label: 'More', align: 'center' }
     ];
     
@@ -1419,12 +1426,14 @@ function generateReportTable(report, catalogue, type) {
                 };
                 const itemDataJson = JSON.stringify(itemData).replace(/"/g, '&quot;');
                 
-                if (isInAstrodex) {
-                    html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><span class="in-astrodex-badge">✓ Captured</span></td>`;
-                } else if (itemName) {
-                    html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><button class="btn btn-sm btn-outline-primary astrodex-add-btn" data-item="${itemDataJson}">➕ Add</button></td>`;
-                } else {
-                    html += `<td style="text-align: ${col.align}">-</td>`;
+                if(displayAstrodex) {
+                    if (isInAstrodex) {
+                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><span class="in-astrodex-badge">✓ Captured</span></td>`;
+                    } else if (itemName) {
+                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><button class="btn btn-sm btn-outline-primary astrodex-add-btn" data-item="${itemDataJson}">➕ Add</button></td>`;
+                    } else {
+                        html += `<td style="text-align: ${col.align}">-</td>`;
+                    }
                 }
             } else {
                 let value = row[col.key];

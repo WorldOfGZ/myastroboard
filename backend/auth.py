@@ -16,6 +16,7 @@ logger = get_logger(__name__)
 
 # User roles
 ROLE_ADMIN = 'admin'
+ROLE_USER = 'user'
 ROLE_READ_ONLY = 'read-only'
 
 # Default admin credentials
@@ -66,6 +67,14 @@ class User:
     def is_admin(self):
         """Check if user is admin"""
         return self.role == ROLE_ADMIN
+    
+    def is_user(self):
+        """Check if user is a regular user"""
+        return self.role == ROLE_USER
+    
+    def is_read_only(self):
+        """Check if user is read-only"""
+        return self.role == ROLE_READ_ONLY
     
     def is_using_default_password(self):
         """Check if user is still using default password"""
@@ -155,7 +164,7 @@ class UserManager:
         if self.get_user_by_username(username):
             raise ValueError(f"User {username} already exists")
         
-        if role not in [ROLE_ADMIN, ROLE_READ_ONLY]:
+        if role not in [ROLE_ADMIN, ROLE_USER, ROLE_READ_ONLY]:
             raise ValueError(f"Invalid role: {role}")
         
         user = User(
@@ -204,7 +213,7 @@ class UserManager:
             user.password_hash = generate_password_hash(password)
         
         if role:
-            if role not in [ROLE_ADMIN, ROLE_READ_ONLY]:
+            if role not in [ROLE_ADMIN, ROLE_USER, ROLE_READ_ONLY]:
                 raise ValueError(f"Invalid role: {role}")
             user.role = role
         
@@ -344,6 +353,7 @@ user_manager = UserManager()
 
 
 # Authentication decorators
+# Is read-only role, can only access GET endpoints (enforced in route handlers)
 def login_required(f):
     """Decorator to require authentication"""
     @wraps(f)
@@ -356,7 +366,26 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# If user role is user, can access non-admin endpoints (enforced in route handlers)
+def user_required(f):
+    """Decorator to require user or admin role"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'username' not in session:
+            client_ip = request.remote_addr
+            logger.warning(f"Unauthorized access attempt to {request.path} from {client_ip} (no valid session cookie)")
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        user = user_manager.get_user(session['username'])
+        if not user or not (user.is_admin() or user.is_user()):
+            client_ip = request.remote_addr
+            logger.warning(f"User {session.get('username')} from {client_ip} attempted to access {request.path} without sufficient permissions")
+            return jsonify({'error': 'User access required'}), 403
+        
+        return f(*args, **kwargs)
+    return decorated_function
 
+# Only admin role can access
 def admin_required(f):
     """Decorator to require admin role"""
     @wraps(f)

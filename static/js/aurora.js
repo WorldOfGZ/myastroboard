@@ -10,7 +10,7 @@ async function loadAurora() {
     const data = await fetchJSONWithUI('/api/aurora/predictions', container, 'Loading Aurora Borealis predictions...');
     if (!data) return;
 
-    console.log("Aurora data received:", data);
+    //console.log("Aurora data received:", data);
     
     // Display aurora information if data is available
     if (data.current) {

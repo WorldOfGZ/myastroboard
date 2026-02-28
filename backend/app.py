@@ -58,8 +58,8 @@ import cache_store
 
 # Authentication
 from auth import (
-    user_manager, login_required, admin_required, get_current_user,
-    ROLE_ADMIN, ROLE_READ_ONLY
+    user_manager, login_required, admin_required, user_required, get_current_user,
+    ROLE_ADMIN, ROLE_USER, ROLE_READ_ONLY
 )
 
 # Astrodex
@@ -435,7 +435,7 @@ def update_config_api():
 
 
 @app.route('/api/metrics', methods=['GET'])
-@login_required
+@admin_required
 def get_system_metrics():
     """Get system metrics (CPU, memory, disk, etc.)"""
     try:
@@ -1614,7 +1614,7 @@ def get_astrodex():
 
 
 @app.route('/api/astrodex/items', methods=['POST'])
-@login_required
+@user_required
 def add_astrodex_item():
     """Add item to user's astrodex"""
     try:
@@ -1647,7 +1647,7 @@ def add_astrodex_item():
 
 
 @app.route('/api/astrodex/items/<item_id>/catalogue-name', methods=['POST'])
-@login_required
+@user_required
 def switch_astrodex_item_catalogue_name(item_id):
     """Switch Astrodex item displayed name to a catalogue-specific alias."""
     try:
@@ -1697,7 +1697,7 @@ def get_astrodex_item_api(item_id):
 
 
 @app.route('/api/astrodex/items/<item_id>', methods=['PUT'])
-@login_required
+@user_required
 def update_astrodex_item_api(item_id):
     """Update an astrodex item"""
     try:
@@ -1723,7 +1723,7 @@ def update_astrodex_item_api(item_id):
 
 
 @app.route('/api/astrodex/items/<item_id>', methods=['DELETE'])
-@login_required
+@user_required
 def delete_astrodex_item_api(item_id):
     """Delete an astrodex item"""
     try:
@@ -1742,7 +1742,7 @@ def delete_astrodex_item_api(item_id):
 
 
 @app.route('/api/astrodex/items/<item_id>/pictures', methods=['POST'])
-@login_required
+@user_required
 def add_picture_to_astrodex_item(item_id):
     """Add a picture to an astrodex item"""
     try:
@@ -1768,7 +1768,7 @@ def add_picture_to_astrodex_item(item_id):
 
 
 @app.route('/api/astrodex/items/<item_id>/pictures/<picture_id>', methods=['PUT'])
-@login_required
+@user_required
 def update_picture_api(item_id, picture_id):
     """Update a picture in an astrodex item"""
     try:
@@ -1794,7 +1794,7 @@ def update_picture_api(item_id, picture_id):
 
 
 @app.route('/api/astrodex/items/<item_id>/pictures/<picture_id>', methods=['DELETE'])
-@login_required
+@user_required
 def delete_picture_api(item_id, picture_id):
     """Delete a picture from an astrodex item"""
     try:
@@ -1813,7 +1813,7 @@ def delete_picture_api(item_id, picture_id):
 
 
 @app.route('/api/astrodex/items/<item_id>/pictures/<picture_id>/main', methods=['POST'])
-@login_required
+@user_required
 def set_main_picture_api(item_id, picture_id):
     """Set a picture as the main picture for an item"""
     try:
@@ -1832,7 +1832,7 @@ def set_main_picture_api(item_id, picture_id):
 
 
 @app.route('/api/astrodex/upload', methods=['POST'])
-@login_required
+@user_required
 def upload_astrodex_image():
     """Upload an image for astrodex safely"""
     try:
@@ -1946,7 +1946,7 @@ def get_constellations():
 
 # Telescopes
 @app.route('/api/equipment/telescopes', methods=['GET'])
-@login_required
+@user_required
 def get_telescopes():
     """Get user's telescope profiles"""
     try:
@@ -1967,7 +1967,7 @@ def get_telescopes():
 
 
 @app.route('/api/equipment/telescopes', methods=['POST'])
-@login_required
+@user_required
 def create_telescope():
     """Create a new telescope profile"""
     try:
@@ -1992,7 +1992,7 @@ def create_telescope():
 
 
 @app.route('/api/equipment/telescopes/<telescope_id>', methods=['GET'])
-@login_required
+@user_required
 def get_telescope(telescope_id):
     """Get a specific telescope profile"""
     try:
@@ -2013,7 +2013,7 @@ def get_telescope(telescope_id):
 
 
 @app.route('/api/equipment/telescopes/<telescope_id>', methods=['PUT'])
-@login_required
+@user_required
 def update_telescope(telescope_id):
     """Update a telescope profile"""
     try:
@@ -2038,7 +2038,7 @@ def update_telescope(telescope_id):
 
 
 @app.route('/api/equipment/telescopes/<telescope_id>', methods=['DELETE'])
-@login_required
+@user_required
 def delete_telescope(telescope_id):
     """Delete a telescope profile"""
     try:
@@ -2060,7 +2060,7 @@ def delete_telescope(telescope_id):
 
 # Cameras
 @app.route('/api/equipment/cameras', methods=['GET'])
-@login_required
+@user_required
 def get_cameras():
     """Get user's camera profiles"""
     try:
@@ -2081,7 +2081,7 @@ def get_cameras():
 
 
 @app.route('/api/equipment/cameras', methods=['POST'])
-@login_required
+@user_required
 def create_camera():
     """Create a new camera profile"""
     try:
@@ -2106,7 +2106,7 @@ def create_camera():
 
 
 @app.route('/api/equipment/cameras/<camera_id>', methods=['GET'])
-@login_required
+@user_required
 def get_camera(camera_id):
     """Get a specific camera profile"""
     try:
@@ -2127,7 +2127,7 @@ def get_camera(camera_id):
 
 
 @app.route('/api/equipment/cameras/<camera_id>', methods=['PUT'])
-@login_required
+@user_required
 def update_camera(camera_id):
     """Update a camera profile"""
     try:
@@ -2152,7 +2152,7 @@ def update_camera(camera_id):
 
 
 @app.route('/api/equipment/cameras/<camera_id>', methods=['DELETE'])
-@login_required
+@user_required
 def delete_camera(camera_id):
     """Delete a camera profile"""
     try:
@@ -2174,7 +2174,7 @@ def delete_camera(camera_id):
 
 # Mounts
 @app.route('/api/equipment/mounts', methods=['GET'])
-@login_required
+@user_required
 def get_mounts():
     """Get user's mount profiles"""
     try:
@@ -2195,7 +2195,7 @@ def get_mounts():
 
 
 @app.route('/api/equipment/mounts', methods=['POST'])
-@login_required
+@user_required
 def create_mount():
     """Create a new mount profile"""
     try:
@@ -2220,7 +2220,7 @@ def create_mount():
 
 
 @app.route('/api/equipment/mounts/<mount_id>', methods=['GET'])
-@login_required
+@user_required
 def get_mount(mount_id):
     """Get a specific mount profile"""
     try:
@@ -2241,7 +2241,7 @@ def get_mount(mount_id):
 
 
 @app.route('/api/equipment/mounts/<mount_id>', methods=['PUT'])
-@login_required
+@user_required
 def update_mount(mount_id):
     """Update a mount profile"""
     try:
@@ -2266,7 +2266,7 @@ def update_mount(mount_id):
 
 
 @app.route('/api/equipment/mounts/<mount_id>', methods=['DELETE'])
-@login_required
+@user_required
 def delete_mount(mount_id):
     """Delete a mount profile"""
     try:
@@ -2288,7 +2288,7 @@ def delete_mount(mount_id):
 
 # Filters
 @app.route('/api/equipment/filters', methods=['GET'])
-@login_required
+@user_required
 def get_filters():
     """Get user's filter profiles"""
     try:
@@ -2309,7 +2309,7 @@ def get_filters():
 
 
 @app.route('/api/equipment/filters', methods=['POST'])
-@login_required
+@user_required
 def create_filter():
     """Create a new filter profile"""
     try:
@@ -2334,7 +2334,7 @@ def create_filter():
 
 
 @app.route('/api/equipment/filters/<filter_id>', methods=['GET'])
-@login_required
+@user_required
 def get_filter(filter_id):
     """Get a specific filter profile"""
     try:
@@ -2355,7 +2355,7 @@ def get_filter(filter_id):
 
 
 @app.route('/api/equipment/filters/<filter_id>', methods=['PUT'])
-@login_required
+@user_required
 def update_filter(filter_id):
     """Update a filter profile"""
     try:
@@ -2380,7 +2380,7 @@ def update_filter(filter_id):
 
 
 @app.route('/api/equipment/filters/<filter_id>', methods=['DELETE'])
-@login_required
+@user_required
 def delete_filter(filter_id):
     """Delete a filter profile"""
     try:
@@ -2402,7 +2402,7 @@ def delete_filter(filter_id):
 
 # Accessories
 @app.route('/api/equipment/accessories', methods=['GET'])
-@login_required
+@user_required
 def get_accessories():
     """Get user's accessory profiles"""
     try:
@@ -2423,7 +2423,7 @@ def get_accessories():
 
 
 @app.route('/api/equipment/accessories', methods=['POST'])
-@login_required
+@user_required
 def create_accessory():
     """Create a new accessory profile"""
     try:
@@ -2448,7 +2448,7 @@ def create_accessory():
 
 
 @app.route('/api/equipment/accessories/<accessory_id>', methods=['GET'])
-@login_required
+@user_required
 def get_accessory(accessory_id):
     """Get a specific accessory profile"""
     try:
@@ -2469,7 +2469,7 @@ def get_accessory(accessory_id):
 
 
 @app.route('/api/equipment/accessories/<accessory_id>', methods=['PUT'])
-@login_required
+@user_required
 def update_accessory(accessory_id):
     """Update an accessory profile"""
     try:
@@ -2494,7 +2494,7 @@ def update_accessory(accessory_id):
 
 
 @app.route('/api/equipment/accessories/<accessory_id>', methods=['DELETE'])
-@login_required
+@user_required
 def delete_accessory(accessory_id):
     """Delete an accessory profile"""
     try:
@@ -2516,7 +2516,7 @@ def delete_accessory(accessory_id):
 
 # Equipment Combinations
 @app.route('/api/equipment/combinations', methods=['GET'])
-@login_required
+@user_required
 def get_combinations():
     """Get user's equipment combinations"""
     try:
@@ -2537,7 +2537,7 @@ def get_combinations():
 
 
 @app.route('/api/equipment/combinations', methods=['POST'])
-@login_required
+@user_required
 def create_combination():
     """Create a new equipment combination"""
     try:
@@ -2562,7 +2562,7 @@ def create_combination():
 
 
 @app.route('/api/equipment/combinations/<combination_id>', methods=['GET'])
-@login_required
+@user_required
 def get_combination(combination_id):
     """Get a specific equipment combination"""
     try:
@@ -2583,7 +2583,7 @@ def get_combination(combination_id):
 
 
 @app.route('/api/equipment/combinations/<combination_id>', methods=['PUT'])
-@login_required
+@user_required
 def update_combination(combination_id):
     """Update an equipment combination"""
     try:
@@ -2608,7 +2608,7 @@ def update_combination(combination_id):
 
 
 @app.route('/api/equipment/combinations/<combination_id>', methods=['DELETE'])
-@login_required
+@user_required
 def delete_combination(combination_id):
     """Delete an equipment combination"""
     try:
@@ -2630,7 +2630,7 @@ def delete_combination(combination_id):
 
 # FOV Calculator (standalone endpoint)
 @app.route('/api/equipment/fov-calculator', methods=['POST'])
-@login_required
+@user_required
 def calculate_fov():
     """Calculate Field of View for given parameters"""
     try:
@@ -2652,7 +2652,7 @@ def calculate_fov():
 
 # Equipment Summary
 @app.route('/api/equipment/summary', methods=['GET'])
-@login_required
+@user_required
 def get_equipment_summary():
     """Get summary of all user equipment"""
     try:

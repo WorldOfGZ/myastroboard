@@ -88,14 +88,22 @@ function updateEditFilterField() {
 
 async function loadAstrodex() {
     try {
+           
+        // Get role user
+        const roleUser = await getUserRole();
+        // Display Astrodex if roleUser is user or admin
+        const isAllowedAstrodex = roleUser === 'user' || roleUser === 'admin';
+
         const response = await fetchJSON('/api/astrodex');
         astrodexData.items = response.items || [];
         astrodexData.stats = response.stats || {};
         
         // Load equipment data for Astrodex integration
-        await loadEquipmentForAstrodex();
+        if(isAllowedAstrodex) {
+            await loadEquipmentForAstrodex();
+        }
         
-        renderAstrodexView();
+        renderAstrodexView(isAllowedAstrodex);
     } catch (error) {
         console.error('Error loading astrodex:', error);
         showMessage('error', 'Failed to load Astrodex');
@@ -116,10 +124,9 @@ async function getConstellationsList() {
 // Astrodex Rendering
 // ============================================
 
-function renderAstrodexView() {
+function renderAstrodexView(isAllowedAstrodex) {
     const container = document.getElementById('astrodex-content');
     if (!container) return;
-    
     // Render stats
     renderAstrodexStats();
     
@@ -127,7 +134,7 @@ function renderAstrodexView() {
     const filteredItems = filterAndSortAstrodexItems();
     
     // Render items grid
-    renderAstrodexGrid(filteredItems);
+    renderAstrodexGrid(filteredItems, isAllowedAstrodex);
 }
 
 function renderAstrodexStats() {
@@ -171,26 +178,39 @@ function renderAstrodexStats() {
     `;
 }
 
-function renderAstrodexGrid(items) {
+function renderAstrodexGrid(items, isAllowedAstrodex) {
     const gridContainer = document.getElementById('astrodex-grid');
     if (!gridContainer) return;
     
     if (items.length === 0) {
-        gridContainer.innerHTML = `
-            <div class="col">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <b>📚 Your Astrodex is empty</b><br>
-                        Start adding celestial objects you've captured!
-                    </div>
-                    <div class="card-footer text-center">
-                        <button class="btn btn-outline-primary" data-action="add-astrodex-item">
-                            ➕ Add First Object
-                        </button>
+        if (isAllowedAstrodex) {
+            gridContainer.innerHTML = `
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <b>📚 Your Astrodex is empty</b><br>
+                            Start adding celestial objects you've captured!
+                        </div>
+                        <div class="card-footer text-center">
+                            <button class="btn btn-outline-primary" data-action="add-astrodex-item">
+                                ➕ Add First Object
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `;
+            `;
+        } else {
+            gridContainer.innerHTML = `
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <b>📚 Astrodex is empty</b><br>
+                            As read-only user, you can't add new objects.
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
         return;
     }
     
@@ -308,9 +328,9 @@ function filterAndSortAstrodexItems() {
     return items;
 }
 
-function updateAstrodexFilter(filterName, value) {
+function updateAstrodexFilter(filterName, value, isAllowedAstrodex) {
     astrodexFilters[filterName] = value;
-    renderAstrodexView();
+    renderAstrodexView(isAllowedAstrodex);
 }
 
 // ============================================
@@ -1360,7 +1380,12 @@ function showPictureSlideshow(itemId) {
 // Utility Functions
 // ============================================
 
-function toggleAstrodexSortOrder() {
+async function toggleAstrodexSortOrder() {
+    // Get role user
+    const roleUser = await getUserRole();
+    // Display Astrodex if roleUser is user or admin
+    const isAllowedAstrodex = roleUser === 'user' || roleUser === 'admin';
+
     const button = document.getElementById('astrodex-sort-order');
     if (astrodexFilters.sortOrder === 'asc') {
         astrodexFilters.sortOrder = 'desc';
@@ -1369,7 +1394,7 @@ function toggleAstrodexSortOrder() {
         astrodexFilters.sortOrder = 'asc';
         button.textContent = '⬆️ Ascending';
     }
-    renderAstrodexView();
+    renderAstrodexView(isAllowedAstrodex);
 }
 
 function createModal(title, content, size = 'lg') {
@@ -1416,7 +1441,13 @@ function handleModalClick(event) {
 // Event Listeners Initialization
 // ============================================
 
-function initializeAstrodexEventListeners() {
+async function initializeAstrodexEventListeners() {
+    // Get role user
+    const roleUser = await getUserRole();
+    // Display Astrodex if roleUser is user or admin
+    const isAllowedAstrodex = roleUser === 'user' || roleUser === 'admin';
+    //console.log('User role:', roleUser, ' - Access to Astrodex:', isAllowedAstrodex);
+
     // Use event delegation for dynamically created elements
     const astrodexTab = document.getElementById('astrodex-tab');
     if (!astrodexTab) return;
@@ -1448,27 +1479,39 @@ function initializeAstrodexEventListeners() {
                     break;
                 case 'add-picture':
                     e.preventDefault();
-                    showAddPictureModal(itemId);
+                    if(isAllowedAstrodex) {
+                        showAddPictureModal(itemId);
+                    }
                     break;
                 case 'delete-item':
                     e.preventDefault();
-                    deleteAstrodexItem(itemId);
+                    if(isAllowedAstrodex) {
+                        deleteAstrodexItem(itemId);
+                    }
                     break;
                 case 'set-main-picture':
                     e.preventDefault();
-                    setMainPicture(itemId, pictureId);
+                    if(isAllowedAstrodex) {
+                        setMainPicture(itemId, pictureId);
+                    }
                     break;
                 case 'edit-picture':
                     e.preventDefault();
-                    showEditPictureModal(itemId, pictureId);
+                    if(isAllowedAstrodex) {
+                        showEditPictureModal(itemId, pictureId);
+                    }
                     break;
                 case 'delete-picture':
                     e.preventDefault();
-                    deletePicture(itemId, pictureId);
+                    if(isAllowedAstrodex) {
+                        deletePicture(itemId, pictureId);
+                    }
                     break;
                 case 'switch-catalogue-name':
                     e.preventDefault();
-                    switchItemCatalogueName(itemId, catalogue);
+                    if(isAllowedAstrodex) {
+                        switchItemCatalogueName(itemId, catalogue);
+                    }
                     break;
             }
         }
@@ -1498,7 +1541,9 @@ function initializeAstrodexEventListeners() {
             switch(action) {
                 case 'add-astrodex-item':
                     e.preventDefault();
-                    showAddAstrodexItemModal();
+                    if(isAllowedAstrodex) {
+                        showAddAstrodexItemModal();
+                    }
                     break;
             }
         }
@@ -1512,7 +1557,7 @@ function initializeAstrodexEventListeners() {
         }
         
         // Handle card body clicks (detail view)
-        if (cardBody && !button && !cardImage) {
+        if (cardBody && !button && !cardImage && isAllowedAstrodex) {
             const itemId = cardBody.getAttribute('data-item-id');
             if (itemId) {
                 showAstrodexItemDetail(itemId);
@@ -1562,25 +1607,25 @@ function initializeAstrodexEventListeners() {
     
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
-            updateAstrodexFilter('search', e.target.value);
+            updateAstrodexFilter('search', e.target.value, isAllowedAstrodex);
         });
     }
     
     if (typeFilter) {
         typeFilter.addEventListener('change', (e) => {
-            updateAstrodexFilter('type', e.target.value);
+            updateAstrodexFilter('type', e.target.value, isAllowedAstrodex);
         });
     }
     
     if (photoFilter) {
         photoFilter.addEventListener('change', (e) => {
-            updateAstrodexFilter('hasPhotos', e.target.value);
+            updateAstrodexFilter('hasPhotos', e.target.value, isAllowedAstrodex);
         });
     }
     
     if (sortSelect) {
         sortSelect.addEventListener('change', (e) => {
-            updateAstrodexFilter('sortBy', e.target.value);
+            updateAstrodexFilter('sortBy', e.target.value, isAllowedAstrodex);
         });
     }
     
