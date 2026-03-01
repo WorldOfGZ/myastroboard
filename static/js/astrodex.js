@@ -3,7 +3,9 @@
 
 let astrodexData = {
     items: [],
-    stats: {}
+    stats: {},
+    privateMode: true,
+    currentUserId: null
 };
 
 let currentAstrodexItem = null;
@@ -97,6 +99,8 @@ async function loadAstrodex() {
         const response = await fetchJSON('/api/astrodex');
         astrodexData.items = response.items || [];
         astrodexData.stats = response.stats || {};
+        astrodexData.privateMode = response.private_mode !== false;
+        astrodexData.currentUserId = response.current_user_id || null;
         
         // Load equipment data for Astrodex integration
         if(isAllowedAstrodex) {
@@ -127,6 +131,9 @@ async function getConstellationsList() {
 function renderAstrodexView(isAllowedAstrodex) {
     const container = document.getElementById('astrodex-content');
     if (!container) return;
+
+    updateAstrodexCollectionTitle();
+
     // Render stats
     renderAstrodexStats();
     
@@ -137,41 +144,133 @@ function renderAstrodexView(isAllowedAstrodex) {
     renderAstrodexGrid(filteredItems, isAllowedAstrodex);
 }
 
+function updateAstrodexCollectionTitle() {
+    const title = document.getElementById('astrodex-collection-title');
+    const subtitle = document.getElementById('astrodex-collection-subtitle');
+    if (!title) return;
+
+    if (astrodexData.privateMode) {
+        title.textContent = '📚 My Collection';
+        if (subtitle) {
+            subtitle.textContent = 'Your personal collection of captured celestial objects';
+        }
+    } else {
+        title.textContent = '📚 Common Collection';
+        if (subtitle) {
+            subtitle.textContent = 'Shared collection of captured celestial objects (read-only for items from other users)';
+        }
+    }
+}
+
+function getPersonalAstrodexStats() {
+    const personalItems = (astrodexData.items || []).filter(item => item.is_owned_by_current_user !== false);
+    const personalTypes = new Set();
+    const personalConstellations = new Set();
+
+    personalItems.forEach(item => {
+        const itemType = (item.type || 'Unknown').toString().trim();
+        if (itemType) {
+            personalTypes.add(itemType);
+        }
+
+        const constellation = (item.constellation || '').toString().trim().toLowerCase();
+        if (constellation) {
+            personalConstellations.add(constellation);
+        }
+    });
+
+    const itemsWithPictures = personalItems.filter(item => {
+        const ownPicturesCount = Array.isArray(item.own_pictures)
+            ? item.own_pictures.length
+            : (item.pictures ? item.pictures.length : 0);
+        return ownPicturesCount > 0;
+    }).length;
+    const totalPictures = personalItems.reduce((count, item) => {
+        const ownPicturesCount = Array.isArray(item.own_pictures)
+            ? item.own_pictures.length
+            : (item.pictures ? item.pictures.length : 0);
+        return count + ownPicturesCount;
+    }, 0);
+
+    return {
+        totalItems: personalItems.length,
+        itemsWithPictures,
+        totalPictures,
+        objectTypesCount: personalTypes.size,
+        constellationsCount: personalConstellations.size
+    };
+}
+
 function renderAstrodexStats() {
     const statsContainer = document.getElementById('astrodex-stats');
     if (!statsContainer) return;
     
     const stats = astrodexData.stats;
+    const totalItems = Number(stats.total_items || 0);
+    const itemsWithPictures = Number(stats.items_with_pictures || 0);
+    const totalPictures = Number(stats.total_pictures || 0);
+    const objectTypesCount = Number(Object.keys(stats.types || {}).length || 0);
+    const constellationCount = new Set(
+        (astrodexData.items || [])
+            .map(item => (item.constellation || '').toString().trim().toLowerCase())
+            .filter(value => value)
+    ).size;
+
+    const personalStats = getPersonalAstrodexStats();
+    const personalSuffix = astrodexData.privateMode
+        ? ''
+        : ` (personnal: ${personalStats.totalItems})`;
+    const personalPicturesSuffix = astrodexData.privateMode
+        ? ''
+        : ` (personnal: ${personalStats.itemsWithPictures})`;
+    const personalTotalPhotosSuffix = astrodexData.privateMode
+        ? ''
+        : ` (personnal: ${personalStats.totalPictures})`;
+    const personalObjectTypesSuffix = astrodexData.privateMode
+        ? ''
+        : ` (personnal: ${personalStats.objectTypesCount})`;
+    const personalConstellationsSuffix = astrodexData.privateMode
+        ? ''
+        : ` (personnal: ${personalStats.constellationsCount})`;
+
     statsContainer.innerHTML = `
         <div class="col">
             <div class="card h-100">
                 <div class="card-body text-center">
-                    <div class="astrodex-insight-value text-primary">${stats.total_items.toFixed(0) || 0}</div>
-                    <div class="fw-light fst-italic">Total Objects</div>
+                    <div class="astrodex-insight-value text-primary">${totalItems.toFixed(0)}</div>
+                    <div class="fw-light fst-italic">Total Objects${personalSuffix}</div>
                 </div>
             </div>
         </div>
         <div class="col">
             <div class="card h-100">
                 <div class="card-body text-center">
-                    <div class="astrodex-insight-value text-primary">${stats.items_with_pictures.toFixed(0) || 0}</div>
-                    <div class="fw-light fst-italic">With Photos</div>
+                    <div class="astrodex-insight-value text-primary">${itemsWithPictures.toFixed(0)}</div>
+                    <div class="fw-light fst-italic">With Photos${personalPicturesSuffix}</div>
                 </div>
             </div>
         </div>
         <div class="col">
             <div class="card h-100">
                 <div class="card-body text-center">
-                    <div class="astrodex-insight-value text-primary">${stats.total_pictures.toFixed(0) || 0}</div>
-                    <div class="fw-light fst-italic">Total Photos</div>
+                    <div class="astrodex-insight-value text-primary">${totalPictures.toFixed(0)}</div>
+                    <div class="fw-light fst-italic">Total Photos${personalTotalPhotosSuffix}</div>
                 </div>
             </div>
         </div>
         <div class="col">
             <div class="card h-100">
                 <div class="card-body text-center">
-                    <div class="astrodex-insight-value text-primary">${Object.keys(stats.types || {}).length.toFixed(0) || 0}</div>
-                    <div class="fw-light fst-italic">Object Types</div>
+                    <div class="astrodex-insight-value text-primary">${objectTypesCount.toFixed(0)}</div>
+                    <div class="fw-light fst-italic">Object Types${personalObjectTypesSuffix}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="astrodex-insight-value text-primary">${constellationCount.toFixed(0)}</div>
+                    <div class="fw-light fst-italic">Constellations${personalConstellationsSuffix}</div>
                 </div>
             </div>
         </div>
@@ -215,12 +314,14 @@ function renderAstrodexGrid(items, isAllowedAstrodex) {
     }
     
     gridContainer.innerHTML = items.map(item => {
-        const mainPicture = getMainPicture(item);
+        const isOwnedByCurrentUser = item.is_owned_by_current_user !== false;
+        const mainPicture = getCardMainPicture(item);
         const imageUrl = mainPicture 
             ? `/api/astrodex/images/${escapeHtml(mainPicture.filename)}`
             : '/static/img/default_astro_object.svg';
         
-        const photoCount = item.pictures ? item.pictures.length : 0;
+        const photoCount = Number(item.total_pictures ?? (item.pictures ? item.pictures.length : 0));
+        const canOpenSharedSlideshow = photoCount > 0;
         
         // Escape values for safe HTML insertion
         const escapedName = escapeHtml(item.name);
@@ -239,10 +340,11 @@ function renderAstrodexGrid(items, isAllowedAstrodex) {
                         <img src="${escapedImageUrl}" alt="${escapedName}" loading="lazy" class="card-img-top">
                         ${photoCount > 0 ? `<div class="photo-badge">${photoCount} 📷</div>` : ''}
                     </div>
-                    <div class="card-body astrodex-card-body" data-item-id="${jsEscapedId}" tabindex="0" role="button" aria-label="View ${escapedName} details" style="cursor: pointer;">
+                    <div class="card-body astrodex-card-body" data-item-id="${jsEscapedId}" tabindex="0" role="button" aria-label="${isOwnedByCurrentUser ? `View ${escapedName} details` : `View ${escapedName} photos`}" style="cursor: ${isOwnedByCurrentUser || canOpenSharedSlideshow ? 'pointer' : 'default'};">
                         <div class="astrodex-card-title">${escapedName}</div>
                         <div class="astrodex-card-type">${escapeHtml(item.type || 'Unknown')}</div>
                         ${item.constellation ? `<div class="astrodex-card-constellation">📍 ${escapeHtml(capitalizeWords(item.constellation))}</div>` : ''}
+                        ${!isOwnedByCurrentUser ? `<div class="astrodex-card-constellation">👤 ${escapeHtml(item.owner_username || 'Shared')}</div>` : ''}
                     </div>
                 </div>
             </div>
@@ -264,6 +366,63 @@ function getMainPicture(item) {
     
     // If no main picture is set, return first picture
     return item.pictures[0];
+}
+
+function parsePictureDateTimestamp(picture) {
+    if (!picture) {
+        return Number.NEGATIVE_INFINITY;
+    }
+
+    const dateCandidates = [picture.date, picture.created_at];
+    for (const dateValue of dateCandidates) {
+        if (!dateValue) {
+            continue;
+        }
+        const timestamp = Date.parse(dateValue);
+        if (!Number.isNaN(timestamp)) {
+            return timestamp;
+        }
+    }
+
+    return Number.NEGATIVE_INFINITY;
+}
+
+function getLatestPictureFromAllUsers(item) {
+    if (!item?.pictures || item.pictures.length === 0) {
+        return null;
+    }
+
+    const sortedPictures = [...item.pictures].sort((pictureA, pictureB) => {
+        const timestampA = parsePictureDateTimestamp(pictureA);
+        const timestampB = parsePictureDateTimestamp(pictureB);
+        return timestampB - timestampA;
+    });
+
+    return sortedPictures[0] || null;
+}
+
+function getCardMainPicture(item) {
+    if (!item?.pictures || item.pictures.length === 0) {
+        return null;
+    }
+
+    if (astrodexData.privateMode) {
+        return getMainPicture(item);
+    }
+
+    const currentUserMainPicture = item.pictures.find(picture =>
+        picture?.is_main && picture?.is_owned_by_current_user === true
+    );
+    if (currentUserMainPicture) {
+        return currentUserMainPicture;
+    }
+
+    const latestPicture = getLatestPictureFromAllUsers(item);
+    if (latestPicture) {
+        return latestPicture;
+    }
+
+    return null;
 }
 
 // ============================================
@@ -527,6 +686,11 @@ async function showAddAstrodexItemModal() {
 async function showAstrodexItemDetail(itemId) { 
     const item = astrodexData.items.find(i => i.id === itemId);
     if (!item) return;
+
+    if (item.is_owned_by_current_user === false) {
+        showPictureSlideshow(itemId);
+        return;
+    }
     
     currentAstrodexItem = item;
 
@@ -546,6 +710,13 @@ async function showAstrodexItemDetail(itemId) {
     const jsEscapedName = escapeForJs(item.name);
     const jsEscapedImageUrl = escapeForJs(imageUrl);
     const catalogueAliasesSection = renderCatalogueAliasesSection(item);
+    const ownPicturesCount = Array.isArray(item.own_pictures)
+        ? item.own_pictures.length
+        : (item.pictures ? item.pictures.length : 0);
+    const totalPicturesCount = Number(item.total_pictures ?? ownPicturesCount);
+    const picturesTitle = totalPicturesCount > ownPicturesCount
+        ? `My Photos (${ownPicturesCount}) • Shared Total (${totalPicturesCount})`
+        : `Photos (${ownPicturesCount})`;
     
     const modal = createModal(item.name, `                    
         <h3>Object Information</h3>
@@ -589,7 +760,7 @@ async function showAstrodexItemDetail(itemId) {
             <button class="btn btn-sm btn-danger" data-action="delete-item" data-item-id="${escapeHtml(item.id)}">🗑️ Remove</button>
         </div>
 
-        <h3>Photos (${item.pictures ? item.pictures.length : 0})</h3>
+        <h3>${escapeHtml(picturesTitle)}</h3>
         <div class="astrodex-pictures row row-cols-2 row-cols-md-4 g-4">
             ${renderPicturesGrid(item)}
         </div>
@@ -649,12 +820,14 @@ function renderCatalogueAliasesSection(item) {
 }
 
 function renderPicturesGrid(item) {
-    if (!item.pictures || item.pictures.length === 0) {
+    const editablePictures = Array.isArray(item.own_pictures) ? item.own_pictures : (item.pictures || []);
+
+    if (!editablePictures || editablePictures.length === 0) {
         return `
             <div class="col">
                 <div class="card h-100">
                     <div class="card-body text-center">
-                        <p>No photos yet</p>
+                        <p>No personal photos yet</p>
                         <button class="btn btn-primary" data-action="add-picture" data-item-id="${item.id}">Add First Photo</button>
                     </div>
                 </div>
@@ -662,7 +835,7 @@ function renderPicturesGrid(item) {
         `;
     }
     
-    return item.pictures.map(picture => {
+    return editablePictures.map(picture => {
         // Escape values for safe HTML insertion
         const escapedName = escapeHtml(item.name);
         const imageUrl = `/api/astrodex/images/${picture.filename}`;
@@ -1127,7 +1300,8 @@ async function updatePicture(itemId, pictureId) {
 
 function showPictureSlideshow(itemId) {
     const item = astrodexData.items.find(i => i.id === itemId);
-    if (!item || !item.pictures || item.pictures.length === 0) {
+    const slideshowPictures = Array.isArray(item?.pictures) ? item.pictures : [];
+    if (!item || slideshowPictures.length === 0) {
         // No pictures, do nothing
         return;
     }
@@ -1137,16 +1311,25 @@ function showPictureSlideshow(itemId) {
     let bs_modal = null; // Store bootstrap modal reference
     
     function updateModalContent() {
-        const picture = item.pictures[currentIndex];
+        const picture = slideshowPictures[currentIndex];
         const imageUrl = `/api/astrodex/images/${picture.filename}`;
+        const ownerUsername = picture.owner_username || item.owner_username || '';
+        const showOwner = !!ownerUsername && picture.is_owned_by_current_user === false;
         
         const pictureInfo = `
         <div class="slideshow-info mt-4">
             <div class="row mb-3">
                 <div class="col text-center">
-                    <span class="badge bg-primary fs-6">Photo ${escapeHtml((currentIndex + 1).toString())} of ${escapeHtml(item.pictures.length.toString())}</span>
+                    <span class="badge bg-primary fs-6">Photo ${escapeHtml((currentIndex + 1).toString())} of ${escapeHtml(slideshowPictures.length.toString())}</span>
                 </div>
             </div>
+            ${showOwner ? `
+                <div class="row mb-3">
+                    <div class="col text-center">
+                        <span class="badge bg-secondary fs-6">Captured by ${escapeHtml(ownerUsername)}</span>
+                    </div>
+                </div>
+            ` : ''}
             <div class="row g-3">
                 ${picture.date ? `
                     <div class="col-md-6 col-lg-4">
@@ -1231,7 +1414,7 @@ function showPictureSlideshow(itemId) {
         </div>
         `;
         
-        const leftArrow = item.pictures.length > 1 && currentIndex > 0 ? `
+        const leftArrow = slideshowPictures.length > 1 && currentIndex > 0 ? `
             <button type="button" 
                 class="btn btn-dark btn-lg slideshow-arrow slideshow-prev position-absolute top-50 start-0 translate-middle-y ms-3 
                     d-flex align-items-center justify-content-center" 
@@ -1244,7 +1427,7 @@ function showPictureSlideshow(itemId) {
             </button>
         ` : '';
         
-        const rightArrow = item.pictures.length > 1 && currentIndex < item.pictures.length - 1 ? `
+        const rightArrow = slideshowPictures.length > 1 && currentIndex < slideshowPictures.length - 1 ? `
             <button type="button" 
                 class="btn btn-dark btn-lg slideshow-arrow slideshow-next position-absolute top-50 end-0 translate-middle-y me-3 
                     d-flex align-items-center justify-content-center"
@@ -1279,7 +1462,7 @@ function showPictureSlideshow(itemId) {
     }
     
     function attachNavigationListeners() {
-        if (item.pictures.length <= 1) return;
+        if (slideshowPictures.length <= 1) return;
         
         const prevBtn = document.querySelector('.slideshow-prev');
         const nextBtn = document.querySelector('.slideshow-next');
@@ -1305,7 +1488,7 @@ function showPictureSlideshow(itemId) {
         if (nextBtn) {
             nextBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (currentIndex < item.pictures.length - 1) {
+                if (currentIndex < slideshowPictures.length - 1) {
                     currentIndex++;
                     updateModalContent();
                 }
@@ -1333,7 +1516,7 @@ function showPictureSlideshow(itemId) {
                 e.preventDefault();
                 currentIndex--;
                 updateModalContent();
-            } else if (e.key === 'ArrowRight' && currentIndex < item.pictures.length - 1) {
+            } else if (e.key === 'ArrowRight' && currentIndex < slideshowPictures.length - 1) {
                 e.preventDefault();
                 currentIndex++;
                 updateModalContent();
@@ -1557,10 +1740,20 @@ async function initializeAstrodexEventListeners() {
         }
         
         // Handle card body clicks (detail view)
-        if (cardBody && !button && !cardImage && isAllowedAstrodex) {
+        if (cardBody && !button && !cardImage) {
             const itemId = cardBody.getAttribute('data-item-id');
             if (itemId) {
-                showAstrodexItemDetail(itemId);
+                const item = astrodexData.items.find(i => i.id === itemId);
+                if (!item) return;
+
+                if (item.is_owned_by_current_user === false) {
+                    showPictureSlideshow(itemId);
+                    return;
+                }
+
+                if (isAllowedAstrodex) {
+                    showAstrodexItemDetail(itemId);
+                }
             }
         }
     });
@@ -1581,7 +1774,16 @@ async function initializeAstrodexEventListeners() {
             } else if (cardBody) {
                 e.preventDefault();
                 const itemId = cardBody.getAttribute('data-item-id');
-                if (itemId) showAstrodexItemDetail(itemId);
+                if (!itemId) return;
+
+                const item = astrodexData.items.find(i => i.id === itemId);
+                if (!item) return;
+
+                if (item.is_owned_by_current_user === false) {
+                    showPictureSlideshow(itemId);
+                } else if (isAllowedAstrodex) {
+                    showAstrodexItemDetail(itemId);
+                }
             } 
         }
     });
@@ -1594,6 +1796,10 @@ async function initializeAstrodexEventListeners() {
         const field = target.getAttribute('data-field');
         
         if (action === 'update-field' && itemId && field) {
+            const item = astrodexData.items.find(i => i.id === itemId);
+            if (item && item.is_owned_by_current_user === false) {
+                return;
+            }
             updateItemField(itemId, field, target.value);
         }
     });

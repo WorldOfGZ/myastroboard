@@ -2,6 +2,7 @@
 Astrodex Module - Pokédex-style collection system for astrophotography objects
 Manages user collections of celestial objects they have photographed
 """
+import copy
 import json
 import os
 import re
@@ -128,6 +129,229 @@ def _sanitize_astrodex_for_persistence(astrodex_data: Dict) -> None:
 
     for item in items:
         _sanitize_item_for_persistence(item)
+
+
+def _get_item_merge_key(item: Dict) -> str:
+    """Build a stable merge key for an astrodex item (aliases group first)."""
+    group_id, aliases = _get_item_alias_metadata(item)
+    if group_id:
+        return f"group:{group_id.lower()}"
+
+    alias_names = {
+        _normalize_name(alias_name)
+        for alias_name in aliases.values()
+        if alias_name
+    }
+    alias_names.discard('')
+    if alias_names:
+        return f"alias:{sorted(alias_names)[0]}"
+
+    normalized_name = _normalize_name(item.get('name', ''))
+    if normalized_name:
+        return f"name:{normalized_name}"
+
+    return f"id:{item.get('id', '')}"
+
+
+def _attach_picture_owner_metadata(
+    item: Dict,
+    owner_user_id: str,
+    owner_username: str,
+    current_user_id: str
+) -> None:
+    """Attach ownership metadata to all pictures of an item for UI permissions."""
+    pictures = item.get('pictures', [])
+    if not isinstance(pictures, list):
+        item['pictures'] = []
+        return
+
+    for picture in pictures:
+        if not isinstance(picture, dict):
+            continue
+        picture['owner_user_id'] = owner_user_id
+        picture['owner_username'] = owner_username
+        picture['is_owned_by_current_user'] = owner_user_id == current_user_id
+
+
+def _build_stats_from_items(items: List[Dict]) -> Dict:
+    """Build astrodex stats from an arbitrary visible items list."""
+    total_items = len(items)
+    items_with_pictures = sum(1 for item in items if item.get('pictures'))
+    total_pictures = sum(len(item.get('pictures', [])) for item in items)
+
+    types_count: Dict[str, int] = {}
+    for item in items:
+        item_type = item.get('type', 'Unknown')
+        types_count[item_type] = types_count.get(item_type, 0) + 1
+
+    return {
+        'total_items': total_items,
+        'items_with_pictures': items_with_pictures,
+        'items_without_pictures': total_items - items_with_pictures,
+        'total_pictures': total_pictures,
+        'types': types_count
+    }
+
+
+def load_all_users_astrodex(usernames_by_id: Optional[Dict[str, str]] = None) -> List[Dict]:
+    """Load astrodex collections for all users that have an astrodex file."""
+    ensure_astrodex_directories()
+    usernames_by_id = usernames_by_id or {}
+
+    collections: List[Dict] = []
+    suffix = '_astrodex.json'
+
+    for filename in os.listdir(ASTRODEX_DIR):
+        if not filename.endswith(suffix):
+            continue
+
+        user_id = filename[:-len(suffix)]
+        username = usernames_by_id.get(user_id)
+        data = load_user_astrodex(user_id, username)
+        collections.append({
+            'user_id': user_id,
+            'username': data.get('username') or username or 'unknown',
+            'created_at': data.get('created_at'),
+            'updated_at': data.get('updated_at'),
+            'items': data.get('items', [])
+        })
+
+    return collections
+
+
+def get_visible_astrodex(
+    current_user_id: str,
+    current_username: Optional[str] = None,
+    private_mode: bool = False,
+    usernames_by_id: Optional[Dict[str, str]] = None
+) -> Dict:
+    """
+    Return astrodex payload visible to current user.
+
+    private_mode=True -> only current user's astrodex.
+    private_mode=False -> merged view across users, grouped by aliases/name.
+    """
+    current_user = load_user_astrodex(current_user_id, current_username)
+    own_items = current_user.get('items', []) if isinstance(current_user.get('items', []), list) else []
+
+    if private_mode:
+        visible_items: List[Dict] = []
+        for raw_item in own_items:
+            item = copy.deepcopy(raw_item)
+            enrich_item_with_catalogue_aliases(item)
+            item['owner_user_id'] = current_user_id
+            item['owner_username'] = current_user.get('username', current_username or 'unknown')
+            item['is_owned_by_current_user'] = True
+            _attach_picture_owner_metadata(
+                item,
+                current_user_id,
+                item['owner_username'],
+                current_user_id
+            )
+            item['own_pictures'] = copy.deepcopy(item.get('pictures', []))
+            item['own_pictures_count'] = len(item['own_pictures'])
+            item['total_pictures'] = len(item.get('pictures', []))
+            visible_items.append(item)
+
+        return {
+            'items': visible_items,
+            'stats': _build_stats_from_items(visible_items),
+            'created_at': current_user.get('created_at'),
+            'updated_at': current_user.get('updated_at'),
+            'private_mode': True
+        }
+
+    usernames_by_id = usernames_by_id or {}
+    all_collections = load_all_users_astrodex(usernames_by_id)
+
+    grouped: Dict[str, List[Dict]] = {}
+
+    for collection in all_collections:
+        owner_user_id = collection.get('user_id', '')
+        owner_username = collection.get('username', 'unknown')
+        for raw_item in collection.get('items', []):
+            item = copy.deepcopy(raw_item)
+            enrich_item_with_catalogue_aliases(item)
+            item['owner_user_id'] = owner_user_id
+            item['owner_username'] = owner_username
+            item['is_owned_by_current_user'] = owner_user_id == current_user_id
+            _attach_picture_owner_metadata(item, owner_user_id, owner_username, current_user_id)
+
+            merge_key = _get_item_merge_key(item)
+            grouped.setdefault(merge_key, []).append(item)
+
+    merged_items: List[Dict] = []
+    for source_items in grouped.values():
+        own_item = next((item for item in source_items if item.get('owner_user_id') == current_user_id), None)
+        base_item = own_item or source_items[0]
+
+        merged_item = copy.deepcopy(base_item)
+        merged_item['is_owned_by_current_user'] = own_item is not None
+
+        merged_pictures: List[Dict] = []
+        seen_picture_keys = set()
+        for source_item in source_items:
+            for picture in source_item.get('pictures', []):
+                picture_key = (
+                    str(picture.get('owner_user_id', source_item.get('owner_user_id', ''))),
+                    str(picture.get('id', '')),
+                    str(picture.get('filename', ''))
+                )
+                if picture_key in seen_picture_keys:
+                    continue
+                seen_picture_keys.add(picture_key)
+                merged_pictures.append(copy.deepcopy(picture))
+
+        own_pictures = copy.deepcopy(own_item.get('pictures', [])) if own_item else []
+
+        merged_item['pictures'] = merged_pictures
+        merged_item['own_pictures'] = own_pictures
+        merged_item['own_pictures_count'] = len(own_pictures)
+        merged_item['total_pictures'] = len(merged_pictures)
+        merged_item['shared_owner_usernames'] = sorted({
+            str(item.get('owner_username') or 'unknown')
+            for item in source_items
+        })
+
+        merged_items.append(merged_item)
+
+    merged_items.sort(key=lambda item: _normalize_name(item.get('name', '')) or item.get('name', '').lower())
+
+    return {
+        'items': merged_items,
+        'stats': _build_stats_from_items(merged_items),
+        'created_at': current_user.get('created_at'),
+        'updated_at': current_user.get('updated_at'),
+        'private_mode': False
+    }
+
+
+def can_user_view_image(
+    user_id: str,
+    filename: str,
+    private_mode: bool,
+    usernames_by_id: Optional[Dict[str, str]] = None
+) -> bool:
+    """Check if user can access an astrodex image according to privacy mode."""
+    if not filename:
+        return False
+
+    if private_mode:
+        data = load_user_astrodex(user_id, (usernames_by_id or {}).get(user_id))
+        for item in data.get('items', []):
+            for picture in item.get('pictures', []):
+                if picture.get('filename') == filename:
+                    return True
+        return False
+
+    collections = load_all_users_astrodex(usernames_by_id)
+    for collection in collections:
+        for item in collection.get('items', []):
+            for picture in item.get('pictures', []):
+                if picture.get('filename') == filename:
+                    return True
+
+    return False
 
 
 def ensure_astrodex_directories():
@@ -724,24 +948,7 @@ def switch_item_catalogue_name(user_id: str, item_id: str, target_catalogue: str
 def get_astrodex_stats(user_id: str) -> Dict:
     """Get statistics about user's astrodex"""
     astrodex = load_user_astrodex(user_id)
-    
-    total_items = len(astrodex['items'])
-    items_with_pictures = sum(1 for item in astrodex['items'] if item.get('pictures'))
-    total_pictures = sum(len(item.get('pictures', [])) for item in astrodex['items'])
-    
-    # Count by type
-    types_count = {}
-    for item in astrodex['items']:
-        item_type = item.get('type', 'Unknown')
-        types_count[item_type] = types_count.get(item_type, 0) + 1
-    
-    return {
-        'total_items': total_items,
-        'items_with_pictures': items_with_pictures,
-        'items_without_pictures': total_items - items_with_pictures,
-        'total_pictures': total_pictures,
-        'types': types_count
-    }
+    return _build_stats_from_items(astrodex['items'])
 
 
 def get_constellations_list() -> List[str]:

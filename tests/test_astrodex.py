@@ -569,3 +569,137 @@ class TestAstrodexAliases:
 
         with pytest.raises(ValueError):
             astrodex.switch_item_catalogue_name('testuser', first_item['id'], 'OpenNGC')
+
+
+class TestAstrodexVisibilityModes:
+    """Test private/public astrodex visibility and shared items behavior."""
+
+    @staticmethod
+    def _fake_alias_entry(catalogue: str, object_name: str) -> dict:
+        entry = {
+            'group_id': 'OBJ000001',
+            'aliases': {
+                'GaryImm': 'M81',
+                'OpenNGC': 'NGC 3031'
+            }
+        }
+
+        if catalogue == 'GaryImm' and object_name == 'M81':
+            return entry
+        if catalogue == 'OpenNGC' and object_name == 'NGC 3031':
+            return entry
+        return {}
+
+    def test_public_mode_merges_shared_items_and_pictures(self, temp_data_dir, monkeypatch):
+        """Public mode merges equivalent objects and keeps owner metadata per picture."""
+        monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', self._fake_alias_entry)
+
+        user1_item = astrodex.create_astrodex_item(
+            'user1',
+            {'name': 'M81', 'type': 'Galaxy', 'catalogue': 'GaryImm'},
+            username='alice'
+        )
+        assert user1_item is not None
+
+        user2_item = astrodex.create_astrodex_item(
+            'user2',
+            {'name': 'NGC 3031', 'type': 'Galaxy', 'catalogue': 'OpenNGC'},
+            username='bob'
+        )
+        assert user2_item is not None
+
+        astrodex.add_picture_to_item('user1', user1_item['id'], {'filename': 'u1_pic.jpg'})
+        astrodex.add_picture_to_item('user2', user2_item['id'], {'filename': 'u2_pic.jpg'})
+
+        payload = astrodex.get_visible_astrodex(
+            current_user_id='user1',
+            current_username='alice',
+            private_mode=False,
+            usernames_by_id={'user1': 'alice', 'user2': 'bob'}
+        )
+
+        assert payload['private_mode'] is False
+        assert len(payload['items']) == 1
+
+        merged_item = payload['items'][0]
+        assert merged_item['is_owned_by_current_user'] is True
+        assert merged_item['own_pictures_count'] == 1
+        assert merged_item['total_pictures'] == 2
+
+        owners = {picture.get('owner_username') for picture in merged_item.get('pictures', [])}
+        assert owners == {'alice', 'bob'}
+
+    def test_private_mode_shows_only_own_items(self, temp_data_dir, monkeypatch):
+        """Private mode hides other users items and pictures."""
+        monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', self._fake_alias_entry)
+
+        user1_item = astrodex.create_astrodex_item(
+            'user1',
+            {'name': 'M81', 'type': 'Galaxy', 'catalogue': 'GaryImm'},
+            username='alice'
+        )
+        assert user1_item is not None
+
+        user2_item = astrodex.create_astrodex_item(
+            'user2',
+            {'name': 'NGC 3031', 'type': 'Galaxy', 'catalogue': 'OpenNGC'},
+            username='bob'
+        )
+        assert user2_item is not None
+
+        astrodex.add_picture_to_item('user1', user1_item['id'], {'filename': 'u1_private.jpg'})
+        astrodex.add_picture_to_item('user2', user2_item['id'], {'filename': 'u2_private.jpg'})
+
+        payload = astrodex.get_visible_astrodex(
+            current_user_id='user1',
+            current_username='alice',
+            private_mode=True,
+            usernames_by_id={'user1': 'alice', 'user2': 'bob'}
+        )
+
+        assert payload['private_mode'] is True
+        assert len(payload['items']) == 1
+
+        own_item = payload['items'][0]
+        assert own_item['is_owned_by_current_user'] is True
+        assert own_item['total_pictures'] == 1
+        assert own_item['own_pictures_count'] == 1
+        assert own_item['pictures'][0]['filename'] == 'u1_private.jpg'
+
+    def test_public_mode_non_owned_item_is_slideshow_only_source(self, temp_data_dir):
+        """If current user has no item, merged item is marked as non-owned with zero own pictures."""
+        user2_item = astrodex.create_astrodex_item(
+            'user2',
+            {'name': 'M42', 'type': 'Nebula', 'catalogue': 'Messier'},
+            username='bob'
+        )
+        assert user2_item is not None
+        astrodex.add_picture_to_item('user2', user2_item['id'], {'filename': 'u2_only.jpg'})
+
+        payload = astrodex.get_visible_astrodex(
+            current_user_id='user1',
+            current_username='alice',
+            private_mode=False,
+            usernames_by_id={'user1': 'alice', 'user2': 'bob'}
+        )
+
+        assert len(payload['items']) == 1
+        visible_item = payload['items'][0]
+        assert visible_item['is_owned_by_current_user'] is False
+        assert visible_item['own_pictures_count'] == 0
+        assert visible_item['total_pictures'] == 1
+
+    def test_can_user_view_image_respects_privacy_mode(self, temp_data_dir):
+        """Image access helper restricts private mode to own pictures only."""
+        user1_item = astrodex.create_astrodex_item('user1', {'name': 'M31', 'type': 'Galaxy'}, username='alice')
+        user2_item = astrodex.create_astrodex_item('user2', {'name': 'M42', 'type': 'Nebula'}, username='bob')
+        assert user1_item is not None
+        assert user2_item is not None
+
+        astrodex.add_picture_to_item('user1', user1_item['id'], {'filename': 'alice_img.jpg'})
+        astrodex.add_picture_to_item('user2', user2_item['id'], {'filename': 'bob_img.jpg'})
+
+        assert astrodex.can_user_view_image('user1', 'alice_img.jpg', private_mode=True) is True
+        assert astrodex.can_user_view_image('user1', 'bob_img.jpg', private_mode=True) is False
+
+        assert astrodex.can_user_view_image('user1', 'bob_img.jpg', private_mode=False) is True

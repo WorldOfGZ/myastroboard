@@ -1,7 +1,9 @@
 """API tests for Astrodex catalogue alias switching."""
 import os
 import sys
+import tempfile
 import types
+import uuid
 
 import pytest
 
@@ -15,6 +17,7 @@ from auth import user_manager  # type: ignore[import-not-found]
 if 'psutil' not in sys.modules:
     sys.modules['psutil'] = types.ModuleType('psutil')
 
+import app as app_module  # type: ignore[import-not-found]
 from app import app  # type: ignore[import-not-found]
 
 
@@ -77,3 +80,126 @@ def test_switch_catalogue_name_api_missing_catalogue(client):
     assert response.status_code == 400
     payload = response.get_json()
     assert payload['error'] == 'Target catalogue is required'
+
+
+def test_get_astrodex_public_mode_includes_other_users_items(client, monkeypatch):
+    """Public mode should expose shared view with non-owned items."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        monkeypatch.setenv('DATA_DIR', tmpdir)
+        astrodex.ASTRODEX_DIR = os.path.join(tmpdir, 'astrodex')
+        astrodex.ASTRODEX_IMAGES_DIR = os.path.join(astrodex.ASTRODEX_DIR, 'images')
+        monkeypatch.setattr(app_module, 'load_config', lambda: {'astrodex': {'private': False}})
+
+        admin_user = user_manager.get_user_by_username('admin')
+        assert admin_user is not None
+
+        other_username = f"user_{uuid.uuid4().hex[:8]}"
+        other_user = user_manager.create_user(other_username, 'test123', 'user')
+
+        admin_item = astrodex.create_astrodex_item(
+            admin_user.user_id,
+            {'name': 'M31', 'type': 'Galaxy', 'catalogue': 'Messier'},
+            username=admin_user.username
+        )
+        assert admin_item is not None
+
+        other_item = astrodex.create_astrodex_item(
+            other_user.user_id,
+            {'name': 'M42', 'type': 'Nebula', 'catalogue': 'Messier'},
+            username=other_user.username
+        )
+        assert other_item is not None
+
+        response = client.get('/api/astrodex')
+        assert response.status_code == 200
+        payload = response.get_json()
+
+        assert payload['private_mode'] is False
+        items = payload['items']
+        assert len(items) >= 2
+        assert any(item.get('is_owned_by_current_user') is True for item in items)
+        assert any(item.get('is_owned_by_current_user') is False for item in items)
+
+
+def test_get_astrodex_private_mode_hides_other_users_items(client, monkeypatch):
+    """Private mode should return only current user astrodex."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        monkeypatch.setenv('DATA_DIR', tmpdir)
+        astrodex.ASTRODEX_DIR = os.path.join(tmpdir, 'astrodex')
+        astrodex.ASTRODEX_IMAGES_DIR = os.path.join(astrodex.ASTRODEX_DIR, 'images')
+        monkeypatch.setattr(app_module, 'load_config', lambda: {'astrodex': {'private': True}})
+
+        admin_user = user_manager.get_user_by_username('admin')
+        assert admin_user is not None
+
+        other_username = f"user_{uuid.uuid4().hex[:8]}"
+        other_user = user_manager.create_user(other_username, 'test123', 'user')
+
+        admin_item = astrodex.create_astrodex_item(
+            admin_user.user_id,
+            {'name': 'M31', 'type': 'Galaxy', 'catalogue': 'Messier'},
+            username=admin_user.username
+        )
+        assert admin_item is not None
+
+        other_item = astrodex.create_astrodex_item(
+            other_user.user_id,
+            {'name': 'M42', 'type': 'Nebula', 'catalogue': 'Messier'},
+            username=other_user.username
+        )
+        assert other_item is not None
+
+        response = client.get('/api/astrodex')
+        assert response.status_code == 200
+        payload = response.get_json()
+
+        assert payload['private_mode'] is True
+        items = payload['items']
+        assert len(items) == 1
+        assert items[0].get('is_owned_by_current_user') is True
+
+
+def test_get_astrodex_image_private_mode_blocks_other_user_images(client, monkeypatch):
+    """In private mode, image endpoint must reject images not owned by current user."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        monkeypatch.setenv('DATA_DIR', tmpdir)
+        astrodex.ASTRODEX_DIR = os.path.join(tmpdir, 'astrodex')
+        astrodex.ASTRODEX_IMAGES_DIR = os.path.join(astrodex.ASTRODEX_DIR, 'images')
+        astrodex.ensure_astrodex_directories()
+        monkeypatch.setattr(app_module, 'load_config', lambda: {'astrodex': {'private': True}})
+
+        admin_user = user_manager.get_user_by_username('admin')
+        assert admin_user is not None
+
+        other_username = f"user_{uuid.uuid4().hex[:8]}"
+        other_user = user_manager.create_user(other_username, 'test123', 'user')
+
+        admin_item = astrodex.create_astrodex_item(
+            admin_user.user_id,
+            {'name': 'M31', 'type': 'Galaxy', 'catalogue': 'Messier'},
+            username=admin_user.username
+        )
+        assert admin_item is not None
+
+        other_item = astrodex.create_astrodex_item(
+            other_user.user_id,
+            {'name': 'M42', 'type': 'Nebula', 'catalogue': 'Messier'},
+            username=other_user.username
+        )
+        assert other_item is not None
+
+        astrodex.add_picture_to_item(admin_user.user_id, admin_item['id'], {'filename': 'own.jpg'})
+        astrodex.add_picture_to_item(other_user.user_id, other_item['id'], {'filename': 'other.jpg'})
+
+        own_image = os.path.join(astrodex.ASTRODEX_IMAGES_DIR, 'own.jpg')
+        other_image = os.path.join(astrodex.ASTRODEX_IMAGES_DIR, 'other.jpg')
+        with open(own_image, 'wb') as file_obj:
+            file_obj.write(b'img')
+        with open(other_image, 'wb') as file_obj:
+            file_obj.write(b'img')
+
+        own_response = client.get('/api/astrodex/images/own.jpg')
+        assert own_response.status_code == 200
+
+        other_response = client.get('/api/astrodex/images/other.jpg')
+        assert other_response.status_code == 403

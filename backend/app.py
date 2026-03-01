@@ -1596,17 +1596,30 @@ def get_astrodex():
         user_id = user.user_id if user else None
         if not user_id or not user:
             return jsonify({'error': 'User not authenticated'}), 401
-            
-        astrodex_data = astrodex.load_user_astrodex(user_id, user.username)
-        for item in astrodex_data.get('items', []):
-            astrodex.enrich_item_with_catalogue_aliases(item)
-        stats = astrodex.get_astrodex_stats(user_id)
+
+        config = load_config()
+        private_mode = bool(config.get('astrodex', {}).get('private', False))
+        users = user_manager.list_users()
+        usernames_by_id = {
+            user_entry.get('user_id', ''): user_entry.get('username', 'unknown')
+            for user_entry in users
+            if user_entry.get('user_id')
+        }
+
+        astrodex_data = astrodex.get_visible_astrodex(
+            current_user_id=user_id,
+            current_username=user.username,
+            private_mode=private_mode,
+            usernames_by_id=usernames_by_id
+        )
         
         return jsonify({
             'items': astrodex_data.get('items', []),
-            'stats': stats,
+            'stats': astrodex_data.get('stats', {}),
             'created_at': astrodex_data.get('created_at'),
-            'updated_at': astrodex_data.get('updated_at')
+            'updated_at': astrodex_data.get('updated_at'),
+            'private_mode': astrodex_data.get('private_mode', private_mode),
+            'current_user_id': user_id
         })
     except Exception as e:
         logger.error(f"Error getting astrodex: {e}")
@@ -1903,6 +1916,23 @@ def upload_astrodex_image():
 def get_astrodex_image(filename):
     """Serve an astrodex image"""
     try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        config = load_config()
+        private_mode = bool(config.get('astrodex', {}).get('private', False))
+        users = user_manager.list_users()
+        usernames_by_id = {
+            user_entry.get('user_id', ''): user_entry.get('username', 'unknown')
+            for user_entry in users
+            if user_entry.get('user_id')
+        }
+
+        if not astrodex.can_user_view_image(user_id, filename, private_mode, usernames_by_id):
+            return jsonify({'error': 'Image not accessible'}), 403
+
         return send_from_directory(astrodex.ASTRODEX_IMAGES_DIR, filename)
     except Exception as e:
         logger.error(f"Error serving image: {e}")
