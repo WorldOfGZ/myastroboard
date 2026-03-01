@@ -51,6 +51,7 @@ class EventType(Enum):
     SOLAR_ECLIPSE = "Solar Eclipse"
     LUNAR_ECLIPSE = "Lunar Eclipse"
     AURORA = "Aurora"
+    ISS_PASS = "ISS Pass"
     MOON_PHASE = "Moon Phase"
     CUSTOM = "Custom Event"
 
@@ -106,6 +107,7 @@ class EventsAggregator:
         solar_eclipse_data: Optional[Dict[str, Any]] = None,
         lunar_eclipse_data: Optional[Dict[str, Any]] = None,
         aurora_data: Optional[Dict[str, Any]] = None,
+        iss_passes_data: Optional[Dict[str, Any]] = None,
         moon_phases_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
@@ -154,6 +156,14 @@ class EventsAggregator:
                 events.extend(moon_events)
             except Exception as e:
                 logger.warning(f"Error extracting moon phase events: {e}")
+
+        # Add ISS pass if available
+        if iss_passes_data:
+            try:
+                iss_events = self._extract_iss_pass_events(iss_passes_data)
+                events.extend(iss_events)
+            except Exception as e:
+                logger.warning(f"Error extracting ISS pass events: {e}")
 
         # Sort by days until event
         events.sort(key=lambda x: x.days_until_event)
@@ -412,6 +422,62 @@ class EventsAggregator:
                 raw_data=moon_data,
             )
             events.append(event)
+        return events
+
+    def _extract_iss_pass_events(self, iss_data: Dict[str, Any]) -> List[AstronomicalEvent]:
+        """Extract ISS visible pass events occurring in the next 7 days."""
+        raw_passes = iss_data.get("passes")
+        if not isinstance(raw_passes, list):
+            next_pass = iss_data.get("next_visible_passage")
+            raw_passes = [next_pass] if next_pass else []
+
+        events: List[AstronomicalEvent] = []
+
+        for iss_pass in raw_passes:
+            if not isinstance(iss_pass, dict):
+                continue
+
+            peak_time_str = iss_pass.get("peak_time")
+            if not peak_time_str:
+                continue
+
+            peak_time = self._parse_iso_time(peak_time_str)
+            days_until = (peak_time.date() - self.local_now.date()).days
+
+            if days_until < 0 or days_until > 7:
+                continue
+
+            score = float(iss_pass.get("visibility_score", 0) or 0)
+            visibility_day_night = iss_pass.get("visibility_day_night", "Unknown")
+
+            if score >= 75:
+                importance = EventImportance.HIGH.value
+            elif score >= 55:
+                importance = EventImportance.MEDIUM.value
+            else:
+                importance = EventImportance.LOW.value
+
+            event = AstronomicalEvent(
+                id=f"iss_pass_{peak_time_str.replace(':', '').replace('-', '')}",
+                event_type=EventType.ISS_PASS.value,
+                emoji="🛰️",
+                title="ISS Visible Passage",
+                description=(
+                    f"ISS pass score {score:.0f}/100 ({visibility_day_night}). "
+                    f"Peak altitude {float(iss_pass.get('peak_altitude_deg', 0)):.1f}°."
+                ),
+                start_time=iss_pass.get("start_time"),
+                peak_time=peak_time_str,
+                end_time=iss_pass.get("end_time"),
+                days_until_event=days_until,
+                visibility=bool(iss_pass.get("is_visible", False)),
+                importance=importance,
+                score=score,
+                raw_data=iss_pass,
+            )
+            events.append(event)
+
+        events.sort(key=lambda event: self._parse_iso_time(event.peak_time) if event.peak_time else self.local_now)
         return events
 
     def _get_moon_phase_activity(self, phase_type: str) -> str:

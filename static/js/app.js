@@ -154,6 +154,8 @@ function switchSubTab(parentTab, subtabName) {
         loadSolarEclipse();
     } else if (subtabName === 'aurora') { //Astro Forecast tab - Aurora Borealis
         loadAurora();
+    } else if (subtabName === 'iss') { //Astro Forecast tab - ISS
+        loadIss();
     }
 }
 

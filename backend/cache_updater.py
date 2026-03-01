@@ -17,6 +17,7 @@ from sun_eclipse import SolarEclipseService
 from moon_eclipse import LunarEclipseService
 from horizon_graph import HorizonGraphService
 from aurora_predictions import get_aurora_report
+from iss_passes import get_iss_passes_report
 from weather_openmeteo import get_hourly_forecast
 import cache_store
 
@@ -543,6 +544,45 @@ def update_aurora_cache():
 
     except Exception as e:
         logger.error(f"Failed to update Aurora cache: {e}", exc_info=True)
+
+
+def update_iss_passes_cache(days: int = 20):
+    """
+    Updates the ISS passes cache.
+    """
+    try:
+        logger.info("Updating ISS passes cache...")
+        config = load_config()
+
+        if not config.get("location"):
+            raise ValueError("Location configuration is missing")
+
+        location = config["location"]
+        logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
+
+        report = get_iss_passes_report(
+            latitude=location["latitude"],
+            longitude=location["longitude"],
+            elevation_m=location.get("elevation", 0),
+            timezone_str=location["timezone"],
+            days=days,
+        )
+
+        if report is None:
+            raise ValueError("Failed to generate ISS passes report")
+
+        cache_store._iss_passes_cache["data"] = report
+        cache_store._iss_passes_cache["timestamp"] = time.time()
+        cache_store.update_shared_cache_entry(
+            "iss_passes",
+            cache_store._iss_passes_cache["data"],
+            cache_store._iss_passes_cache["timestamp"],
+        )
+
+        logger.info(f"ISS passes cache updated at {datetime.now().isoformat()}")
+
+    except Exception as e:
+        logger.error(f"Failed to update ISS passes cache: {e}", exc_info=True)
         
 
 def fully_initialize_caches():
@@ -572,6 +612,7 @@ def fully_initialize_caches():
             ("Lunar eclipse", update_lunar_eclipse_cache),
             ("Horizon graph", update_horizon_graph_cache),
             ("Aurora", update_aurora_cache),
+            ("ISS passes", update_iss_passes_cache),
             ("Best window", update_best_window_cache),
             ("Weather forecast", update_weather_cache)
         ]

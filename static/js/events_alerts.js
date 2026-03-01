@@ -248,6 +248,8 @@ function scrollToEventDetails(eventType) {
         subTabName = eventType.includes('Solar') ? 'sun' : 'moon';
     } else if (eventType === 'Aurora') {
         subTabName = 'aurora';
+    } else if (eventType === 'ISS Pass') {
+        subTabName = 'iss';
     } else if (eventType === 'Moon Phase') {
         subTabName = 'moon';
     }

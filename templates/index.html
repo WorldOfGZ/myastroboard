@@ -121,6 +121,9 @@
                         <a class="nav-link sub-tab-btn" href="#" data-subtab="aurora">🌌 Aurora Borealis</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="iss">🛰️ ISS</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link sub-tab-btn" href="#" data-subtab="calendar">📅 Events Calendar</a>
                     </li>
                 </ul>
@@ -246,6 +249,14 @@
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h2>🌌 Aurora Borealis Predictions</h2>
                     <div id="aurora-display" class="aurora-info-card rounded"></div>
+                </div>
+            </div>
+
+            <!-- ISS Sub-tab -->
+            <div id="iss-subtab" class="sub-tab-content">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>🛰️ ISS Passes</h2>
+                    <div id="iss-display" class="iss-info-card rounded"></div>
                 </div>
             </div>
 
@@ -1138,6 +1149,7 @@
     <script src="/static/js/lunar_eclipse.js?v={{ version }}"></script>
     <script src="/static/js/horizon_graph.js?v={{ version }}"></script>
     <script src="/static/js/aurora.js?v={{ version }}"></script>
+    <script src="/static/js/iss.js?v={{ version }}"></script>
     <script src="/static/js/weather.js?v={{ version }}"></script>
     <script src="/static/js/weather_astro.js?v={{ version }}"></script>
     <script src="/static/js/weather_alerts.js?v={{ version }}"></script>
