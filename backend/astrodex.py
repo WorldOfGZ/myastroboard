@@ -31,6 +31,29 @@ def _normalize_name(name: str) -> str:
     return catalogue_aliases.normalize_object_name(name)
 
 
+def _strip_parenthesized_text(value: str) -> str:
+    """Remove parenthesized segments using a linear scan."""
+    result_chars: List[str] = []
+    depth = 0
+
+    for char in value:
+        if char == '(':
+            depth += 1
+            continue
+        if char == ')' and depth > 0:
+            depth -= 1
+            continue
+        if depth == 0:
+            result_chars.append(char)
+
+    return ''.join(result_chars)
+
+
+def _normalize_whitespace(value: str) -> str:
+    """Collapse whitespace to single spaces without regex."""
+    return ' '.join(str(value).split())
+
+
 def _extract_name_candidates(name: str) -> List[str]:
     """Extract likely catalogue identifier candidates from a raw target label."""
     raw = str(name or '').strip()
@@ -39,8 +62,7 @@ def _extract_name_candidates(name: str) -> List[str]:
 
     candidates: List[str] = [raw]
 
-    no_parentheses = re.sub(r'\([^)]*\)', ' ', raw)
-    no_parentheses = re.sub(r'\s+', ' ', no_parentheses).strip()
+    no_parentheses = _normalize_whitespace(_strip_parenthesized_text(raw))
     if no_parentheses and no_parentheses not in candidates:
         candidates.append(no_parentheses)
 
@@ -59,7 +81,7 @@ def _extract_name_candidates(name: str) -> List[str]:
 
     for pattern in identifier_patterns:
         for match in re.findall(pattern, raw, flags=re.IGNORECASE):
-            match_value = re.sub(r'\s+', ' ', str(match).strip())
+            match_value = _normalize_whitespace(str(match))
             if match_value and match_value not in candidates:
                 candidates.append(match_value)
 

@@ -2,29 +2,54 @@
 // ISS Passes
 // ======================
 
-function formatTimeThenDateWithSeconds(isoString, locale = navigator.language) {
-    if (!isoString) return 'N/A';
-    const date = new Date(isoString);
 
-    const timeFormatter = new Intl.DateTimeFormat(locale, {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-
-    const dateFormatter = new Intl.DateTimeFormat(locale, {
-        month: 'numeric',
-        day: 'numeric'
-    });
-
-    return `${timeFormatter.format(date)} (${dateFormatter.format(date)})`;
+function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
 }
 
-function formatAltAz(altitudeDeg, azimuthCardinal, azimuthDeg) {
-    const safeAlt = Number.isFinite(Number(altitudeDeg)) ? `${Number(altitudeDeg).toFixed(1)}°` : 'N/A';
-    const safeCardinal = escapeHtml(azimuthCardinal || 'N/A');
-    const safeAz = Number.isFinite(Number(azimuthDeg)) ? `${Number(azimuthDeg).toFixed(1)}°` : 'N/A';
-    return `${safeAlt} / ${safeCardinal} (${safeAz})`;
+function computeVisibilityScore(pass) {
+    const peakAltitudeDeg = Number(pass?.peak_altitude_deg);
+    const startMs = Date.parse(pass?.start_time || '');
+    const endMs = Date.parse(pass?.end_time || '');
+
+    const altitudeScore = Number.isFinite(peakAltitudeDeg)
+        ? clamp(peakAltitudeDeg / 90, 0, 1)
+        : 0;
+
+    const durationMinutes = Number.isFinite(startMs) && Number.isFinite(endMs) && endMs >= startMs
+        ? (endMs - startMs) / 60000
+        : 0;
+    const durationScore = clamp(durationMinutes / 8, 0, 1);
+
+    const score = Math.round(((altitudeScore * 0.7) + (durationScore * 0.3)) * 100);
+    return clamp(score, 0, 100);
+}
+
+function createVisibilityGauge(scorePercent) {
+    const container = document.createElement('div');
+    container.className = 'iss-score';
+
+    const label = document.createElement('div');
+    label.className = 'iss-score-label';
+    label.textContent = `${scorePercent}%`;
+
+    const track = document.createElement('div');
+    track.className = 'iss-score-track';
+
+    const fill = document.createElement('div');
+    fill.className = 'iss-score-fill';
+    fill.style.width = `${scorePercent}%`;
+    fill.setAttribute('role', 'progressbar');
+    fill.setAttribute('aria-valuemin', '0');
+    fill.setAttribute('aria-valuemax', '100');
+    fill.setAttribute('aria-valuenow', String(scorePercent));
+    fill.setAttribute('aria-label', `Visibility score ${scorePercent}%`);
+
+    track.appendChild(fill);
+    container.appendChild(label);
+    container.appendChild(track);
+
+    return container;
 }
 
 /**
@@ -113,30 +138,50 @@ async function loadIss() {
     const tableResponsive = document.createElement('div');
     tableResponsive.className = 'table-responsive';
     const table = document.createElement('table');
-    table.className = 'table table-striped table-hover mb-0';
+    table.className = 'table table-striped table-hover mb-0 iss-pass-table';
     const thead = document.createElement('thead');
-    const headRow = document.createElement('tr');
+    const headRowTop = document.createElement('tr');
     [
-        'Date',
-        'Start',
-        'Start Elev / Az',
-        'Culmination',
-        'Culmination Elev / Az',
-        'End',
-        'End Elev / Az'
-    ].forEach((headerText) => {
+        { text: 'Date', rowSpan: 2 },
+        { text: 'Visibility', rowSpan: 2 },
+        { text: 'Start', colSpan: 2, className: 'iss-group-head' },
+        { text: 'Culmination', colSpan: 2, className: 'iss-group-head' },
+        { text: 'End', colSpan: 2, className: 'iss-group-head' }
+    ].forEach((headerConfig) => {
         const th = document.createElement('th');
-        th.textContent = headerText;
-        headRow.appendChild(th);
+        th.textContent = headerConfig.text;
+        if (headerConfig.rowSpan) th.rowSpan = headerConfig.rowSpan;
+        if (headerConfig.colSpan) th.colSpan = headerConfig.colSpan;
+        if (headerConfig.className) th.className = headerConfig.className;
+        headRowTop.appendChild(th);
     });
-    thead.appendChild(headRow);
+
+    const headRowBottom = document.createElement('tr');
+    ['Time', 'Elev / Az', 'Time', 'Elev / Az', 'Time', 'Elev / Az'].forEach((headerText) => {
+        const th = document.createElement('th');
+        th.className = 'text-center';
+        th.textContent = headerText;
+        headRowBottom.appendChild(th);
+    });
+
+    thead.appendChild(headRowTop);
+    thead.appendChild(headRowBottom);
 
     const tbody = document.createElement('tbody');
     if (passes.length > 0) {
         passes.forEach((pass) => {
             const row = document.createElement('tr');
+
+            const dateCell = document.createElement('td');
+            dateCell.textContent = formatDateFull(pass.peak_time);
+            row.appendChild(dateCell);
+
+            const visibilityCell = document.createElement('td');
+            const visibilityScore = computeVisibilityScore(pass);
+            visibilityCell.appendChild(createVisibilityGauge(visibilityScore));
+            row.appendChild(visibilityCell);
+
             [
-                formatDateFull(pass.peak_time),
                 formatTimeThenDateWithSeconds(pass.start_time),
                 formatAltAz(pass.start_altitude_deg, pass.start_azimuth_cardinal, pass.start_azimuth_deg),
                 formatTimeThenDateWithSeconds(pass.peak_time),
@@ -145,6 +190,7 @@ async function loadIss() {
                 formatAltAz(pass.end_altitude_deg, pass.end_azimuth_cardinal, pass.end_azimuth_deg)
             ].forEach((value) => {
                 const td = document.createElement('td');
+                td.className = 'text-center';
                 td.textContent = value;
                 row.appendChild(td);
             });
@@ -153,7 +199,7 @@ async function loadIss() {
     } else {
         const row = document.createElement('tr');
         const cell = document.createElement('td');
-        cell.colSpan = 7;
+        cell.colSpan = 8;
         cell.className = 'text-center text-muted';
         cell.textContent = 'No visible ISS passages found.';
         row.appendChild(cell);

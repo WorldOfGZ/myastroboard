@@ -141,6 +141,24 @@ function formatTimeThenDate(isoString, locale = navigator.language) {
     return `${timeFormatter.format(date)} (${dateFormatter.format(date)})`;
 }
 
+function formatTimeThenDateWithSeconds(isoString, locale = navigator.language) {
+    if (!isoString) return 'N/A';
+    const date = new Date(isoString);
+
+    const timeFormatter = new Intl.DateTimeFormat(locale, {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+
+    const dateFormatter = new Intl.DateTimeFormat(locale, {
+        month: 'numeric',
+        day: 'numeric'
+    });
+
+    return `${timeFormatter.format(date)} (${dateFormatter.format(date)})`;
+}
+
 // Helper function to format ISO date to localized date string
 // Example output: "6/30/2024" in US locale, "30/06/2024" in many European locales
 function formatDateFull(isoString, locale = navigator.language) {
@@ -187,4 +205,11 @@ function getCardinalDirection(azimuth) {
                        'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
     const index = Math.round((azimuth % 360) / 22.5);
     return directions[index % 16];
+}
+
+function formatAltAz(altitudeDeg, azimuthCardinal, azimuthDeg) {
+    const safeAlt = Number.isFinite(Number(altitudeDeg)) ? `${Number(altitudeDeg).toFixed(1)}°` : 'N/A';
+    const safeCardinal = escapeHtml(azimuthCardinal || 'N/A');
+    const safeAz = Number.isFinite(Number(azimuthDeg)) ? `${Number(azimuthDeg).toFixed(1)}°` : 'N/A';
+    return `${safeAlt} / ${safeCardinal} (${safeAz})`;
 }

@@ -12,33 +12,58 @@ from logging_config import get_logger
 # Initialize logger for this module
 logger = get_logger(__name__)
 
+
+def _resolve_catalogue_dir(catalogue_dir: str) -> Optional[Path]:
+    """Resolve and validate a catalogue directory path."""
+    try:
+        base_path = Path(catalogue_dir).resolve()
+    except (TypeError, ValueError, RuntimeError):
+        return None
+
+    if not base_path.exists() or not base_path.is_dir():
+        return None
+
+    return base_path
+
+
+def _resolve_path_within(base_path: Path, candidate_path: str) -> Optional[Path]:
+    """Resolve a candidate path and ensure it stays within base_path."""
+    try:
+        candidate = Path(candidate_path)
+        resolved = (base_path / candidate).resolve() if not candidate.is_absolute() else candidate.resolve()
+        resolved.relative_to(base_path)
+        return resolved
+    except (TypeError, ValueError, RuntimeError):
+        return None
+
 def parse_uptonight_report(file_path: str, report_type: str, catalogue_dir: str) -> Optional[dict]:
     """
     Parse UpTonight JSON report file safely.
     Returns parsed data or None if file doesn't exist or is invalid.
     """
     try:
-        # Normalize and confine paths
-        catalogue_dir = os.path.normpath(catalogue_dir)
-        file_path = os.path.normpath(file_path)
+        base_path = _resolve_catalogue_dir(catalogue_dir)
+        if not base_path:
+            return None
 
-        if not file_path.startswith(os.path.abspath(catalogue_dir)):
+        safe_file_path = _resolve_path_within(base_path, file_path)
+        if not safe_file_path:
             # Path traversal attempt, ignore
             logger.warning(f"Attempted access outside catalogue_dir: {file_path}")
             return None
 
-        if not os.path.exists(file_path):
+        if not safe_file_path.exists() or not safe_file_path.is_file():
             return None
 
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with safe_file_path.open('r', encoding='utf-8') as f:
             data = json.load(f)
 
         if report_type == 'objects':
-            return parse_objects_report(data, catalogue_dir)
+            return parse_objects_report(data, str(base_path))
         elif report_type == 'comets':
-            return parse_comets_report(data, catalogue_dir)
+            return parse_comets_report(data, str(base_path))
         elif report_type == 'bodies':
-            return parse_bodies_report(data, catalogue_dir)
+            return parse_bodies_report(data, str(base_path))
         else:
             return {'type': 'unknown', 'raw': data}
 
@@ -145,9 +170,8 @@ def get_catalogue_reports(catalogue_dir: str) -> dict:
 
     reports = {}
 
-    base_path = Path(catalogue_dir).resolve()
-
-    if not base_path.exists() or not base_path.is_dir():
+    base_path = _resolve_catalogue_dir(catalogue_dir)
+    if not base_path:
         return reports
 
     report_files = {
@@ -158,10 +182,8 @@ def get_catalogue_reports(catalogue_dir: str) -> dict:
     }
 
     for report_type, filename in report_files.items():
-        file_path = (base_path / filename).resolve()
-
-        # Ensure file_path stays inside catalogue_dir
-        if base_path not in file_path.parents and file_path != base_path:
+        file_path = _resolve_path_within(base_path, filename)
+        if not file_path:
             continue
 
         if filename.endswith('.json'):
@@ -224,16 +246,16 @@ def get_alttime_file_name(target_name: str, catalogue_dir: str) -> str:
     Return file name if exists, else empty string.
     """
     sanitized = sanitize_alttime_target_name(target_name)
-
-    # Normalize path and confine to catalogue_dir
-    filename = f"uptonight-alttime-{sanitized}.png"
-    file_path = os.path.normpath(os.path.join(catalogue_dir, filename))
-
-    if not file_path.startswith(os.path.abspath(catalogue_dir)):
-        # Path traversal attempt, ignore
+    base_path = _resolve_catalogue_dir(catalogue_dir)
+    if not base_path:
         return ""
 
-    if os.path.exists(file_path):
+    filename = f"uptonight-alttime-{sanitized}.png"
+    file_path = _resolve_path_within(base_path, filename)
+    if not file_path:
+        return ""
+
+    if file_path.exists() and file_path.is_file():
         return filename
     else:
         return ""

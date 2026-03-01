@@ -1423,7 +1423,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
     // Only show foto filter for report and bodies types, not for comets
     // Use shared foto value from localStorage or default to 0.8
     if (type !== 'comets') {
-        const savedFotoValue = localStorage.getItem('fotoFilterValue') || '0.8';
+        const savedFotoValue = sanitizeFotoFilterValue(localStorage.getItem('fotoFilterValue'));
         html += `
             <div class="col-12">
                 <div class="form-check">
@@ -1639,8 +1639,10 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
         if (fotoValueInput) {
             fotoValueInput.addEventListener('input', () => {
                 // Save foto value to localStorage and sync across all tables
-                localStorage.setItem('fotoFilterValue', fotoValueInput.value);
-                syncFotoValues(fotoValueInput.value);
+                const normalizedFotoValue = sanitizeFotoFilterValue(fotoValueInput.value);
+                fotoValueInput.value = normalizedFotoValue;
+                localStorage.setItem('fotoFilterValue', normalizedFotoValue);
+                syncFotoValues(normalizedFotoValue);
                 filterTable(catalogue, type);
             });
         }
@@ -1690,12 +1692,23 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
     return html;
 }
 
+function sanitizeFotoFilterValue(value, fallback = 0.8) {
+    const numericValue = Number.parseFloat(value);
+    if (!Number.isFinite(numericValue)) {
+        return String(fallback);
+    }
+
+    const clampedValue = Math.min(1, Math.max(0, numericValue));
+    return String(clampedValue);
+}
+
 // Sync foto filter value across all Report and Bodies tables
 function syncFotoValues(value) {
+    const safeValue = sanitizeFotoFilterValue(value);
     const fotoInputs = document.querySelectorAll('.shared-foto-value');
     fotoInputs.forEach(input => {
-        if (input.value !== value) {
-            input.value = value;
+        if (input.value !== safeValue) {
+            input.value = safeValue;
         }
     });
 }
@@ -1756,7 +1769,7 @@ function filterTable(catalogue, type) {
     
     const filterText = filterInput ? filterInput.value.toLowerCase() : '';
     const fotoFilter = fotoCheckbox ? fotoCheckbox.checked : false;
-    const fotoThreshold = fotoValueInput ? parseFloat(fotoValueInput.value) : 0.8;
+    const fotoThreshold = fotoValueInput ? parseFloat(sanitizeFotoFilterValue(fotoValueInput.value)) : 0.8;
     const constellationFilter = constellationSelect ? constellationSelect.value : '';
     const typeFilter = typeSelect ? typeSelect.value : '';
     const rows = table.querySelectorAll('tbody tr');
