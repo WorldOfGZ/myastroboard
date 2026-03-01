@@ -2,6 +2,72 @@
 // Weather
 // ======================
 
+function createWeatherMetricItem(label, value) {
+    const li = document.createElement('li');
+    li.className = 'list-group-item d-flex justify-content-between align-items-center';
+
+    const labelNode = document.createTextNode(label);
+    const badge = document.createElement('span');
+    badge.className = 'badge text-bg-primary rounded-pill';
+    badge.textContent = value;
+
+    li.appendChild(labelNode);
+    li.appendChild(badge);
+    return li;
+}
+
+function createChartShell(title, canvasId, legendItems = [], footerText = '') {
+    const card = document.createElement('div');
+    card.className = 'card h-100';
+
+    const header = document.createElement('div');
+    header.className = 'card-header';
+    const h5 = document.createElement('h5');
+    h5.className = 'mb-0';
+    h5.textContent = title;
+    header.appendChild(h5);
+
+    const body = document.createElement('div');
+    body.className = 'card-body';
+    const canvas = document.createElement('canvas');
+    canvas.id = canvasId;
+    canvas.style.height = '300px';
+    body.appendChild(canvas);
+
+    const footer = document.createElement('div');
+    footer.className = 'card-footer text-muted small';
+    const row = document.createElement('div');
+    row.className = 'row';
+
+    legendItems.forEach((item) => {
+        const col = document.createElement('div');
+        col.className = 'col-auto';
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.style.backgroundColor = item.color;
+        badge.textContent = item.label;
+        col.appendChild(badge);
+        row.appendChild(col);
+    });
+
+    if (footerText) {
+        const col = document.createElement('div');
+        col.className = 'col-auto';
+        const text = document.createElement('span');
+        text.className = 'text-muted';
+        text.textContent = footerText;
+        col.appendChild(text);
+        row.appendChild(col);
+    }
+
+    footer.appendChild(row);
+
+    card.appendChild(header);
+    card.appendChild(body);
+    card.appendChild(footer);
+    return card;
+}
+
 //Load Weather forecast
 async function loadWeather() {
     const container = document.getElementById('weather-display');
@@ -18,35 +84,51 @@ async function loadWeather() {
 
     // If data location is available
     if (data.location) {
+        const nameCol = document.createElement('div');
+        nameCol.className = 'col mb-3';
+        const nameCard = document.createElement('div');
+        nameCard.className = 'card h-100';
+        const nameBody = document.createElement('div');
+        nameBody.className = 'card-body';
+        const nameP = document.createElement('p');
+        nameP.className = 'card-text';
+        const nameStrong = document.createElement('strong');
+        nameStrong.textContent = data.location.name;
+        nameP.appendChild(nameStrong);
+        nameBody.appendChild(nameP);
+        nameCard.appendChild(nameBody);
+        nameCol.appendChild(nameCard);
 
-        const locationHtml = `
-            <div class="col mb-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <p class="card-text"><strong>${data.location.name}</strong></p>
-                    </div>
-                </div>
-            </div>
-            <div class="col mb-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <p class="card-text">
-                            <strong>Lat:</strong> ${data.location.latitude.toFixed(2)}°<br>
-                            <strong>Lon:</strong> ${data.location.longitude.toFixed(2)}°<br>
-                            <strong>Elevation:</strong> ${data.location.elevation} m</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col mb-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <p class="card-text"><strong>Timezone:</strong> ${data.location.timezone}</p>
-                    </div>
-                </div>
-            </div>
-        `;
+        const coordCol = document.createElement('div');
+        coordCol.className = 'col mb-3';
+        const coordCard = document.createElement('div');
+        coordCard.className = 'card h-100';
+        const coordBody = document.createElement('div');
+        coordBody.className = 'card-body';
+        const coordP = document.createElement('p');
+        coordP.className = 'card-text';
+        coordP.textContent = `Lat: ${data.location.latitude.toFixed(2)}°\nLon: ${data.location.longitude.toFixed(2)}°\nElevation: ${data.location.elevation} m`;
+        coordP.style.whiteSpace = 'pre-line';
+        coordBody.appendChild(coordP);
+        coordCard.appendChild(coordBody);
+        coordCol.appendChild(coordCard);
 
-        containerLocation.innerHTML = locationHtml;
+        const tzCol = document.createElement('div');
+        tzCol.className = 'col mb-3';
+        const tzCard = document.createElement('div');
+        tzCard.className = 'card h-100';
+        const tzBody = document.createElement('div');
+        tzBody.className = 'card-body';
+        const tzP = document.createElement('p');
+        tzP.className = 'card-text';
+        tzP.textContent = `Timezone: ${data.location.timezone}`;
+        tzBody.appendChild(tzP);
+        tzCard.appendChild(tzBody);
+        tzCol.appendChild(tzCard);
+
+        containerLocation.appendChild(nameCol);
+        containerLocation.appendChild(coordCol);
+        containerLocation.appendChild(tzCol);
     }
 
     // if forecast list is available
@@ -87,54 +169,38 @@ async function loadWeather() {
 
             const item = document.createElement('div');
             item.className = 'col mb-3';
-            item.innerHTML = `
-                <div class="card h-100">
-                    <div class="card-header quality-box ${qualityClass}">
-                        <strong>${quality}</strong>
-                    </div>
-                    <div class="card-body">
-                        <h5 class="card-title card-title-weather">${date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</h5>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                ☁️ Cloud Cover:
-                                <span class="badge text-bg-primary rounded-pill">${cloudCover}%</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                &nbsp;>&nbsp;Low:
-                                <span class="badge text-bg-primary rounded-pill">${cloudCoverL}%</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                &nbsp;>&nbsp;Mid:
-                                <span class="badge text-bg-primary rounded-pill">${cloudCoverM}%</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                &nbsp;>&nbsp;High:
-                                <span class="badge text-bg-primary rounded-pill">${cloudCoverH}%</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                💧 Humidity:
-                                <span class="badge text-bg-primary rounded-pill">${humidity}%</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                🌡️ Temperature:
-                                <span class="badge text-bg-primary rounded-pill">${temp}°C</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                💎 Dew Point:
-                                <span class="badge text-bg-primary rounded-pill">${dewPoint}°C</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                🔽 Pressure:
-                                <span class="badge text-bg-primary rounded-pill">${pressure} hPa</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                💨 Wind:
-                                <span class="badge text-bg-primary rounded-pill">${windSpeed} km/h</span>
-                            </li>                            
-                        </ul>
-                    </div>
-                </div>
-            `;
+            const card = document.createElement('div');
+            card.className = 'card h-100';
+
+            const cardHeader = document.createElement('div');
+            cardHeader.className = `card-header quality-box ${qualityClass}`;
+            const headerStrong = document.createElement('strong');
+            headerStrong.textContent = quality;
+            cardHeader.appendChild(headerStrong);
+
+            const cardBody = document.createElement('div');
+            cardBody.className = 'card-body';
+            const title = document.createElement('h5');
+            title.className = 'card-title card-title-weather';
+            title.textContent = date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+
+            const list = document.createElement('ul');
+            list.className = 'list-group list-group-flush';
+            list.appendChild(createWeatherMetricItem('☁️ Cloud Cover:', `${cloudCover}%`));
+            list.appendChild(createWeatherMetricItem(' > Low:', `${cloudCoverL}%`));
+            list.appendChild(createWeatherMetricItem(' > Mid:', `${cloudCoverM}%`));
+            list.appendChild(createWeatherMetricItem(' > High:', `${cloudCoverH}%`));
+            list.appendChild(createWeatherMetricItem('💧 Humidity:', `${humidity}%`));
+            list.appendChild(createWeatherMetricItem('🌡️ Temperature:', `${temp}°C`));
+            list.appendChild(createWeatherMetricItem('💎 Dew Point:', `${dewPoint}°C`));
+            list.appendChild(createWeatherMetricItem('🔽 Pressure:', `${pressure} hPa`));
+            list.appendChild(createWeatherMetricItem('💨 Wind:', `${windSpeed} km/h`));
+
+            cardBody.appendChild(title);
+            cardBody.appendChild(list);
+            card.appendChild(cardHeader);
+            card.appendChild(cardBody);
+            item.appendChild(card);
             container.appendChild(item);
         });
     }
@@ -172,7 +238,7 @@ async function loadAstronomicalCharts() {
                 const message = reason === 'data' && retryData && retryData.message
                     ? retryData.message
                     : 'Loading astronomical charts...';
-                loadingDiv.innerHTML = `${message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
+                loadingDiv.textContent = `${message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
             }
         });
 
@@ -218,32 +284,12 @@ async function loadAstronomicalCharts() {
         // Chart 1: Cloud Conditions & Wind
         const container1 = document.getElementById('cloudConditionsChartContainer');
         if (container1) {
-            container1.innerHTML = `
-                <div class="card h-100">
-                    <div class="card-header">
-                        <h5 class="mb-0">☁️ Clouds & 💨 Wind</h5>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="cloudConditionsChart" style="height: 300px;"></canvas>
-                    </div>
-                    <div class="card-footer text-muted small">
-                        <div class="row">
-                            <div class="col-auto">
-                                <span class="badge" style="background-color: #22c55e;">Cloudless</span>
-                            </div>
-                            <div class="col-auto">
-                                <span class="badge" style="background-color: #ef4444;">Condition</span>
-                            </div>
-                            <div class="col-auto">
-                                <span class="badge" style="background-color: #808080;">Fog</span>
-                            </div>
-                            <div class="col-auto">
-                                <span class="text-muted">Percentage (%)</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+            DOMUtils.clear(container1);
+            container1.appendChild(createChartShell('☁️ Clouds & 💨 Wind', 'cloudConditionsChart', [
+                { label: 'Cloudless', color: '#22c55e' },
+                { label: 'Condition', color: '#ef4444' },
+                { label: 'Fog', color: '#808080' }
+            ], 'Percentage (%)'));
         }
         
         const ctx1 = document.getElementById('cloudConditionsChart');
@@ -399,38 +445,15 @@ async function loadAstronomicalCharts() {
         // Chart 2: Seeing & Atmospheric Conditions
         const container2 = document.getElementById('seeingConditionsChartContainer');
         if (container2) {
-            container2.innerHTML = `
-                <div class="card h-100">
-                    <div class="card-header">
-                        <h5 class="mb-0">👁️ Seeing & ✨ Atmospheric Conditions</h5>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="seeingConditionsChart" style="height: 300px;"></canvas>
-                    </div>
-                    <div class="card-footer text-muted small">
-                        <div class="row">
-                            <div class="col-auto">
-                                <span class="badge" style="background-color: #808080;">Fog</span>
-                            </div>
-                            <div class="col-auto">
-                                <span class="badge" style="background-color: #ef4444;">Condition</span>
-                            </div>
-                            <div class="col-auto">
-                                <span class="badge" style="background-color: #f97316;">Seeing</span>
-                            </div>
-                            <div class="col-auto">
-                                <span class="badge" style="background-color: #1e3a8a;">Transparency</span>
-                            </div>
-                            <div class="col-auto">
-                                <span class="badge" style="background-color: #06b6d4;">Lifted Index</span>
-                            </div>
-                            <div class="col-auto">
-                                <span class="badge" style="background-color: #2563eb;">Precipitation</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+            DOMUtils.clear(container2);
+            container2.appendChild(createChartShell('👁️ Seeing & ✨ Atmospheric Conditions', 'seeingConditionsChart', [
+                { label: 'Fog', color: '#808080' },
+                { label: 'Condition', color: '#ef4444' },
+                { label: 'Seeing', color: '#f97316' },
+                { label: 'Transparency', color: '#1e3a8a' },
+                { label: 'Lifted Index', color: '#06b6d4' },
+                { label: 'Precipitation', color: '#2563eb' }
+            ], ''));
         }
         
         const ctx2 = document.getElementById('seeingConditionsChart');

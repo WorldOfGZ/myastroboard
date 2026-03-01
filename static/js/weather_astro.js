@@ -6,6 +6,97 @@
 let astroWeatherData = null;
 let astroWeatherUpdateInterval = null;
 
+function createAstroChartShell(title, canvasId, legendItems = [], footerText = '') {
+    const col = document.createElement('div');
+    col.className = 'col mb-3';
+
+    const card = document.createElement('div');
+    card.className = 'card h-100';
+
+    const header = document.createElement('div');
+    header.className = 'card-header';
+    const h5 = document.createElement('h5');
+    h5.className = 'mb-0';
+    h5.textContent = title;
+    header.appendChild(h5);
+
+    const body = document.createElement('div');
+    body.className = 'card-body';
+    const canvas = document.createElement('canvas');
+    canvas.id = canvasId;
+    canvas.style.height = '300px';
+    body.appendChild(canvas);
+
+    const footer = document.createElement('div');
+    footer.className = 'card-footer text-muted small';
+    const row = document.createElement('div');
+    row.className = 'row';
+
+    legendItems.forEach((item) => {
+        const colAuto = document.createElement('div');
+        colAuto.className = 'col-auto';
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.style.backgroundColor = item.color;
+        badge.textContent = item.label;
+        colAuto.appendChild(badge);
+        row.appendChild(colAuto);
+    });
+
+    if (footerText) {
+        const colAuto = document.createElement('div');
+        colAuto.className = 'col-auto';
+        const span = document.createElement('span');
+        span.className = 'text-muted';
+        span.textContent = footerText;
+        colAuto.appendChild(span);
+        row.appendChild(colAuto);
+    }
+
+    footer.appendChild(row);
+    card.appendChild(header);
+    card.appendChild(body);
+    card.appendChild(footer);
+    col.appendChild(card);
+    return col;
+}
+
+function createAstroConditionCard({ title, value, valueClass = 'text-primary', badgeClass, badgeText, note }) {
+    const col = document.createElement('div');
+    col.className = 'col mb-3';
+
+    const card = document.createElement('div');
+    card.className = 'card h-100';
+
+    const cardTitle = document.createElement('div');
+    cardTitle.className = 'card-body';
+    cardTitle.textContent = title;
+
+    const body = document.createElement('div');
+    body.className = 'card-body text-center';
+
+    const main = document.createElement('div');
+    main.className = `astro-main-value ${valueClass}`;
+    main.textContent = value;
+
+    const badge = document.createElement('div');
+    badge.className = badgeClass;
+    badge.textContent = badgeText;
+
+    const noteNode = document.createElement('div');
+    noteNode.className = 'fw-light fst-italic';
+    noteNode.textContent = note;
+
+    body.appendChild(main);
+    body.appendChild(badge);
+    body.appendChild(noteNode);
+
+    card.appendChild(cardTitle);
+    card.appendChild(body);
+    col.appendChild(card);
+    return col;
+}
+
 /**
  * Load comprehensive astrophotography weather analysis
  */
@@ -31,7 +122,7 @@ async function loadAstroWeather() {
                 const message = reason === 'data' && retryData && retryData.message
                     ? retryData.message
                     : 'Loading astrophotography weather data...';
-                loadingDiv.innerHTML = `${message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
+                loadingDiv.textContent = `${message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
             }
         });
 
@@ -65,16 +156,24 @@ async function loadAstroWeather() {
         if (loadingDiv) loadingDiv.style.display = 'none';
         if (errorDiv) {
             errorDiv.style.display = 'block';
-            errorDiv.innerHTML = `
-                <div class="col">
-                    <div class="card h-100 bg-danger-subtle">
-                        <div class="card-body">
-                            <h5 class="card-title">☁️ Error...</h5>
-                            <p class="card-text">Failed to load astrophotography weather data: ${error.message}</p>
-                        </div>
-                    </div>
-                </div>
-            `;
+            DOMUtils.clear(errorDiv);
+            const col = document.createElement('div');
+            col.className = 'col';
+            const card = document.createElement('div');
+            card.className = 'card h-100 bg-danger-subtle';
+            const body = document.createElement('div');
+            body.className = 'card-body';
+            const title = document.createElement('h5');
+            title.className = 'card-title';
+            title.textContent = '☁️ Error...';
+            const text = document.createElement('p');
+            text.className = 'card-text';
+            text.textContent = `Failed to load astrophotography weather data: ${error.message}`;
+            body.appendChild(title);
+            body.appendChild(text);
+            card.appendChild(body);
+            col.appendChild(card);
+            errorDiv.appendChild(col);
         }
     }
 }
@@ -92,63 +191,46 @@ function renderCurrentAstroConditions(conditions) {
     const dewRiskColor = getDewRiskColor(conditions.dew_risk_level);
     const trackingQuality = getTrackingQualityText(conditions.tracking_stability_score);
     const cloudQuality = getCloudQualityText(conditions.cloud_discrimination);
-    
-    container.innerHTML = `
-        <div class="col mb-3">
-            <div class="card h-100">
-                <div class="card-body">👁️ Seeing</div>
-                <div class="card-body text-center">
-                    <div class="astro-main-value text-primary">${conditions.seeing_pickering}/10</div>
-                    <div class="astro-quality-text quality-box ${seeingQuality.class}">${seeingQuality.text}</div>
-                    <div class="fw-light fst-italic">Pickering Scale</div>
-                </div>
-            </div>
-        </div>
 
-        <div class="col mb-3">
-            <div class="card h-100">
-                <div class="card-body">✨ Transparency</div>
-                <div class="card-body text-center">
-                    <div class="astro-main-value text-primary">${conditions.limiting_magnitude}m</div>
-                    <div class="astro-quality-text quality-box ${transparencyQuality.class}">${transparencyQuality.text}</div>
-                    <div class="fw-light fst-italic">Limiting Magnitude</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col mb-3">
-            <div class="card h-100">
-                <div class="card-body">☁️ Cloud Layers</div>
-                <div class="card-body text-center">
-                    <div class="astro-main-value text-primary">${Math.round(conditions.cloud_discrimination)}%</div>
-                    <div class="astro-quality-text quality-box ${cloudQuality.class}">${cloudQuality.text}</div>
-                    <div class="fw-light fst-italic">Discrimination Score</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col mb-3">
-            <div class="card h-100">
-                <div class="card-body">💧 Dew Risk</div>
-                <div class="card-body text-center">
-                    <div class="astro-main-value text-primary">${Math.round(conditions.dew_point_spread * 10) / 10}°C</div>
-                    <div class="astro-quality-text dew-box ${dewRiskColor}">${conditions.dew_risk_level}</div>
-                    <div class="fw-light fst-italic">Temperature Spread</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col mb-3">
-            <div class="card h-100">
-                <div class="card-body">🎯 Tracking</div>
-                <div class="card-body text-center">
-                    <div class="astro-main-value text-primary">${conditions.tracking_stability_score}%</div>
-                    <div class="astro-quality-text quality-box ${trackingQuality.class}">${trackingQuality.text}</div>
-                    <div class="fw-light fst-italic">Wind Stability</div>
-                </div>
-            </div>
-        </div>
-    `;
+    DOMUtils.clear(container);
+    const cards = [
+        createAstroConditionCard({
+            title: '👁️ Seeing',
+            value: `${conditions.seeing_pickering}/10`,
+            badgeClass: `astro-quality-text quality-box ${seeingQuality.class}`,
+            badgeText: seeingQuality.text,
+            note: 'Pickering Scale'
+        }),
+        createAstroConditionCard({
+            title: '✨ Transparency',
+            value: `${conditions.limiting_magnitude}m`,
+            badgeClass: `astro-quality-text quality-box ${transparencyQuality.class}`,
+            badgeText: transparencyQuality.text,
+            note: 'Limiting Magnitude'
+        }),
+        createAstroConditionCard({
+            title: '☁️ Cloud Layers',
+            value: `${Math.round(conditions.cloud_discrimination)}%`,
+            badgeClass: `astro-quality-text quality-box ${cloudQuality.class}`,
+            badgeText: cloudQuality.text,
+            note: 'Discrimination Score'
+        }),
+        createAstroConditionCard({
+            title: '💧 Dew Risk',
+            value: `${Math.round(conditions.dew_point_spread * 10) / 10}°C`,
+            badgeClass: `astro-quality-text dew-box ${dewRiskColor}`,
+            badgeText: conditions.dew_risk_level,
+            note: 'Temperature Spread'
+        }),
+        createAstroConditionCard({
+            title: '🎯 Tracking',
+            value: `${conditions.tracking_stability_score}%`,
+            badgeClass: `astro-quality-text quality-box ${trackingQuality.class}`,
+            badgeText: trackingQuality.text,
+            note: 'Wind Stability'
+        })
+    ];
+    cards.forEach(card => container.appendChild(card));
 }
 
 /**
@@ -180,52 +262,71 @@ function renderBestObservationPeriods(periods) {
     //*/
     
     if (!periods || periods.length === 0) {
-        container.innerHTML = `
-            <h1 class="astro-icon text-center">😔</h1>
-            <div class="text-center">No optimal observation periods found in the next 24 hours</div>
-        `;
+        DOMUtils.clear(container);
+        const icon = document.createElement('h1');
+        icon.className = 'astro-icon text-center';
+        icon.textContent = '😔';
+        const text = document.createElement('div');
+        text.className = 'text-center';
+        text.textContent = 'No optimal observation periods found in the next 24 hours';
+        container.appendChild(icon);
+        container.appendChild(text);
         return;
     }
-    
-    const periodsHtml = periods.map((period, index) => {
+
+    DOMUtils.clear(container);
+    const row = document.createElement('div');
+    row.className = 'row row-cols-2 row-cols-sm-2 row-cols-lg-4 row-cols-xl-6 p-2';
+
+    periods.forEach((period) => {
         const startTime = new Date(period.start);
         const endTime = new Date(period.end);
-        const duration = period.duration_hours;
-        
-        return `
-            <div class="col mb-3">
-                <div class="card h-100">
-                    <div class="card-header">
-                        <h5 class="card-title">
-                            ${startTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} - 
-                            ${endTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
-                        </h5>
-                        <h6 class="card-subtitle mb-2 text-body-secondary">
-                            ${startTime.toLocaleDateString([], {month: 'short', day: 'numeric'})}
-                            ${startTime.toDateString() !== endTime.toDateString() ? 
-                                ' - ' + endTime.toLocaleDateString([], {month: 'short', day: 'numeric'}) : ''}
-                        </h6>
-                    </div>
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Duration:
-                            <span class="badge text-bg-primary rounded-pill">${duration.toFixed(1)}h</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Quality:
-                            <span class="badge text-bg-primary rounded-pill">${period.average_quality.toFixed(1)}%</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    container.innerHTML = `
-        <div class="row row-cols-2 row-cols-sm-2 row-cols-lg-4 row-cols-xl-6 p-2">
-            ${periodsHtml}
-        </div>
-    `;
+
+        const col = document.createElement('div');
+        col.className = 'col mb-3';
+        const card = document.createElement('div');
+        card.className = 'card h-100';
+        const header = document.createElement('div');
+        header.className = 'card-header';
+        const h5 = document.createElement('h5');
+        h5.className = 'card-title';
+        h5.textContent = `${startTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} - ${endTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}`;
+        const h6 = document.createElement('h6');
+        h6.className = 'card-subtitle mb-2 text-body-secondary';
+        const startDate = startTime.toLocaleDateString([], {month: 'short', day: 'numeric'});
+        const endDate = endTime.toLocaleDateString([], {month: 'short', day: 'numeric'});
+        h6.textContent = startTime.toDateString() !== endTime.toDateString() ? `${startDate} - ${endDate}` : startDate;
+        header.appendChild(h5);
+        header.appendChild(h6);
+
+        const list = document.createElement('ul');
+        list.className = 'list-group list-group-flush';
+
+        const durationItem = document.createElement('li');
+        durationItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+        durationItem.textContent = 'Duration:';
+        const durationBadge = document.createElement('span');
+        durationBadge.className = 'badge text-bg-primary rounded-pill';
+        durationBadge.textContent = `${period.duration_hours.toFixed(1)}h`;
+        durationItem.appendChild(durationBadge);
+
+        const qualityItem = document.createElement('li');
+        qualityItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+        qualityItem.textContent = 'Quality:';
+        const qualityBadge = document.createElement('span');
+        qualityBadge.className = 'badge text-bg-primary rounded-pill';
+        qualityBadge.textContent = `${period.average_quality.toFixed(1)}%`;
+        qualityItem.appendChild(qualityBadge);
+
+        list.appendChild(durationItem);
+        list.appendChild(qualityItem);
+        card.appendChild(header);
+        card.appendChild(list);
+        col.appendChild(card);
+        row.appendChild(col);
+    });
+
+    container.appendChild(row);
 }
 
 /**
@@ -264,32 +365,11 @@ function renderSeeingTransparencyChart(labels, data) {
     const seeingData = data.map(item => item.seeing_pickering * 10); // Convert to percentage scale
     const transparencyData = data.map(item => item.transparency_score);
     
-    // Create card HTML structure
-    container.innerHTML = `
-        <div class="col mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="mb-0">👁️ Seeing & ✨ Transparency</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="astro-seeing-chart" style="height: 300px;"></canvas>
-                </div>
-                <div class="card-footer text-muted small">
-                    <div class="row">
-                        <div class="col-auto">
-                            <span class="badge" style="background-color: #3b82f6;">Seeing (Pickering)</span>
-                        </div>
-                        <div class="col-auto">
-                            <span class="badge" style="background-color: #a855f7;">Transparency</span>
-                        </div>
-                        <div class="col-auto">
-                            <span class="text-muted">Quality Score (%)</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+    DOMUtils.clear(container);
+    container.appendChild(createAstroChartShell('👁️ Seeing & ✨ Transparency', 'astro-seeing-chart', [
+        { label: 'Seeing (Pickering)', color: '#3b82f6' },
+        { label: 'Transparency', color: '#a855f7' }
+    ], 'Quality Score (%)'));
     
     // Render chart
     const ctx = document.getElementById('astro-seeing-chart');
@@ -382,32 +462,12 @@ function renderCloudLayersChart(labels, data) {
     const midCloudImpact = data.map(item => item.mid_cloud_impact);
     const lowCloudImpact = data.map(item => item.low_cloud_impact);
     
-    // Create card HTML structure
-    container.innerHTML = `
-        <div class="col mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="mb-0">☁️ Cloud Layer Impact</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="astro-clouds-chart" style="height: 300px;"></canvas>
-                </div>
-                <div class="card-footer text-muted small">
-                    <div class="row">
-                        <div class="col-auto">
-                            <span class="badge" style="background-color: #22c55e;">High</span>
-                        </div>
-                        <div class="col-auto">
-                            <span class="badge" style="background-color: #fbbf24;">Mid</span>
-                        </div>
-                        <div class="col-auto">
-                            <span class="badge" style="background-color: #ef4444;">Low</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+    DOMUtils.clear(container);
+    container.appendChild(createAstroChartShell('☁️ Cloud Layer Impact', 'astro-clouds-chart', [
+        { label: 'High', color: '#22c55e' },
+        { label: 'Mid', color: '#fbbf24' },
+        { label: 'Low', color: '#ef4444' }
+    ]));
     
     // Render chart
     const ctx = document.getElementById('astro-clouds-chart');
@@ -506,32 +566,11 @@ function renderDewTrackingChart(labels, data) {
     const dewRiskScore = data.map(item => item.dew_risk_score);
     const trackingScore = data.map(item => item.tracking_stability_score);
     
-    // Create card HTML structure
-    container.innerHTML = `
-        <div class="col mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="mb-0">💧 Dew Risk & 🎯 Tracking Stability</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="astro-conditions-chart" style="height: 300px;"></canvas>
-                </div>
-                <div class="card-footer text-muted small">
-                    <div class="row">
-                        <div class="col-auto">
-                            <span class="badge" style="background-color: #06b6d4;">Dew Risk</span>
-                        </div>
-                        <div class="col-auto">
-                            <span class="badge" style="background-color: #f56565;">Tracking Stability</span>
-                        </div>
-                        <div class="col-auto">
-                            <span class="text-muted">Score (0-100%)</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+    DOMUtils.clear(container);
+    container.appendChild(createAstroChartShell('💧 Dew Risk & 🎯 Tracking Stability', 'astro-conditions-chart', [
+        { label: 'Dew Risk', color: '#06b6d4' },
+        { label: 'Tracking Stability', color: '#f56565' }
+    ], 'Score (0-100%)'));
     
     // Render chart
     const ctx = document.getElementById('astro-conditions-chart');
@@ -615,38 +654,46 @@ function renderWeatherAlerts(alerts) {
     if (mainContainer) mainContainer.style.display = 'block';
     
     if (!alerts || alerts.length === 0) {
-        container.innerHTML = `
-            <div class="alert alert-success" role="alert">
-                <div class="fw-bold">
-                    <span>✅ No weather alerts for astrophotography</span>
-                </div>
-            </div>
-        `;
+        DOMUtils.clear(container);
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success';
+        alert.setAttribute('role', 'alert');
+        const title = document.createElement('div');
+        title.className = 'fw-bold';
+        title.textContent = '✅ No weather alerts for astrophotography';
+        alert.appendChild(title);
+        container.appendChild(alert);
         return;
     }
-    
-    const alertsHtml = alerts.map(alert => {
-        const alertTime = new Date(alert.time);
-        const severityIcon = getSeverityIcon(alert.severity);
-        
-        return `
-            <div class="alert alert-${alert.severity === 'HIGH' ? 'danger' : 'warning'}" role="alert">
-                <div class="fw-bold">
-                    <span>${severityIcon}</span>
-                    <span>${alert.type.replace('_', ' ')}</span>
-                    <span>${alertTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
-                </div>
-                <div>${alert.message}</div>
-            </div>
-        `;
-    }).join('');
-    
-    container.innerHTML = `
-        <div class="mb-2">Conditions affecting astrophotography in the next 6 hours</div>
-        <div class="astro-alerts-list">
-            ${alertsHtml}
-        </div>
-    `;
+
+    DOMUtils.clear(container);
+    const intro = document.createElement('div');
+    intro.className = 'mb-2';
+    intro.textContent = 'Conditions affecting astrophotography in the next 6 hours';
+    container.appendChild(intro);
+
+    const list = document.createElement('div');
+    list.className = 'astro-alerts-list';
+
+    alerts.forEach((alertData) => {
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${alertData.severity === 'HIGH' ? 'danger' : 'warning'}`;
+        alert.setAttribute('role', 'alert');
+
+        const title = document.createElement('div');
+        title.className = 'fw-bold';
+        const time = new Date(alertData.time);
+        title.textContent = `${getSeverityIcon(alertData.severity)} ${alertData.type.replace('_', ' ')} ${time.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}`;
+
+        const message = document.createElement('div');
+        message.textContent = alertData.message;
+
+        alert.appendChild(title);
+        alert.appendChild(message);
+        list.appendChild(alert);
+    });
+
+    container.appendChild(list);
 }
 
 /**

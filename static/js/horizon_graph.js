@@ -33,7 +33,7 @@ async function loadHorizonGraph() {
                 const message = reason === 'data' && retryData && retryData.message
                     ? retryData.message
                     : 'Loading horizon graph data...';
-                loadingDiv.innerHTML = `${message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
+                loadingDiv.textContent = `${message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
             }
         });
 
@@ -54,7 +54,11 @@ async function loadHorizonGraph() {
             renderHorizonChart(data.horizon_data);
         } else {
             if (container) {
-                container.innerHTML = '<div class="alert alert-warning">No horizon data available</div>';
+                DOMUtils.clear(container);
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-warning';
+                alert.textContent = 'No horizon data available';
+                container.appendChild(alert);
             }
         }
         
@@ -64,16 +68,24 @@ async function loadHorizonGraph() {
         if (loadingDiv) loadingDiv.style.display = 'none';
         if (errorDiv) {
             errorDiv.style.display = 'block';
-            errorDiv.innerHTML = `
-                <div class="col">
-                    <div class="card h-100 bg-danger-subtle">
-                        <div class="card-body">
-                            <h5 class="card-title">Error...</h5>
-                            <p class="card-text">Failed to load horizon graph data: ${error.message}</p>
-                        </div>
-                    </div>
-                </div>
-            `;
+            DOMUtils.clear(errorDiv);
+            const column = document.createElement('div');
+            column.className = 'col';
+            const card = document.createElement('div');
+            card.className = 'card h-100 bg-danger-subtle';
+            const cardBody = document.createElement('div');
+            cardBody.className = 'card-body';
+            const title = document.createElement('h5');
+            title.className = 'card-title';
+            title.textContent = 'Error...';
+            const message = document.createElement('p');
+            message.className = 'card-text';
+            message.textContent = `Failed to load horizon graph data: ${error.message}`;
+            cardBody.appendChild(title);
+            cardBody.appendChild(message);
+            card.appendChild(cardBody);
+            column.appendChild(card);
+            errorDiv.appendChild(column);
         }
     }
 }
@@ -103,38 +115,63 @@ function renderHorizonChart(horizonData) {
         ? [{ x: currentTimeValue, y: -90 }, { x: currentTimeValue, y: 90 }]
         : [];
     
-    // Create canvas for chart
-    container.innerHTML = `
-        <div class="col-12 mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="mb-0">🌅 Horizon Graph</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="horizonCanvas" style="height: 350px;"></canvas>
-                </div>
-                <div class="card-footer text-muted small">
-                    <div class="row">
-                        <div class="col-auto">
-                            <span class="badge" style="background-color: #FDB813;">☀️ Sun</span>
-                        </div>
-                        <div class="col-auto">
-                            <span class="badge" style="background-color: #C0C0C0;">🌙 Moon</span>
-                        </div>
-                        <div class="col-auto">
-                            <span class="badge bg-secondary">━ Horizon (0°)</span>
-                        </div>
-                        <div class="col-auto">
-                            <span class="badge" style="background-color: #ef4444;">┃ Now ${currentTimeLabel || ''}</span>
-                        </div>
-                        <div class="col-auto">
-                            <span class="text-muted">Altitude (-90° to +90°) | Date: ${horizonData.date}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+    DOMUtils.clear(container);
+    const col = document.createElement('div');
+    col.className = 'col-12 mb-3';
+    const card = document.createElement('div');
+    card.className = 'card h-100';
+
+    const cardHeader = document.createElement('div');
+    cardHeader.className = 'card-header';
+    const title = document.createElement('h5');
+    title.className = 'mb-0';
+    title.textContent = '🌅 Horizon Graph';
+    cardHeader.appendChild(title);
+
+    const cardBody = document.createElement('div');
+    cardBody.className = 'card-body';
+    const canvas = document.createElement('canvas');
+    canvas.id = 'horizonCanvas';
+    canvas.style.height = '350px';
+    cardBody.appendChild(canvas);
+
+    const cardFooter = document.createElement('div');
+    cardFooter.className = 'card-footer text-muted small';
+    const footerRow = document.createElement('div');
+    footerRow.className = 'row';
+
+    const createBadgeItem = (text, className, backgroundColor) => {
+        const itemCol = document.createElement('div');
+        itemCol.className = 'col-auto';
+        const badge = document.createElement('span');
+        badge.className = className;
+        if (backgroundColor) {
+            badge.style.backgroundColor = backgroundColor;
+        }
+        badge.textContent = text;
+        itemCol.appendChild(badge);
+        return itemCol;
+    };
+
+    footerRow.appendChild(createBadgeItem('☀️ Sun', 'badge', '#FDB813'));
+    footerRow.appendChild(createBadgeItem('🌙 Moon', 'badge', '#C0C0C0'));
+    footerRow.appendChild(createBadgeItem('━ Horizon (0°)', 'badge bg-secondary'));
+    footerRow.appendChild(createBadgeItem(`┃ Now ${currentTimeLabel || ''}`, 'badge', '#ef4444'));
+
+    const detailsCol = document.createElement('div');
+    detailsCol.className = 'col-auto';
+    const details = document.createElement('span');
+    details.className = 'text-muted';
+    details.textContent = `Altitude (-90° to +90°) | Date: ${horizonData.date}`;
+    detailsCol.appendChild(details);
+    footerRow.appendChild(detailsCol);
+
+    cardFooter.appendChild(footerRow);
+    card.appendChild(cardHeader);
+    card.appendChild(cardBody);
+    card.appendChild(cardFooter);
+    col.appendChild(card);
+    container.appendChild(col);
     
     // Render chart
     const canvasElement = document.getElementById('horizonCanvas');

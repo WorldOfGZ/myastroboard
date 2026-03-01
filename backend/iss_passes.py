@@ -9,18 +9,24 @@ score and day/night visibility classification.
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List, Tuple
 from zoneinfo import ZoneInfo
+import os
 
 import requests
 import astropy.units as u
 from astropy.time import Time as AstroTime
 from astropy.coordinates import EarthLocation, AltAz, get_sun
-from skyfield.api import load, EarthSatellite, wgs84
+from skyfield.api import Loader, EarthSatellite, wgs84
 
-from constants import CACHE_TTL
+from constants import CACHE_TTL, DATA_DIR_CACHE
 from logging_config import get_logger
 
 
 logger = get_logger(__name__)
+
+SKYFIELD_CACHE_DIR = os.path.join(DATA_DIR_CACHE, 'skyfield')
+os.makedirs(SKYFIELD_CACHE_DIR, exist_ok=True)
+SKYFIELD_LOADER = Loader(SKYFIELD_CACHE_DIR)
+logger.info(f"Skyfield cache directory: {SKYFIELD_CACHE_DIR}")
 
 CELESTRAK_ISS_TLE_URL = "https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE"
 REQUEST_TIMEOUT_SECONDS = 10
@@ -51,7 +57,7 @@ class ISSPassService:
 
         line1, line2 = self._fetch_iss_tle()
 
-        ts = load.timescale()
+        ts = SKYFIELD_LOADER.timescale()
         satellite = EarthSatellite(line1, line2, "ISS (ZARYA)", ts)
         observer = wgs84.latlon(self.latitude, self.longitude, elevation_m=self.elevation_m)
         eph = self._load_ephemeris()
@@ -95,7 +101,7 @@ class ISSPassService:
     def _load_ephemeris(self):
         """Load JPL ephemeris for solar illumination checks."""
         try:
-            return load("de421.bsp")
+            return SKYFIELD_LOADER('de421.bsp')
         except Exception as exc:
             logger.warning(f"Could not load ephemeris file de421.bsp: {exc}")
             return None

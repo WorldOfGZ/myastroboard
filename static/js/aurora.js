@@ -39,154 +39,265 @@ async function loadAurora() {
         } else if (probability > 40) {
             probabilityColor = '#ffc107'; // yellow
         }
+        DOMUtils.clear(container);
 
-        container.innerHTML = `
-            <div class="row row-cols-1 mb-3">
-                <div class="col">
-                    <div class="d-flex flex-row align-items-center">
-                        <div class="p-2 icon-weather-lg">${escapeHtml(emoji)}</div>
-                        <div class="p-2">
-                            <div class="fw-bold fs-4">${escapeHtml(current.visibility_level)}</div>
-                            <div class="text-muted">${escapeHtml(current.visibility_description)}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        const topRow = document.createElement('div');
+        topRow.className = 'row row-cols-1 mb-3';
+        const topCol = document.createElement('div');
+        topCol.className = 'col';
+        const topFlex = document.createElement('div');
+        topFlex.className = 'd-flex flex-row align-items-center';
+        const emojiDiv = document.createElement('div');
+        emojiDiv.className = 'p-2 icon-weather-lg';
+        emojiDiv.textContent = emoji;
+        const textWrap = document.createElement('div');
+        textWrap.className = 'p-2';
+        const level = document.createElement('div');
+        level.className = 'fw-bold fs-4';
+        level.textContent = current.visibility_level;
+        const description = document.createElement('div');
+        description.className = 'text-muted';
+        description.textContent = current.visibility_description;
+        textWrap.appendChild(level);
+        textWrap.appendChild(description);
+        topFlex.appendChild(emojiDiv);
+        topFlex.appendChild(textWrap);
+        topCol.appendChild(topFlex);
+        topRow.appendChild(topCol);
+        container.appendChild(topRow);
 
-            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-2 row-cols-xl-3">
-                <div class="col mb-3">
-                    <div class="card h-100">
-                        <div class="card-header fw-bold">⚡ Geomagnetic Activity</div>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>🔴 Kp Index:</span>
-                                <span class="fw-bold">
-                                    ${current.kp_index.toFixed(1)} / ${current.kp_index_max.toFixed(1)}
-                                </span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>📊 Aurora Probability:</span>
-                                <span class="fw-bold">${probability.toFixed(0)}%${probabilityLevel ? ` (${escapeHtml(probabilityLevel)})` : ''}</span>
-                            </li>
-                            <li class="list-group-item">
-                                <div class="progress mb-2 mt-1" role="progressbar" aria-valuenow="${probability.toFixed(0)}" aria-valuemin="0" aria-valuemax="100">
-                                    <div class="progress-bar" style="width: ${probability.toFixed(0)}%; background-color: ${escapeHtml(probabilityColor)};"></div>
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
+        const cardsRow = document.createElement('div');
+        cardsRow.className = 'row row-cols-1 row-cols-sm-2 row-cols-lg-2 row-cols-xl-3';
+        const createCard = (titleText) => {
+            const col = document.createElement('div');
+            col.className = 'col mb-3';
+            const card = document.createElement('div');
+            card.className = 'card h-100';
+            const header = document.createElement('div');
+            header.className = 'card-header fw-bold';
+            header.textContent = titleText;
+            card.appendChild(header);
+            col.appendChild(card);
+            return { col, card };
+        };
 
-                <div class="col mb-3">
-                    <div class="card h-100">
-                        <div class="card-header fw-bold">🕐 Best Viewing Window</div>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>⏰ Local Time:</span>
-                                <span class="fw-bold">
-                                    ${escapeHtml(current.best_viewing_window.start_hour)}:00 - ${escapeHtml(current.best_viewing_window.end_hour)}:00
-                                </span>
-                            </li>
-                            <li class="list-group-item">
-                                <small class="text-muted">
-                                    <strong>📍 Location:</strong> ${location.latitude.toFixed(2)}°, ${location.longitude.toFixed(2)}°
-                                </small>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
+        const geomagnetic = createCard('⚡ Geomagnetic Activity');
+        const geomagneticList = document.createElement('ul');
+        geomagneticList.className = 'list-group list-group-flush';
+        const geomag1 = document.createElement('li');
+        geomag1.className = 'list-group-item d-flex justify-content-between align-items-center';
+        geomag1.innerText = '';
+        const g1Label = document.createElement('span');
+        g1Label.textContent = '🔴 Kp Index:';
+        const g1Value = document.createElement('span');
+        g1Value.className = 'fw-bold';
+        g1Value.textContent = `${current.kp_index.toFixed(1)} / ${current.kp_index_max.toFixed(1)}`;
+        geomag1.appendChild(g1Label);
+        geomag1.appendChild(g1Value);
 
-                <div class="col mb-3">
-                    <div class="card h-100">
-                        <div class="card-header fw-bold">🎨 Expected Colors</div>
-                        <ul class="list-group list-group-flush">
-                            ${Object.entries(current.color_description).map(([color, description]) => `
-                                <li class="list-group-item">
-                                    <small>${escapeHtml(description)}</small>
-                                </li>
-                            `).join('')}
-                        </ul>
-                    </div>
-                </div>
-            </div>
+        const geomag2 = document.createElement('li');
+        geomag2.className = 'list-group-item d-flex justify-content-between align-items-center';
+        const g2Label = document.createElement('span');
+        g2Label.textContent = '📊 Aurora Probability:';
+        const g2Value = document.createElement('span');
+        g2Value.className = 'fw-bold';
+        g2Value.textContent = `${probability.toFixed(0)}%${probabilityLevel ? ` (${probabilityLevel})` : ''}`;
+        geomag2.appendChild(g2Label);
+        geomag2.appendChild(g2Value);
 
-            <div class="row row-cols-1 mb-3">
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="card-header fw-bold">📈 Aurora Scale Guide</div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-auto">
-                                    <small>
-                                        <div><strong>0-2:</strong> No aurora</div>
-                                        <div><strong>3:</strong> Very High latitudes</div>
-                                        <div><strong>4:</strong> High latitudes possible</div>
-                                    </small>
-                                </div>
-                                <div class="col-auto">
-                                    <small>
-                                        <div><strong>5:</strong> Northern regions likely</div>
-                                        <div><strong>6:</strong> Wider view possible</div>
-                                        <div><strong>7+:</strong> Low latitude possible</div>
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        const geomag3 = document.createElement('li');
+        geomag3.className = 'list-group-item';
+        const progress = document.createElement('div');
+        progress.className = 'progress mb-2 mt-1';
+        progress.setAttribute('role', 'progressbar');
+        progress.setAttribute('aria-valuenow', probability.toFixed(0));
+        progress.setAttribute('aria-valuemin', '0');
+        progress.setAttribute('aria-valuemax', '100');
+        const progressBar = document.createElement('div');
+        progressBar.className = 'progress-bar';
+        progressBar.style.width = `${probability.toFixed(0)}%`;
+        progressBar.style.backgroundColor = probabilityColor;
+        progress.appendChild(progressBar);
+        geomag3.appendChild(progress);
 
-            ${data.forecast && data.forecast.length > 0 ? `
-                <div class="row row-cols-1 mb-3">
-                    <div class="col">
-                        <div class="card h-100">
-                            <div class="card-header fw-bold">📅 Forecast</div>
-                            <div class="card-body">
-                                <div class="alert alert-info" role="alert">
-                                    The Kp index values are provided by NOAA. Sudden changes between 'Now' and forecasted values may indicate predicted geomagnetic events or storms.<br>
-                                    These forecasts are subject to change and reflect NOAA's latest predictions.
-                                </div>
-                                <div class="row row-cols-2 row-cols-sm-3 row-cols-lg-4 text-center g-3">
-                                ${data.forecast.slice(0, 8).map((f,i)=>{
-                                    const kp = f.kp_index || 0;
-                                    let color='danger';
-                                    if(kp>=7) color='success';
-                                    else if(kp>=5) color='warning';
-                                    const size = 24 + kp*2; // Round bubble slightly larger if Kp is high
+        geomagneticList.appendChild(geomag1);
+        geomagneticList.appendChild(geomag2);
+        geomagneticList.appendChild(geomag3);
+        geomagnetic.card.appendChild(geomagneticList);
+        cardsRow.appendChild(geomagnetic.col);
 
-                                    return `
-                                    <div class="col d-flex flex-column align-items-center">
-                                        <div class="fw-bold small mb-1">${formatTimeThenDate(new Date(f.timestamp))}</div>
-                                        <div class="rounded-circle bg-${color} shadow-sm mb-1" 
-                                            style="width:${size}px; height:${size}px; line-height:${size}px;"></div>
-                                        <div class="small">Kp ${kp.toFixed(1)}<br>
-                                        ${probability.toFixed(0)}%${probabilityLevel ? ` (${escapeHtml(probabilityLevel)})` : ''}</div>
-                                    </div>
-                                    `;
-                                }).join('')}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            ` : ''}
+        const windowCard = createCard('🕐 Best Viewing Window');
+        const windowList = document.createElement('ul');
+        windowList.className = 'list-group list-group-flush';
+        const w1 = document.createElement('li');
+        w1.className = 'list-group-item d-flex justify-content-between align-items-center';
+        const w1Label = document.createElement('span');
+        w1Label.textContent = '⏰ Local Time:';
+        const w1Value = document.createElement('span');
+        w1Value.className = 'fw-bold';
+        w1Value.textContent = `${current.best_viewing_window.start_hour}:00 - ${current.best_viewing_window.end_hour}:00`;
+        w1.appendChild(w1Label);
+        w1.appendChild(w1Value);
+        const w2 = document.createElement('li');
+        w2.className = 'list-group-item';
+        const small = document.createElement('small');
+        small.className = 'text-muted';
+        const strong = document.createElement('strong');
+        strong.textContent = '📍 Location:';
+        small.appendChild(strong);
+        small.append(` ${location.latitude.toFixed(2)}°, ${location.longitude.toFixed(2)}°`);
+        w2.appendChild(small);
+        windowList.appendChild(w1);
+        windowList.appendChild(w2);
+        windowCard.card.appendChild(windowList);
+        cardsRow.appendChild(windowCard.col);
 
-            <div class="row row-cols-1 mb-3">
-                <div class="col">
-                    <div class="alert alert-info" role="alert">
-                        <strong>📌 Tips for Aurora Hunting:</strong>
-                        <ul class="mb-0 mt-2">
-                            <li>Travel away from light pollution (cities) for best viewing</li>
-                            <li>Look towards the northern horizon during the recommended window</li>
-                            <li>Dress warmly - aurora hunting can require waiting outside in cold</li>
-                            <li>Higher Kp index means aurora could be visible further south</li>
-                            <li>Green aurora is most common, red is from high altitude oxygen</li>
-                            <li>Better visibility on clear, moonless nights</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        `;
+        const colorsCard = createCard('🎨 Expected Colors');
+        const colorsList = document.createElement('ul');
+        colorsList.className = 'list-group list-group-flush';
+        Object.entries(current.color_description || {}).forEach(([, colorDescription]) => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item';
+            const smallText = document.createElement('small');
+            smallText.textContent = colorDescription;
+            li.appendChild(smallText);
+            colorsList.appendChild(li);
+        });
+        colorsCard.card.appendChild(colorsList);
+        cardsRow.appendChild(colorsCard.col);
+        container.appendChild(cardsRow);
+
+        const guideRow = document.createElement('div');
+        guideRow.className = 'row row-cols-1 mb-3';
+        const guideCol = document.createElement('div');
+        guideCol.className = 'col';
+        const guideCard = document.createElement('div');
+        guideCard.className = 'card h-100';
+        const guideHeader = document.createElement('div');
+        guideHeader.className = 'card-header fw-bold';
+        guideHeader.textContent = '📈 Aurora Scale Guide';
+        const guideBody = document.createElement('div');
+        guideBody.className = 'card-body';
+        const guideBodyRow = document.createElement('div');
+        guideBodyRow.className = 'row';
+        const makeGuideCol = (lines) => {
+            const col = document.createElement('div');
+            col.className = 'col-auto';
+            const small = document.createElement('small');
+            lines.forEach(({ left, right }) => {
+                const line = document.createElement('div');
+                const strong = document.createElement('strong');
+                strong.textContent = left;
+                line.appendChild(strong);
+                line.append(` ${right}`);
+                small.appendChild(line);
+            });
+            col.appendChild(small);
+            return col;
+        };
+        guideBodyRow.appendChild(makeGuideCol([
+            { left: '0-2:', right: 'No aurora' },
+            { left: '3:', right: 'Very High latitudes' },
+            { left: '4:', right: 'High latitudes possible' }
+        ]));
+        guideBodyRow.appendChild(makeGuideCol([
+            { left: '5:', right: 'Northern regions likely' },
+            { left: '6:', right: 'Wider view possible' },
+            { left: '7+:', right: 'Low latitude possible' }
+        ]));
+        guideBody.appendChild(guideBodyRow);
+        guideCard.appendChild(guideHeader);
+        guideCard.appendChild(guideBody);
+        guideCol.appendChild(guideCard);
+        guideRow.appendChild(guideCol);
+        container.appendChild(guideRow);
+
+        if (data.forecast && data.forecast.length > 0) {
+            const forecastRow = document.createElement('div');
+            forecastRow.className = 'row row-cols-1 mb-3';
+            const forecastCol = document.createElement('div');
+            forecastCol.className = 'col';
+            const forecastCard = document.createElement('div');
+            forecastCard.className = 'card h-100';
+            const forecastHeader = document.createElement('div');
+            forecastHeader.className = 'card-header fw-bold';
+            forecastHeader.textContent = '📅 Forecast';
+            const forecastBody = document.createElement('div');
+            forecastBody.className = 'card-body';
+            const forecastAlert = document.createElement('div');
+            forecastAlert.className = 'alert alert-info';
+            forecastAlert.setAttribute('role', 'alert');
+            forecastAlert.append("The Kp index values are provided by NOAA. Sudden changes between 'Now' and forecasted values may indicate predicted geomagnetic events or storms.");
+            forecastAlert.appendChild(document.createElement('br'));
+            forecastAlert.append("These forecasts are subject to change and reflect NOAA's latest predictions.");
+            forecastBody.appendChild(forecastAlert);
+
+            const bubblesRow = document.createElement('div');
+            bubblesRow.className = 'row row-cols-2 row-cols-sm-3 row-cols-lg-4 text-center g-3';
+            data.forecast.slice(0, 8).forEach((f) => {
+                const kp = f.kp_index || 0;
+                let bubbleColor = 'danger';
+                if (kp >= 7) bubbleColor = 'success';
+                else if (kp >= 5) bubbleColor = 'warning';
+                const size = 24 + kp * 2;
+
+                const bubbleCol = document.createElement('div');
+                bubbleCol.className = 'col d-flex flex-column align-items-center';
+                const ts = document.createElement('div');
+                ts.className = 'fw-bold small mb-1';
+                ts.textContent = formatTimeThenDate(new Date(f.timestamp));
+                const bubble = document.createElement('div');
+                bubble.className = `rounded-circle bg-${bubbleColor} shadow-sm mb-1`;
+                bubble.style.width = `${size}px`;
+                bubble.style.height = `${size}px`;
+                bubble.style.lineHeight = `${size}px`;
+                const kpLabel = document.createElement('div');
+                kpLabel.className = 'small';
+                kpLabel.append(`Kp ${kp.toFixed(1)}`);
+                kpLabel.appendChild(document.createElement('br'));
+                kpLabel.append(`${probability.toFixed(0)}%${probabilityLevel ? ` (${probabilityLevel})` : ''}`);
+
+                bubbleCol.appendChild(ts);
+                bubbleCol.appendChild(bubble);
+                bubbleCol.appendChild(kpLabel);
+                bubblesRow.appendChild(bubbleCol);
+            });
+            forecastBody.appendChild(bubblesRow);
+            forecastCard.appendChild(forecastHeader);
+            forecastCard.appendChild(forecastBody);
+            forecastCol.appendChild(forecastCard);
+            forecastRow.appendChild(forecastCol);
+            container.appendChild(forecastRow);
+        }
+
+        const tipsRow = document.createElement('div');
+        tipsRow.className = 'row row-cols-1 mb-3';
+        const tipsCol = document.createElement('div');
+        tipsCol.className = 'col';
+        const tipsAlert = document.createElement('div');
+        tipsAlert.className = 'alert alert-info';
+        tipsAlert.setAttribute('role', 'alert');
+        const tipsTitle = document.createElement('strong');
+        tipsTitle.textContent = '📌 Tips for Aurora Hunting:';
+        const tipsList = document.createElement('ul');
+        tipsList.className = 'mb-0 mt-2';
+        [
+            'Travel away from light pollution (cities) for best viewing',
+            'Look towards the northern horizon during the recommended window',
+            'Dress warmly - aurora hunting can require waiting outside in cold',
+            'Higher Kp index means aurora could be visible further south',
+            'Green aurora is most common, red is from high altitude oxygen',
+            'Better visibility on clear, moonless nights'
+        ].forEach((tip) => {
+            const li = document.createElement('li');
+            li.textContent = tip;
+            tipsList.appendChild(li);
+        });
+        tipsAlert.appendChild(tipsTitle);
+        tipsAlert.appendChild(tipsList);
+        tipsCol.appendChild(tipsAlert);
+        tipsRow.appendChild(tipsCol);
+        container.appendChild(tipsRow);
     } else {
         // Error block
         const errorBlock = document.createElement('div');

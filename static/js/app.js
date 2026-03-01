@@ -189,7 +189,7 @@ async function loadTimezones() {
         const select = document.getElementById('timezone');
         if (!select) return; // Element doesn't exist on this page view
         
-        select.innerHTML = '';
+        DOMUtils.clear(select);
         
         timezones.forEach(tz => {
             const option = document.createElement('option');
@@ -609,7 +609,7 @@ async function viewConfiguration() {
                 showMessage('error', 'Configuration modal not properly initialized');
                 return;
             }
-            titleElement.innerHTML = `📄 UpTonight Configurations`;
+            titleElement.textContent = '📄 UpTonight Configurations';
             
             //Prepare modal content
             const contentElement = document.getElementById('modal_lg_close_body');
@@ -618,21 +618,34 @@ async function viewConfiguration() {
                 showMessage('error', 'Configuration modal not properly initialized');
                 return;
             }
-            contentElement.innerHTML = `
-                <!-- Dropdown to select config -->
-                <div class="row row-cols-lg-auto g-3 align-items-center mb-3">
-                    <div class="col-12">
-                        <label class="visually-hidden" for="config-selector">Select configuration</label>
-                        <select class="form-select" id="config-selector">
-                        </select>
-                    </div>
-                </div>
+            DOMUtils.clear(contentElement);
+            const selectorRow = document.createElement('div');
+            selectorRow.className = 'row row-cols-lg-auto g-3 align-items-center mb-3';
+            const selectorCol = document.createElement('div');
+            selectorCol.className = 'col-12';
+            const selectorLabel = document.createElement('label');
+            selectorLabel.className = 'visually-hidden';
+            selectorLabel.setAttribute('for', 'config-selector');
+            selectorLabel.textContent = 'Select configuration';
+            const selectorElement = document.createElement('select');
+            selectorElement.className = 'form-select';
+            selectorElement.id = 'config-selector';
+            selectorCol.appendChild(selectorLabel);
+            selectorCol.appendChild(selectorElement);
+            selectorRow.appendChild(selectorCol);
 
-                <!-- Content YAML/JSON -->
-                <pre id="config-display" class="border p-3 bg-dark text-light rounded"></pre>
+            const configDisplay = document.createElement('pre');
+            configDisplay.id = 'config-display';
+            configDisplay.className = 'border p-3 bg-dark text-light rounded';
 
-                <button id="export-config-from-modal" class="btn btn-primary">⬇️ Export this config as YAML</button>
-            `;
+            const exportButton = document.createElement('button');
+            exportButton.id = 'export-config-from-modal';
+            exportButton.className = 'btn btn-primary';
+            exportButton.textContent = '⬇️ Export this config as YAML';
+
+            contentElement.appendChild(selectorRow);
+            contentElement.appendChild(configDisplay);
+            contentElement.appendChild(exportButton);
 
             const selector = document.getElementById('config-selector');
             if (!selector) {
@@ -640,7 +653,7 @@ async function viewConfiguration() {
                 showMessage('error', 'Configuration selector not properly initialized');
                 return;
             }
-            selector.innerHTML = ''; // clear previous options
+            DOMUtils.clear(selector); // clear previous options
 
             // Add options for each config
             configsData.forEach((cfg, index) => {
@@ -707,7 +720,7 @@ async function viewConfiguration() {
                     }
                     const bodyElement = document.getElementById('modal_lg_close_body');
                     if (bodyElement) {
-                        bodyElement.innerHTML = '';
+                        DOMUtils.clear(bodyElement);
                     }
                     configsData = [];
 
@@ -769,13 +782,15 @@ async function loadLogs() {
             return;
         }
         
-        logsContainer.innerHTML = '';
+        DOMUtils.clear(logsContainer);
         
         if (data.logs && data.logs.length > 0) {
             // Add log info header
             const logInfo = document.createElement('div');
             logInfo.className = 'log-info-header';
-            logInfo.innerHTML = `<strong>Showing ${data.showing} of ${data.total} log entries</strong>`;
+            const strong = document.createElement('strong');
+            strong.textContent = `Showing ${data.showing} of ${data.total} log entries`;
+            logInfo.appendChild(strong);
             logsContainer.appendChild(logInfo);
             
             // Display logs in chronological order (newest last)
@@ -800,13 +815,21 @@ async function loadLogs() {
             // Auto-scroll to bottom to show latest logs
             logsContainer.scrollTop = logsContainer.scrollHeight;
         } else {
-            logsContainer.innerHTML = '<div class="log-empty">No logs available yet</div>';
+            DOMUtils.clear(logsContainer);
+            const empty = document.createElement('div');
+            empty.className = 'log-empty';
+            empty.textContent = 'No logs available yet';
+            logsContainer.appendChild(empty);
         }
     } catch (error) {
         console.error('Error loading logs:', error);
         const logsDisplay = document.getElementById('logs-display');
         if (logsDisplay) {
-            logsDisplay.innerHTML = '<div class="log-error">Error loading logs</div>';
+            DOMUtils.clear(logsDisplay);
+            const error = document.createElement('div');
+            error.className = 'log-error';
+            error.textContent = 'Error loading logs';
+            logsDisplay.appendChild(error);
         }
     }
 }
@@ -820,7 +843,11 @@ async function clearLogsDisplay() {
 
     const logsDisplay = document.getElementById('logs-display');
     if (logsDisplay) {
-        logsDisplay.innerHTML = '<div class="log-empty">Logs cleared (refresh to reload)</div>';
+        DOMUtils.clear(logsDisplay);
+        const empty = document.createElement('div');
+        empty.className = 'log-empty';
+        empty.textContent = 'Logs cleared (refresh to reload)';
+        logsDisplay.appendChild(empty);
     }
 }
 
@@ -921,7 +948,7 @@ async function loadCatalogues() {
         const container = document.getElementById('catalogues-list');
         if (!container) return; // Element doesn't exist on this page view
 
-        container.innerHTML = '';
+        DOMUtils.clear(container);
         
         // Ensure Messier is checked by default if no catalogues selected
         const selectedCatalogues = currentConfig.selected_catalogues || ['Messier'];
@@ -929,10 +956,22 @@ async function loadCatalogues() {
         catalogues.forEach(catalogue => {
             const checkboxElt = document.createElement('div');
             checkboxElt.className = 'form-check form-switch bg-checkbox';
-            checkboxElt.innerHTML = `
-                <input class="form-check-input" type="checkbox" value="${catalogue}" id="catalogue-${catalogue}" ${selectedCatalogues.includes(catalogue) ? 'checked' : ''} switch>
-                <label class="form-check-label" for="catalogue-${catalogue}">${catalogue}</label>
-            `;
+
+            const input = document.createElement('input');
+            input.className = 'form-check-input';
+            input.type = 'checkbox';
+            input.value = catalogue;
+            input.id = `catalogue-${catalogue}`;
+            input.toggleAttribute('checked', selectedCatalogues.includes(catalogue));
+            input.setAttribute('switch', '');
+
+            const label = document.createElement('label');
+            label.className = 'form-check-label';
+            label.setAttribute('for', `catalogue-${catalogue}`);
+            label.textContent = catalogue;
+
+            checkboxElt.appendChild(input);
+            checkboxElt.appendChild(label);
             container.appendChild(checkboxElt);
         });
         
@@ -949,8 +988,7 @@ async function loadUptonightResultsTabs() {
         const subtabsContainer = document.getElementById('uptonight-subtabs');
         let  eltFirstTab = -1; // Index of the first tab to activate by default
 
-        // Init var
-        let tabsHTML = '';
+        DOMUtils.clear(subtabsContainer);
         
         //console.log('Uptonight outputs:', outputs);
 
@@ -965,16 +1003,19 @@ async function loadUptonightResultsTabs() {
                 if (eltFirstTab === -1) {
                     eltFirstTab = index;
                 }
-                tabsHTML += `
-                    <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="catalogue-${target}">📚 ${target}</a>
-                    </li>`;
+                const li = document.createElement('li');
+                li.className = 'nav-item';
+                const a = document.createElement('a');
+                a.className = 'nav-link sub-tab-btn';
+                a.href = '#';
+                a.setAttribute('data-subtab', `catalogue-${target}`);
+                a.textContent = `📚 ${target}`;
+                li.appendChild(a);
+                subtabsContainer.appendChild(li);
             });
         } else {
-            tabsHTML = 'Currently no data available for UpTonight service.';
+            subtabsContainer.textContent = 'Currently no data available for UpTonight service.';
         }
-        
-        subtabsContainer.innerHTML = tabsHTML;
         
         // Create content divs for catalogue tabs
         const uptontightTab = document.getElementById('uptonight-tab');
@@ -986,13 +1027,23 @@ async function loadUptonightResultsTabs() {
                     const div = document.createElement('div');
                     div.id = `catalogue-${output.target}-subtab`;
                     div.className = `sub-tab-content`;
-                    div.innerHTML = `
-                        <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                            <h2>📚 ${output.target} Results</h2>
-                            <ul class="nav nav-pills sub-tabs" id="catalogue-${output.target}-type-buttons"></ul>
-                            <div id="catalogue-${output.target}-content"><div class="alert alert-info">Loading...</div></div>
-                        </div>
-                    `;
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'shadow p-2 mb-3 rounded bg-sub-container';
+                    const title = document.createElement('h2');
+                    title.textContent = `📚 ${output.target} Results`;
+                    const typeButtons = document.createElement('ul');
+                    typeButtons.className = 'nav nav-pills sub-tabs';
+                    typeButtons.id = `catalogue-${output.target}-type-buttons`;
+                    const content = document.createElement('div');
+                    content.id = `catalogue-${output.target}-content`;
+                    const loadingAlert = document.createElement('div');
+                    loadingAlert.className = 'alert alert-info';
+                    loadingAlert.textContent = 'Loading...';
+                    content.appendChild(loadingAlert);
+                    wrapper.appendChild(title);
+                    wrapper.appendChild(typeButtons);
+                    wrapper.appendChild(content);
+                    div.appendChild(wrapper);
                     uptontightTab.appendChild(div);
                     
                     // Load catalogue data
@@ -1031,35 +1082,57 @@ async function loadCatalogueResults(catalogue) {
         const container = document.getElementById(`catalogue-${catalogue}-content`);
         
         if (reports.error) {
-            container.innerHTML = `<div class="alert alert-danger">${reports.error}</div>`;
+            DOMUtils.clear(container);
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-danger';
+            alert.textContent = reports.error;
+            container.appendChild(alert);
             return;
         }
         
         // Create buttons for available data types
-        let buttonsHTML = '';
         const hasPlot = reports.plot_image;
         const hasReport = reports.report && reports.report.length > 0;
         const hasBodies = reports.bodies && reports.bodies.length > 0;
         const hasComets = reports.comets && reports.comets.length > 0;
+
+        const renderButtons = (buttonItems) => {
+            DOMUtils.clear(buttonsContainer);
+            buttonItems.forEach((buttonItem) => {
+                const li = document.createElement('li');
+                li.className = 'nav-item';
+                const link = document.createElement('a');
+                link.className = `nav-link catalogue-type-btn${buttonItem.active ? ' active' : ''}`;
+                link.href = '#';
+                link.textContent = buttonItem.label;
+                link.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    showCatalogueType(catalogue, buttonItem.type);
+                });
+                li.appendChild(link);
+                buttonsContainer.appendChild(li);
+            });
+        };
         
         // Determine first available type for default selection
         let firstType = null;
         
         // Add buttons in order: Plot, Deep sky objects (Report), Bodies, Comets
+        const buttonItems = [];
         if (hasPlot) {
-            buttonsHTML += `<li class="nav-item"><a class="nav-link catalogue-type-btn ${!firstType ? 'active' : ''}" onclick="showCatalogueType('${catalogue}', 'plot')">📊 Plot</a></li>`;
+            buttonItems.push({ type: 'plot', label: '📊 Plot', active: !firstType });
             if (!firstType) firstType = 'plot';
         }
         if (hasReport) {
-            buttonsHTML += `<li class="nav-item"><a class="nav-link catalogue-type-btn ${!firstType ? 'active' : ''}" onclick="showCatalogueType('${catalogue}', 'report')">🌌 Deep sky objects</a></li>`;
+            buttonItems.push({ type: 'report', label: '🌌 Deep sky objects', active: !firstType });
             if (!firstType) firstType = 'report';
         }
         if (hasBodies) {
-            buttonsHTML += `<li class="nav-item"><a class="nav-link catalogue-type-btn ${!firstType ? 'active' : ''}" onclick="showCatalogueType('${catalogue}', 'bodies')">🪐 Bodies</a></li>`;
+            buttonItems.push({ type: 'bodies', label: '🪐 Bodies', active: !firstType });
             if (!firstType) firstType = 'bodies';
         }
         if (hasComets) {
-            buttonsHTML += `<li class="nav-item"><a class="nav-link catalogue-type-btn ${!firstType ? 'active' : ''}" onclick="showCatalogueType('${catalogue}', 'comets')">☄️ Comets</a></li>`;
+            buttonItems.push({ type: 'comets', label: '☄️ Comets', active: !firstType });
             if (!firstType) firstType = 'comets';
         }
         
@@ -1069,13 +1142,14 @@ async function loadCatalogueResults(catalogue) {
             checkCatalogueLogExists(catalogue),
             checkCatalogueReportsAvailable(catalogue)
         ]).then(([logExists, reportsAvailable]) => {
+            const enrichedButtons = [...buttonItems.map((button, index) => ({ ...button, active: index === 0 }))];
             if (logExists) {
-                buttonsHTML += `<li class="nav-item"><a class="nav-link catalogue-type-btn" onclick="showCatalogueType('${catalogue}', 'log')">📄 Log</a></li>`;
+                enrichedButtons.push({ type: 'log', label: '📄 Log', active: false });
             }
             if (reportsAvailable && reportsAvailable.has_any) {
-                buttonsHTML += `<li class="nav-item"><a class="nav-link catalogue-type-btn" onclick="showCatalogueType('${catalogue}', 'reports')">📑 Reports</a></li>`;
+                enrichedButtons.push({ type: 'reports', label: '📑 Reports', active: false });
             }
-            buttonsContainer.innerHTML = buttonsHTML;
+            renderButtons(enrichedButtons);
             
             // Store reports availability for later use
             if (reportsAvailable) {
@@ -1083,8 +1157,8 @@ async function loadCatalogueResults(catalogue) {
                 window.catalogueReportsAvailability[catalogue] = reportsAvailable.available;
             }
         });
-        
-        buttonsContainer.innerHTML = buttonsHTML;
+
+        renderButtons(buttonItems);
         
         // Store the reports data for switching between types
         window.catalogueReports = window.catalogueReports || {};
@@ -1100,7 +1174,11 @@ async function loadCatalogueResults(catalogue) {
     } catch (error) {
         console.error('Error loading catalogue results:', error);
         const container = document.getElementById(`catalogue-${catalogue}-content`);
-        container.innerHTML = '<div class="alert alert-danger">Failed to load catalogue results</div>';
+        DOMUtils.clear(container);
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger';
+        alert.textContent = 'Failed to load catalogue results';
+        container.appendChild(alert);
     }
 }
 
@@ -1132,7 +1210,7 @@ async function showCatalogueType(catalogue, type) {
     });
 
     const container = document.getElementById(`catalogue-${catalogue}-content`);
-    container.innerHTML = ''; // Clear previous content
+    DOMUtils.clear(container); // Clear previous content
 
     // --- Plot ---
     if (type === 'plot' && reports.plot_image) {
@@ -1147,8 +1225,14 @@ async function showCatalogueType(catalogue, type) {
 
         const info = document.createElement('div');
         info.className = 'text-muted small mt-2';
-        info.innerHTML = `These data and plots come from 
-            <a href="https://github.com/mawinkler/uptonight" target="_blank" rel="noopener noreferrer">mawinkler/uptonight</a>.`;
+        info.append('These data and plots come from ');
+        const link = document.createElement('a');
+        link.href = 'https://github.com/mawinkler/uptonight';
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = 'mawinkler/uptonight';
+        info.appendChild(link);
+        info.append('.');
 
         plotDiv.appendChild(img);
         plotDiv.appendChild(info);
@@ -1164,7 +1248,7 @@ async function showCatalogueType(catalogue, type) {
         container.appendChild(loading);
 
         loadCatalogueLog(catalogue).then(logContent => {
-            container.innerHTML = '';
+            DOMUtils.clear(container);
             const logContainer = document.createElement('div');
             logContainer.className = 'logs-container mt-3 rounded';
 
@@ -1251,7 +1335,9 @@ async function showCatalogueType(catalogue, type) {
     else if (type === 'comets' && reports.comets) tableHtml = generateReportTable(reports.comets, catalogue, 'comets', displayAstrodex);
 
     if (tableHtml) {
-        container.innerHTML = tableHtml;
+        DOMUtils.clear(container);
+        const fragment = document.createRange().createContextualFragment(tableHtml);
+        container.appendChild(fragment);
     } else {
         const p = document.createElement('p');
         p.textContent = 'No data available';
@@ -1708,7 +1794,7 @@ function showPlotPopup(title, src) {
     const bodyElement = document.getElementById('modal_full_close_body');
     if (bodyElement) {
         // Clear existing content safely
-        bodyElement.innerHTML = '';
+        DOMUtils.clear(bodyElement);
 
         const img = document.createElement('img');
         img.id = 'image-display';
@@ -1742,7 +1828,7 @@ function showAlttimePopup(title, src) {
     const bodyElement = document.getElementById('modal_xl_close_body');
     if (bodyElement) {
         // Clear existing content safely
-        bodyElement.innerHTML = '';
+        DOMUtils.clear(bodyElement);
 
         const img = document.createElement('img');
         img.id = 'image-display';
@@ -1769,7 +1855,10 @@ function showMorePopup(popupId) {
         
         //Prepare modal content
         const contentElement = document.getElementById('modal_lg_close_body');
-        contentElement.innerHTML = popup.innerHTML;
+        DOMUtils.clear(contentElement);
+        Array.from(popup.childNodes).forEach((node) => {
+            contentElement.appendChild(node.cloneNode(true));
+        });
 
         const bs_modal = new bootstrap.Modal('#modal_lg_close', {
             backdrop: 'static',
@@ -1839,7 +1928,7 @@ function sortTable(catalogue, column, type) {
         return sortDirection === 'asc' ? comparison : -comparison;
     });
     
-    tbody.innerHTML = '';
+    DOMUtils.clear(tbody);
     rows.forEach(row => tbody.appendChild(row));
 }
 
@@ -2125,10 +2214,19 @@ async function updateCatalogueCapturedBadge(itemDataOrName, isInAstrodex) {
             if (!targetNames.has(rowNormalizedName)) return;
             
             if (isInAstrodex) {
-                astrodexCell.innerHTML = '<span class="in-astrodex-badge">✓ Captured</span>';
+                DOMUtils.clear(astrodexCell);
+                const badge = document.createElement('span');
+                badge.className = 'in-astrodex-badge';
+                badge.textContent = '✓ Captured';
+                astrodexCell.appendChild(badge);
             } else {
-                const itemDataJson = JSON.stringify(rowItemData).replace(/"/g, '&quot;');
-                astrodexCell.innerHTML = `<button class="btn btn-sm btn-outline-primary astrodex-add-btn" data-item="${itemDataJson}">➕ Add</button>`;
+                const itemDataJson = JSON.stringify(rowItemData);
+                DOMUtils.clear(astrodexCell);
+                const addButton = document.createElement('button');
+                addButton.className = 'btn btn-sm btn-outline-primary astrodex-add-btn';
+                addButton.setAttribute('data-item', itemDataJson);
+                addButton.textContent = '➕ Add';
+                astrodexCell.appendChild(addButton);
             }
         });
     });
@@ -2177,7 +2275,7 @@ async function loadSelectedReport(catalogue, reportType) {
         const contentDiv = document.getElementById(`report-content-${catalogue}`);
         if (!contentDiv) return;
 
-        contentDiv.innerHTML = '';
+        DOMUtils.clear(contentDiv);
         
         const loading = document.createElement('div');
         loading.className = 'loading';
@@ -2186,7 +2284,7 @@ async function loadSelectedReport(catalogue, reportType) {
 
         const result = await fetchJSON(`/api/uptonight/reports/${catalogue}/${reportType}`);
 
-        contentDiv.innerHTML = '';
+        DOMUtils.clear(contentDiv);
 
         if (result && result.report_content) {
             const pre = document.createElement('pre');
@@ -2203,7 +2301,7 @@ async function loadSelectedReport(catalogue, reportType) {
         console.error('Error loading report:', error);
         const contentDiv = document.getElementById(`report-content-${catalogue}`);
         if (contentDiv) {
-            contentDiv.innerHTML = '';
+            DOMUtils.clear(contentDiv);
             const alert = document.createElement('div');
             alert.className = 'alert alert-danger';
             alert.textContent = 'Failed to load report content.';

@@ -68,8 +68,8 @@ function displayEvents(eventsData) {
     }
 
     // Clear existing alerts
-    container.innerHTML = '';
-    timelineContainer.innerHTML = '';
+    DOMUtils.clear(container);
+    DOMUtils.clear(timelineContainer);
 
     // Check if we have any upcoming events
     const nextEvent = eventsData.next_event;
@@ -88,7 +88,7 @@ function displayEvents(eventsData) {
     if (!nextEvent || eventsIn30Days.length === 0) {
         const noEventsMsg = document.createElement('div');
         noEventsMsg.className = 'alert alert-info';
-        noEventsMsg.innerHTML = 'No significant astronomical events in the next 30 days.';
+        noEventsMsg.textContent = 'No significant astronomical events in the next 30 days.';
         timelineContainer.appendChild(noEventsMsg);
 
     // Events to display in timeline 
@@ -128,14 +128,18 @@ function createEventAlertCard(event) {
     const header = document.createElement('div');
 
     const titleDiv = document.createElement('div');
-    titleDiv.innerHTML = `
-        <h4 class="alert-heading">
-            ${event.emoji} <strong>${event.title}</strong>
-        </h4>
-        <h6>
-            ${event.description}
-        </h6>
-    `;
+    const titleHeading = document.createElement('h4');
+    titleHeading.className = 'alert-heading';
+    titleHeading.append(document.createTextNode(`${event.emoji || ''} `));
+    const strong = document.createElement('strong');
+    strong.textContent = event.title || '';
+    titleHeading.appendChild(strong);
+
+    const subtitle = document.createElement('h6');
+    subtitle.textContent = event.description || '';
+
+    titleDiv.appendChild(titleHeading);
+    titleDiv.appendChild(subtitle);
 
     header.appendChild(titleDiv);
     card.appendChild(header);
@@ -144,8 +148,7 @@ function createEventAlertCard(event) {
     if (event.peak_time && event.days_until_event !== undefined) {
         const timingDiv = document.createElement('div');
         timingDiv.className = 'mt-2 small';
-
-        timingDiv.innerHTML = `📅 ${formatTimeThenDate(new Date(event.peak_time))} - ${getDaysUntilText(event.days_until_event)}`;
+        timingDiv.textContent = `📅 ${formatTimeThenDate(new Date(event.peak_time))} - ${getDaysUntilText(event.days_until_event)}`;
         card.appendChild(timingDiv);
     }
 
@@ -156,7 +159,7 @@ function createEventAlertCard(event) {
     const learnMoreButton = document.createElement('a');
     learnMoreButton.className = 'btn btn-sm sub-tab-btn active';
     learnMoreButton.href = '#';
-    learnMoreButton.innerHTML = '📖 Details';
+    learnMoreButton.textContent = '📖 Details';
     learnMoreButton.addEventListener('click', (e) => {
         e.preventDefault();
         scrollToEventDetails(event.event_type);
@@ -186,12 +189,16 @@ function createEventTimeline(events) {
         iconSpan.className = 'timeline-icon';
         iconSpan.textContent = event.emoji ?? '';
         // Class following the event visibility true/false
+        const visibilityBadge = document.createElement('span');
+        visibilityBadge.classList.add('badge', 'ms-2', 'bg-opacity-75');
         if (event.visibility) {
             iconSpan.classList.add('bg-success');
-            var labelVisible = '<span class="badge bg-success ms-2 bg-opacity-75">Visible</span>';
+            visibilityBadge.classList.add('bg-success');
+            visibilityBadge.textContent = 'Visible';
         } else {
             iconSpan.classList.add('bg-danger');
-            var labelVisible = '<span class="badge bg-danger ms-2 bg-opacity-75">Invisible</span>';
+            visibilityBadge.classList.add('bg-danger');
+            visibilityBadge.textContent = 'Invisible';
         }
         // Add opacity to bg
         iconSpan.classList.add('bg-opacity-75');
@@ -200,7 +207,8 @@ function createEventTimeline(events) {
         // Title
         const title = document.createElement('h5');
         title.className = 'fw-bold';
-        title.innerHTML = `${event.title} ${labelVisible ?? ''}`;
+        title.textContent = `${event.title || ''}`;
+        title.appendChild(visibilityBadge);
         item.appendChild(title);
 
         // Add timing information if available

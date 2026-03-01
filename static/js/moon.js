@@ -25,91 +25,73 @@ async function loadMoon() {
         };
 
         let moonEmoji = phaseEmojiMap[moon.phase_name] || '🌑';
+        DOMUtils.clear(container);
 
-        container.innerHTML = `
-            <div class="d-flex flex-row align-items-center mb-3">
-                <div class="p-2 icon-weather-lg">${escapeHtml(moonEmoji)}</div>
-                <div class="p-2">
-                    <div class="fw-bold fs-4">${escapeHtml(moon.phase_name)}</div>
-                    <div>${moon.illumination_percent.toFixed(0)}% illuminated</div>
-                </div>
-            </div>
+        const header = document.createElement('div');
+        header.className = 'd-flex flex-row align-items-center mb-3';
+        const icon = document.createElement('div');
+        icon.className = 'p-2 icon-weather-lg';
+        icon.textContent = moonEmoji;
+        const titleWrap = document.createElement('div');
+        titleWrap.className = 'p-2';
+        const phaseTitle = document.createElement('div');
+        phaseTitle.className = 'fw-bold fs-4';
+        phaseTitle.textContent = moon.phase_name;
+        const illum = document.createElement('div');
+        illum.textContent = `${moon.illumination_percent.toFixed(0)}% illuminated`;
+        titleWrap.appendChild(phaseTitle);
+        titleWrap.appendChild(illum);
+        header.appendChild(icon);
+        header.appendChild(titleWrap);
 
-            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-2 row-cols-xl-3 p-2 mb-3">
-                <div class="col mb-3">
-                    <div class="card h-100">
-                        <div class="card-header fw-bold">🌑 Moon</div>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>🌅 Rise:</span>
-                                <span class="fw-bold">
-                                    ${formatTimeThenDate(moon.next_moonrise)}
-                                </span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>🌇 Set:</span>
-                                <span class="fw-bold">
-                                    ${formatTimeThenDate(moon.next_moonset)}
-                                </span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="col mb-3">
-                    <div class="card h-100">
-                        <div class="card-header fw-bold">📐 Position</div>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>📏 Distance:</span>
-                                <span class="fw-bold">
-                                    ${escapeHtml(moon.distance_km ? Math.round(moon.distance_km).toLocaleString() + ' km' : 'N/A')}
-                                </span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>📐 Altitude:</span>
-                                <span class="fw-bold">
-                                    ${escapeHtml(moon.altitude_deg ? moon.altitude_deg.toFixed(2) + '°' : 'N/A')}
-                                </span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>🧭 Azimuth:</span>
-                                <span class="fw-bold">
-                                    ${escapeHtml(moon.azimuth_deg ? moon.azimuth_deg.toFixed(2) + '°' : 'N/A')}
-                                </span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="col mb-3">
-                    <div class="card h-100">
-                        <div class="card-header fw-bold">🌕 Next Events</div>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>🌕 Next Full Moon:</span>
-                                <span class="fw-bold">
-                                    ${formatTimeThenDate(moon.next_full_moon)}
-                                </span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>🌑 Next New Moon:</span>
-                                <span class="fw-bold">
-                                    ${formatTimeThenDate(moon.next_new_moon)}
-                                </span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>🌌 Next Dark Night:</span>
-                                <span class="fw-bold">
-                                    ${formatTimeThenDate(moon.next_dark_night_start)}
-                                </span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
+        const row = document.createElement('div');
+        row.className = 'row row-cols-1 row-cols-sm-2 row-cols-lg-2 row-cols-xl-3 p-2 mb-3';
 
-            </div>
-        `;
+        const createCard = (titleText, lines) => {
+            const col = document.createElement('div');
+            col.className = 'col mb-3';
+            const card = document.createElement('div');
+            card.className = 'card h-100';
+            const cardHeader = document.createElement('div');
+            cardHeader.className = 'card-header fw-bold';
+            cardHeader.textContent = titleText;
+            const list = document.createElement('ul');
+            list.className = 'list-group list-group-flush';
+            lines.forEach(({ label, value }) => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                const left = document.createElement('span');
+                left.textContent = label;
+                const right = document.createElement('span');
+                right.className = 'fw-bold';
+                right.textContent = value;
+                li.appendChild(left);
+                li.appendChild(right);
+                list.appendChild(li);
+            });
+            card.appendChild(cardHeader);
+            card.appendChild(list);
+            col.appendChild(card);
+            return col;
+        };
+
+        row.appendChild(createCard('🌑 Moon', [
+            { label: '🌅 Rise:', value: formatTimeThenDate(moon.next_moonrise) },
+            { label: '🌇 Set:', value: formatTimeThenDate(moon.next_moonset) }
+        ]));
+        row.appendChild(createCard('📐 Position', [
+            { label: '📏 Distance:', value: moon.distance_km ? `${Math.round(moon.distance_km).toLocaleString()} km` : 'N/A' },
+            { label: '📐 Altitude:', value: moon.altitude_deg ? `${moon.altitude_deg.toFixed(2)}°` : 'N/A' },
+            { label: '🧭 Azimuth:', value: moon.azimuth_deg ? `${moon.azimuth_deg.toFixed(2)}°` : 'N/A' }
+        ]));
+        row.appendChild(createCard('🌕 Next Events', [
+            { label: '🌕 Next Full Moon:', value: formatTimeThenDate(moon.next_full_moon) },
+            { label: '🌑 Next New Moon:', value: formatTimeThenDate(moon.next_new_moon) },
+            { label: '🌌 Next Dark Night:', value: formatTimeThenDate(moon.next_dark_night_start) }
+        ]));
+
+        container.appendChild(header);
+        container.appendChild(row);
     }
 }
 
@@ -166,48 +148,57 @@ async function loadNextMoonPhases() {
 
                 const item = document.createElement('div');
                 item.className = 'col mb-3';
-                item.innerHTML = `
-                    <div class="card h-100">
-                        <div class="card-header quality-box ${escapeHtml(qualityClass)}">
-                            <strong>${escapeHtml(quality)}</strong>
-                        </div>
-                        <div class="card-body">
-                            <h5 class="card-title card-title-weather mb-2">${formatDateFull(date)}</h5>
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    🌗 Illumination:
-                                    <span>${escapeHtml(illumination_percent + '%')}</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    📐 Max Altitude:
-                                    <span >${escapeHtml(max_altitude + '°')}</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    🌌 Dark-time:
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    &nbsp;>&nbsp;Strict:
-                                    <span>${escapeHtml(dark_hours_strict + ' h')}</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    &nbsp;>&nbsp;Practical:
-                                    <span>${escapeHtml(dark_hours_practical + ' h')}</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    &nbsp;>&nbsp;Illumination:
-                                    <span>${escapeHtml(dark_hours_illumination + ' h')}</span>
-                                </li>                         
-                            </ul>
-                        </div>
-                    </div>
-                `;
+                const card = document.createElement('div');
+                card.className = 'card h-100';
+                const cardHeader = document.createElement('div');
+                cardHeader.className = `card-header quality-box ${qualityClass}`;
+                const strong = document.createElement('strong');
+                strong.textContent = quality;
+                cardHeader.appendChild(strong);
+
+                const cardBody = document.createElement('div');
+                cardBody.className = 'card-body';
+                const title = document.createElement('h5');
+                title.className = 'card-title card-title-weather mb-2';
+                title.textContent = formatDateFull(date);
+                const list = document.createElement('ul');
+                list.className = 'list-group list-group-flush';
+
+                const addItem = (label, value = null) => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    li.append(label);
+                    if (value !== null) {
+                        const span = document.createElement('span');
+                        span.textContent = value;
+                        li.appendChild(span);
+                    }
+                    list.appendChild(li);
+                };
+
+                addItem('🌗 Illumination:', `${illumination_percent}%`);
+                addItem('📐 Max Altitude:', `${max_altitude}°`);
+                addItem('🌌 Dark-time:');
+                addItem(' > Strict:', `${dark_hours_strict} h`);
+                addItem(' > Practical:', `${dark_hours_practical} h`);
+                addItem(' > Illumination:', `${dark_hours_illumination} h`);
+
+                cardBody.appendChild(title);
+                cardBody.appendChild(list);
+                card.appendChild(cardHeader);
+                card.appendChild(cardBody);
+                item.appendChild(card);
                 container.appendChild(item);
             });
         }
 
     } catch (error) {
         console.error('Error loading moon data:', error);
-        container.innerHTML = '<div class="alert alert-danger">Failed to load moon data</div>';
+        DOMUtils.clear(container);
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger';
+        alert.textContent = 'Failed to load moon data';
+        container.appendChild(alert);
     }
 }
 
@@ -215,7 +206,7 @@ async function loadNextMoonPhases() {
 async function loadBestDarkWindow() {
     const container = document.getElementById('window-display');
     const containerLoader = document.getElementById('window-loader-info-notice');
-    containerLoader.innerHTML = 'Loading best dark window data...';
+    containerLoader.textContent = 'Loading best dark window data...';
     containerLoader.style.display = 'block';
 
     const retryOptions = {
@@ -227,10 +218,10 @@ async function loadBestDarkWindow() {
         onRetry: ({ reason, attempt, maxAttempts, waitMs, data }) => {
             const seconds = Math.max(1, Math.round(waitMs / 1000));
             if (reason === 'data' && data && data.message) {
-                containerLoader.innerHTML = `${data.message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
+                containerLoader.textContent = `${data.message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
                 return;
             }
-            containerLoader.innerHTML = `Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
+            containerLoader.textContent = `Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
         }
     };
 
@@ -238,21 +229,29 @@ async function loadBestDarkWindow() {
         // Fake error to catch error display
         //throw new Error('Test error');
 
-        container.innerHTML = '';
+        DOMUtils.clear(container);
 
         // Get dark window
         const data = await fetchJSONWithRetry('/api/moon/dark-window', {}, retryOptions);
 
         // Cache pending (retries exhausted)
         if (data.status && data.status === 'pending') {
-            container.innerHTML = `<div class="info-notice">${escapeHtml(data.message)}</div>`;
+            DOMUtils.clear(container);
+            const infoNotice = document.createElement('div');
+            infoNotice.className = 'info-notice';
+            infoNotice.textContent = data.message || '';
+            container.appendChild(infoNotice);
             containerLoader.style.display = 'none';
             return;
         }
 
         // Check if dark window data exists
         if (!data.next_dark_night || !data.next_dark_night.start || !data.next_dark_night.end) {
-            container.innerHTML = '<div class="error-box">No dark window data available</div>';
+            DOMUtils.clear(container);
+            const errorBox = document.createElement('div');
+            errorBox.className = 'error-box';
+            errorBox.textContent = 'No dark window data available';
+            container.appendChild(errorBox);
             containerLoader.style.display = 'none';
             return;
         }
@@ -263,28 +262,29 @@ async function loadBestDarkWindow() {
         // Bloc normal
         const item = document.createElement("div");
         item.className = "col mb-3";
-
-        item.innerHTML = `
-            <div class="card h-100">
-                <div class="card-header">
-                    🌌 Next Dark Window
-                </div>
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>🌆 Start:</span>
-                        <span>
-                            ${formatTimeThenDate(start)}
-                        </span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>🌅 End:</span>
-                        <span>
-                            ${formatTimeThenDate(end)}
-                        </span>
-                    </li>
-                </ul>
-            </div>
-        `;
+        const card = document.createElement('div');
+        card.className = 'card h-100';
+        const header = document.createElement('div');
+        header.className = 'card-header';
+        header.textContent = '🌌 Next Dark Window';
+        const list = document.createElement('ul');
+        list.className = 'list-group list-group-flush';
+        const addTiming = (labelText, valueText) => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center';
+            const label = document.createElement('span');
+            label.textContent = labelText;
+            const value = document.createElement('span');
+            value.textContent = valueText;
+            li.appendChild(label);
+            li.appendChild(value);
+            list.appendChild(li);
+        };
+        addTiming('🌆 Start:', formatTimeThenDate(start));
+        addTiming('🌅 End:', formatTimeThenDate(end));
+        card.appendChild(header);
+        card.appendChild(list);
+        item.appendChild(card);
         container.appendChild(item);
 
 
@@ -309,18 +309,20 @@ async function loadBestDarkWindow() {
                 const message = modeData && modeData.status === 'pending'
                     ? modeData.message || 'Cache pending'
                     : 'No dark window';
-                errorItem.innerHTML = `
-                    <div class="card h-100">
-                        <div class="card-header">
-                            ${escapeHtml(mode.toUpperCase())}
-                        </div>
-                        <div class="card-body">
-                            <div class="card-text">
-                                ${escapeHtml(message)}
-                            </div>
-                        </div>
-                    </div>
-                `;
+                const errorCard = document.createElement('div');
+                errorCard.className = 'card h-100';
+                const errorHeader = document.createElement('div');
+                errorHeader.className = 'card-header';
+                errorHeader.textContent = mode.toUpperCase();
+                const errorBody = document.createElement('div');
+                errorBody.className = 'card-body';
+                const errorText = document.createElement('div');
+                errorText.className = 'card-text';
+                errorText.textContent = message;
+                errorBody.appendChild(errorText);
+                errorCard.appendChild(errorHeader);
+                errorCard.appendChild(errorBody);
+                errorItem.appendChild(errorCard);
                 container.appendChild(errorItem);
                 continue;
             }
@@ -346,32 +348,29 @@ async function loadBestDarkWindow() {
             // Bloc normal
             const item = document.createElement("div");
             item.className = "col mb-3";
-
-            item.innerHTML = `
-                <div class="card h-100">
-                    <div class="card-header">
-                        ${escapeHtml(mode.toUpperCase())}
-                    </div>
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            💯 Score:
-                            <span>${escapeHtml(modeData.best_window.score)}</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            🌚 Moon condition:
-                            <span>${escapeHtml(capitalizeWords(modeData.best_window.moon_condition))}</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            🌗 Start:
-                            <span>${escapeHtml(start_txt)}</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            🌗 End:
-                            <span>${escapeHtml(end_txt)}</span>
-                        </li>
-                    </ul>
-                </div>
-            `;
+            const modeCard = document.createElement('div');
+            modeCard.className = 'card h-100';
+            const modeHeader = document.createElement('div');
+            modeHeader.className = 'card-header';
+            modeHeader.textContent = mode.toUpperCase();
+            const modeList = document.createElement('ul');
+            modeList.className = 'list-group list-group-flush';
+            const addModeItem = (labelText, valueText) => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.append(labelText);
+                const span = document.createElement('span');
+                span.textContent = valueText;
+                li.appendChild(span);
+                modeList.appendChild(li);
+            };
+            addModeItem('💯 Score:', String(modeData.best_window.score));
+            addModeItem('🌚 Moon condition:', capitalizeWords(modeData.best_window.moon_condition));
+            addModeItem('🌗 Start:', start_txt);
+            addModeItem('🌗 End:', end_txt);
+            modeCard.appendChild(modeHeader);
+            modeCard.appendChild(modeList);
+            item.appendChild(modeCard);
 
             container.appendChild(item);
         }
@@ -385,6 +384,6 @@ async function loadBestDarkWindow() {
         console.error('Error loading dark window data:', error);
         const containerError = document.getElementById('window-loader-info-notice');
         containerError.className = 'alert alert-danger';
-        containerError.innerHTML = 'Failed to load dark window data';
+        containerError.textContent = 'Failed to load dark window data';
     }
 }

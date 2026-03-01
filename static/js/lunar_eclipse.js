@@ -15,11 +15,12 @@ async function loadLunarEclipse() {
 
         // Check if eclipse data is available
         if (!data.lunar_eclipse) {
-            container.innerHTML = `
-                <div class="alert alert-info" role="alert">
-                    ℹ️ ${escapeHtml(data.message) || 'No lunar eclipse data available'}
-                </div>
-            `;
+            DOMUtils.clear(container);
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-info';
+            alert.setAttribute('role', 'alert');
+            alert.textContent = `ℹ️ ${data.message || 'No lunar eclipse data available'}`;
+            container.appendChild(alert);
             return;
         }
 
@@ -38,110 +39,116 @@ async function loadLunarEclipse() {
         else if (eclipse.astrophotography_score >= 6) scoreColor = 'warning';
         else if (eclipse.astrophotography_score > 0) scoreColor = 'danger';
 
-        // Build altitude vs time chart
-        let altitudeChartHTML = '';
-        if (eclipse.altitude_vs_time && eclipse.altitude_vs_time.length > 0) {
-            altitudeChartHTML = `
-                <div id="lunar-eclipse-chart-container"></div>
-            `;
+        DOMUtils.clear(container);
+
+        const row = document.createElement('div');
+        row.className = 'row row-cols-1 row-cols-sm-2 row-cols-lg-2 row-cols-xl-4 mb-3';
+
+        const createCardCol = (titleText) => {
+            const col = document.createElement('div');
+            col.className = 'col mb-3';
+            const card = document.createElement('div');
+            card.className = 'card h-100';
+            const header = document.createElement('div');
+            header.className = 'card-header fw-bold';
+            header.textContent = titleText;
+            card.appendChild(header);
+            col.appendChild(card);
+            return { col, card };
+        };
+
+        const createList = () => {
+            const list = document.createElement('ul');
+            list.className = 'list-group list-group-flush';
+            return list;
+        };
+
+        const createListItem = (labelText, valueText) => {
+            const item = document.createElement('li');
+            item.className = 'list-group-item d-flex justify-content-between align-items-center';
+            const label = document.createElement('span');
+            label.textContent = labelText;
+            const value = document.createElement('span');
+            value.className = 'fw-bold';
+            value.textContent = valueText;
+            item.appendChild(label);
+            item.appendChild(value);
+            return item;
+        };
+
+        const overview = createCardCol('📊 Overview');
+        const overviewList = createList();
+        overviewList.appendChild(createListItem('Type:', eclipse.type));
+        const visibilityItem = document.createElement('li');
+        visibilityItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+        const visibilityLabel = document.createElement('span');
+        visibilityLabel.textContent = 'Visibility:';
+        const visibilityValue = document.createElement('span');
+        const visibilityBadgeNode = document.createElement('span');
+        visibilityBadgeNode.className = `badge ${eclipse.visible ? 'bg-success' : 'bg-danger'}`;
+        visibilityBadgeNode.textContent = eclipse.visible ? 'Visible' : 'Not visible';
+        visibilityValue.appendChild(visibilityBadgeNode);
+        visibilityItem.appendChild(visibilityLabel);
+        visibilityItem.appendChild(visibilityValue);
+        overviewList.appendChild(visibilityItem);
+        overviewList.appendChild(createListItem(
+            'Total Duration:',
+            eclipse.total_duration_minutes > 0 ? `${eclipse.total_duration_minutes} min` : 'None'
+        ));
+        overviewList.appendChild(createListItem(
+            'Partial Duration:',
+            eclipse.partial_duration_minutes > 0 ? `${eclipse.partial_duration_minutes} min` : 'None'
+        ));
+        overview.card.appendChild(overviewList);
+        row.appendChild(overview.col);
+
+        const timing = createCardCol('⏱️ Timing');
+        const timingList = createList();
+        timingList.appendChild(createListItem('Partial begin:', formatTimeThenDate(eclipse.partial_begin)));
+        if (eclipse.total_begin) {
+            timingList.appendChild(createListItem('Total begin:', formatTimeThenDate(eclipse.total_begin)));
+            timingList.appendChild(createListItem('Total end:', formatTimeThenDate(eclipse.total_end)));
         }
+        timingList.appendChild(createListItem('Partial end:', formatTimeThenDate(eclipse.partial_end)));
+        timing.card.appendChild(timingList);
+        row.appendChild(timing.col);
 
-        container.innerHTML = `
-            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-2 row-cols-xl-4 mb-3">
-                <div class="col mb-3">
-                    <div class="card h-100">
-                        <div class="card-header fw-bold">📊 Overview</div>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>Type:</span>
-                                <span class="fw-bold">${escapeHtml(eclipse.type)}</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>Visibility:</span>
-                                <span>${visibilityBadge}</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>Total Duration:</span>
-                                <span class="fw-bold">${escapeHtml(eclipse.total_duration_minutes > 0 ? eclipse.total_duration_minutes + ' min' : 'None')}</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>Partial Duration:</span>
-                                <span class="fw-bold">${escapeHtml(eclipse.partial_duration_minutes > 0 ? eclipse.partial_duration_minutes + ' min' : 'None')}</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
+        const position = createCardCol('📍 Position at Peak');
+        const positionList = createList();
+        positionList.appendChild(createListItem('Peak Time:', formatTimeThenDate(eclipse.peak_time)));
+        positionList.appendChild(createListItem('Altitude:', `${eclipse.peak_altitude_deg.toFixed(2)}°`));
+        positionList.appendChild(createListItem('Azimuth:', `${eclipse.peak_azimuth_deg.toFixed(2)}°`));
+        positionList.appendChild(createListItem('Direction:', getCardinalDirection(eclipse.peak_azimuth_deg)));
+        position.card.appendChild(positionList);
+        row.appendChild(position.col);
 
-                <div class="col mb-3">
-                    <div class="card h-100">
-                        <div class="card-header fw-bold">⏱️ Timing</div>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>Partial begin:</span>
-                                <span class="fw-bold">${formatTimeThenDate(eclipse.partial_begin)}</span>
-                            </li>
-                            ${eclipse.total_begin ? `
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>Total begin:</span>
-                                <span class="fw-bold">${formatTimeThenDate(eclipse.total_begin)}</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>Total end:</span>
-                                <span class="fw-bold">${formatTimeThenDate(eclipse.total_end)}</span>
-                            </li>
-                            ` : ''}
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>Partial end:</span>
-                                <span class="fw-bold">${formatTimeThenDate(eclipse.partial_end)}</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
+        const score = createCardCol('⭐ Astrophotography Score');
+        const scoreBody = document.createElement('div');
+        scoreBody.className = 'p-3';
+        scoreBody.style.textAlign = 'center';
+        const scoreValue = document.createElement('div');
+        scoreValue.className = 'display-4 fw-bold';
+        scoreValue.style.color = `var(--bs-${scoreColor})`;
+        scoreValue.textContent = `${eclipse.astrophotography_score.toFixed(1)}/10`;
+        const scoreBadge = document.createElement('div');
+        scoreBadge.className = `badge bg-${scoreColor} mt-2`;
+        scoreBadge.textContent = eclipse.score_classification;
+        const scoreHint = document.createElement('div');
+        scoreHint.className = 'small text-muted mt-2';
+        scoreHint.textContent = 'Score based on type, visibility, altitude, and duration';
+        scoreBody.appendChild(scoreValue);
+        scoreBody.appendChild(scoreBadge);
+        scoreBody.appendChild(scoreHint);
+        score.card.appendChild(scoreBody);
+        row.appendChild(score.col);
 
-                <div class="col mb-3">
-                    <div class="card h-100">
-                        <div class="card-header fw-bold">📍 Position at Peak</div>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>Peak Time:</span>
-                                <span class="fw-bold">${formatTimeThenDate(eclipse.peak_time)}</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>Altitude:</span>
-                                <span class="fw-bold">${eclipse.peak_altitude_deg.toFixed(2)}°</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>Azimuth:</span>
-                                <span class="fw-bold">${eclipse.peak_azimuth_deg.toFixed(2)}°</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>Direction:</span>
-                                <span class="fw-bold">${getCardinalDirection(eclipse.peak_azimuth_deg)}</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
+        container.appendChild(row);
 
-                <div class="col mb-3">
-                    <div class="card h-100">
-                        <div class="card-header fw-bold">⭐ Astrophotography Score</div>
-                        <div class="p-3" style="text-align: center;">
-                            <div class="display-4 fw-bold" style="color: var(--bs-${escapeHtml(scoreColor)});">
-                                ${eclipse.astrophotography_score.toFixed(1)}/10
-                            </div>
-                            <div class="badge bg-${escapeHtml(scoreColor)} mt-2">
-                                ${escapeHtml(eclipse.score_classification)}
-                            </div>
-                            <div class="small text-muted mt-2">
-                                Score based on type, visibility, altitude, and duration
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            ${altitudeChartHTML}
-        `;
+        if (eclipse.altitude_vs_time && eclipse.altitude_vs_time.length > 0) {
+            const chartContainer = document.createElement('div');
+            chartContainer.id = 'lunar-eclipse-chart-container';
+            container.appendChild(chartContainer);
+        }
 
         // Create altitude vs time chart if data available
         if (eclipse.altitude_vs_time && eclipse.altitude_vs_time.length > 0) {
@@ -150,7 +157,11 @@ async function loadLunarEclipse() {
 
     } catch (error) {
         console.error('Error loading lunar eclipse data:', error);
-        container.innerHTML = '<div class="error-box">Failed to load Lunar Eclipse data</div>';
+        DOMUtils.clear(container);
+        const errorBox = document.createElement('div');
+        errorBox.className = 'error-box';
+        errorBox.textContent = 'Failed to load Lunar Eclipse data';
+        container.appendChild(errorBox);
     }
 }
 
@@ -162,29 +173,51 @@ function renderLunarEclipseAltitudeChart(altitudeData) {
     const times = altitudeData.map(p => p.time);
     const altitudes = altitudeData.map(p => p.altitude_deg);
 
-    // Create card HTML structure
-    container.innerHTML = `
-        <div class="col-12 mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="mb-0">📈 Altitude vs Time</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="lunar-eclipse-altitude-chart" style="height: 300px;"></canvas>
-                </div>
-                <div class="card-footer text-muted small">
-                    <div class="row">
-                        <div class="col-auto">
-                            <span class="badge" style="background-color: #C0C0C0;">Moon Altitude</span>
-                        </div>
-                        <div class="col-auto">
-                            <span class="text-muted">Degrees (°) | Local Time</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+    DOMUtils.clear(container);
+    const col = document.createElement('div');
+    col.className = 'col-12 mb-3';
+    const card = document.createElement('div');
+    card.className = 'card h-100';
+    const cardHeader = document.createElement('div');
+    cardHeader.className = 'card-header';
+    const title = document.createElement('h5');
+    title.className = 'mb-0';
+    title.textContent = '📈 Altitude vs Time';
+    cardHeader.appendChild(title);
+
+    const cardBody = document.createElement('div');
+    cardBody.className = 'card-body';
+    const chartCanvas = document.createElement('canvas');
+    chartCanvas.id = 'lunar-eclipse-altitude-chart';
+    chartCanvas.style.height = '300px';
+    cardBody.appendChild(chartCanvas);
+
+    const cardFooter = document.createElement('div');
+    cardFooter.className = 'card-footer text-muted small';
+    const footerRow = document.createElement('div');
+    footerRow.className = 'row';
+    const badgeCol = document.createElement('div');
+    badgeCol.className = 'col-auto';
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.style.backgroundColor = '#C0C0C0';
+    badge.textContent = 'Moon Altitude';
+    badgeCol.appendChild(badge);
+    const textCol = document.createElement('div');
+    textCol.className = 'col-auto';
+    const text = document.createElement('span');
+    text.className = 'text-muted';
+    text.textContent = 'Degrees (°) | Local Time';
+    textCol.appendChild(text);
+    footerRow.appendChild(badgeCol);
+    footerRow.appendChild(textCol);
+    cardFooter.appendChild(footerRow);
+
+    card.appendChild(cardHeader);
+    card.appendChild(cardBody);
+    card.appendChild(cardFooter);
+    col.appendChild(card);
+    container.appendChild(col);
 
     const ctx = document.getElementById('lunar-eclipse-altitude-chart');
     if (!ctx) return;

@@ -38,79 +38,134 @@ async function loadIss() {
     const nextVisible = data.next_visible_passage;
     const passes = Array.isArray(data.passes) ? data.passes : [];
 
-    const nextVisibleHtml = nextVisible ? `
-        <div class="row row-cols-1 mb-3">
-            <div class="col">
-                <div class="card h-100 border-success">
-                    <div class="card-header fw-bold">✅ Next visible passage</div>
-                    <div class="card-body">
-                        <div class="row row-cols-1 row-cols-lg-2">
-                            <div class="col mb-2">
-                                <div><strong>🕐 Start:</strong> ${formatTimeThenDateWithSeconds(nextVisible.start_time)}</div>
-                                <div><strong>⏱️ Culmination:</strong> ${formatTimeThenDateWithSeconds(nextVisible.peak_time)}</div>
-                                <div><strong>🕔 End:</strong> ${formatTimeThenDateWithSeconds(nextVisible.end_time)}</div>
-                            </div>
-                            <div class="col mb-2">
-                                <div><strong>📐 Start Alt/Az:</strong> ${formatAltAz(nextVisible.start_altitude_deg, nextVisible.start_azimuth_cardinal, nextVisible.start_azimuth_deg)}</div>
-                                <div><strong>📐 Peak Alt/Az:</strong> ${formatAltAz(nextVisible.peak_altitude_deg, nextVisible.peak_azimuth_cardinal, nextVisible.peak_azimuth_deg)}</div>
-                                <div><strong>📐 End Alt/Az:</strong> ${formatAltAz(nextVisible.end_altitude_deg, nextVisible.end_azimuth_cardinal, nextVisible.end_azimuth_deg)}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    ` : `
-        <div class="alert alert-warning" role="alert">
-            No visible ISS passage found in the selected forecast window.
-        </div>
-    `;
+    DOMUtils.clear(container);
 
-    const rowsHtml = passes.map(pass => {
-        return `
-            <tr>
-                <td>${formatDateFull(pass.peak_time)}</td>
-                <td>${formatTimeThenDateWithSeconds(pass.start_time)}</td>
-                <td>${formatAltAz(pass.start_altitude_deg, pass.start_azimuth_cardinal, pass.start_azimuth_deg)}</td>
-                <td>${formatTimeThenDateWithSeconds(pass.peak_time)}</td>
-                <td>${formatAltAz(pass.peak_altitude_deg, pass.peak_azimuth_cardinal, pass.peak_azimuth_deg)}</td>
-                <td>${formatTimeThenDateWithSeconds(pass.end_time)}</td>
-                <td>${formatAltAz(pass.end_altitude_deg, pass.end_azimuth_cardinal, pass.end_azimuth_deg)}</td>
-            </tr>
-        `;
-    }).join('');
+    const infoAlert = document.createElement('div');
+    infoAlert.className = 'alert alert-info';
+    infoAlert.setAttribute('role', 'alert');
+    infoAlert.textContent = `ISS visible passages for the next ${Number(data.window_days || 20)} days (sunlit ISS and dark-enough sky), computed for your configured location and timezone.`;
+    container.appendChild(infoAlert);
 
-    container.innerHTML = `
-        <div class="alert alert-info" role="alert">
-            ISS visible passages for the next ${Number(data.window_days || 20)} days (sunlit ISS and dark-enough sky), computed for your configured location and timezone.
-        </div>
+    if (nextVisible) {
+        const row = document.createElement('div');
+        row.className = 'row row-cols-1 mb-3';
+        const col = document.createElement('div');
+        col.className = 'col';
+        const card = document.createElement('div');
+        card.className = 'card h-100 border-success';
+        const cardHeader = document.createElement('div');
+        cardHeader.className = 'card-header fw-bold';
+        cardHeader.textContent = '✅ Next visible passage';
+        const cardBody = document.createElement('div');
+        cardBody.className = 'card-body';
+        const bodyRow = document.createElement('div');
+        bodyRow.className = 'row row-cols-1 row-cols-lg-2';
 
-        ${nextVisibleHtml}
+        const createInfoColumn = (items) => {
+            const infoCol = document.createElement('div');
+            infoCol.className = 'col mb-2';
+            items.forEach(({ label, value }) => {
+                const line = document.createElement('div');
+                const strong = document.createElement('strong');
+                strong.textContent = `${label} `;
+                line.appendChild(strong);
+                line.append(value);
+                infoCol.appendChild(line);
+            });
+            return infoCol;
+        };
 
-        <div class="row row-cols-1">
-            <div class="col">
-                <div class="card h-100">
-                    <div class="card-header fw-bold">📅 Upcoming ISS passages</div>
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Start</th>
-                                    <th>Start Elev / Az</th>
-                                    <th>Culmination</th>
-                                    <th>Culmination Elev / Az</th>
-                                    <th>End</th>
-                                    <th>End Elev / Az</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${rowsHtml || '<tr><td colspan="7" class="text-center text-muted">No visible ISS passages found.</td></tr>'}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+        bodyRow.appendChild(createInfoColumn([
+            { label: '🕐 Start:', value: formatTimeThenDateWithSeconds(nextVisible.start_time) },
+            { label: '⏱️ Culmination:', value: formatTimeThenDateWithSeconds(nextVisible.peak_time) },
+            { label: '🕔 End:', value: formatTimeThenDateWithSeconds(nextVisible.end_time) }
+        ]));
+
+        bodyRow.appendChild(createInfoColumn([
+            { label: '📐 Start Alt/Az:', value: formatAltAz(nextVisible.start_altitude_deg, nextVisible.start_azimuth_cardinal, nextVisible.start_azimuth_deg) },
+            { label: '📐 Peak Alt/Az:', value: formatAltAz(nextVisible.peak_altitude_deg, nextVisible.peak_azimuth_cardinal, nextVisible.peak_azimuth_deg) },
+            { label: '📐 End Alt/Az:', value: formatAltAz(nextVisible.end_altitude_deg, nextVisible.end_azimuth_cardinal, nextVisible.end_azimuth_deg) }
+        ]));
+
+        cardBody.appendChild(bodyRow);
+        card.appendChild(cardHeader);
+        card.appendChild(cardBody);
+        col.appendChild(card);
+        row.appendChild(col);
+        container.appendChild(row);
+    } else {
+        const warning = document.createElement('div');
+        warning.className = 'alert alert-warning';
+        warning.setAttribute('role', 'alert');
+        warning.textContent = 'No visible ISS passage found in the selected forecast window.';
+        container.appendChild(warning);
+    }
+
+    const tableRow = document.createElement('div');
+    tableRow.className = 'row row-cols-1';
+    const tableCol = document.createElement('div');
+    tableCol.className = 'col';
+    const tableCard = document.createElement('div');
+    tableCard.className = 'card h-100';
+    const tableHeader = document.createElement('div');
+    tableHeader.className = 'card-header fw-bold';
+    tableHeader.textContent = '📅 Upcoming ISS passages';
+    const tableResponsive = document.createElement('div');
+    tableResponsive.className = 'table-responsive';
+    const table = document.createElement('table');
+    table.className = 'table table-striped table-hover mb-0';
+    const thead = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    [
+        'Date',
+        'Start',
+        'Start Elev / Az',
+        'Culmination',
+        'Culmination Elev / Az',
+        'End',
+        'End Elev / Az'
+    ].forEach((headerText) => {
+        const th = document.createElement('th');
+        th.textContent = headerText;
+        headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+
+    const tbody = document.createElement('tbody');
+    if (passes.length > 0) {
+        passes.forEach((pass) => {
+            const row = document.createElement('tr');
+            [
+                formatDateFull(pass.peak_time),
+                formatTimeThenDateWithSeconds(pass.start_time),
+                formatAltAz(pass.start_altitude_deg, pass.start_azimuth_cardinal, pass.start_azimuth_deg),
+                formatTimeThenDateWithSeconds(pass.peak_time),
+                formatAltAz(pass.peak_altitude_deg, pass.peak_azimuth_cardinal, pass.peak_azimuth_deg),
+                formatTimeThenDateWithSeconds(pass.end_time),
+                formatAltAz(pass.end_altitude_deg, pass.end_azimuth_cardinal, pass.end_azimuth_deg)
+            ].forEach((value) => {
+                const td = document.createElement('td');
+                td.textContent = value;
+                row.appendChild(td);
+            });
+            tbody.appendChild(row);
+        });
+    } else {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = 7;
+        cell.className = 'text-center text-muted';
+        cell.textContent = 'No visible ISS passages found.';
+        row.appendChild(cell);
+        tbody.appendChild(row);
+    }
+
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    tableResponsive.appendChild(table);
+    tableCard.appendChild(tableHeader);
+    tableCard.appendChild(tableResponsive);
+    tableCol.appendChild(tableCard);
+    tableRow.appendChild(tableCol);
+    container.appendChild(tableRow);
 }

@@ -207,6 +207,20 @@ except Exception as e:
 - Clear, descriptive variable names
 - Comment complex logic
 
+#### Frontend XSS Security Rules (MANDATORY)
+- **NEVER** use `innerHTML` in `static/js/**` (writes or reads for rendering).
+- **NEVER** introduce new `DOMUtils.setTrustedHTML(...)` callsites.
+- Build UI with explicit DOM APIs: `document.createElement`, `textContent`, `appendChild`, `setAttribute`.
+- For text and API/user content, always use `textContent` (never HTML string interpolation).
+- Before re-rendering containers, use `DOMUtils.clear(container)`.
+- Preserve existing IDs/classes/data-attributes required by listeners and Bootstrap behavior.
+- If a legacy HTML template must be kept temporarily, isolate it and prioritize migration to node-based rendering.
+
+#### Existing Security Baseline (Do Not Regress)
+- `innerHTML` has been removed from `static/js/**`.
+- Major modules (`auth`, `app`, `astrodex`, `weather`, `weather_astro`, `equipment`, `moon`, `sun`, `iss`, `horizon_graph`, `aurora`, `solar_eclipse`, `lunar_eclipse`, `uptonightScheduler`) now follow node-based DOM updates.
+- Any change reintroducing HTML sinks should be treated as a regression and rewritten.
+
 ### File Organization
 - One class per file when possible
 - Keep related functionality together
@@ -692,30 +706,59 @@ When implementing charts with Chart.js:
 function renderMyChart(data) {
     const container = document.getElementById('my-chart-display');
     if (!container) return;
-    
-    // Create card HTML structure
-    container.innerHTML = `
-        <div class="col-12 mb-3">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="mb-0">📊 My Chart Title</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="myChartCanvas" style="height: 350px;"></canvas>
-                </div>
-                <div class="card-footer text-muted small">
-                    <div class="row">
-                        <div class="col-auto">
-                            <span class="badge" style="background-color: #3b82f6;">Series 1</span>
-                        </div>
-                        <div class="col-auto">
-                            <span class="badge" style="background-color: #8b5cf6;">Series 2</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+
+  // Create card structure with explicit DOM APIs (no innerHTML)
+  DOMUtils.clear(container);
+  const col = document.createElement('div');
+  col.className = 'col-12 mb-3';
+
+  const card = document.createElement('div');
+  card.className = 'card h-100';
+
+  const header = document.createElement('div');
+  header.className = 'card-header';
+  const title = document.createElement('h5');
+  title.className = 'mb-0';
+  title.textContent = '📊 My Chart Title';
+  header.appendChild(title);
+
+  const body = document.createElement('div');
+  body.className = 'card-body';
+  const canvas = document.createElement('canvas');
+  canvas.id = 'myChartCanvas';
+  canvas.style.height = '350px';
+  body.appendChild(canvas);
+
+  const footer = document.createElement('div');
+  footer.className = 'card-footer text-muted small';
+  const footerRow = document.createElement('div');
+  footerRow.className = 'row';
+
+  const badge1Col = document.createElement('div');
+  badge1Col.className = 'col-auto';
+  const badge1 = document.createElement('span');
+  badge1.className = 'badge';
+  badge1.style.backgroundColor = '#3b82f6';
+  badge1.textContent = 'Series 1';
+  badge1Col.appendChild(badge1);
+
+  const badge2Col = document.createElement('div');
+  badge2Col.className = 'col-auto';
+  const badge2 = document.createElement('span');
+  badge2.className = 'badge';
+  badge2.style.backgroundColor = '#8b5cf6';
+  badge2.textContent = 'Series 2';
+  badge2Col.appendChild(badge2);
+
+  footerRow.appendChild(badge1Col);
+  footerRow.appendChild(badge2Col);
+  footer.appendChild(footerRow);
+
+  card.appendChild(header);
+  card.appendChild(body);
+  card.appendChild(footer);
+  col.appendChild(card);
+  container.appendChild(col);
     
     // Create Chart.js instance
     const ctx = document.getElementById('myChartCanvas');

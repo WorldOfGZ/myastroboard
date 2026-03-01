@@ -2,6 +2,17 @@
 // DOM Utilities - Centralized DOM manipulation helpers
 // ======================
 
+const DOMUtils = {
+    getElement,
+    clear,
+    setText,
+    setTrustedHTML,
+    append,
+    createElement,
+    clearContainer,
+    setLoading
+};
+
 /**
  * Set loading state on a container
  * @param {HTMLElement|string} containerOrId - Container element or ID
@@ -10,7 +21,11 @@
 function setLoading(containerOrId, message = 'Loading...') {
     const container = getElement(containerOrId);
     if (container) {
-        container.innerHTML = `<div class="loading">${message}</div>`;
+        clear(container);
+        const loading = document.createElement('div');
+        loading.className = 'loading';
+        loading.textContent = `${message}`;
+        container.appendChild(loading);
     }
 }
 
@@ -19,9 +34,79 @@ function setLoading(containerOrId, message = 'Loading...') {
  * @param {HTMLElement|string} containerOrId - Container element or ID
  */
 function clearContainer(containerOrId) {
-    const container = getElement(containerOrId);
-    if (container) {
-        container.innerHTML = '';
+    clear(containerOrId);
+}
+
+/**
+ * Clear element contents
+ * @param {HTMLElement|string} elementOrId - Element or ID
+ */
+function clear(elementOrId) {
+    const element = getElement(elementOrId);
+    if (!element) {
+        return;
+    }
+    element.replaceChildren();
+}
+
+/**
+ * Set plain text content
+ * @param {HTMLElement|string} elementOrId - Element or ID
+ * @param {string} text - Text content
+ */
+function setText(elementOrId, text = '') {
+    const element = getElement(elementOrId);
+    if (!element) {
+        return;
+    }
+    element.textContent = `${text}`;
+}
+
+/**
+ * Parse trusted HTML into DOM nodes without direct HTML assignment
+ * @param {string} trustedHTML - Trusted static HTML string
+ * @returns {DocumentFragment}
+ */
+function parseTrustedHTML(trustedHTML = '') {
+    const range = document.createRange();
+    range.selectNode(document.body || document.documentElement);
+    return range.createContextualFragment(`${trustedHTML}`);
+}
+
+/**
+ * Set content from trusted HTML
+ * @param {HTMLElement|string} elementOrId - Element or ID
+ * @param {string} trustedHTML - Trusted static HTML string
+ */
+function setTrustedHTML(elementOrId, trustedHTML = '') {
+    const element = getElement(elementOrId);
+    if (!element) {
+        return;
+    }
+    const fragment = parseTrustedHTML(trustedHTML);
+    element.replaceChildren(fragment);
+}
+
+/**
+ * Append mixed text/nodes/fragments
+ * @param {HTMLElement|string} elementOrId - Element or ID
+ * @param {...(string|Node|DocumentFragment|number|boolean)} items - Items to append
+ */
+function append(elementOrId, ...items) {
+    const element = getElement(elementOrId);
+    if (!element) {
+        return;
+    }
+
+    for (const item of items) {
+        if (item === null || item === undefined) {
+            continue;
+        }
+        if (item instanceof Node) {
+            element.appendChild(item);
+        } else {
+            element.appendChild(document.createTextNode(`${item}`));
+        }
     }
 }
 
@@ -41,7 +126,7 @@ function getElement(elementOrId) {
  * Create element with attributes and content
  * @param {string} tag - HTML tag name
  * @param {Object} attributes - Attributes to set (className, id, etc.)
- * @param {string|HTMLElement} content - Inner HTML or child element
+ * @param {string|HTMLElement|DocumentFragment} content - Text or child node
  * @returns {HTMLElement}
  */
 function createElement(tag, attributes = {}, content = '') {
@@ -60,10 +145,12 @@ function createElement(tag, attributes = {}, content = '') {
     
     // Set content
     if (typeof content === 'string') {
-        element.innerHTML = content;
-    } else if (content instanceof HTMLElement) {
+        setText(element, content);
+    } else if (content instanceof Node) {
         element.appendChild(content);
     }
     
     return element;
 }
+
+window.DOMUtils = DOMUtils;

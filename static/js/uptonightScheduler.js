@@ -170,16 +170,28 @@ const UptonightScheduler = (() => {
 
     function genericMessageLoadingDiv(catalogue) {
         //If subtab exists
-        if(document.getElementById(`catalogue-${catalogue}-subtab`)) {
-            const innerHTML = `
-                <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📚 ${catalogue} Results</h2>
-                    <ul class="nav nav-pills sub-tabs" id="catalogue-${catalogue}-type-buttons"></ul>
-                    <div id="catalogue-${catalogue}-content" class="loading">Catalogue currently loading via UpTonight...</div>
-                </div>
-            `;
-            //Update DOM
-            document.getElementById(`catalogue-${catalogue}-subtab`).innerHTML = innerHTML;
+        const subtabElement = document.getElementById(`catalogue-${catalogue}-subtab`);
+        if(subtabElement) {
+            DOMUtils.clear(subtabElement);
+            const wrapper = document.createElement('div');
+            wrapper.className = 'shadow p-2 mb-3 rounded bg-sub-container';
+
+            const title = document.createElement('h2');
+            title.textContent = `📚 ${catalogue} Results`;
+
+            const tabs = document.createElement('ul');
+            tabs.className = 'nav nav-pills sub-tabs';
+            tabs.id = `catalogue-${catalogue}-type-buttons`;
+
+            const content = document.createElement('div');
+            content.id = `catalogue-${catalogue}-content`;
+            content.className = 'loading';
+            content.textContent = 'Catalogue currently loading via UpTonight...';
+
+            wrapper.appendChild(title);
+            wrapper.appendChild(tabs);
+            wrapper.appendChild(content);
+            subtabElement.appendChild(wrapper);
             return;
         }
 

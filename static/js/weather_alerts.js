@@ -107,7 +107,7 @@ class WeatherAlertsSystem {
             const highPriorityCount = activeAlerts.filter(a => a.severity === 'HIGH').length;
             const totalCount = activeAlerts.length;
             
-            indicator.innerHTML = `⚠️ ${totalCount}`;
+            indicator.textContent = `⚠️ ${totalCount}`;
             
             container.className = `nav-item weather-alert-indicator-${highPriorityCount > 0 ? 'high-priority' : 'normal'}`;
             indicator.title = `${totalCount} weather alert(s) - Click to view details`;
@@ -119,31 +119,52 @@ class WeatherAlertsSystem {
 
         const activeAlerts = this.alerts.filter(alert => this.isAlertActive(alert));
 
-        const alertsHtml = activeAlerts.length > 0 ? 
-            activeAlerts.map(alert => {
-                const alertTime = new Date(alert.time);
-                const icon = this.getAlertTypeIcon(alert.type);
-                
-                return `
-                    <div class="alert alert-${alert.severity === 'HIGH' ? 'danger' : 'warning'}" role="alert">
-                        <div class="fw-bold">
-                            <span>${icon}</span>
-                            <span>${alert.type.replace('_', ' ')}</span>
-                            <span>${alertTime.toLocaleString()}</span>
-                        </div>
-                        <div>${alert.message}</div>
-                    </div>
-                `;
-            }).join('') : 
-            '<div class="modal-no-alerts">No active weather alerts</div>';
-
         // Set modal content
         document.getElementById('modal_lg_close_title').textContent = 'Weather Alerts for Astrophotography';
-        document.getElementById('modal_lg_close_body').innerHTML = `
-            <div class="weather-alerts-modal-body">
-                ${alertsHtml}
-            </div>
-        `;
+        const modalBody = document.getElementById('modal_lg_close_body');
+        DOMUtils.clear(modalBody);
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'weather-alerts-modal-body';
+
+        if (activeAlerts.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'modal-no-alerts';
+            empty.textContent = 'No active weather alerts';
+            wrapper.appendChild(empty);
+        } else {
+            activeAlerts.forEach((alert) => {
+                const alertTime = new Date(alert.time);
+                const icon = this.getAlertTypeIcon(alert.type);
+
+                const card = document.createElement('div');
+                card.className = `alert alert-${alert.severity === 'HIGH' ? 'danger' : 'warning'}`;
+                card.setAttribute('role', 'alert');
+
+                const title = document.createElement('div');
+                title.className = 'fw-bold';
+
+                const iconSpan = document.createElement('span');
+                iconSpan.textContent = icon;
+                const typeSpan = document.createElement('span');
+                typeSpan.textContent = ` ${String(alert.type || '').replaceAll('_', ' ')}`;
+                const timeSpan = document.createElement('span');
+                timeSpan.textContent = ` ${alertTime.toLocaleString()}`;
+
+                title.appendChild(iconSpan);
+                title.appendChild(typeSpan);
+                title.appendChild(timeSpan);
+
+                const message = document.createElement('div');
+                message.textContent = alert.message || '';
+
+                card.appendChild(title);
+                card.appendChild(message);
+                wrapper.appendChild(card);
+            });
+        }
+
+        modalBody.appendChild(wrapper);
 
         const bs_modal = new bootstrap.Modal('#modal_lg_close', {
             backdrop: 'static',

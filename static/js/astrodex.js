@@ -233,48 +233,34 @@ function renderAstrodexStats() {
         ? ''
         : ` (personnal: ${personalStats.constellationsCount})`;
 
-    statsContainer.innerHTML = `
-        <div class="col">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <div class="astrodex-insight-value text-primary">${totalItems.toFixed(0)}</div>
-                    <div class="fw-light fst-italic">Total Objects${personalSuffix}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <div class="astrodex-insight-value text-primary">${itemsWithPictures.toFixed(0)}</div>
-                    <div class="fw-light fst-italic">With Photos${personalPicturesSuffix}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <div class="astrodex-insight-value text-primary">${totalPictures.toFixed(0)}</div>
-                    <div class="fw-light fst-italic">Total Photos${personalTotalPhotosSuffix}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <div class="astrodex-insight-value text-primary">${objectTypesCount.toFixed(0)}</div>
-                    <div class="fw-light fst-italic">Object Types${personalObjectTypesSuffix}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <div class="astrodex-insight-value text-primary">${constellationCount.toFixed(0)}</div>
-                    <div class="fw-light fst-italic">Constellations${personalConstellationsSuffix}</div>
-                </div>
-            </div>
-        </div>
-    `;
+    DOMUtils.clear(statsContainer);
+    const statItems = [
+        { value: totalItems.toFixed(0), label: `Total Objects${personalSuffix}` },
+        { value: itemsWithPictures.toFixed(0), label: `With Photos${personalPicturesSuffix}` },
+        { value: totalPictures.toFixed(0), label: `Total Photos${personalTotalPhotosSuffix}` },
+        { value: objectTypesCount.toFixed(0), label: `Object Types${personalObjectTypesSuffix}` },
+        { value: constellationCount.toFixed(0), label: `Constellations${personalConstellationsSuffix}` }
+    ];
+
+    statItems.forEach((statItem) => {
+        const col = document.createElement('div');
+        col.className = 'col';
+        const card = document.createElement('div');
+        card.className = 'card h-100';
+        const body = document.createElement('div');
+        body.className = 'card-body text-center';
+        const value = document.createElement('div');
+        value.className = 'astrodex-insight-value text-primary';
+        value.textContent = statItem.value;
+        const label = document.createElement('div');
+        label.className = 'fw-light fst-italic';
+        label.textContent = statItem.label;
+        body.appendChild(value);
+        body.appendChild(label);
+        card.appendChild(body);
+        col.appendChild(card);
+        statsContainer.appendChild(col);
+    });
 }
 
 function renderAstrodexGrid(items, isAllowedAstrodex) {
@@ -282,74 +268,126 @@ function renderAstrodexGrid(items, isAllowedAstrodex) {
     if (!gridContainer) return;
     
     if (items.length === 0) {
+        DOMUtils.clear(gridContainer);
         if (isAllowedAstrodex) {
-            gridContainer.innerHTML = `
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="card-body text-center">
-                            <b>📚 Your Astrodex is empty</b><br>
-                            Start adding celestial objects you've captured!
-                        </div>
-                        <div class="card-footer text-center">
-                            <button class="btn btn-outline-primary" data-action="add-astrodex-item">
-                                ➕ Add First Object
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
+            const col = document.createElement('div');
+            col.className = 'col';
+            const card = document.createElement('div');
+            card.className = 'card h-100';
+            const body = document.createElement('div');
+            body.className = 'card-body text-center';
+            const title = document.createElement('b');
+            title.textContent = '📚 Your Astrodex is empty';
+            body.appendChild(title);
+            body.appendChild(document.createElement('br'));
+            body.append('Start adding celestial objects you\'ve captured!');
+
+            const footer = document.createElement('div');
+            footer.className = 'card-footer text-center';
+            const button = document.createElement('button');
+            button.className = 'btn btn-outline-primary';
+            button.setAttribute('data-action', 'add-astrodex-item');
+            button.textContent = '➕ Add First Object';
+            footer.appendChild(button);
+
+            card.appendChild(body);
+            card.appendChild(footer);
+            col.appendChild(card);
+            gridContainer.appendChild(col);
         } else {
-            gridContainer.innerHTML = `
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="card-body text-center">
-                            <b>📚 Astrodex is empty</b><br>
-                            As read-only user, you can't add new objects.
-                        </div>
-                    </div>
-                </div>
-            `;
+            const col = document.createElement('div');
+            col.className = 'col';
+            const card = document.createElement('div');
+            card.className = 'card h-100';
+            const body = document.createElement('div');
+            body.className = 'card-body text-center';
+            const title = document.createElement('b');
+            title.textContent = '📚 Astrodex is empty';
+            body.appendChild(title);
+            body.appendChild(document.createElement('br'));
+            body.append('As read-only user, you can\'t add new objects.');
+            card.appendChild(body);
+            col.appendChild(card);
+            gridContainer.appendChild(col);
         }
         return;
     }
-    
-    gridContainer.innerHTML = items.map(item => {
+
+    DOMUtils.clear(gridContainer);
+    items.forEach((item) => {
         const isOwnedByCurrentUser = item.is_owned_by_current_user !== false;
         const mainPicture = getCardMainPicture(item);
-        const imageUrl = mainPicture 
-            ? `/api/astrodex/images/${escapeHtml(mainPicture.filename)}`
+        const imageUrl = mainPicture
+            ? `/api/astrodex/images/${mainPicture.filename}`
             : '/static/img/default_astro_object.svg';
-        
+
         const photoCount = Number(item.total_pictures ?? (item.pictures ? item.pictures.length : 0));
         const canOpenSharedSlideshow = photoCount > 0;
-        
-        // Escape values for safe HTML insertion
-        const escapedName = escapeHtml(item.name);
-        const escapedImageUrl = escapeHtml(imageUrl);
-        const escapedId = escapeHtml(item.id);
-        
-        // Escape for JavaScript context
-        const jsEscapedName = escapeForJs(item.name);
-        const jsEscapedImageUrl = escapeForJs(imageUrl);
-        const jsEscapedId = escapeForJs(item.id);
-        
-        return `
-            <div class="col mb-3">
-                <div class="card h-100">
-                    <div class="astrodex-card-image rounded" data-item-id="${jsEscapedId}" tabindex="0" role="button" aria-label="View ${escapedName} photos" style="cursor: pointer;" title="Click to view photos">
-                        <img src="${escapedImageUrl}" alt="${escapedName}" loading="lazy" class="card-img-top">
-                        ${photoCount > 0 ? `<div class="photo-badge">${photoCount} 📷</div>` : ''}
-                    </div>
-                    <div class="card-body astrodex-card-body" data-item-id="${jsEscapedId}" tabindex="0" role="button" aria-label="${isOwnedByCurrentUser ? `View ${escapedName} details` : `View ${escapedName} photos`}" style="cursor: ${isOwnedByCurrentUser || canOpenSharedSlideshow ? 'pointer' : 'default'};">
-                        <div class="astrodex-card-title">${escapedName}</div>
-                        <div class="astrodex-card-type">${escapeHtml(item.type || 'Unknown')}</div>
-                        ${item.constellation ? `<div class="astrodex-card-constellation">📍 ${escapeHtml(capitalizeWords(item.constellation))}</div>` : ''}
-                        ${!isOwnedByCurrentUser ? `<div class="astrodex-card-constellation">👤 ${escapeHtml(item.owner_username || 'Shared')}</div>` : ''}
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
+
+        const col = document.createElement('div');
+        col.className = 'col mb-3';
+        const card = document.createElement('div');
+        card.className = 'card h-100';
+
+        const imageWrap = document.createElement('div');
+        imageWrap.className = 'astrodex-card-image rounded';
+        imageWrap.setAttribute('data-item-id', String(item.id));
+        imageWrap.tabIndex = 0;
+        imageWrap.setAttribute('role', 'button');
+        imageWrap.setAttribute('aria-label', `View ${item.name} photos`);
+        imageWrap.style.cursor = 'pointer';
+        imageWrap.title = 'Click to view photos';
+
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.alt = item.name;
+        img.loading = 'lazy';
+        img.className = 'card-img-top';
+        imageWrap.appendChild(img);
+
+        if (photoCount > 0) {
+            const badge = document.createElement('div');
+            badge.className = 'photo-badge';
+            badge.textContent = `${photoCount} 📷`;
+            imageWrap.appendChild(badge);
+        }
+
+        const body = document.createElement('div');
+        body.className = 'card-body astrodex-card-body';
+        body.setAttribute('data-item-id', String(item.id));
+        body.tabIndex = 0;
+        body.setAttribute('role', 'button');
+        body.setAttribute('aria-label', isOwnedByCurrentUser ? `View ${item.name} details` : `View ${item.name} photos`);
+        body.style.cursor = (isOwnedByCurrentUser || canOpenSharedSlideshow) ? 'pointer' : 'default';
+
+        const title = document.createElement('div');
+        title.className = 'astrodex-card-title';
+        title.textContent = item.name;
+        const type = document.createElement('div');
+        type.className = 'astrodex-card-type';
+        type.textContent = item.type || 'Unknown';
+        body.appendChild(title);
+        body.appendChild(type);
+
+        if (item.constellation) {
+            const constellation = document.createElement('div');
+            constellation.className = 'astrodex-card-constellation';
+            constellation.textContent = `📍 ${capitalizeWords(item.constellation)}`;
+            body.appendChild(constellation);
+        }
+
+        if (!isOwnedByCurrentUser) {
+            const owner = document.createElement('div');
+            owner.className = 'astrodex-card-constellation';
+            owner.textContent = `👤 ${item.owner_username || 'Shared'}`;
+            body.appendChild(owner);
+        }
+
+        card.appendChild(imageWrap);
+        card.appendChild(body);
+        col.appendChild(card);
+        gridContainer.appendChild(col);
+    });
 }
 
 function getMainPicture(item) {
@@ -1454,7 +1492,9 @@ function showPictureSlideshow(itemId) {
         // Update the modal content
         const modalBody = document.getElementById('modal_full_close_body');
         if (modalBody) {
-            modalBody.innerHTML = modalContent;
+            DOMUtils.clear(modalBody);
+            const fragment = document.createRange().createContextualFragment(modalContent);
+            modalBody.appendChild(fragment);
             
             // Re-attach event listeners to navigation buttons
             attachNavigationListeners();
@@ -1585,11 +1625,23 @@ function createModal(title, content, size = 'lg') {
 
     //Prepare modal title
     const titleElement = document.getElementById(`modal_${size}_close_title`);
-    titleElement.innerHTML = `${title}`;
+    titleElement.textContent = `${title}`;
     
     //Prepare modal content
     const contentElement = document.getElementById(`modal_${size}_close_body`);
-    contentElement.innerHTML = `${content}`;
+    DOMUtils.clear(contentElement);
+    if (content instanceof Node) {
+        contentElement.appendChild(content);
+        return;
+    }
+
+    const contentString = String(content || '');
+    if (!contentString) {
+        return;
+    }
+
+    const fragment = document.createRange().createContextualFragment(contentString);
+    contentElement.appendChild(fragment);
 }
 
 function closeModal() {

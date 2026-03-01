@@ -110,29 +110,76 @@ function renderAllEquipmentTabs() {
     renderAccessoriesTab();
 }
 
+function createEmptyStateCard(message) {
+    const col = document.createElement('div');
+    col.className = 'col mb-3';
+
+    const card = document.createElement('div');
+    card.className = 'card h-100';
+
+    const body = document.createElement('div');
+    body.className = 'card-body';
+
+    const p = document.createElement('p');
+    p.className = 'card-text';
+    p.textContent = message;
+
+    body.appendChild(p);
+    card.appendChild(body);
+    col.appendChild(card);
+    return col;
+}
+
+function appendInfoLine(container, label, value) {
+    if (value === null || value === undefined || value === '') {
+        return;
+    }
+    const strong = document.createElement('strong');
+    strong.textContent = `${label}:`;
+    container.appendChild(strong);
+    container.appendChild(document.createTextNode(` ${value}`));
+    container.appendChild(document.createElement('br'));
+}
+
+function createCardFooter(editClass, deleteClass, id) {
+    const footer = document.createElement('div');
+    footer.className = 'card-footer text-center';
+
+    const placeholder = document.createElement('span');
+    placeholder.className = 'btn-icon-placeholder';
+
+    const editButton = document.createElement('button');
+    editButton.className = `btn btn-outline-secondary ${editClass}`;
+    editButton.setAttribute('data-id', id);
+    editButton.setAttribute('title', 'Edit');
+    editButton.textContent = '✏️';
+
+    const deleteButton = document.createElement('button');
+    deleteButton.className = `btn btn-outline-danger ${deleteClass}`;
+    deleteButton.setAttribute('data-id', id);
+    deleteButton.setAttribute('title', 'Delete');
+    deleteButton.textContent = '🗑️';
+
+    footer.appendChild(placeholder);
+    footer.appendChild(editButton);
+    footer.appendChild(deleteButton);
+    return footer;
+}
+
 // --- Combinations Tab (Position 1) ---
 
 function renderCombinationsTab() {
     const container = document.getElementById('equipment-combinations-display');
     if (!container) return;
     
-    container.innerHTML = '';
+    DOMUtils.clear(container);
     
     if (equipmentData.combinations.length === 0) {
-        container.innerHTML = `
-            <div class="col mb-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <p class="card-text">
-                            No equipment combinations created yet. Create one to analyze your setup!
-                        </p>
-                    </div>
-                </div>
-            </div>`;
+        container.appendChild(createEmptyStateCard('No equipment combinations created yet. Create one to analyze your setup!'));
         return;
     }
-    
-    const html = equipmentData.combinations.map(combo => {
+
+    equipmentData.combinations.forEach((combo) => {
         const telescope = combo.telescope_id ? equipmentData.telescopes.find(t => t.id === combo.telescope_id) : null;
         const camera = combo.camera_id ? equipmentData.cameras.find(c => c.id === combo.camera_id) : null;
         const mount = combo.mount_id ? equipmentData.mounts.find(m => m.id === combo.mount_id) : null;
@@ -153,38 +200,52 @@ function renderCombinationsTab() {
         
         let payloadAlert = '';
         if (isOverCapacity) {
-            payloadAlert = `<div class="alert alert-danger alert-sm py-1 px-2 mt-2 fw-light">⚠️ Overweight! ${totalWeight.toFixed(1)}kg > ${mountCapacity}kg max</div>`;
+            payloadAlert = `⚠️ Overweight! ${totalWeight.toFixed(1)}kg > ${mountCapacity}kg max`;
         } else if (isOverRecommended) {
-            payloadAlert = `<div class="alert alert-info alert-sm py-1 px-2 mt-2 fw-light">⚠️ Check recommended load: ${totalWeight.toFixed(1)}kg > ${mountRecommended}kg (75%)</div>`;
+            payloadAlert = `⚠️ Check recommended load: ${totalWeight.toFixed(1)}kg > ${mountRecommended}kg (75%)`;
         } else if (mount) {
-            payloadAlert = `<div class="alert alert-success alert-sm py-1 px-2 mt-2 fw-light">✓ Payload: ${totalWeight.toFixed(1)}kg / ${mountCapacity}kg</div>`;
+            payloadAlert = `✓ Payload: ${totalWeight.toFixed(1)}kg / ${mountCapacity}kg`;
         }
-        
-        return `
-        <div class="col mb-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title mb-1">${escapeHtml(combo.name)}</h5>
-                    <p class="card-text">
-                        ${telescope ? `<strong>Telescope:</strong> ${escapeHtml(telescope.name)}${telescopeWeight > 0 ? ` (${telescopeWeight}kg)` : ''}<br>` : ''}
-                        ${camera ? `<strong>Camera:</strong> ${escapeHtml(camera.name)}${cameraWeight > 0 ? ` (${cameraWeight}kg)` : ''}<br>` : ''}
-                        ${mount ? `<strong>Mount:</strong> ${escapeHtml(mount.name)}<br>` : ''}
-                        ${combo.filter_ids && combo.filter_ids.length > 0 ? `<strong>Filters:</strong> ${equipmentData.filters.filter(f => combo.filter_ids.includes(f.id)).map(f => escapeHtml(f.name)).join(', ')}<br>` : ''}
-                        ${combo.accessory_ids && combo.accessory_ids.length > 0 ? `<strong>Accessories:</strong> ${equipmentData.accessories.filter(a => combo.accessory_ids.includes(a.id)).map(a => escapeHtml(a.name)).join(', ')}${accessoriesWeight > 0 ? ` (${accessoriesWeight}kg)` : ''}<br>` : ''}
-                    </p>
-                    ${payloadAlert}
-                </div>
-                <div class="card-footer text-center">
-                    <span class="btn-icon-placeholder"></span>
-                    <button class="btn btn-outline-secondary btn-edit-combination" data-id="${combo.id}" title="Edit">✏️</button>
-                    <button class="btn btn-outline-danger btn-delete-combination" data-id="${combo.id}" title="Delete">🗑️</button>
-                </div>
-            </div>
-        </div>
-    `;
-    }).join('');
-    
-    container.innerHTML = html;
+
+        const col = document.createElement('div');
+        col.className = 'col mb-3';
+        const card = document.createElement('div');
+        card.className = 'card h-100';
+        const body = document.createElement('div');
+        body.className = 'card-body';
+
+        const title = document.createElement('h5');
+        title.className = 'card-title mb-1';
+        title.textContent = combo.name;
+        body.appendChild(title);
+
+        const p = document.createElement('p');
+        p.className = 'card-text';
+        if (telescope) appendInfoLine(p, 'Telescope', `${telescope.name}${telescopeWeight > 0 ? ` (${telescopeWeight}kg)` : ''}`);
+        if (camera) appendInfoLine(p, 'Camera', `${camera.name}${cameraWeight > 0 ? ` (${cameraWeight}kg)` : ''}`);
+        if (mount) appendInfoLine(p, 'Mount', mount.name);
+        if (combo.filter_ids && combo.filter_ids.length > 0) {
+            const filterNames = equipmentData.filters.filter(f => combo.filter_ids.includes(f.id)).map(f => f.name).join(', ');
+            appendInfoLine(p, 'Filters', filterNames);
+        }
+        if (combo.accessory_ids && combo.accessory_ids.length > 0) {
+            const accessoryNames = equipmentData.accessories.filter(a => combo.accessory_ids.includes(a.id)).map(a => a.name).join(', ');
+            appendInfoLine(p, 'Accessories', `${accessoryNames}${accessoriesWeight > 0 ? ` (${accessoriesWeight}kg)` : ''}`);
+        }
+        body.appendChild(p);
+
+        if (payloadAlert) {
+            const payloadInfo = document.createElement('div');
+            payloadInfo.className = `alert alert-sm py-1 px-2 mt-2 fw-light ${isOverCapacity ? 'alert-danger' : isOverRecommended ? 'alert-info' : 'alert-success'}`;
+            payloadInfo.textContent = payloadAlert;
+            body.appendChild(payloadInfo);
+        }
+
+        card.appendChild(body);
+        card.appendChild(createCardFooter('btn-edit-combination', 'btn-delete-combination', combo.id));
+        col.appendChild(card);
+        container.appendChild(col);
+    });
 }
 
 // --- FOV Calculator Tab (Position 2) ---
@@ -196,41 +257,104 @@ function renderFOVCalculatorTab() {
     const telescopes = equipmentData.telescopes;
     const cameras = equipmentData.cameras;
     
-    let html = `
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">🔭 Field of View Calculator</h5>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label  for="fov-telescope-select" class="form-label">Telescope</label>
-                        <select id="fov-telescope-select" class="form-select">
-                            <option value="">Select a telescope...</option>
-                            ${telescopes.map(t => `<option value="${t.id}">${escapeHtml(t.name)} (${t.effective_focal_length}mm f/${t.effective_focal_ratio})</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="fov-camera-select" class="form-label">Camera</label>
-                        <select id="fov-camera-select" class="form-select">
-                            <option value="">Select a camera...</option>
-                            ${cameras.map(c => `<option value="${c.id}">${escapeHtml(c.name)} (${c.pixel_size_um}µm)</option>`).join('')}
-                        </select>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="fov-seeing" class="form-label">Seeing Conditions (arcsec)</label>
-                        <input type="number" id="fov-seeing" class="form-control" value="2.0" min="0.5" max="5" step="0.1">
-                    </div>
-                    <div class="col-md-6 d-flex align-items-end">
-                        <button class="btn btn-primary w-100 mt-2" onclick="calculateFOVFromUI()">Calculate FOV</button>
-                    </div>
-                </div>
-                <div id="fov-results"></div>
-            </div>
-        </div>
-    `;
-    
-    container.innerHTML = html;
+    DOMUtils.clear(container);
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    const body = document.createElement('div');
+    body.className = 'card-body';
+    const title = document.createElement('h5');
+    title.className = 'card-title';
+    title.textContent = '🔭 Field of View Calculator';
+    body.appendChild(title);
+
+    const row1 = document.createElement('div');
+    row1.className = 'row mb-3';
+    const tCol = document.createElement('div');
+    tCol.className = 'col-md-6';
+    const tLabel = document.createElement('label');
+    tLabel.className = 'form-label';
+    tLabel.setAttribute('for', 'fov-telescope-select');
+    tLabel.textContent = 'Telescope';
+    const tSelect = document.createElement('select');
+    tSelect.id = 'fov-telescope-select';
+    tSelect.className = 'form-select';
+    const tDefault = document.createElement('option');
+    tDefault.value = '';
+    tDefault.textContent = 'Select a telescope...';
+    tSelect.appendChild(tDefault);
+    telescopes.forEach((t) => {
+        const option = document.createElement('option');
+        option.value = t.id;
+        option.textContent = `${t.name} (${t.effective_focal_length}mm f/${t.effective_focal_ratio})`;
+        tSelect.appendChild(option);
+    });
+    tCol.appendChild(tLabel);
+    tCol.appendChild(tSelect);
+
+    const cCol = document.createElement('div');
+    cCol.className = 'col-md-6';
+    const cLabel = document.createElement('label');
+    cLabel.className = 'form-label';
+    cLabel.setAttribute('for', 'fov-camera-select');
+    cLabel.textContent = 'Camera';
+    const cSelect = document.createElement('select');
+    cSelect.id = 'fov-camera-select';
+    cSelect.className = 'form-select';
+    const cDefault = document.createElement('option');
+    cDefault.value = '';
+    cDefault.textContent = 'Select a camera...';
+    cSelect.appendChild(cDefault);
+    cameras.forEach((c) => {
+        const option = document.createElement('option');
+        option.value = c.id;
+        option.textContent = `${c.name} (${c.pixel_size_um}µm)`;
+        cSelect.appendChild(option);
+    });
+    cCol.appendChild(cLabel);
+    cCol.appendChild(cSelect);
+
+    row1.appendChild(tCol);
+    row1.appendChild(cCol);
+
+    const row2 = document.createElement('div');
+    row2.className = 'row mb-3';
+    const seeingCol = document.createElement('div');
+    seeingCol.className = 'col-md-6';
+    const seeingLabel = document.createElement('label');
+    seeingLabel.className = 'form-label';
+    seeingLabel.setAttribute('for', 'fov-seeing');
+    seeingLabel.textContent = 'Seeing Conditions (arcsec)';
+    const seeingInput = document.createElement('input');
+    seeingInput.type = 'number';
+    seeingInput.id = 'fov-seeing';
+    seeingInput.className = 'form-control';
+    seeingInput.value = '2.0';
+    seeingInput.min = '0.5';
+    seeingInput.max = '5';
+    seeingInput.step = '0.1';
+    seeingCol.appendChild(seeingLabel);
+    seeingCol.appendChild(seeingInput);
+
+    const buttonCol = document.createElement('div');
+    buttonCol.className = 'col-md-6 d-flex align-items-end';
+    const button = document.createElement('button');
+    button.className = 'btn btn-primary w-100 mt-2';
+    button.textContent = 'Calculate FOV';
+    button.addEventListener('click', calculateFOVFromUI);
+    buttonCol.appendChild(button);
+
+    row2.appendChild(seeingCol);
+    row2.appendChild(buttonCol);
+
+    const results = document.createElement('div');
+    results.id = 'fov-results';
+
+    body.appendChild(row1);
+    body.appendChild(row2);
+    body.appendChild(results);
+    card.appendChild(body);
+    container.appendChild(card);
 }
 
 async function calculateFOVFromUI() {
@@ -265,19 +389,54 @@ async function calculateFOVFromUI() {
         
         const fov = response;
         const resultsDiv = document.getElementById('fov-results');
-        
-        resultsDiv.innerHTML = `
-            <div class="alert alert-success">
-                <h6>FOV Calculation Results</h6>
-                <table class="table table-sm table-borderless">
-                    <tr><td><strong>Horizontal FOV:</strong></td><td>${fov.horizontal_fov_deg.toFixed(3)}°</td></tr>
-                    <tr><td><strong>Vertical FOV:</strong></td><td>${fov.vertical_fov_deg.toFixed(3)}°</td></tr>
-                    <tr><td><strong>Diagonal FOV:</strong></td><td>${fov.diagonal_fov_deg.toFixed(3)}°</td></tr>
-                    <tr><td><strong>Image Scale:</strong></td><td>${fov.image_scale_arcsec_per_px.toFixed(4)}" arcsec/pixel</td></tr>
-                    <tr><td><strong>Sampling:</strong></td><td><span class="badge bg-info">${fov.sampling_classification}</span></td></tr>
-                </table>
-            </div>
-        `;
+
+        DOMUtils.clear(resultsDiv);
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success';
+
+        const h6 = document.createElement('h6');
+        h6.textContent = 'FOV Calculation Results';
+        alert.appendChild(h6);
+
+        const table = document.createElement('table');
+        table.className = 'table table-sm table-borderless';
+
+        const rows = [
+            ['Horizontal FOV', `${fov.horizontal_fov_deg.toFixed(3)}°`],
+            ['Vertical FOV', `${fov.vertical_fov_deg.toFixed(3)}°`],
+            ['Diagonal FOV', `${fov.diagonal_fov_deg.toFixed(3)}°`],
+            ['Image Scale', `${fov.image_scale_arcsec_per_px.toFixed(4)}" arcsec/pixel`]
+        ];
+
+        rows.forEach(([label, value]) => {
+            const tr = document.createElement('tr');
+            const td1 = document.createElement('td');
+            const strong = document.createElement('strong');
+            strong.textContent = `${label}:`;
+            td1.appendChild(strong);
+            const td2 = document.createElement('td');
+            td2.textContent = value;
+            tr.appendChild(td1);
+            tr.appendChild(td2);
+            table.appendChild(tr);
+        });
+
+        const trSampling = document.createElement('tr');
+        const tdSamplingLabel = document.createElement('td');
+        const strongSampling = document.createElement('strong');
+        strongSampling.textContent = 'Sampling:';
+        tdSamplingLabel.appendChild(strongSampling);
+        const tdSamplingValue = document.createElement('td');
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-info';
+        badge.textContent = fov.sampling_classification;
+        tdSamplingValue.appendChild(badge);
+        trSampling.appendChild(tdSamplingLabel);
+        trSampling.appendChild(tdSamplingValue);
+        table.appendChild(trSampling);
+
+        alert.appendChild(table);
+        resultsDiv.appendChild(alert);
     } catch (error) {
         console.error('Error calculating FOV:', error);
         showMessage('error', 'Failed to calculate FOV');
@@ -290,46 +449,47 @@ function renderTelescopesTab() {
     const container = document.getElementById('equipment-telescopes-display');
     if (!container) return;
     
-    container.innerHTML = '';
+    DOMUtils.clear(container);
     
     if (equipmentData.telescopes.length === 0) {
-        container.innerHTML = `
-            <div class="col mb-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <p class="card-text">
-                            No telescopes created yet.
-                        </p>
-                    </div>
-                </div>
-            </div>`;
+        container.appendChild(createEmptyStateCard('No telescopes created yet.'));
         return;
     }
-    
-    const html = equipmentData.telescopes.map(scope => `
-        <div class="col mb-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title mb-1">${escapeHtml(scope.name)}</h5>
-                    ${scope.manufacturer ? `<h6 class="card-subtitle mb-2 text-body-secondary">${escapeHtml(scope.manufacturer)}</h6>` : ''}
-                    <p class="card-text">
-                        <strong>Type:</strong> ${scope.telescope_type}<br>
-                        <strong>Aperture:</strong> ${scope.aperture_mm}mm<br>
-                        <strong>Native f/:</strong> ${scope.native_focal_ratio}<br>
-                        <strong>Effective f/:</strong> ${scope.effective_focal_ratio}<br>
-                        ${scope.weight_kg > 0 ? `<strong>Weight:</strong> ${scope.weight_kg}kg` : ''}
-                    </p>
-                </div>
-                <div class="card-footer text-center">
-                    <span class="btn-icon-placeholder"></span>
-                    <button class="btn btn-outline-secondary btn-edit-telescope" data-id="${scope.id}" title="Edit">✏️</button>
-                    <button class="btn btn-outline-danger btn-delete-telescope" data-id="${scope.id}" title="Delete">🗑️</button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-    
-    container.innerHTML = html;
+
+    equipmentData.telescopes.forEach((scope) => {
+        const col = document.createElement('div');
+        col.className = 'col mb-3';
+        const card = document.createElement('div');
+        card.className = 'card h-100';
+        const body = document.createElement('div');
+        body.className = 'card-body';
+
+        const title = document.createElement('h5');
+        title.className = 'card-title mb-1';
+        title.textContent = scope.name;
+        body.appendChild(title);
+
+        if (scope.manufacturer) {
+            const subtitle = document.createElement('h6');
+            subtitle.className = 'card-subtitle mb-2 text-body-secondary';
+            subtitle.textContent = scope.manufacturer;
+            body.appendChild(subtitle);
+        }
+
+        const p = document.createElement('p');
+        p.className = 'card-text';
+        appendInfoLine(p, 'Type', scope.telescope_type);
+        appendInfoLine(p, 'Aperture', `${scope.aperture_mm}mm`);
+        appendInfoLine(p, 'Native f/', scope.native_focal_ratio);
+        appendInfoLine(p, 'Effective f/', scope.effective_focal_ratio);
+        if (scope.weight_kg > 0) appendInfoLine(p, 'Weight', `${scope.weight_kg}kg`);
+        body.appendChild(p);
+
+        card.appendChild(body);
+        card.appendChild(createCardFooter('btn-edit-telescope', 'btn-delete-telescope', scope.id));
+        col.appendChild(card);
+        container.appendChild(col);
+    });
 }
 
 // --- Cameras Tab (Position 4) ---
@@ -338,46 +498,47 @@ function renderCamerasTab() {
     const container = document.getElementById('equipment-cameras-display');
     if (!container) return;
     
-    container.innerHTML = '';
+    DOMUtils.clear(container);
     
     if (equipmentData.cameras.length === 0) {
-        container.innerHTML = `
-            <div class="col mb-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <p class="card-text">
-                            No cameras created yet.
-                        </p>
-                    </div>
-                </div>
-            </div>`;
+        container.appendChild(createEmptyStateCard('No cameras created yet.'));
         return;
     }
-    
-    const html = equipmentData.cameras.map(cam => `
-        <div class="col mb-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title mb-1">${escapeHtml(cam.name)}</h5>
-                    ${cam.manufacturer ? `<h6 class="card-subtitle mb-2 text-body-secondary">${escapeHtml(cam.manufacturer)}</h6>` : ''}
-                    <p class="card-text">
-                        <strong>Type:</strong> ${cam.sensor_type}<br>
-                        <strong>Resolution:</strong> ${cam.resolution_width_px}×${cam.resolution_height_px}<br>
-                        <strong>Pixel Size:</strong> ${cam.pixel_size_um}µm<br>
-                        <strong>Diagonal:</strong> ${cam.sensor_diagonal_mm.toFixed(2)}mm<br>
-                        ${cam.weight_kg > 0 ? `<strong>Weight:</strong> ${cam.weight_kg}kg` : ''}
-                    </p>
-                </div>
-                <div class="card-footer text-center">
-                    <span class="btn-icon-placeholder"></span>
-                    <button class="btn btn-outline-secondary btn-edit-camera" data-id="${cam.id}" title="Edit">✏️</button>
-                    <button class="btn btn-outline-danger btn-delete-camera" data-id="${cam.id}" title="Delete">🗑️</button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-    
-    container.innerHTML = html;
+
+    equipmentData.cameras.forEach((cam) => {
+        const col = document.createElement('div');
+        col.className = 'col mb-3';
+        const card = document.createElement('div');
+        card.className = 'card h-100';
+        const body = document.createElement('div');
+        body.className = 'card-body';
+
+        const title = document.createElement('h5');
+        title.className = 'card-title mb-1';
+        title.textContent = cam.name;
+        body.appendChild(title);
+
+        if (cam.manufacturer) {
+            const subtitle = document.createElement('h6');
+            subtitle.className = 'card-subtitle mb-2 text-body-secondary';
+            subtitle.textContent = cam.manufacturer;
+            body.appendChild(subtitle);
+        }
+
+        const p = document.createElement('p');
+        p.className = 'card-text';
+        appendInfoLine(p, 'Type', cam.sensor_type);
+        appendInfoLine(p, 'Resolution', `${cam.resolution_width_px}×${cam.resolution_height_px}`);
+        appendInfoLine(p, 'Pixel Size', `${cam.pixel_size_um}µm`);
+        appendInfoLine(p, 'Diagonal', `${cam.sensor_diagonal_mm.toFixed(2)}mm`);
+        if (cam.weight_kg > 0) appendInfoLine(p, 'Weight', `${cam.weight_kg}kg`);
+        body.appendChild(p);
+
+        card.appendChild(body);
+        card.appendChild(createCardFooter('btn-edit-camera', 'btn-delete-camera', cam.id));
+        col.appendChild(card);
+        container.appendChild(col);
+    });
 }
 
 // --- Mounts Tab (Position 5) ---
@@ -386,44 +547,45 @@ function renderMountsTab() {
     const container = document.getElementById('equipment-mounts-display');
     if (!container) return;
     
-    container.innerHTML = '';
+    DOMUtils.clear(container);
     
     if (equipmentData.mounts.length === 0) {
-        container.innerHTML = `
-            <div class="col mb-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <p class="card-text">
-                            No mounts created yet.
-                        </p>
-                    </div>
-                </div>
-            </div>`;
+        container.appendChild(createEmptyStateCard('No mounts created yet.'));
         return;
     }
-    
-    const html = equipmentData.mounts.map(mount => `
-        <div class="col mb-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title mb-1">${escapeHtml(mount.name)}</h5>
-                    ${mount.manufacturer ? `<h6 class="card-subtitle mb-2 text-body-secondary">${escapeHtml(mount.manufacturer)}</h6>` : ''}
-                    <p class="card-text">
-                        <strong>Type:</strong> ${mount.mount_type}<br>
-                        <strong>Max Payload:</strong> ${mount.payload_capacity_kg}kg<br>
-                        <strong>Guiding:</strong> ${mount.guiding_supported ? '✅ Yes' : '❌ No'}
-                    </p>
-                </div>
-                <div class="card-footer text-center">
-                    <span class="btn-icon-placeholder"></span>
-                    <button class="btn btn-outline-secondary btn-edit-mount" data-id="${mount.id}" title="Edit">✏️</button>
-                    <button class="btn btn-outline-danger btn-delete-mount" data-id="${mount.id}" title="Delete">🗑️</button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-    
-    container.innerHTML = html;
+
+    equipmentData.mounts.forEach((mount) => {
+        const col = document.createElement('div');
+        col.className = 'col mb-3';
+        const card = document.createElement('div');
+        card.className = 'card h-100';
+        const body = document.createElement('div');
+        body.className = 'card-body';
+
+        const title = document.createElement('h5');
+        title.className = 'card-title mb-1';
+        title.textContent = mount.name;
+        body.appendChild(title);
+
+        if (mount.manufacturer) {
+            const subtitle = document.createElement('h6');
+            subtitle.className = 'card-subtitle mb-2 text-body-secondary';
+            subtitle.textContent = mount.manufacturer;
+            body.appendChild(subtitle);
+        }
+
+        const p = document.createElement('p');
+        p.className = 'card-text';
+        appendInfoLine(p, 'Type', mount.mount_type);
+        appendInfoLine(p, 'Max Payload', `${mount.payload_capacity_kg}kg`);
+        appendInfoLine(p, 'Guiding', mount.guiding_supported ? '✅ Yes' : '❌ No');
+        body.appendChild(p);
+
+        card.appendChild(body);
+        card.appendChild(createCardFooter('btn-edit-mount', 'btn-delete-mount', mount.id));
+        col.appendChild(card);
+        container.appendChild(col);
+    });
 }
 
 // --- Filters Tab (Position 6) ---
@@ -432,45 +594,46 @@ function renderFiltersTab() {
     const container = document.getElementById('equipment-filters-display');
     if (!container) return;
     
-    container.innerHTML = '';
+    DOMUtils.clear(container);
     
     if (equipmentData.filters.length === 0) {
-        container.innerHTML = `
-            <div class="col mb-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <p class="card-text">
-                            No filters created yet.
-                        </p>
-                    </div>
-                </div>
-            </div>`;
+        container.appendChild(createEmptyStateCard('No filters created yet.'));
         return;
     }
-    
-    const html = equipmentData.filters.map(filter => `
-        <div class="col mb-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title mb-1">${escapeHtml(filter.name)}</h5>
-                    ${filter.manufacturer ? `<h6 class="card-subtitle mb-2 text-body-secondary">${escapeHtml(filter.manufacturer)}</h6>` : ''}
-                    <p class="card-text">
-                        <strong>Type:</strong> ${filter.filter_type}<br>
-                        ${filter.central_wavelength_nm ? `<strong>Wavelength:</strong> ${filter.central_wavelength_nm}nm<br>` : ''}
-                        ${filter.bandwidth_nm ? `<strong>Bandwidth:</strong> ${filter.bandwidth_nm}nm<br>` : ''}
-                        <strong>Use:</strong> ${filter.intended_use || 'General'}
-                    </p>
-                </div>
-                <div class="card-footer text-center">
-                    <span class="btn-icon-placeholder"></span>
-                    <button class="btn btn-outline-secondary btn-edit-filter" data-id="${filter.id}" title="Edit">✏️</button>
-                    <button class="btn btn-outline-danger btn-delete-filter" data-id="${filter.id}" title="Delete">🗑️</button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-    
-    container.innerHTML = html;
+
+    equipmentData.filters.forEach((filter) => {
+        const col = document.createElement('div');
+        col.className = 'col mb-3';
+        const card = document.createElement('div');
+        card.className = 'card h-100';
+        const body = document.createElement('div');
+        body.className = 'card-body';
+
+        const title = document.createElement('h5');
+        title.className = 'card-title mb-1';
+        title.textContent = filter.name;
+        body.appendChild(title);
+
+        if (filter.manufacturer) {
+            const subtitle = document.createElement('h6');
+            subtitle.className = 'card-subtitle mb-2 text-body-secondary';
+            subtitle.textContent = filter.manufacturer;
+            body.appendChild(subtitle);
+        }
+
+        const p = document.createElement('p');
+        p.className = 'card-text';
+        appendInfoLine(p, 'Type', filter.filter_type);
+        if (filter.central_wavelength_nm) appendInfoLine(p, 'Wavelength', `${filter.central_wavelength_nm}nm`);
+        if (filter.bandwidth_nm) appendInfoLine(p, 'Bandwidth', `${filter.bandwidth_nm}nm`);
+        appendInfoLine(p, 'Use', filter.intended_use || 'General');
+        body.appendChild(p);
+
+        card.appendChild(body);
+        card.appendChild(createCardFooter('btn-edit-filter', 'btn-delete-filter', filter.id));
+        col.appendChild(card);
+        container.appendChild(col);
+    });
 }
 
 // --- Accessories Tab (Position 7) ---
@@ -479,43 +642,44 @@ function renderAccessoriesTab() {
     const container = document.getElementById('equipment-accessories-display');
     if (!container) return;
     
-    container.innerHTML = '';
+    DOMUtils.clear(container);
     
     if (equipmentData.accessories.length === 0) {
-        container.innerHTML = `
-            <div class="col mb-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <p class="card-text">
-                            No accessories created yet.
-                        </p>
-                    </div>
-                </div>
-            </div>`;
+        container.appendChild(createEmptyStateCard('No accessories created yet.'));
         return;
     }
-    
-    const html = equipmentData.accessories.map(accessory => `
-        <div class="col mb-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title mb-1">${escapeHtml(accessory.name)}</h5>
-                    ${accessory.manufacturer ? `<h6 class="card-subtitle mb-2 text-body-secondary">${escapeHtml(accessory.manufacturer)}</h6>` : ''}
-                    <p class="card-text">
-                        <strong>Type:</strong> ${escapeHtml(accessory.accessory_type)}<br>
-                        ${accessory.weight_kg > 0 ? `<strong>Weight:</strong> ${accessory.weight_kg}kg` : ''}
-                    </p>
-                </div>
-                <div class="card-footer text-center">
-                    <span class="btn-icon-placeholder"></span>
-                    <button class="btn btn-outline-secondary btn-edit-accessory" data-id="${accessory.id}" title="Edit">✏️</button>
-                    <button class="btn btn-outline-danger btn-delete-accessory" data-id="${accessory.id}" title="Delete">🗑️</button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-    
-    container.innerHTML = html;
+
+    equipmentData.accessories.forEach((accessory) => {
+        const col = document.createElement('div');
+        col.className = 'col mb-3';
+        const card = document.createElement('div');
+        card.className = 'card h-100';
+        const body = document.createElement('div');
+        body.className = 'card-body';
+
+        const title = document.createElement('h5');
+        title.className = 'card-title mb-1';
+        title.textContent = accessory.name;
+        body.appendChild(title);
+
+        if (accessory.manufacturer) {
+            const subtitle = document.createElement('h6');
+            subtitle.className = 'card-subtitle mb-2 text-body-secondary';
+            subtitle.textContent = accessory.manufacturer;
+            body.appendChild(subtitle);
+        }
+
+        const p = document.createElement('p');
+        p.className = 'card-text';
+        appendInfoLine(p, 'Type', accessory.accessory_type);
+        if (accessory.weight_kg > 0) appendInfoLine(p, 'Weight', `${accessory.weight_kg}kg`);
+        body.appendChild(p);
+
+        card.appendChild(body);
+        card.appendChild(createCardFooter('btn-edit-accessory', 'btn-delete-accessory', accessory.id));
+        col.appendChild(card);
+        container.appendChild(col);
+    });
 }
 
 // ============================================

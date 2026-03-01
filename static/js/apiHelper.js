@@ -234,8 +234,20 @@ async function fetchJSONWithRetry(endpoint, options = {}, retryOptions = {}) {
  * @returns {Promise<Object|null>} - Parsed JSON response or null on error
  */
 async function fetchJSONWithUI(endpoint, container, loadingMessage = 'Loading...', retryOptions = {}) {
+    const renderAlert = (variant, message) => {
+        if (!container) {
+            return;
+        }
+        DOMUtils.clear(container);
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${variant}`;
+        alert.setAttribute('role', 'alert');
+        alert.textContent = `${message}`;
+        container.appendChild(alert);
+    };
+
     if (container) {
-        container.innerHTML = `<div class="alert alert-info" role="alert">${loadingMessage}</div>`;
+        renderAlert('info', loadingMessage);
     }
 
     const {
@@ -260,18 +272,14 @@ async function fetchJSONWithUI(endpoint, container, loadingMessage = 'Loading...
                     ? (retryData && retryData.message ? retryData.message : pendingMessage)
                     : (retryMessage || (error ? error.message : 'Temporary error'));
 
-                container.innerHTML = `
-                    <div class="alert alert-info" role="alert">
-                        ${message} Retrying in ${seconds}s (${attempt}/${maxAttempts})
-                    </div>
-                `;
+                renderAlert('info', `${message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`);
             }
         });
 
         // Handle error in response
         if (data && data.error) {
             if (container) {
-                container.innerHTML = `<div class="alert alert-danger" role="alert">${data.error}</div>`;
+                renderAlert('danger', data.error);
             }
             return null;
         }
@@ -279,7 +287,7 @@ async function fetchJSONWithUI(endpoint, container, loadingMessage = 'Loading...
         // Handle pending status when retries are exhausted
         if (data && data.status === 'pending') {
             if (container) {
-                container.innerHTML = `<div class="alert alert-info" role="alert">${data.message || 'Processing...'}</div>`;
+                renderAlert('info', data.message || 'Processing...');
             }
             return null;
         }
@@ -287,7 +295,7 @@ async function fetchJSONWithUI(endpoint, container, loadingMessage = 'Loading...
         return data;
     } catch (error) {
         if (container) {
-            container.innerHTML = `<div class="alert alert-danger" role="alert">Failed to load data: ${error.message}</div>`;
+            renderAlert('danger', `Failed to load data: ${error.message}`);
         }
         return null;
     }
