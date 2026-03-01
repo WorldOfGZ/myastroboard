@@ -907,8 +907,17 @@ def get_catalogue_reports_api(catalogue):
         user_id = user.user_id if user else None
         if not user_id:
             return jsonify({'error': 'User not authenticated'}), 401
+
+        if not re.match(r'^[a-zA-Z0-9_-]+$', catalogue):
+            logger.warning(f"Invalid catalogue name: {catalogue}")
+            return jsonify({'error': 'Invalid catalogue name'}), 400
             
-        catalogue_dir = os.path.join(OUTPUT_DIR, catalogue)
+        output_dir_abs = os.path.abspath(OUTPUT_DIR)
+        catalogue_dir = os.path.abspath(os.path.join(OUTPUT_DIR, catalogue))
+        if not catalogue_dir.startswith(output_dir_abs + os.sep):
+            logger.warning(f"Catalogue path traversal attempt: {catalogue}")
+            return jsonify({'error': 'Invalid path'}), 400
+
         reports = get_catalogue_reports(catalogue_dir)
         
         # Transform data into format expected by frontend

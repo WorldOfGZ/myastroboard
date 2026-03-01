@@ -139,21 +139,21 @@ class TestParseUptonightReport:
         }
         
         # Create temporary JSON file
-        file_path = os.path.join(temp_dir, "test-report.json")
+        file_path = os.path.join(temp_dir, "uptonight-report.json")
         with open(file_path, 'w') as f:
             json.dump(data, f)
         
-        result = parse_uptonight_report(file_path, 'objects', temp_dir)
+        result = parse_uptonight_report('test-report.json', 'objects', temp_dir)
         assert result is not None
         assert result['type'] == 'objects'
     
     def test_parse_uptonight_report_invalid_json(self, temp_dir):
         """Test parsing invalid JSON returns None"""
-        file_path = os.path.join(temp_dir, "invalid.json")
+        file_path = os.path.join(temp_dir, "uptonight-report.json")
         with open(file_path, 'w') as f:
             f.write("not valid json {")
         
-        result = parse_uptonight_report(file_path, 'objects', temp_dir)
+        result = parse_uptonight_report('invalid.json', 'objects', temp_dir)
         assert result is None
     
     def test_parse_uptonight_report_unknown_type(self, temp_dir):

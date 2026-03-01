@@ -46,7 +46,17 @@ def parse_uptonight_report(file_path: str, report_type: str, catalogue_dir: str)
         if not base_path:
             return None
 
-        safe_file_path = _resolve_path_within(base_path, file_path)
+        expected_files = {
+            'objects': 'uptonight-report.json',
+            'comets': 'uptonight-comets-report.json',
+            'bodies': 'uptonight-bodies-report.json'
+        }
+
+        if report_type in expected_files:
+            safe_file_path = _resolve_path_within(base_path, expected_files[report_type])
+        else:
+            safe_file_path = _resolve_path_within(base_path, Path(file_path).name)
+
         if not safe_file_path:
             # Path traversal attempt, ignore
             logger.warning(f"Attempted access outside catalogue_dir: {file_path}")
@@ -81,8 +91,8 @@ def parse_objects_report(data: dict, catalogue_dir: str) -> dict:
 
     num_entries = len(data['id'])
 
-    # Normalize catalogue_dir once
-    catalogue_dir = os.path.normpath(catalogue_dir)
+    base_path = _resolve_catalogue_dir(catalogue_dir)
+    safe_catalogue_dir = str(base_path) if base_path else ""
 
     for i in range(num_entries):
         obj = {}
@@ -90,7 +100,7 @@ def parse_objects_report(data: dict, catalogue_dir: str) -> dict:
             if str(i) in values:
                 if key == 'id':
                     # Use safe file path generator
-                    obj['alttime_file'] = get_alttime_file_name(values[str(i)], catalogue_dir)
+                    obj['alttime_file'] = get_alttime_file_name(values[str(i)], safe_catalogue_dir)
                 obj[key] = values[str(i)]
         objects.append(obj)
 
@@ -110,8 +120,8 @@ def parse_comets_report(data: dict, catalogue_dir: str) -> dict:
 
     num_entries = len(data['target name'])
 
-    # Normalize catalogue_dir once
-    catalogue_dir = os.path.normpath(catalogue_dir)
+    base_path = _resolve_catalogue_dir(catalogue_dir)
+    safe_catalogue_dir = str(base_path) if base_path else ""
 
     for i in range(num_entries):
         comet = {}
@@ -119,7 +129,7 @@ def parse_comets_report(data: dict, catalogue_dir: str) -> dict:
             if str(i) in values:
                 if key == 'target name':
                     # Use safe file path generator
-                    comet['alttime_file'] = get_alttime_file_name(values[str(i)], catalogue_dir)
+                    comet['alttime_file'] = get_alttime_file_name(values[str(i)], safe_catalogue_dir)
                 comet[key] = values[str(i)]
         comets.append(comet)
 
@@ -140,10 +150,11 @@ def parse_bodies_report(data: dict, catalogue_dir: str) -> dict:
 
     num_entries = len(data['target name'])
 
-    # Safe absolute path for catalogue_dir
-    base_path = Path(catalogue_dir).resolve()
-    if not base_path.exists() or not base_path.is_dir():
+    base_path = _resolve_catalogue_dir(catalogue_dir)
+    if not base_path:
         return {'type': 'bodies', 'count': 0, 'bodies': []}
+
+    safe_catalogue_dir = str(base_path)
 
     for i in range(num_entries):
         body = {}
@@ -151,7 +162,7 @@ def parse_bodies_report(data: dict, catalogue_dir: str) -> dict:
             if str(i) in values:
                 if key == 'target name':
                     # Use safe file path generator
-                    body['alttime_file'] = get_alttime_file_name(values[str(i)], catalogue_dir)
+                    body['alttime_file'] = get_alttime_file_name(values[str(i)], safe_catalogue_dir)
                 body[key] = values[str(i)]
         bodies.append(body)
 
@@ -182,15 +193,14 @@ def get_catalogue_reports(catalogue_dir: str) -> dict:
     }
 
     for report_type, filename in report_files.items():
-        file_path = _resolve_path_within(base_path, filename)
-        if not file_path:
-            continue
-
         if filename.endswith('.json'):
-            parsed = parse_uptonight_report(str(file_path), report_type, str(base_path))
+            parsed = parse_uptonight_report(filename, report_type, str(base_path))
             if parsed:
                 reports[report_type] = parsed
-        elif file_path.exists():
+        else:
+            file_path = _resolve_path_within(base_path, filename)
+            if not file_path or not file_path.exists():
+                continue
             reports[report_type] = {
                 'available': True,
                 'path': filename
