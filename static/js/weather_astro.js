@@ -249,10 +249,6 @@ function renderAstroWeatherCharts(hourlyData) {
     renderDewTrackingChart(labels, hourlyData);
 }
 
-function isCompactChart() {
-    return window.matchMedia('(max-width: 575.98px)').matches;
-}
-
 /**
  * Render seeing and transparency chart
  */
@@ -297,7 +293,6 @@ function renderSeeingTransparencyChart(labels, data) {
     
     // Render chart
     const ctx = document.getElementById('astro-seeing-chart');
-    const compactChart = isCompactChart();
     window.astroSeeingChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -413,8 +408,6 @@ function renderCloudLayersChart(labels, data) {
             </div>
         </div>
     `;
-    
-    const compactChart = isCompactChart();
     
     // Render chart
     const ctx = document.getElementById('astro-clouds-chart');
@@ -539,8 +532,6 @@ function renderDewTrackingChart(labels, data) {
             </div>
         </div>
     `;
-    
-    const compactChart = isCompactChart();
     
     // Render chart
     const ctx = document.getElementById('astro-conditions-chart');
@@ -701,13 +692,6 @@ function getDewRiskColor(riskLevel) {
     }
 }
 
-function getQualityClass(quality) {
-    if (quality >= 80) return 'excellent';
-    if (quality >= 60) return 'good';
-    if (quality >= 40) return 'fair';
-    return 'poor';
-}
-
 function getSeverityIcon(severity) {
     switch (severity) {
         case 'HIGH': return '🔴';
@@ -723,13 +707,6 @@ function getSeverityIcon(severity) {
 function startAstroWeatherAutoRefresh() {
     // Refresh every 10 minutes
     astroWeatherUpdateInterval = setInterval(loadAstroWeather, 600000);
-}
-
-function stopAstroWeatherAutoRefresh() {
-    if (astroWeatherUpdateInterval) {
-        clearInterval(astroWeatherUpdateInterval);
-        astroWeatherUpdateInterval = null;
-    }
 }
 
 /**

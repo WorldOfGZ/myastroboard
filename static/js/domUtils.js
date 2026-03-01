@@ -15,30 +15,6 @@ function setLoading(containerOrId, message = 'Loading...') {
 }
 
 /**
- * Set error state on a container
- * @param {HTMLElement|string} containerOrId - Container element or ID
- * @param {string} message - Error message
- */
-function setError(containerOrId, message) {
-    const container = getElement(containerOrId);
-    if (container) {
-        container.innerHTML = `<div class="error-box">${message}</div>`;
-    }
-}
-
-/**
- * Set info/notice state on a container
- * @param {HTMLElement|string} containerOrId - Container element or ID
- * @param {string} message - Info message
- */
-function setInfo(containerOrId, message) {
-    const container = getElement(containerOrId);
-    if (container) {
-        container.innerHTML = `<div class="info-notice">${message}</div>`;
-    }
-}
-
-/**
  * Clear container contents
  * @param {HTMLElement|string} containerOrId - Container element or ID
  */
@@ -59,42 +35,6 @@ function getElement(elementOrId) {
         return document.getElementById(elementOrId);
     }
     return elementOrId;
-}
-
-/**
- * Show/hide element
- * @param {HTMLElement|string} elementOrId - Element or ID
- * @param {boolean} show - True to show, false to hide
- */
-function toggleVisibility(elementOrId, show) {
-    const element = getElement(elementOrId);
-    if (element) {
-        element.style.display = show ? '' : 'none';
-    }
-}
-
-/**
- * Add CSS class to element
- * @param {HTMLElement|string} elementOrId - Element or ID
- * @param {string} className - CSS class name
- */
-function addClass(elementOrId, className) {
-    const element = getElement(elementOrId);
-    if (element && !element.classList.contains(className)) {
-        element.classList.add(className);
-    }
-}
-
-/**
- * Remove CSS class from element
- * @param {HTMLElement|string} elementOrId - Element or ID
- * @param {string} className - CSS class name
- */
-function removeClass(elementOrId, className) {
-    const element = getElement(elementOrId);
-    if (element && element.classList.contains(className)) {
-        element.classList.remove(className);
-    }
 }
 
 /**

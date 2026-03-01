@@ -197,18 +197,3 @@ async function loadAurora() {
     }
 }
 
-/**
- * Set up aurora update auto-refresh
- */
-let auroraUpdateInterval;
-
-function setupAuroraAutoRefresh() {
-    // Refresh every 10 minutes (600000 ms)
-    auroraUpdateInterval = setInterval(loadAurora, 600000);
-}
-
-function clearAuroraAutoRefresh() {
-    if (auroraUpdateInterval) {
-        clearInterval(auroraUpdateInterval);
-    }
-}

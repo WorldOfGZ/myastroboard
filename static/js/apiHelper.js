@@ -292,19 +292,3 @@ async function fetchJSONWithUI(endpoint, container, loadingMessage = 'Loading...
         return null;
     }
 }
-
-/**
- * POST JSON data to an API endpoint
- * @param {string} endpoint - API endpoint
- * @param {Object} data - Data to send
- * @returns {Promise<Object>} - Parsed JSON response
- */
-async function postJSON(endpoint, data) {
-    return fetchJSON(endpoint, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    });
-}
