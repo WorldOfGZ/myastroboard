@@ -34,7 +34,6 @@ myastroboard/
 │   ├── cache_scheduler.py      # Cyclic cache for scheduler data
 │   ├── cache_store.py          # Variable cache storage
 │   ├── cache_updater.py        # Functions to update cache
-│   ├── catalogues.json         # Generated catalogue list
 │   ├── catalogue_aliases.json   # Generated catalogue alias table
 │   ├── catalogue_aliases.py     # Alias lookup helpers
 │   ├── config_defaults.py      # Default config for UpTonight
@@ -59,49 +58,49 @@ myastroboard/
 │   └── weather_utils.py         # Weather helper utilities
 ├── docs/                       # Comprehensive documentation
 ├── data/                       # User configuration (Docker volume, persists)
-│   ├── config.json             # Main configuration file
-│   ├── users.json              # User accounts and credentials (hashed passwords)
 │   ├── astrodex/               # Astrodex data and images
 │   ├── cache/                  # Cached astronomy data
 │   ├── equipments/             # Equipment profile storage
+│   ├── config.json             # Main configuration file
+│   ├── users.json              # User accounts and credentials (hashed passwords)
 │   └── myastroboard.log        # Application logs
 ├── scripts/                    # Repository maintenance scripts
 │   └── analyse_catalogues.py   # Update catalogues.json and aliases table
 ├── static/
 │   ├── css/
-│   │   ├── bs_astrodex.css (astrodex-specific styles)
-│   │   ├── bs_equipment.css (equipment-specific styles)
-│   │   ├── bs_events.css (events-specific styles)
-│   │   ├── bs_login.css (login page styles)
-│   │   ├── bs_imports.css (import orchestrator)
-│   │   ├── bs_logs.css (logs-specific styles)
-│   │   ├── bs_main.css (common styles for all pages)
-│   │   ├── bs_metrics.css (metrics-specific styles)
-│   │   ├── bs_uptonight.css (uptonight-specific styles)
-│   │   ├── bs_variables.css (common variables for all pages)
-│   │   ├── bs_weather.css (weather-specific styles)
-│   │   └── bs_yaml.css (yaml-specific styles)
+│   │   ├── bs_astrodex.css     # Astrodex-specific styles
+│   │   ├── bs_equipment.css    # Equipment-specific styles
+│   │   ├── bs_events.css       # Events-specific styles
+│   │   ├── bs_login.css        # Login page styles
+│   │   ├── bs_logs.css         # Logs-specific styles
+│   │   ├── bs_main.css         # Common styles for all pages
+│   │   ├── bs_metrics.css      # Metrics-specific styles
+│   │   ├── bs_timeline.css     # Timeline-specific styles
+│   │   ├── bs_uptonight.css    # Uptonight-specific styles
+│   │   ├── bs_variables.css    # Common variables for all pages
+│   │   ├── bs_weather.css      # Weather-specific styles
+│   │   └── bs_yaml.css         # YAML-specific styles
+│   ├── img/
 │   ├── js/
-│   │   ├── apiHelper.js
-│   │   ├── app.js
-│   │   ├── auth.js (authentication and user management)
-│   │   ├── astrodex.js
-│   │   ├── aurora.js
-│   │   ├── domUtils.js
-│   │   ├── equipment.js
-│   │   ├── events_alerts.js
-│   │   ├── horizon_graph.js
-│   │   ├── lunar_eclipse.js
-│   │   ├── moon.js
-│   │   ├── solar_eclipse.js
-│   │   ├── scheduler.js
-│   │   ├── sun.js
-│   │   ├── theme.js
-│   │   ├── uptonightScheduler.js
-│   │   ├── utils.js
-│   │   ├── weather.js
-│   │   ├── weather_alerts.js
-│   │   └── weather_astro.js
+│   │   ├── apiHelper.js            # Api helpers function
+│   │   ├── app.js                  # Main app js
+│   │   ├── astrodex.js             # Functions for Astrodex
+│   │   ├── aurora.js               # Functions for Aurora prediction
+│   │   ├── domUtils.js             # Functions for Dom manipulation
+│   │   ├── equipment.js            # Functions for Equipment management
+│   │   ├── events_alerts.js        # Functions for Events
+│   │   ├── horizon_graph.js        # Functions for Horizon graph
+│   │   ├── lunar_eclipse.js        # Functions for Lunar eclipse
+│   │   ├── moon.js                 # Functions for Moon planner
+│   │   ├── solar_eclipse.js        # Functions for Solar Eclipse
+│   │   ├── scheduler.js            # Functions for Scheduler
+│   │   ├── sun.js                  # Functions for Sun planner
+│   │   ├── theme.js                # Functions for Themes switch
+│   │   ├── uptonightScheduler.js   # Functions for Uptonight scheduler
+│   │   ├── utils.js                # Functions for Utils
+│   │   ├── weather_alerts.js       # Functions for Weather alerts
+│   │   ├── weather_astro.js        # Functions for Weather astro
+│   │   └── weather.js              # Functions for Weather
 │   └── favicon.svg
 ├── targets/                    # UpTonight catalogues (*.yaml)
 ├── templates/
@@ -129,7 +128,6 @@ myastroboard/
 ├── README.md                   # Project overview and instructions
 ├── requirements-dev.txt        # Development dependencies
 ├── requirements.txt            # Python dependencies
-├── UPTONIGHT_VERSION           # Specified uptonight Docker image version
 └── VERSION                     # Semantic version number
 ```
 
