@@ -522,8 +522,12 @@ class AstroWeatherAnalyzer:
             df["tracking_stability_score"]
         ) / 4
         
+        # Filter to only nighttime hours (is_day == 0)
+        # This ensures we only consider periods when astronomical observation is possible
+        nighttime_df = df[df["is_day"] == 0].copy() if "is_day" in df.columns else df.copy()
+        
         # Find periods with quality > 70%
-        good_periods = df[df["overall_quality"] >= 70].copy()
+        good_periods = nighttime_df[nighttime_df["overall_quality"] >= 70].copy()
         
         if len(good_periods) == 0:
             return []

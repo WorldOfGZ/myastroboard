@@ -11,6 +11,8 @@ const API_ENDPOINT_EVENTS = `${API_BASE}/api/events/upcoming`;
 let cachedEvents = null;
 let lastEventsUpdate = null;
 const EVENTS_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const EVENTS_ROTARY_INTERVAL = 5000; // 5 seconds
+let eventsRotaryIntervalId = null;
 
 /**
  * Initialize events alert system
@@ -78,6 +80,7 @@ function displayEvents(eventsData) {
     // Clear existing alerts
     DOMUtils.clear(container);
     DOMUtils.clear(timelineContainer);
+    stopEventsRotary();
 
     // Check if we have any upcoming events
     const nextEvent = eventsData.next_event;
@@ -117,12 +120,38 @@ function displayEvents(eventsData) {
     // Show the events banner
     container.style.display = 'block';
 
-    // Display next event prominently if within 30 days and visible
+    // Display up to first 3 events in continuous rotary banner
     if (visibleEvents && visibleEvents.length > 0) {
-        //Take first visible event as the most important one to display
-        const alertCard = createEventAlertCard(visibleEvents[0]);
-        container.appendChild(alertCard);
+        const rotaryEvents = visibleEvents.slice(0, 3);
+        startEventsRotary(container, rotaryEvents);
     }
+}
+
+function stopEventsRotary() {
+    if (eventsRotaryIntervalId) {
+        clearInterval(eventsRotaryIntervalId);
+        eventsRotaryIntervalId = null;
+    }
+}
+
+function startEventsRotary(container, events) {
+    if (!container || !events || events.length === 0) {
+        return;
+    }
+
+    let currentIndex = 0;
+    DOMUtils.clear(container);
+    container.appendChild(createEventAlertCard(events[currentIndex]));
+
+    if (events.length === 1) {
+        return;
+    }
+
+    eventsRotaryIntervalId = setInterval(() => {
+        currentIndex = (currentIndex + 1) % events.length;
+        DOMUtils.clear(container);
+        container.appendChild(createEventAlertCard(events[currentIndex]));
+    }, EVENTS_ROTARY_INTERVAL);
 }
 
 /**
@@ -260,6 +289,7 @@ function getDaysUntilText(daysUntil) {
 function scrollToEventDetails(eventType) {
     let subTabName = '';
     
+    // Map event types to corresponding tabs
     if (eventType.includes('Eclipse')) {
         subTabName = eventType.includes('Solar') ? 'sun' : 'moon';
     } else if (eventType === 'Aurora') {
@@ -268,6 +298,30 @@ function scrollToEventDetails(eventType) {
         subTabName = 'iss';
     } else if (eventType === 'Moon Phase') {
         subTabName = 'moon';
+    } else if (eventType.includes('Planetary') || 
+               eventType.includes('Conjunction') || 
+               eventType.includes('Opposition') || 
+               eventType.includes('Elongation') || 
+               eventType.includes('Retrograde')) {
+        // Navigate to calendar for planetary events overview
+        subTabName = 'calendar';
+    } else if (eventType.includes('Equinox') || 
+               eventType.includes('Solstice') || 
+               eventType.includes('Zodiacal Light') || 
+               eventType.includes('Milky Way')) {
+        // Navigate to calendar for special phenomena overview
+        subTabName = 'calendar';
+    } else if (eventType.includes('Meteor Shower') || 
+               eventType.includes('Comet') || 
+               eventType.includes('Asteroid Occultation')) {
+        // Navigate to calendar for solar system events overview
+        subTabName = 'calendar';
+    } else if (eventType.includes('Sidereal')) {
+        // Navigate to calendar for sidereal time info
+        subTabName = 'calendar';
+    } else {
+        // Default to calendar for any unknown event types
+        subTabName = 'calendar';
     }
 
     if (subTabName) {

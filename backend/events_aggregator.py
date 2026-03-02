@@ -53,6 +53,17 @@ class EventType(Enum):
     AURORA = "Aurora"
     ISS_PASS = "ISS Pass"
     MOON_PHASE = "Moon Phase"
+    PLANETARY_CONJUNCTION = "Planetary Conjunction"
+    PLANETARY_OPPOSITION = "Planetary Opposition"
+    PLANETARY_ELONGATION = "Planetary Elongation"
+    PLANETARY_RETROGRADE = "Planetary Retrograde"
+    EQUINOX = "Equinox"
+    SOLSTICE = "Solstice"
+    ZODIACAL_LIGHT = "Zodiacal Light Window"
+    MILKY_WAY = "Milky Way Core Visibility"
+    METEOR_SHOWER = "Meteor Shower"
+    COMET_APPEARANCE = "Comet Appearance"
+    ASTEROID_OCCULTATION = "Asteroid Occultation"
     CUSTOM = "Custom Event"
 
 
@@ -109,6 +120,10 @@ class EventsAggregator:
         aurora_data: Optional[Dict[str, Any]] = None,
         iss_passes_data: Optional[Dict[str, Any]] = None,
         moon_phases_data: Optional[Dict[str, Any]] = None,
+        planetary_events_data: Optional[Dict[str, Any]] = None,
+        special_phenomena_data: Optional[Dict[str, Any]] = None,
+        solar_system_events_data: Optional[Dict[str, Any]] = None,
+        sidereal_time_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Aggregate all available events into a unified format.
@@ -117,7 +132,12 @@ class EventsAggregator:
             solar_eclipse_data: Data from sun_eclipse endpoint
             lunar_eclipse_data: Data from moon_eclipse endpoint
             aurora_data: Data from aurora endpoint
+            iss_passes_data: Data from ISS passes endpoint
             moon_phases_data: Data from moon phases endpoint
+            planetary_events_data: Data from planetary events endpoint
+            special_phenomena_data: Data from special phenomena endpoint
+            solar_system_events_data: Data from solar system events endpoint
+            sidereal_time_data: Data from sidereal time endpoint
             
         Returns:
             Unified events data with next event and filtered views
@@ -142,7 +162,6 @@ class EventsAggregator:
 
         # Add aurora if available
         if aurora_data:
-            #logger.debug(f"Aurora data received for aggregation: {aurora_data}")
             try:
                 aurora_events = self._extract_aurora_events(aurora_data)
                 events.extend(aurora_events)
@@ -164,6 +183,30 @@ class EventsAggregator:
                 events.extend(iss_events)
             except Exception as e:
                 logger.warning(f"Error extracting ISS pass events: {e}")
+
+        # Add planetary events if available
+        if planetary_events_data:
+            try:
+                planetary_events = self._extract_planetary_events(planetary_events_data)
+                events.extend(planetary_events)
+            except Exception as e:
+                logger.warning(f"Error extracting planetary events: {e}")
+
+        # Add special phenomena if available
+        if special_phenomena_data:
+            try:
+                phenomena_events = self._extract_special_phenomena_events(special_phenomena_data)
+                events.extend(phenomena_events)
+            except Exception as e:
+                logger.warning(f"Error extracting special phenomena events: {e}")
+
+        # Add solar system events if available
+        if solar_system_events_data:
+            try:
+                solsys_events = self._extract_solar_system_events(solar_system_events_data)
+                events.extend(solsys_events)
+            except Exception as e:
+                logger.warning(f"Error extracting solar system events: {e}")
 
         # Sort by days until event
         events.sort(key=lambda x: x.days_until_event)
@@ -504,3 +547,141 @@ class EventsAggregator:
     def _get_local_now(self) -> datetime.datetime:
         """Get current time in configured timezone"""
         return datetime.datetime.now(self.timezone)
+
+    def _extract_planetary_events(self, planetary_data: Dict[str, Any]) -> List[AstronomicalEvent]:
+        """Extract planetary events from raw data"""
+        events = []
+        
+        raw_events = planetary_data.get("events", [])
+        if not isinstance(raw_events, list):
+            return events
+        
+        for event_data in raw_events:
+            try:
+                peak_time_str = event_data.get("peak_time")
+                if not peak_time_str:
+                    continue
+                
+                peak_time = self._parse_iso_time(peak_time_str)
+                days_until = (peak_time.date() - self.local_now.date()).days
+                
+                visibility = event_data.get("visibility", True)
+                importance = event_data.get("importance", "medium")
+                
+                event_type = event_data.get("event_type", "Planetary Event")
+                emoji = event_data.get("emoji", "⭐")
+                title = event_data.get("title", "Planetary Event")
+                description = event_data.get("description", "")
+                
+                event = AstronomicalEvent(
+                    id=f"planetary_{peak_time_str.replace(':', '').replace('-', '')}_{event_type.lower().replace(' ', '_')}",
+                    event_type=event_type,
+                    emoji=emoji,
+                    title=title,
+                    description=description,
+                    start_time=event_data.get("start_time"),
+                    peak_time=peak_time_str,
+                    end_time=event_data.get("end_time"),
+                    days_until_event=days_until,
+                    visibility=visibility,
+                    importance=importance,
+                    score=event_data.get("score"),
+                    raw_data=event_data,
+                )
+                events.append(event)
+            except Exception as e:
+                logger.debug(f"Error extracting planetary event: {e}")
+        
+        return events
+
+    def _extract_special_phenomena_events(self, phenomena_data: Dict[str, Any]) -> List[AstronomicalEvent]:
+        """Extract special phenomena events from raw data"""
+        events = []
+        
+        raw_events = phenomena_data.get("events", [])
+        if not isinstance(raw_events, list):
+            return events
+        
+        for event_data in raw_events:
+            try:
+                peak_time_str = event_data.get("peak_time")
+                if not peak_time_str:
+                    continue
+                
+                peak_time = self._parse_iso_time(peak_time_str)
+                days_until = (peak_time.date() - self.local_now.date()).days
+                
+                visibility = event_data.get("visibility", True)
+                importance = event_data.get("importance", "medium")
+                
+                event_type = event_data.get("event_type", "Special Phenomenon")
+                emoji = event_data.get("emoji", "✨")
+                title = event_data.get("title", "Special Phenomenon")
+                description = event_data.get("description", "")
+                
+                event = AstronomicalEvent(
+                    id=f"phenomena_{peak_time_str.replace(':', '').replace('-', '')}_{event_type.lower().replace(' ', '_')}",
+                    event_type=event_type,
+                    emoji=emoji,
+                    title=title,
+                    description=description,
+                    start_time=event_data.get("start_time"),
+                    peak_time=peak_time_str,
+                    end_time=event_data.get("end_time"),
+                    days_until_event=days_until,
+                    visibility=visibility,
+                    importance=importance,
+                    score=event_data.get("score"),
+                    raw_data=event_data,
+                )
+                events.append(event)
+            except Exception as e:
+                logger.debug(f"Error extracting special phenomena event: {e}")
+        
+        return events
+
+    def _extract_solar_system_events(self, solsys_data: Dict[str, Any]) -> List[AstronomicalEvent]:
+        """Extract solar system events (meteor showers, comets, occultations) from raw data"""
+        events = []
+        
+        raw_events = solsys_data.get("events", [])
+        if not isinstance(raw_events, list):
+            return events
+        
+        for event_data in raw_events:
+            try:
+                peak_time_str = event_data.get("peak_time")
+                if not peak_time_str:
+                    continue
+                
+                peak_time = self._parse_iso_time(peak_time_str)
+                days_until = (peak_time.date() - self.local_now.date()).days
+                
+                visibility = event_data.get("visibility", True)
+                importance = event_data.get("importance", "medium")
+                
+                event_type = event_data.get("event_type", "Solar System Event")
+                emoji = event_data.get("emoji", "☄️")
+                title = event_data.get("title", "Solar System Event")
+                description = event_data.get("description", "")
+                
+                event = AstronomicalEvent(
+                    id=f"solsys_{peak_time_str.replace(':', '').replace('-', '')}_{event_type.lower().replace(' ', '_')}",
+                    event_type=event_type,
+                    emoji=emoji,
+                    title=title,
+                    description=description,
+                    start_time=event_data.get("start_time"),
+                    peak_time=peak_time_str,
+                    end_time=event_data.get("end_time"),
+                    days_until_event=days_until,
+                    visibility=visibility,
+                    importance=importance,
+                    score=event_data.get("score"),
+                    raw_data=event_data,
+                )
+                events.append(event)
+            except Exception as e:
+                logger.debug(f"Error extracting solar system event: {e}")
+        
+        return events

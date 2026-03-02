@@ -54,6 +54,10 @@ from cache_updater import (
     update_horizon_graph_cache,
     update_aurora_cache,
     update_iss_passes_cache,
+    update_planetary_events_cache,
+    update_special_phenomena_cache,
+    update_solar_system_events_cache,
+    update_sidereal_time_cache,
 )
 
 #Cache for heavy computations
@@ -1416,7 +1420,7 @@ def get_lunar_eclipse_api():
 @app.route("/api/events/upcoming", methods=["GET"])
 @login_required
 def get_upcoming_events_api():
-    """Return aggregated upcoming astronomical events (eclipses, auroras, etc.)"""
+    """Return aggregated upcoming astronomical events (eclipses, auroras, planetary, phenomena, solar system events)"""
     try:
         config = load_config()
         location = config.get("location", {})
@@ -1430,6 +1434,9 @@ def get_upcoming_events_api():
         aurora_data = None
         iss_passes_data = None
         moon_phases_data = None
+        planetary_events_data = None
+        special_phenomena_data = None
+        solar_system_events_data = None
 
         # Try to get solar eclipse data
         if cache_store.is_cache_valid(cache_store._solar_eclipse_cache, CACHE_TTL):
@@ -1466,6 +1473,27 @@ def get_upcoming_events_api():
             if cache_store.is_cache_valid(cache_store._moon_planner_report_cache, CACHE_TTL):
                 moon_phases_data = cache_store._moon_planner_report_cache.get("data")
 
+        # Try to get planetary events data
+        if cache_store.is_cache_valid(cache_store._planetary_events_cache, CACHE_TTL):
+            planetary_events_data = cache_store._planetary_events_cache.get("data")
+        elif cache_store.sync_cache_from_shared("planetary_events", cache_store._planetary_events_cache):
+            if cache_store.is_cache_valid(cache_store._planetary_events_cache, CACHE_TTL):
+                planetary_events_data = cache_store._planetary_events_cache.get("data")
+
+        # Try to get special phenomena data
+        if cache_store.is_cache_valid(cache_store._special_phenomena_cache, CACHE_TTL):
+            special_phenomena_data = cache_store._special_phenomena_cache.get("data")
+        elif cache_store.sync_cache_from_shared("special_phenomena", cache_store._special_phenomena_cache):
+            if cache_store.is_cache_valid(cache_store._special_phenomena_cache, CACHE_TTL):
+                special_phenomena_data = cache_store._special_phenomena_cache.get("data")
+
+        # Try to get solar system events data
+        if cache_store.is_cache_valid(cache_store._solar_system_events_cache, CACHE_TTL):
+            solar_system_events_data = cache_store._solar_system_events_cache.get("data")
+        elif cache_store.sync_cache_from_shared("solar_system_events", cache_store._solar_system_events_cache):
+            if cache_store.is_cache_valid(cache_store._solar_system_events_cache, CACHE_TTL):
+                solar_system_events_data = cache_store._solar_system_events_cache.get("data")
+
         # Aggregate events
         aggregator = EventsAggregator(latitude, longitude, user_timezone)
         events = aggregator.aggregate_all_events(
@@ -1474,12 +1502,103 @@ def get_upcoming_events_api():
             aurora_data=aurora_data,
             iss_passes_data=iss_passes_data,
             moon_phases_data=moon_phases_data,
+            planetary_events_data=planetary_events_data,
+            special_phenomena_data=special_phenomena_data,
+            solar_system_events_data=solar_system_events_data,
         )
 
         return jsonify(events)
 
     except Exception as e:
         logger.error(f"Error aggregating upcoming events: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route("/api/events/planetary", methods=["GET"])
+@login_required
+def get_planetary_events_api():
+    """Return planetary events (conjunctions, oppositions, elongations, retrograde motion)"""
+    try:
+        if cache_store.is_cache_valid(cache_store._planetary_events_cache, CACHE_TTL):
+            return jsonify(cache_store._planetary_events_cache["data"])
+
+        # Try shared cache first
+        if cache_store.sync_cache_from_shared("planetary_events", cache_store._planetary_events_cache):
+            if cache_store.is_cache_valid(cache_store._planetary_events_cache, CACHE_TTL):
+                return jsonify(cache_store._planetary_events_cache["data"])
+
+        # Cache not ready -> refresh it
+        update_planetary_events_cache()
+        return jsonify(cache_store._planetary_events_cache.get("data", {"events": []}))
+
+    except Exception as e:
+        logger.error(f"Error retrieving planetary events: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route("/api/events/phenomena", methods=["GET"])
+@login_required
+def get_special_phenomena_api():
+    """Return special phenomena (equinoxes, solstices, zodiacal light, Milky Way visibility)"""
+    try:
+        if cache_store.is_cache_valid(cache_store._special_phenomena_cache, CACHE_TTL):
+            return jsonify(cache_store._special_phenomena_cache["data"])
+
+        # Try shared cache first
+        if cache_store.sync_cache_from_shared("special_phenomena", cache_store._special_phenomena_cache):
+            if cache_store.is_cache_valid(cache_store._special_phenomena_cache, CACHE_TTL):
+                return jsonify(cache_store._special_phenomena_cache["data"])
+
+        # Cache not ready -> refresh it
+        update_special_phenomena_cache()
+        return jsonify(cache_store._special_phenomena_cache.get("data", {"events": []}))
+
+    except Exception as e:
+        logger.error(f"Error retrieving special phenomena: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route("/api/events/solarsystem", methods=["GET"])
+@login_required
+def get_solar_system_events_api():
+    """Return solar system events (meteor showers, comets, asteroid occultations)"""
+    try:
+        if cache_store.is_cache_valid(cache_store._solar_system_events_cache, CACHE_TTL):
+            return jsonify(cache_store._solar_system_events_cache["data"])
+
+        # Try shared cache first
+        if cache_store.sync_cache_from_shared("solar_system_events", cache_store._solar_system_events_cache):
+            if cache_store.is_cache_valid(cache_store._solar_system_events_cache, CACHE_TTL):
+                return jsonify(cache_store._solar_system_events_cache["data"])
+
+        # Cache not ready -> refresh it
+        update_solar_system_events_cache()
+        return jsonify(cache_store._solar_system_events_cache.get("data", {"events": []}))
+
+    except Exception as e:
+        logger.error(f"Error retrieving solar system events: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route("/api/astro/sidereal-time", methods=["GET"])
+@login_required
+def get_sidereal_time_api():
+    """Return sidereal time information for observation planning"""
+    try:
+        if cache_store.is_cache_valid(cache_store._sidereal_time_cache, CACHE_TTL):
+            return jsonify(cache_store._sidereal_time_cache["data"])
+
+        # Try shared cache first
+        if cache_store.sync_cache_from_shared("sidereal_time", cache_store._sidereal_time_cache):
+            if cache_store.is_cache_valid(cache_store._sidereal_time_cache, CACHE_TTL):
+                return jsonify(cache_store._sidereal_time_cache["data"])
+
+        # Cache not ready -> refresh it
+        update_sidereal_time_cache()
+        return jsonify(cache_store._sidereal_time_cache.get("data", {"current": {}}))
+
+    except Exception as e:
+        logger.error(f"Error retrieving sidereal time: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
 

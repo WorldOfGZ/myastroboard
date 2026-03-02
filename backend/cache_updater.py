@@ -583,6 +583,219 @@ def update_iss_passes_cache(days: int = 20):
 
     except Exception as e:
         logger.error(f"Failed to update ISS passes cache: {e}", exc_info=True)
+
+
+def update_planetary_events_cache():
+    """
+    Updates the Planetary Events cache
+    Calculates planetary conjunctions, oppositions, elongations, and retrograde motion
+    """
+    try:
+        logger.debug("Updating Planetary Events cache...")
+        config = load_config()
+        
+        if not config.get("location"):
+            raise ValueError("Location configuration is missing")
+        
+        location = config["location"]
+        logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
+
+        from planetary_events import PlanetaryEventsService
+        
+        events_service = PlanetaryEventsService(
+            latitude=location["latitude"],
+            longitude=location["longitude"],
+            elevation=location.get("elevation", 0)
+        )
+
+        events = events_service.get_planetary_events(days_ahead=365)
+
+        response = {
+            "location": config["location"],
+            "events": events,
+            "count": len(events),
+            "units": {
+                "times": "ISO format UTC",
+                "angles": "degrees",
+                "elevation": "meters"
+            }
+        }
+
+        # Update global cache
+        cache_store._planetary_events_cache["data"] = response
+        cache_store._planetary_events_cache["timestamp"] = time.time()
+        cache_store.update_shared_cache_entry(
+            "planetary_events",
+            cache_store._planetary_events_cache["data"],
+            cache_store._planetary_events_cache["timestamp"]
+        )
+
+        logger.info(f"Planetary events cache updated at {datetime.now().isoformat()}")
+
+    except Exception as e:
+        logger.error(f"Failed to update Planetary events cache: {e}", exc_info=True)
+
+
+def update_special_phenomena_cache():
+    """
+    Updates the Special Phenomena cache
+    Calculates equinoxes, solstices, zodiacal light windows, and Milky Way visibility
+    """
+    try:
+        logger.debug("Updating Special Phenomena cache...")
+        config = load_config()
+        
+        if not config.get("location"):
+            raise ValueError("Location configuration is missing")
+        
+        location = config["location"]
+        logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
+
+        from special_phenomena import SpecialPhenomenaService
+        
+        phenomena_service = SpecialPhenomenaService(
+            latitude=location["latitude"],
+            longitude=location["longitude"],
+            elevation=location.get("elevation", 0),
+            timezone=location.get("timezone", "UTC")
+        )
+
+        events = phenomena_service.get_special_phenomena(days_ahead=365)
+
+        response = {
+            "location": config["location"],
+            "events": events,
+            "count": len(events),
+            "units": {
+                "times": "ISO format UTC",
+                "angles": "degrees",
+                "elevation": "meters"
+            }
+        }
+
+        # Update global cache
+        cache_store._special_phenomena_cache["data"] = response
+        cache_store._special_phenomena_cache["timestamp"] = time.time()
+        cache_store.update_shared_cache_entry(
+            "special_phenomena",
+            cache_store._special_phenomena_cache["data"],
+            cache_store._special_phenomena_cache["timestamp"]
+        )
+
+        logger.info(f"Special phenomena cache updated at {datetime.now().isoformat()}")
+
+    except Exception as e:
+        logger.error(f"Failed to update Special phenomena cache: {e}", exc_info=True)
+
+
+def update_solar_system_events_cache():
+    """
+    Updates the Solar System Events cache
+    Calculates meteor shower peaks, comet appearances, and asteroid occultations
+    """
+    try:
+        logger.debug("Updating Solar System Events cache...")
+        config = load_config()
+        
+        if not config.get("location"):
+            raise ValueError("Location configuration is missing")
+        
+        location = config["location"]
+        logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
+
+        from solar_system_events import SolarSystemEventsService
+        
+        solsys_service = SolarSystemEventsService(
+            latitude=location["latitude"],
+            longitude=location["longitude"],
+            elevation=location.get("elevation", 0),
+            timezone=location.get("timezone", "UTC")
+        )
+
+        events = solsys_service.get_solar_system_events(days_ahead=365)
+
+        response = {
+            "location": config["location"],
+            "events": events,
+            "count": len(events),
+            "units": {
+                "times": "ISO format UTC",
+                "angles": "degrees",
+                "elevation": "meters"
+            }
+        }
+
+        # Update global cache
+        cache_store._solar_system_events_cache["data"] = response
+        cache_store._solar_system_events_cache["timestamp"] = time.time()
+        cache_store.update_shared_cache_entry(
+            "solar_system_events",
+            cache_store._solar_system_events_cache["data"],
+            cache_store._solar_system_events_cache["timestamp"]
+        )
+
+        logger.info(f"Solar system events cache updated at {datetime.now().isoformat()}")
+
+    except Exception as e:
+        logger.error(f"Failed to update Solar system events cache: {e}", exc_info=True)
+
+
+def update_sidereal_time_cache():
+    """
+    Updates the Sidereal Time cache
+    Provides sidereal time information for current observation planning
+    """
+    try:
+        logger.debug("Updating Sidereal Time cache...")
+        config = load_config()
+        
+        if not config.get("location"):
+            raise ValueError("Location configuration is missing")
+        
+        location = config["location"]
+        logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
+
+        from sidereal_time import SiderealTimeService
+        
+        sidereal_service = SiderealTimeService(
+            latitude=location["latitude"],
+            longitude=location["longitude"],
+            elevation=location.get("elevation", 0),
+            timezone=location.get("timezone", "UTC")
+        )
+
+        # Get current sidereal time
+        current_info = sidereal_service.get_current_sidereal_info()
+        
+        # Get hourly sidereal times for current day
+        from datetime import datetime
+        today = datetime.today().date()
+        hourly_info = sidereal_service.get_hourly_sidereal_times(today)
+
+        response = {
+            "location": config["location"],
+            "current": current_info,
+            "hourly_forecast": hourly_info,
+            "units": {
+                "sidereal_time": "hours (0-24, where 24h = 1 sidereal day = 23h56m4s solar time)",
+                "coordinates": "degrees",
+                "elevation": "meters"
+            }
+        }
+
+        # Update global cache
+        cache_store._sidereal_time_cache["data"] = response
+        cache_store._sidereal_time_cache["timestamp"] = time.time()
+        cache_store.update_shared_cache_entry(
+            "sidereal_time",
+            cache_store._sidereal_time_cache["data"],
+            cache_store._sidereal_time_cache["timestamp"]
+        )
+
+        logger.info(f"Sidereal time cache updated at {datetime.now().isoformat()}")
+
+    except Exception as e:
+        logger.error(f"Failed to update Sidereal time cache: {e}", exc_info=True)
         
 
 def fully_initialize_caches():
@@ -613,6 +826,10 @@ def fully_initialize_caches():
             ("Horizon graph", update_horizon_graph_cache),
             ("Aurora", update_aurora_cache),
             ("ISS passes", update_iss_passes_cache),
+            ("Planetary events", update_planetary_events_cache),
+            ("Special phenomena", update_special_phenomena_cache),
+            ("Solar system events", update_solar_system_events_cache),
+            ("Sidereal time", update_sidereal_time_cache),
             ("Best window", update_best_window_cache),
             ("Weather forecast", update_weather_cache)
         ]

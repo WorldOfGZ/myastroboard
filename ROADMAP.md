@@ -54,57 +54,14 @@ This document describes features that could potentially be integrated into MyAst
 ### Multilanguage
 **Add multiple language**
 - Use of I18n
+- First implement english as it is, then french
 - Automatic switch based on local browser settings
 - IA translation possible ?
 
-### Various
-- Package for debugging purpose on github (see birdnet-go which is great)
-
 ## Upgrade Features
-
-### Enhanced Astrodex
-**Objective: Advanced Management of Astro Collections**
-- Photo Session Timeline (idea https://bootsnipp.com/snippets/P2nW7)
-- Interactive Map of Sky Objects
-- Suggestions based on weather and conditions
-- Shared or not option with others users
 
 ### Enhanced Uptonight Execution
 **Objective: Better managment, not only a cycle**
 - Currently every 6 hours with current weather
 - Idea is to launch at startup, with forecast meteo (from next x hours)
 - Second launch closer to night session with current weather
-
-### Astro Events 
-- Possibility to edit a picture for social networks. Usefull ?
-- Check for new events possibilities for location, as usual, based on location & timezone + cache managment: 
-  - Planetary Events
-    - **Planetary Conjunctions** – when two planets appear very close in the sky.
-    - **Planetary Oppositions** – best visibility of outer planets.
-    - **Planetary Elongations** – maximum angular distance from the Sun.
-    - **Retrograde Motion** – apparent backward motion of planets.
-  - Special Phenomena
-    - **Equinoxes and Solstices** – start of seasons.
-    - **Zodiacal Light Visibility Windows** – faint diffuse light from interplanetary dust.
-    - **Ecliptic and Galactic Alignments** – e.g., Milky Way core visibility.
-  - Solar System Events
-    - **Meteor Showers** – peak times and radiant positions.
-    - **Comet Appearances** – perihelion passages or brightest dates.
-    - **Asteroid Occultations** – when an asteroid passes in front of a star.
-  - **Sidereal Time** – useful for equatorial mounts and star tracking.
-    - Integrated on existing section ?
-- Section with a calendar resume for all events (with visible/not visible from location)
-  - Celestial Events (already implemented)
-    - **Solar and Lunar Eclipses** – total, partial, and annular eclipses.
-    - **Lunar Phases** – New Moon, Full Moon, First Quarter, Last Quarter.
-    - **Supermoons** – unusually large apparent size of the Moon.
-    - **Blue Moon** – second full moon in a calendar month.
-    - **Blood Moon / Lunar Eclipse Coloring** – total lunar eclipses causing reddish tint.
-  - Planetary Events (to be implemented)
-  - Special Phenomena (to be implemented)
-  - Solar System Events (to be implemented)
-
-### Metrics
-- Adapt metrics for Container, currently this is for server (CPU, CPU info, RAM usage, Swap Usage)
-- List of process usefull ?
-- Detail of Disk storage

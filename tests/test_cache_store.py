@@ -378,7 +378,11 @@ class TestCacheInitStatus:
         assert "best_window_illumination" in status
         assert "moon_planner" in status
         assert "dark_window" in status
-        assert "all_ready" in status
+            assert "all_ready" in status
+            assert "planetary_events" in status
+            assert "special_phenomena" in status
+            assert "solar_system_events" in status
+            assert "sidereal_time" in status
         assert "in_progress" in status
         
         # Should be booleans
