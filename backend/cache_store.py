@@ -44,10 +44,9 @@ _last_known_location_config = {
     "timezone": None
 }
 
-# Flag to indicate if caches are currently being initialized
-_cache_initialization_in_progress = False
-
 # Shared cache file (cross-worker)
+# Note: _cache_initialization_in_progress is now stored in the shared cache file
+# to ensure visibility across all gunicorn worker processes
 _SHARED_CACHE_FILE = os.path.join(DATA_DIR_CACHE, "astro_cache.json")
 _SHARED_CACHE_LOCK = os.path.join(DATA_DIR_CACHE, "astro_cache.lock")
 
@@ -302,6 +301,13 @@ def get_cache_init_status():
     sync_cache_from_shared("horizon_graph", _horizon_graph_cache)
     sync_cache_from_shared("aurora", _aurora_cache)
     sync_cache_from_shared("iss_passes", _iss_passes_cache)
+    
+    # Read in_progress status from shared cache for cross-worker visibility
+    shared_cache = _read_shared_cache()
+    in_progress = False
+    if "_cache_in_progress" in shared_cache:
+        in_progress = shared_cache["_cache_in_progress"].get("status", False)
+    
     return {
         "moon_report": is_cache_valid(_moon_report_cache, CACHE_TTL),
         "sun_report": is_cache_valid(_sun_report_cache, CACHE_TTL),
@@ -317,11 +323,16 @@ def get_cache_init_status():
         "iss_passes": is_cache_valid(_iss_passes_cache, CACHE_TTL),
         "weather_forecast": is_cache_valid(_weather_cache, WEATHER_CACHE_TTL),
         "all_ready": is_astronomical_cache_ready(),
-        "in_progress": _cache_initialization_in_progress
+        "in_progress": in_progress
     }
 
 
 def set_cache_initialization_in_progress(value):
-    """Set the cache initialization progress flag"""
-    global _cache_initialization_in_progress
-    _cache_initialization_in_progress = value
+    """Set the cache initialization progress flag in shared cache for cross-worker visibility"""
+    with _cache_file_lock():
+        shared_cache = _read_shared_cache()
+        shared_cache["_cache_in_progress"] = {
+            "status": value,
+            "timestamp": time.time()
+        }
+        _write_shared_cache(shared_cache)
