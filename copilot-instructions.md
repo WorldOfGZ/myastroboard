@@ -42,6 +42,7 @@ myastroboard/
 │   ├── events_aggregator.py     # Aggregated events for dashboard
 │   ├── horizon_graph.py         # Horizon plot generation
 │   ├── logging_config.py       # Centralization of logging
+│   ├── metrics_collector.py     # Collects system metrics (CPU, memory, disk, process, container detection)
 │   ├── moon_astrotonight.py    # Computes the best astrophotography imaging window tonight
 │   ├── moon_eclipse.py          # Lunar eclipse calculations
 │   ├── moon_phases.py          # Computes locally the moon phases
@@ -55,7 +56,7 @@ myastroboard/
 │   ├── utils.py                # Utils functions
 │   ├── version_checker.py      # Checks for updates from GitHub (with caching)
 │   ├── weather_astro.py         # Astro weather analysis
-│   └── weather_openmeteo.py    # Parses weather data from Open-Meteo API
+│   ├── weather_openmeteo.py    # Parses weather data from Open-Meteo API
 │   └── weather_utils.py         # Weather helper utilities
 ├── docs/                       # Comprehensive documentation
 ├── data/                       # User configuration (Docker volume, persists)
@@ -341,6 +342,8 @@ except Exception as e:
   - **Logs (Read: login required, Write: admin only)**:
     - `/api/logs` - Get logs (GET, login required)
     - `/api/logs/clear` - Clear logs (POST, admin only)
+  - **System Metrics (Admin only)**:
+    - `/api/metrics` - Get system metrics (GET, admin only) - includes CPU, memory, disk, disk folder breakdown, process details, container type detection
 - **Error Handling**: Return appropriate HTTP status codes with JSON error objects
   - 401 Unauthorized - Not authenticated
   - 403 Forbidden - Insufficient permissions (not admin)

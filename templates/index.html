@@ -998,11 +998,72 @@
                     <h3>💾 Disk Storage</h3>
                     <div class="card bg-card-container border-0">
                         <div class="card-body">
+                            <h5 class="card-title mb-3">Root Filesystem</h5>
                             <div class="progress" style="height: 30px;">
                                 <div id="disk-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
                             </div>
                             <div class="mt-2">
                                 <small><span id="disk-used">-</span> / <span id="disk-total">-</span> (<span id="disk-free">-</span> free)</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Disk Folder Breakdown -->
+                    <div class="row g-3 mt-3">
+                        <div class="col-md-6">
+                            <div class="card bg-card-container border-0">
+                                <div class="card-body">
+                                    <h5 class="card-title">Folder Usage</h5>
+                                    <div class="mb-3">
+                                        <small class="d-block mb-1"><strong>data/</strong></small>
+                                        <div class="progress" style="height: 20px;">
+                                            <div id="folder-data-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                        </div>
+                                        <small id="folder-data-size" class="text-muted">-</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <small class="d-block mb-1"><strong>data/cache/</strong></small>
+                                        <div class="progress" style="height: 20px;">
+                                            <div id="folder-cache-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                        </div>
+                                        <small id="folder-cache-size" class="text-muted">-</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <small class="d-block mb-1"><strong>data/astrodex/</strong></small>
+                                        <div class="progress" style="height: 20px;">
+                                            <div id="folder-astrodex-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                        </div>
+                                        <small id="folder-astrodex-size" class="text-muted">-</small>
+                                    </div>
+                                    <div class="mb-0">
+                                        <small class="d-block mb-1"><strong>data/equipments/</strong></small>
+                                        <div class="progress" style="height: 20px;">
+                                            <div id="folder-equipments-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                        </div>
+                                        <small id="folder-equipments-size" class="text-muted">-</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-card-container border-0">
+                                <div class="card-body">
+                                    <h5 class="card-title">Config & Outputs</h5>
+                                    <div class="mb-3">
+                                        <small class="d-block mb-1"><strong>uptonight_configs/</strong></small>
+                                        <div class="progress" style="height: 20px;">
+                                            <div id="folder-configs-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                        </div>
+                                        <small id="folder-configs-size" class="text-muted">-</small>
+                                    </div>
+                                    <div class="mb-0">
+                                        <small class="d-block mb-1"><strong>uptonight_outputs/</strong></small>
+                                        <div class="progress" style="height: 20px;">
+                                            <div id="folder-outputs-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                        </div>
+                                        <small id="folder-outputs-size" class="text-muted">-</small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1031,6 +1092,77 @@
                                     <p class="mb-1"><strong>Processes:</strong> <span id="process-count">-</span></p>
                                     <p class="mb-1"><strong>Network Sent:</strong> <span id="network-sent">-</span></p>
                                     <p class="mb-0"><strong>Network Received:</strong> <span id="network-recv">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Environment & Container Detection -->
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h3>🌐 Environment</h3>
+                    <div class="card bg-card-container border-0">
+                        <div class="card-body">
+                            <p class="mb-1"><strong>Container/VM:</strong> <span id="container-status">-</span> <span id="container-badge" class="badge" style="display:none;"></span></p>
+                            <p class="mb-0"><strong>Container Type:</strong> <span id="container-type">Not running in container</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Process Details -->
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h3>⚙️ Current Process</h3>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="card bg-card-container border-0">
+                                <div class="card-body">
+                                    <h5 class="card-title">Process Info</h5>
+                                    <p class="mb-1"><strong>PID:</strong> <span id="process-pid">-</span></p>
+                                    <p class="mb-1"><strong>Name:</strong> <span id="process-name">-</span></p>
+                                    <p class="mb-0"><strong>Status:</strong> <span id="process-status">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-card-container border-0">
+                                <div class="card-body">
+                                    <h5 class="card-title">Memory Usage</h5>
+                                    <div class="progress" style="height: 25px; margin-bottom: 8px;">
+                                        <div id="process-memory-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    </div>
+                                    <small id="process-memory-info">-</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-0">
+                        <div class="col-md-6">
+                            <div class="card bg-card-container border-0">
+                                <div class="card-body">
+                                    <h5 class="card-title">CPU Time</h5>
+                                    <div class="mb-3">
+                                        <small class="d-block mb-2"><strong>User Time:</strong> <span id="process-cpu-user">-</span></small>
+                                        <div class="progress" style="height: 20px;">
+                                            <div id="process-cpu-user-bar" class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-0">
+                                        <small class="d-block mb-2"><strong>System Time:</strong> <span id="process-cpu-system">-</span></small>
+                                        <div class="progress" style="height: 20px;">
+                                            <div id="process-cpu-system-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-card-container border-0">
+                                <div class="card-body">
+                                    <h5 class="card-title">Resources</h5>
+                                    <p class="mb-1"><strong>Threads:</strong> <span id="process-threads">-</span></p>
+                                    <p class="mb-1"><strong>File Descriptors:</strong> <span id="process-fds">-</span></p>
+                                    <p class="mb-1"><strong>Virtual Memory:</strong> <span id="process-memory-vms">-</span></p>
+                                    <p class="mb-0"><strong>Resident Memory:</strong> <span id="process-memory-rss">-</span></p>
                                 </div>
                             </div>
                         </div>
