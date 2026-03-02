@@ -161,7 +161,7 @@ class SolarSystemEventsService:
         self.latitude = latitude
         self.longitude = longitude
         self.elevation = elevation
-        self.timezone = timezone
+        self.timezone = ZoneInfo(timezone)
         self.location = EarthLocation(
             lat=latitude * u.deg,
             lon=longitude * u.deg,
@@ -241,9 +241,9 @@ class SolarSystemEventsService:
                         'title': f'{shower_name} Peak',
                         'description': f'Meteor shower peak. Up to {shower_data["zenith_hourly_rate"]} meteors/hour. Parent body: {shower_data["parent_body"]}',
                         'emoji': '☄️',
-                        'peak_time': peak_time.iso,
-                        'start_time': (peak_time - (2 * u.day)).iso,  # Peak activity is 2 days before to 2 days after
-                        'end_time': (peak_time + (2 * u.day)).iso,
+                        'peak_time': self._to_local_iso(peak_time),
+                        'start_time': self._to_local_iso(peak_time - (2 * u.day)),  # Peak activity is 2 days before to 2 days after
+                        'end_time': self._to_local_iso(peak_time + (2 * u.day)),
                         'visibility_range': f'{start_date} to {end_date}',
                         'radiant_coordinates': {
                             'ra_degrees': shower_data['radiant_ra'],
@@ -298,9 +298,9 @@ class SolarSystemEventsService:
                         'title': f'{comet_name} Near Perihelion',
                         'description': f'Periodic comet near perihelion. Magnitude ~{comet_data["magnitude"]} ({comet_data["visibility"]}). Check charts for exact location.',
                         'emoji': '☄️',
-                        'peak_time': (Time(perihelion_date)).iso,
-                        'start_time': (Time(visibility_start)).iso,
-                        'end_time': (Time(visibility_end)).iso,
+                        'peak_time': self._to_local_iso(Time(perihelion_date)),
+                        'start_time': self._to_local_iso(Time(visibility_start)),
+                        'end_time': self._to_local_iso(Time(visibility_end)),
                         'perihelion_date': perihelion_date.isoformat(),
                         'magnitude': comet_data['magnitude'],
                         'visibility': visibility_type,
@@ -395,3 +395,9 @@ class SolarSystemEventsService:
             return 'medium'
         else:
             return 'low'
+
+    def _to_local_iso(self, time: Time) -> str:
+        """Convert Astropy Time to configured local timezone ISO string with offset."""
+        from datetime import datetime
+        dt = time.to_datetime(timezone=self.timezone)
+        return dt.isoformat() if isinstance(dt, datetime) else str(dt)

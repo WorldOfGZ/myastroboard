@@ -66,7 +66,17 @@ async function checkCacheStatus() {
             // Cache is actively being initialized/refreshed
             banner.style.display = 'block';
             if (bannerText) {
-                bannerText.textContent = 'Updating astronomical data, please wait...';
+                // Display progress information if available
+                const progress = data.progress_percent || 0;
+                const currentStep = data.current_step || 0;
+                const totalSteps = data.total_steps || 0;
+                const stepName = data.step_name || '';
+                
+                if (totalSteps > 0) {
+                    bannerText.textContent = `Updating astronomical data (${currentStep}/${totalSteps}) ${progress}%${stepName ? ' - ' + stepName : ''}...`;
+                } else {
+                    bannerText.textContent = 'Updating astronomical data, please wait...';
+                }
             }
             // Check more frequently during initialization (every 10 seconds)
             setTimeout(checkCacheStatus, 10000);

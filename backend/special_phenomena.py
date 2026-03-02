@@ -112,7 +112,7 @@ class SpecialPhenomenaService:
                         'title': 'Vernal Equinox (Spring)',
                         'description': 'First day of spring. Equal day and night length. Sun directly above equator.',
                         'emoji': '🌱',
-                        'peak_time': spring_eq_refined.iso,
+                        'peak_time': self._to_local_iso(spring_eq_refined),
                         'season_start': True,
                         'hemisphere': 'Northern',
                         'visibility': True,
@@ -120,7 +120,7 @@ class SpecialPhenomenaService:
                         'raw_data': {
                             'event': 'spring_equinox',
                             'year': year,
-                            'date': spring_eq_refined.iso,
+                            'date': self._to_local_iso(spring_eq_refined),
                         }
                     })
                 
@@ -133,7 +133,7 @@ class SpecialPhenomenaService:
                         'title': 'Summer Solstice',
                         'description': 'First day of summer. Longest day of the year in Northern Hemisphere.',
                         'emoji': '☀️',
-                        'peak_time': summer_sol_refined.iso,
+                        'peak_time': self._to_local_iso(summer_sol_refined),
                         'season_start': True,
                         'hemisphere': 'Northern',
                         'visibility': True,
@@ -141,7 +141,7 @@ class SpecialPhenomenaService:
                         'raw_data': {
                             'event': 'summer_solstice',
                             'year': year,
-                            'date': summer_sol_refined.iso,
+                            'date': self._to_local_iso(summer_sol_refined),
                         }
                     })
                 
@@ -154,7 +154,7 @@ class SpecialPhenomenaService:
                         'title': 'Autumnal Equinox (Fall)',
                         'description': 'First day of autumn. Equal day and night length. Sun directly above equator.',
                         'emoji': '🍂',
-                        'peak_time': autumn_eq_refined.iso,
+                        'peak_time': self._to_local_iso(autumn_eq_refined),
                         'season_start': True,
                         'hemisphere': 'Northern',
                         'visibility': True,
@@ -162,7 +162,7 @@ class SpecialPhenomenaService:
                         'raw_data': {
                             'event': 'autumn_equinox',
                             'year': year,
-                            'date': autumn_eq_refined.iso,
+                            'date': self._to_local_iso(autumn_eq_refined),
                         }
                     })
                 
@@ -175,7 +175,7 @@ class SpecialPhenomenaService:
                         'title': 'Winter Solstice',
                         'description': 'First day of winter. Shortest day of the year in Northern Hemisphere.',
                         'emoji': '❄️',
-                        'peak_time': winter_sol_refined.iso,
+                        'peak_time': self._to_local_iso(winter_sol_refined),
                         'season_start': True,
                         'hemisphere': 'Northern',
                         'visibility': True,
@@ -183,7 +183,7 @@ class SpecialPhenomenaService:
                         'raw_data': {
                             'event': 'winter_solstice',
                             'year': year,
-                            'date': winter_sol_refined.iso,
+                            'date': self._to_local_iso(winter_sol_refined),
                         }
                     })
             
@@ -383,9 +383,9 @@ class SpecialPhenomenaService:
                                     'title': f'Zodiacal Light Visible ({viewing_type})',
                                     'description': f'Faint cone of light from interplanetary dust visible during twilight. Best viewed in dark skies.',
                                     'emoji': '✨',
-                                    'peak_time': current_time.iso,
-                                    'start_time': current_time.iso,
-                                    'end_time': (current_time + (2 * u.hour)).iso,  # 2-hour window
+                                    'peak_time': self._to_local_iso(current_time),
+                                    'start_time': self._to_local_iso(current_time),
+                                    'end_time': self._to_local_iso(current_time + (2 * u.hour)),  # 2-hour window
                                     'viewing_type': viewing_type,
                                     'season': 'spring' if is_spring else 'autumn',
                                     'ecliptic_altitude': ecliptic_alt,
@@ -479,9 +479,9 @@ class SpecialPhenomenaService:
                                     'title': 'Milky Way Core Visible',
                                     'description': 'Galactic center (Sagittarius region) visible and well-positioned. Excellent astrophotography opportunity.',
                                     'emoji': '🌌',
-                                    'peak_time': current_time.iso,
-                                    'start_time': current_time.iso,
-                                    'end_time': (current_time + (6 * u.hour)).iso,  # ~6 hour window
+                                    'peak_time': self._to_local_iso(current_time),
+                                    'start_time': self._to_local_iso(current_time),
+                                    'end_time': self._to_local_iso(current_time + (6 * u.hour)),  # ~6 hour window
                                     'galactic_center_altitude': gc_altitude,
                                     'best_season': 'Summer',
                                     'visibility': True,
@@ -537,3 +537,9 @@ class SpecialPhenomenaService:
                 return float(alt_val)  # type: ignore
         except Exception:
             return 0.0
+
+    def _to_local_iso(self, time: Time) -> str:
+        """Convert Astropy Time to configured local timezone ISO string with offset."""
+        tz = ZoneInfo(self.timezone)
+        dt = time.to_datetime(timezone=tz)
+        return dt.isoformat() if isinstance(dt, datetime) else str(dt)

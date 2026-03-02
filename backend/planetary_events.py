@@ -57,7 +57,7 @@ class PlanetaryEventsService:
     Provides conjunction, opposition, elongation, and retrograde motion data.
     """
 
-    def __init__(self, latitude: float, longitude: float, elevation: float = 0):
+    def __init__(self, latitude: float, longitude: float, elevation: float = 0, timezone: str = "UTC"):
         """
         Initialize planetary events service.
         
@@ -65,10 +65,12 @@ class PlanetaryEventsService:
             latitude: Observer latitude in degrees
             longitude: Observer longitude in degrees
             elevation: Observer elevation in meters (default 0)
+            timezone: IANA timezone string (default UTC)
         """
         self.latitude = latitude
         self.longitude = longitude
         self.elevation = elevation
+        self.timezone = ZoneInfo(timezone)
         self.location = EarthLocation(
             lat=latitude * u.deg,
             lon=longitude * u.deg,
@@ -192,9 +194,9 @@ class PlanetaryEventsService:
                                 'description': f'{planet1} and {planet2} appear very close in the sky',
                                 'star_emoji': PLANET_SYMBOLS.get(planet1, '⭐'),
                                 'secondary_emoji': PLANET_SYMBOLS.get(planet2, '⭐'),
-                                'peak_time': min_time.iso,
-                                'start_time': conjunction_data['start_time'].iso,
-                                'end_time': conjunction_data['end_time'].iso,
+                                'peak_time': self._to_local_iso(min_time),
+                                'start_time': self._to_local_iso(conjunction_data['start_time']),
+                                'end_time': self._to_local_iso(conjunction_data['end_time']),
                                 'min_separation_degrees': min_separation,
                                 'visibility': self._is_event_visible(planet1, planet2, min_time),
                                 'importance': self._rate_importance(planet1, planet2, min_separation),
@@ -287,16 +289,16 @@ class PlanetaryEventsService:
                             'title': f'{planet} at Opposition',
                             'description': f'{planet} is at opposition (best visibility). Optimal for observation.',
                             'emoji': PLANET_SYMBOLS.get(planet, '⭐'),
-                            'peak_time': opposition_time.iso,
-                            'start_time': start_time.iso,
-                            'end_time': end_time.iso,
+                            'peak_time': self._to_local_iso(opposition_time),
+                            'start_time': self._to_local_iso(start_time),
+                            'end_time': self._to_local_iso(end_time),
                             'elongation_degrees': 180.0,
                             'visibility': True,  # Opposition is always visible
                             'importance': 'high',  # Opposition is excellent for observation
                             'raw_data': {
                                 'planet': planet,
                                 'elongation': 180.0,
-                                'best_viewing_time': opposition_time.iso,
+                                'best_viewing_time': self._to_local_iso(opposition_time),
                             }
                         }
                         events.append(event)
@@ -365,14 +367,14 @@ class PlanetaryEventsService:
                                 'title': f'{planet} at Maximum Elongation',
                                 'description': f'{planet} reaches maximum elongation ({max_elongation:.1f}°). Best viewing time.',
                                 'emoji': PLANET_SYMBOLS.get(planet, '⭐'),
-                                'peak_time': max_elong_time.iso,
+                                'peak_time': self._to_local_iso(max_elong_time),
                                 'elongation_degrees': max_elongation,
                                 'visibility': True,
                                 'importance': 'medium',
                                 'raw_data': {
                                     'planet': planet,
                                     'elongation': max_elongation,
-                                    'occurs_at': max_elong_time.iso,
+                                    'occurs_at': self._to_local_iso(max_elong_time),
                                 }
                             }
                             events.append(event)
@@ -464,8 +466,8 @@ class PlanetaryEventsService:
                                 'title': f'{planet} Retrograde Motion',
                                 'description': f'{planet} appears to move backward for ~{duration_days:.0f} days.',
                                 'emoji': PLANET_SYMBOLS.get(planet, '⭐'),
-                                'start_time': retrograde_start.iso,
-                                'end_time': current_time.iso,
+                                'start_time': self._to_local_iso(retrograde_start),
+                                'end_time': self._to_local_iso(current_time),
                                 'duration_days': duration_days,
                                 'visibility': self._is_planet_visible(planet, retrograde_start),
                                 'importance': 'medium',
@@ -599,6 +601,11 @@ class PlanetaryEventsService:
             return altitude > 5 and elongation > 10
         except Exception:
             return False
+
+    def _to_local_iso(self, time: Time) -> str:
+        """Convert Astropy Time to configured local timezone ISO string with offset."""
+        dt = time.to_datetime(timezone=self.timezone)
+        return dt.isoformat() if isinstance(dt, datetime) else str(dt)
 
     def _rate_importance(self, planet1: str, planet2: str, separation: float) -> str:
         """Rate the importance of a conjunction based on brightness and separation."""

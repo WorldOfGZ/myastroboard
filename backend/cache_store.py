@@ -333,8 +333,19 @@ def get_cache_init_status():
     # Read in_progress status from shared cache for cross-worker visibility
     shared_cache = _read_shared_cache()
     in_progress = False
+    current_step = 0
+    total_steps = 0
+    step_name = ""
+    progress_percent = 0
+    
     if "_cache_in_progress" in shared_cache:
-        in_progress = shared_cache["_cache_in_progress"].get("status", False)
+        progress_info = shared_cache["_cache_in_progress"]
+        in_progress = progress_info.get("status", False)
+        current_step = progress_info.get("current_step", 0)
+        total_steps = progress_info.get("total_steps", 0)
+        step_name = progress_info.get("step_name", "")
+        if total_steps > 0:
+            progress_percent = int((current_step / total_steps) * 100)
     
     return {
         "moon_report": is_cache_valid(_moon_report_cache, CACHE_TTL),
@@ -355,16 +366,23 @@ def get_cache_init_status():
         "sidereal_time": is_cache_valid(_sidereal_time_cache, CACHE_TTL),
         "weather_forecast": is_cache_valid(_weather_cache, WEATHER_CACHE_TTL),
         "all_ready": is_astronomical_cache_ready(),
-        "in_progress": in_progress
+        "in_progress": in_progress,
+        "current_step": current_step,
+        "total_steps": total_steps,
+        "step_name": step_name,
+        "progress_percent": progress_percent
     }
 
 
-def set_cache_initialization_in_progress(value):
+def set_cache_initialization_in_progress(value, current_step=0, total_steps=0, step_name=""):
     """Set the cache initialization progress flag in shared cache for cross-worker visibility"""
     with _cache_file_lock():
         shared_cache = _read_shared_cache()
         shared_cache["_cache_in_progress"] = {
             "status": value,
-            "timestamp": time.time()
+            "timestamp": time.time(),
+            "current_step": current_step,
+            "total_steps": total_steps,
+            "step_name": step_name
         }
         _write_shared_cache(shared_cache)

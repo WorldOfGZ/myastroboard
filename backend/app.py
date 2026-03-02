@@ -682,6 +682,10 @@ def cache_health_api():
     return jsonify({
         "cache_status": status["all_ready"],
         "in_progress": status["in_progress"],
+        "current_step": status.get("current_step", 0),
+        "total_steps": status.get("total_steps", 0),
+        "step_name": status.get("step_name", ""),
+        "progress_percent": status.get("progress_percent", 0),
         "details": status
     })
 

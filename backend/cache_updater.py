@@ -605,7 +605,8 @@ def update_planetary_events_cache():
         events_service = PlanetaryEventsService(
             latitude=location["latitude"],
             longitude=location["longitude"],
-            elevation=location.get("elevation", 0)
+            elevation=location.get("elevation", 0),
+            timezone=location.get("timezone", "UTC")
         )
 
         events = events_service.get_planetary_events(days_ahead=365)
@@ -615,7 +616,7 @@ def update_planetary_events_cache():
             "events": events,
             "count": len(events),
             "units": {
-                "times": "ISO format UTC",
+                "times": "ISO 8601 with user timezone offset",
                 "angles": "degrees",
                 "elevation": "meters"
             }
@@ -667,7 +668,7 @@ def update_special_phenomena_cache():
             "events": events,
             "count": len(events),
             "units": {
-                "times": "ISO format UTC",
+                "times": "ISO 8601 with user timezone offset",
                 "angles": "degrees",
                 "elevation": "meters"
             }
@@ -719,7 +720,7 @@ def update_solar_system_events_cache():
             "events": events,
             "count": len(events),
             "units": {
-                "times": "ISO format UTC",
+                "times": "ISO 8601 with user timezone offset",
                 "angles": "degrees",
                 "elevation": "meters"
             }
@@ -808,7 +809,6 @@ def fully_initialize_caches():
     - When location configuration changes
     """
     logger.debug("Starting cache refresh cycle...")
-    cache_store.set_cache_initialization_in_progress(True)
     start_time = datetime.now()
     
     try:
@@ -834,9 +834,18 @@ def fully_initialize_caches():
             ("Weather forecast", update_weather_cache)
         ]
         
+        total_steps = len(cache_functions)
         success_count = 0
-        for cache_name, cache_function in cache_functions:
+        
+        for index, (cache_name, cache_function) in enumerate(cache_functions, start=1):
             try:
+                # Update progress before starting each cache update
+                cache_store.set_cache_initialization_in_progress(
+                    True, 
+                    current_step=index, 
+                    total_steps=total_steps, 
+                    step_name=cache_name
+                )
                 cache_function()
                 success_count += 1
             except Exception as e:
