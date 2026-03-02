@@ -83,13 +83,11 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=${{ env.REGISTRY }}/${{ steps.image.outputs.name }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ steps.image.outputs.name }},push-by-digest=true,name-canonical=true
           pull: true
           provenance: true
           sbom: true
-          tags: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
             type=gha,scope=${{ matrix.platform_slug }}
