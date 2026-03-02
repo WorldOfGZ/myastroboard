@@ -78,16 +78,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push by digest
+      - name: Build and push
         id: build
         uses: docker/build-push-action@v6
         with:
           context: .
+          push: true
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=${{ env.REGISTRY }}/${{ steps.image.outputs.name }},push-by-digest=true,name-canonical=true
-          pull: true
-          provenance: true
-          sbom: true
+          tags: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ matrix.platform_slug }}-build
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
             type=gha,scope=${{ matrix.platform_slug }}
@@ -95,20 +93,6 @@ jobs:
           cache-to: |
             type=gha,scope=${{ matrix.platform_slug }},mode=max
             type=registry,ref=${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:buildcache-${{ matrix.platform_slug }},mode=max
-
-      - name: Export digest
-        run: |
-          mkdir -p /tmp/digests
-          digest="${{ steps.build.outputs.digest }}"
-          [ -n "$digest" ] && touch "/tmp/digests/${digest#sha256:}"
-
-      - name: Upload digest
-        uses: actions/upload-artifact@v7
-        with:
-          name: digests-${{ matrix.platform_slug }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
 
   merge-and-release:
     runs-on: ubuntu-latest
@@ -149,37 +133,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download digests
-        uses: actions/download-artifact@v8
-        with:
-          path: /tmp/digests
-          pattern: digests-*
-          merge-multiple: true
-
       - name: Create multi-arch manifest and push
-        working-directory: /tmp/digests
         env:
           REGISTRY: ${{ env.REGISTRY }}
           IMAGE_NAME: ${{ steps.image.outputs.name }}
-          TAGS: ${{ env.TAGS }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
           set -euo pipefail
-
-          echo "Parsing tags..."
-          TAG_ARGS=()
-          for tag in $TAGS; do
-            [ -n "$tag" ] && TAG_ARGS+=("-t" "$tag")
-          done
-          echo "TAG_ARGS: ${TAG_ARGS[*]}"
-
-          echo "Parsing digests..."
-          DIGEST_ARGS=()
-          for f in *; do
-            [ -n "$f" ] && DIGEST_ARGS+=("$REGISTRY/$IMAGE_NAME@sha256:$f")
-          done
-          echo "DIGEST_ARGS: ${DIGEST_ARGS[*]}"
-
-          docker buildx imagetools create "${TAG_ARGS[@]}" "${DIGEST_ARGS[@]}"
+          
+          echo "Creating and pushing multi-arch manifest..."
+          
+          docker buildx imagetools create \
+            -t "$REGISTRY/$IMAGE_NAME:latest" \
+            -t "$REGISTRY/$IMAGE_NAME:$VERSION" \
+            -t "$REGISTRY/$IMAGE_NAME:${VERSION%.*}" \
+            -t "$REGISTRY/$IMAGE_NAME:${VERSION%%.*}" \
+            "$REGISTRY/$IMAGE_NAME:linux-amd64-build" \
+            "$REGISTRY/$IMAGE_NAME:linux-arm64-build"
 
       - name: Scan image for vulnerabilities
         #uses: aquasecurity/trivy-action@0.34.1 # Curent issue in this version, wait for fix
