@@ -456,8 +456,8 @@ def get_system_metrics():
     try:
         metrics = collect_metrics()
         return jsonify(metrics)
-    except Exception as e:
-        logger.error(f"Error getting system metrics: {e}")
+    except Exception:
+        logger.error("Error getting system metrics")
         return jsonify({'error': 'Failed to retrieve system metrics'}), 500
 
 
@@ -710,8 +710,8 @@ def check_updates_api():
     try:
         update_info = check_for_updates()
         return jsonify(update_info)
-    except Exception as e:
-        logger.error(f"Error in check updates API: {e}", exc_info=True)
+    except Exception:
+        logger.error("Error in check updates API")
         return jsonify({
             "current_version": get_repo_version().strip(),
             "update_available": False,
