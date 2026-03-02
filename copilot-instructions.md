@@ -53,6 +53,7 @@ myastroboard/
 │   ├── uptonight_parser.py     # Parses uptonight JSON reports
 │   ├── uptonight_scheduler.py  # Manages periodic uptonight execution
 │   ├── utils.py                # Utils functions
+│   ├── version_checker.py      # Checks for updates from GitHub (with caching)
 │   ├── weather_astro.py         # Astro weather analysis
 │   └── weather_openmeteo.py    # Parses weather data from Open-Meteo API
 │   └── weather_utils.py         # Weather helper utilities
@@ -319,6 +320,7 @@ except Exception as e:
     - `/api/convert-coordinates` - DMS to decimal conversion (POST, login required)
     - `/api/cache` - Cache status (GET, login required)
     - `/api/version` - Application version (GET, login required)
+    - `/api/version/check-updates` - Check for updates from GitHub (GET, login required, cached 4h)
   - **Scheduler (Read: login required, Write: admin only)**:
     - `/api/scheduler/status` - Get scheduler status (GET, login required)
     - `/api/scheduler/trigger` - Manually trigger (POST, admin only)

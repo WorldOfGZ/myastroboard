@@ -41,6 +41,7 @@ from txtconf_loader import get_repo_version
 from repo_config import load_config, save_config
 from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, OUTPUT_DIR, CONFIG_DIR, CACHE_TTL, UPTONIGHT_CATALOGUES
 from logging_config import get_logger
+from version_checker import check_for_updates
 from cache_updater import (
     update_dark_window_cache,
     update_moon_report_cache,
@@ -755,6 +756,26 @@ def get_version_api():
     version = get_repo_version()
     version = version.strip()
     return jsonify({"version": version})
+
+
+@app.route('/api/version/check-updates', methods=['GET'])
+@login_required
+def check_updates_api():
+    """
+    Check for available updates from GitHub.
+    Uses server-side caching to respect GitHub API rate limits.
+    Cache TTL: 4 hours
+    """
+    try:
+        update_info = check_for_updates()
+        return jsonify(update_info)
+    except Exception as e:
+        logger.error(f"Error in check updates API: {e}", exc_info=True)
+        return jsonify({
+            "current_version": get_repo_version().strip(),
+            "update_available": False,
+            "error": "Internal server error"
+        }), 500
 
 
 # ============================================================

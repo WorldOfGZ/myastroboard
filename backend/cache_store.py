@@ -34,6 +34,9 @@ _iss_passes_cache = {"timestamp": 0, "data": None}
 # Weather cache (separate TTL)
 _weather_cache = {"timestamp": 0, "data": None}
 
+# Version update check cache (separate TTL)
+_version_update_cache = {"timestamp": 0, "data": None}
+
 # Track the last known location config to detect changes
 # This is loaded from disk to survive restarts
 _LOCATION_CACHE_FILE = os.path.join(DATA_DIR_CACHE, 'location_cache.json')

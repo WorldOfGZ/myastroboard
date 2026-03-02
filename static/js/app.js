@@ -273,64 +273,34 @@ async function loadVersion() {
         }
         
         // Check for updates immediately after page load
-        checkForUpdates(data.version);
+        checkForUpdates();
         
         // Set up periodic update check every 4 hours (4 * 60 * 60 * 1000 ms)
-        setInterval(() => {
-            checkForUpdates(data.version);
-        }, 4 * 60 * 60 * 1000);
+        setInterval(checkForUpdates, 4 * 60 * 60 * 1000);
         
     } catch (error) {
         console.error('Error loading version:', error);
     }
 }
 
-async function checkForUpdates(currentVersion) {
+async function checkForUpdates() {
     try {
-        //console.debug(`Checking for updates... Current version: ${currentVersion}`);
-        
-        // Fetch latest release from GitHub API
-        const release = await fetchJSONWithRetry('https://api.github.com/repos/WorldOfGZ/myastroboard/releases/latest', {}, {
-            maxAttempts: 3,
+        // Call backend API which handles caching and GitHub rate limits
+        const updateInfo = await fetchJSONWithRetry('/api/version/check-updates', {}, {
+            maxAttempts: 2,
             baseDelayMs: 1000,
-            maxDelayMs: 8000,
-            timeoutMs: 10000
+            maxDelayMs: 3000,
+            timeoutMs: 15000
         });
-        const latestVersion = release.tag_name.replace(/^v/, ''); // Remove 'v' prefix if present
-        const current = currentVersion.replace(/^v/, '');
         
-        //console.debug(`Version comparison: current=${current}, latest=${latestVersion}`);
-        
-        // Simple version comparison (assumes semantic versioning)
-        if (isNewerVersion(current, latestVersion)) {
-            //console.debug('Update available! Showing notification...');
-            showUpdateNotification(release.html_url, latestVersion);
-        } else {
-            //console.debug('No update needed - current version is up to date');
+        // Show notification if update is available
+        if (updateInfo.update_available && updateInfo.release_url) {
+            showUpdateNotification(updateInfo.release_url, updateInfo.latest_version);
         }
     } catch (error) {
-        // Log errors for debugging but don't show to users
-        console.warn('Update check failed:', error);
+        // Silently fail - update checks are not critical
+        console.debug('Update check failed (non-critical):', error);
     }
-}
-
-function isNewerVersion(currentVersion, latestVersion) {
-    // Simple semantic version comparison
-    const currentParts = currentVersion.split('.').map(Number);
-    const latestParts = latestVersion.split('.').map(Number);
-    
-    for (let i = 0; i < Math.max(currentParts.length, latestParts.length); i++) {
-        const current = currentParts[i] || 0;
-        const latest = latestParts[i] || 0;
-        
-        if (latest > current) {
-            return true;
-        } else if (latest < current) {
-            return false;
-        }
-    }
-    
-    return false; // Versions are equal
 }
 
 function showUpdateNotification(releaseUrl, version) {

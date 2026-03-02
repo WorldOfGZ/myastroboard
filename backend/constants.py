@@ -26,6 +26,9 @@ CACHE_TTL = 1800  # seconds
 
 # Weather API configuration
 WEATHER_CACHE_TTL = 3600  # seconds (1 hour)
+
+# Version update check configuration
+VERSION_UPDATE_CACHE_TTL = 14400  # seconds (4 hours)
 OPENMETEO_RETRY_COUNT = 5
 OPENMETEO_BACKOFF_FACTOR = 0.2
 
