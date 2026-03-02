@@ -1,5 +1,5 @@
 # Multi-stage build for smaller production image
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 # Build environment
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -28,7 +28,7 @@ RUN pip install --no-cache-dir --user -r requirements.txt \
 # ================================
 # Production stage
 # ================================
-FROM python:3.12-slim AS production
+FROM python:3.14-slim AS production
 
 # Prevents .pyc files and enables immediate logging
 ENV PYTHONDONTWRITEBYTECODE=1
