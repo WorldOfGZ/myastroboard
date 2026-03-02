@@ -23,6 +23,14 @@ function initializeEventsSystem() {
 }
 
 /**
+ * Clear events cache to force refresh
+ */
+function clearEventsCache() {
+    cachedEvents = null;
+    lastEventsUpdate = null;
+}
+
+/**
  * Load upcoming events from API
  */
 async function loadAndDisplayEvents() {

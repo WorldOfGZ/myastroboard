@@ -83,19 +83,23 @@ myastroboard/
 │   ├── img/
 │   ├── js/
 │   │   ├── apiHelper.js            # Api helpers function
-│   │   ├── app.js                  # Main app js
+│   │   ├── app.js                  # Main app initialization and navigation
 │   │   ├── astrodex.js             # Functions for Astrodex
 │   │   ├── aurora.js               # Functions for Aurora prediction
+│   │   ├── config.js               # Configuration management (load/save/validate)
 │   │   ├── domUtils.js             # Functions for Dom manipulation
 │   │   ├── equipment.js            # Functions for Equipment management
 │   │   ├── events_alerts.js        # Functions for Events
 │   │   ├── horizon_graph.js        # Functions for Horizon graph
+│   │   ├── logs.js                 # Application log management
 │   │   ├── lunar_eclipse.js        # Functions for Lunar eclipse
+│   │   ├── metrics.js              # System metrics monitoring
 │   │   ├── moon.js                 # Functions for Moon planner
 │   │   ├── solar_eclipse.js        # Functions for Solar Eclipse
 │   │   ├── scheduler.js            # Functions for Scheduler
 │   │   ├── sun.js                  # Functions for Sun planner
 │   │   ├── theme.js                # Functions for Themes switch
+│   │   ├── uptonight.js            # UpTonight results display and interaction
 │   │   ├── uptonightScheduler.js   # Functions for Uptonight scheduler
 │   │   ├── utils.js                # Functions for Utils
 │   │   ├── weather_alerts.js       # Functions for Weather alerts

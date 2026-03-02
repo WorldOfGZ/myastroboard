@@ -202,37 +202,51 @@ async function loadNextMoonPhases() {
     }
 }
 
+// Guard to prevent concurrent calls to loadBestDarkWindow
+let isLoadingBestDarkWindow = false;
+
 //Load best observing nights
 async function loadBestDarkWindow() {
-    const container = document.getElementById('window-display');
-    const containerLoader = document.getElementById('window-loader-info-notice');
-    containerLoader.textContent = 'Loading best dark window data...';
-    containerLoader.style.display = 'block';
-
-    const retryOptions = {
-        maxAttempts: 6,
-        baseDelayMs: 1000,
-        maxDelayMs: 12000,
-        timeoutMs: 15000,
-        shouldRetryData: (payload) => payload && payload.status === 'pending',
-        onRetry: ({ reason, attempt, maxAttempts, waitMs, data }) => {
-            const seconds = Math.max(1, Math.round(waitMs / 1000));
-            if (reason === 'data' && data && data.message) {
-                containerLoader.textContent = `${data.message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
-                return;
-            }
-            containerLoader.textContent = `Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
-        }
-    };
-
+    // Prevent concurrent calls
+    if (isLoadingBestDarkWindow) {
+        console.log('loadBestDarkWindow already in progress, skipping...');
+        return;
+    }
+    
+    isLoadingBestDarkWindow = true;
+    
     try {
-        // Fake error to catch error display
-        //throw new Error('Test error');
-
+        const container = document.getElementById('window-display');
+        const containerLoader = document.getElementById('window-loader-info-notice');
+        
+        // Clear container and reset loader at the very beginning
         DOMUtils.clear(container);
+        containerLoader.className = 'alert alert-info';
+        containerLoader.textContent = 'Loading best dark window data...';
+        containerLoader.style.display = 'block';
 
-        // Get dark window
-        const data = await fetchJSONWithRetry('/api/moon/dark-window', {}, retryOptions);
+        const retryOptions = {
+            maxAttempts: 6,
+            baseDelayMs: 1000,
+            maxDelayMs: 12000,
+            timeoutMs: 15000,
+            shouldRetryData: (payload) => payload && payload.status === 'pending',
+            onRetry: ({ reason, attempt, maxAttempts, waitMs, data }) => {
+                const seconds = Math.max(1, Math.round(waitMs / 1000));
+                if (reason === 'data' && data && data.message) {
+                    containerLoader.textContent = `${data.message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
+                    return;
+                }
+                containerLoader.textContent = `Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
+            }
+        };
+
+        try {
+            // Fake error to catch error display
+            //throw new Error('Test error');
+
+            // Get dark window
+            const data = await fetchJSONWithRetry('/api/moon/dark-window', {}, retryOptions);
 
         // Cache pending (retries exhausted)
         if (data.status && data.status === 'pending') {
@@ -376,14 +390,17 @@ async function loadBestDarkWindow() {
         }
 
         
-        containerLoader.style.display = 'none';
+            containerLoader.style.display = 'none';
 
-
-
-    } catch (error) {
-        console.error('Error loading dark window data:', error);
-        const containerError = document.getElementById('window-loader-info-notice');
-        containerError.className = 'alert alert-danger';
-        containerError.textContent = 'Failed to load dark window data';
+        } catch (error) {
+            console.error('Error loading dark window data:', error);
+            DOMUtils.clear(container);
+            containerLoader.className = 'alert alert-danger';
+            containerLoader.textContent = 'Failed to load dark window data';
+            containerLoader.style.display = 'block';
+        }
+    } finally {
+        // Always reset the loading flag
+        isLoadingBestDarkWindow = false;
     }
 }
