@@ -184,7 +184,8 @@ jobs:
           docker buildx imagetools create "${TAG_ARGS[@]}" "${DIGEST_ARGS[@]}"
 
       - name: Scan image for vulnerabilities
-        uses: aquasecurity/trivy-action@0.34.1
+        #uses: aquasecurity/trivy-action@0.34.1 # Curent issue in this version, wait for fix
+        uses: aquasecurity/trivy-action@e368e328979b113139d6f9068e03accaed98a518
         with:
           image-ref: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ steps.version.outputs.VERSION }}
           format: table
