@@ -100,18 +100,20 @@ class LanguageSelector {
      */
     async handleLanguageChange(event) {
         const selectedLang = event.target.value;
+        const currentLang = i18n.getCurrentLanguage();
+
+        // If language hasn't changed, do nothing
+        if (selectedLang === currentLang) {
+            return;
+        }
 
         try {
-            // Change language in i18n manager
-            await i18n.setLanguage(selectedLang);
-
-            // Update footer label text
-            this.updateFooterLabel();
-
-            // Update all data-i18n elements on the page
-            this.updatePageTranslations();
-
-            //console.log(`[LanguageSelector] Language changed to: ${selectedLang}`);
+            // Save language preference to localStorage
+            localStorage.setItem('myastroboard_language', selectedLang);
+            
+            // Reload the page to apply the new language
+            // This is more reliable than dynamically updating all elements
+            location.reload();
         } catch (error) {
             console.error('[LanguageSelector] Error changing language:', error);
             // Reset selector to previous language on error
