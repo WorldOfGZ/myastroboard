@@ -121,13 +121,13 @@ async function loadAstroWeather() {
                 const seconds = Math.max(1, Math.round(waitMs / 1000));
                 const message = reason === 'data' && retryData && retryData.message
                     ? retryData.message
-                    : 'Loading astrophotography weather data...';
+                    : i18n.t('astro_weather.loading_details');
                 loadingDiv.textContent = `${message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
             }
         });
 
         if (data.status === 'pending') {
-            throw new Error(data.message || 'Cache not ready');
+            throw new Error(data.message || i18n.t('cache.cache_not_ready'));
         }
         
         if (data.error) {
@@ -165,10 +165,10 @@ async function loadAstroWeather() {
             body.className = 'card-body';
             const title = document.createElement('h5');
             title.className = 'card-title';
-            title.textContent = '☁️ Error...';
+            title.textContent = `☁️ ${i18n.t('common.error')}`;
             const text = document.createElement('p');
             text.className = 'card-text';
-            text.textContent = `Failed to load astrophotography weather data: ${error.message}`;
+            text.textContent = `${i18n.t('common.failed_to_load_element')}${error.message}`;
             body.appendChild(title);
             body.appendChild(text);
             card.appendChild(body);
@@ -195,39 +195,39 @@ function renderCurrentAstroConditions(conditions) {
     DOMUtils.clear(container);
     const cards = [
         createAstroConditionCard({
-            title: '👁️ Seeing',
+            title: `👁️ ${i18n.t('astro_weather.seeing')}`,
             value: `${conditions.seeing_pickering}/10`,
             badgeClass: `astro-quality-text quality-box ${seeingQuality.class}`,
             badgeText: seeingQuality.text,
-            note: 'Pickering Scale'
+            note: i18n.t('astro_weather.pickering_scale')
         }),
         createAstroConditionCard({
-            title: '✨ Transparency',
+            title: `✨ ${i18n.t('astro_weather.transparency')}`,
             value: `${conditions.limiting_magnitude}m`,
             badgeClass: `astro-quality-text quality-box ${transparencyQuality.class}`,
             badgeText: transparencyQuality.text,
-            note: 'Limiting Magnitude'
+            note: i18n.t('astro_weather.limiting_magnitude')
         }),
         createAstroConditionCard({
-            title: '☁️ Cloud Layers',
+            title: `☁️ ${i18n.t('astro_weather.cloud_layers')}`,
             value: `${Math.round(conditions.cloud_discrimination)}%`,
             badgeClass: `astro-quality-text quality-box ${cloudQuality.class}`,
             badgeText: cloudQuality.text,
-            note: 'Discrimination Score'
+            note: i18n.t('astro_weather.discrimination_score')
         }),
         createAstroConditionCard({
-            title: '💧 Dew Risk',
+            title: `💧 ${i18n.t('astro_weather.dew_risk')}`,
             value: `${Math.round(conditions.dew_point_spread * 10) / 10}°C`,
             badgeClass: `astro-quality-text dew-box ${dewRiskColor}`,
             badgeText: conditions.dew_risk_level,
-            note: 'Temperature Spread'
+            note: i18n.t('astro_weather.temperature_spread')
         }),
         createAstroConditionCard({
-            title: '🎯 Tracking',
+            title: `🎯 ${i18n.t('astro_weather.tracking')}`,
             value: `${conditions.tracking_stability_score}%`,
             badgeClass: `astro-quality-text quality-box ${trackingQuality.class}`,
             badgeText: trackingQuality.text,
-            note: 'Wind Stability'
+            note: i18n.t('astro_weather.wind_stability')
         })
     ];
     cards.forEach(card => container.appendChild(card));
@@ -268,7 +268,7 @@ function renderBestObservationPeriods(periods) {
         icon.textContent = '😔';
         const text = document.createElement('div');
         text.className = 'text-center';
-        text.textContent = 'No optimal observation periods found in the next 24 hours';
+        text.textContent = i18n.t('astro_weather.no_observation_periods');
         container.appendChild(icon);
         container.appendChild(text);
         return;
@@ -304,7 +304,7 @@ function renderBestObservationPeriods(periods) {
 
         const durationItem = document.createElement('li');
         durationItem.className = 'list-group-item d-flex justify-content-between align-items-center';
-        durationItem.textContent = 'Duration:';
+        durationItem.textContent = i18n.t('common.duration');
         const durationBadge = document.createElement('span');
         durationBadge.className = 'badge text-bg-primary rounded-pill';
         durationBadge.textContent = `${period.duration_hours.toFixed(1)}h`;
@@ -312,7 +312,7 @@ function renderBestObservationPeriods(periods) {
 
         const qualityItem = document.createElement('li');
         qualityItem.className = 'list-group-item d-flex justify-content-between align-items-center';
-        qualityItem.textContent = 'Quality:';
+        qualityItem.textContent = i18n.t('common.quality');
         const qualityBadge = document.createElement('span');
         qualityBadge.className = 'badge text-bg-primary rounded-pill';
         qualityBadge.textContent = `${period.average_quality.toFixed(1)}%`;
@@ -366,10 +366,10 @@ function renderSeeingTransparencyChart(labels, data) {
     const transparencyData = data.map(item => item.transparency_score);
     
     DOMUtils.clear(container);
-    container.appendChild(createAstroChartShell('👁️ Seeing & ✨ Transparency', 'astro-seeing-chart', [
-        { label: 'Seeing (Pickering)', color: '#3b82f6' },
-        { label: 'Transparency', color: '#a855f7' }
-    ], 'Quality Score (%)'));
+    container.appendChild(createAstroChartShell(i18n.t('astro_weather.chart_seeing_title'), 'astro-seeing-chart', [
+        { label: i18n.t('astro_weather.seeing_label'), color: '#3b82f6' },
+        { label: i18n.t('astro_weather.transparency_label'), color: '#a855f7' }
+    ], i18n.t('astro_weather.quality_score_label')));
     
     // Render chart
     const ctx = document.getElementById('astro-seeing-chart');
@@ -379,7 +379,7 @@ function renderSeeingTransparencyChart(labels, data) {
             labels: labels,
             datasets: [
                 {
-                    label: 'Seeing (Pickering × 10)',
+                    label: i18n.t('astro_weather.seeing_label_x10'),
                     data: seeingData,
                     borderColor: 'rgb(59, 130, 246)',
                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -388,7 +388,7 @@ function renderSeeingTransparencyChart(labels, data) {
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Transparency',
+                    label: i18n.t('astro_weather.transparency_label'),
                     data: transparencyData,
                     borderColor: 'rgb(168, 85, 247)',
                     backgroundColor: 'rgba(168, 85, 247, 0.1)',
@@ -415,7 +415,7 @@ function renderSeeingTransparencyChart(labels, data) {
                     display: true,
                     title: {
                         display: true,
-                        text: 'Time'
+                        text: i18n.t('common.time_label')
                     }
                 },
                 y: {
@@ -424,7 +424,7 @@ function renderSeeingTransparencyChart(labels, data) {
                     position: 'left',
                     title: {
                         display: true,
-                        text: 'Quality Score (%)'
+                        text: i18n.t('astro_weather.quality_score_label')
                     },
                     min: 0,
                     max: 105,
@@ -463,10 +463,10 @@ function renderCloudLayersChart(labels, data) {
     const lowCloudImpact = data.map(item => item.low_cloud_impact);
     
     DOMUtils.clear(container);
-    container.appendChild(createAstroChartShell('☁️ Cloud Layer Impact', 'astro-clouds-chart', [
-        { label: 'High', color: '#22c55e' },
-        { label: 'Mid', color: '#fbbf24' },
-        { label: 'Low', color: '#ef4444' }
+    container.appendChild(createAstroChartShell(i18n.t('astro_weather.chart_cloud_title'), 'astro-clouds-chart', [
+        { label: i18n.t('astro_weather.high_cloud_impact'), color: '#22c55e' },
+        { label: i18n.t('astro_weather.mid_cloud_impact'), color: '#fbbf24' },
+        { label: i18n.t('astro_weather.low_cloud_impact'), color: '#ef4444' }
     ]));
     
     // Render chart
@@ -477,7 +477,7 @@ function renderCloudLayersChart(labels, data) {
             labels: labels,
             datasets: [
                 {
-                    label: 'High Cloud Impact',
+                    label: i18n.t('astro_weather.high_cloud_impact'),
                     data: highCloudImpact,
                     borderColor: 'rgb(34, 197, 94)',
                     backgroundColor: 'rgba(34, 197, 94, 0.1)',
@@ -485,7 +485,7 @@ function renderCloudLayersChart(labels, data) {
                     tension: 0.4
                 },
                 {
-                    label: 'Mid Cloud Impact',
+                    label: i18n.t('astro_weather.mid_cloud_impact'),
                     data: midCloudImpact,
                     borderColor: 'rgb(251, 191, 36)',
                     backgroundColor: 'rgba(251, 191, 36, 0.1)',
@@ -493,7 +493,7 @@ function renderCloudLayersChart(labels, data) {
                     tension: 0.4
                 },
                 {
-                    label: 'Low Cloud Impact',
+                    label: i18n.t('astro_weather.low_cloud_impact'),
                     data: lowCloudImpact,
                     borderColor: 'rgb(239, 68, 68)',
                     backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -519,14 +519,14 @@ function renderCloudLayersChart(labels, data) {
                     display: true,
                     title: {
                         display: true,
-                        text: 'Time'
+                        text: i18n.t('common.time_label')
                     }
                 },
                 y: {
                     display: true,
                     title: {
                         display: true,
-                        text: 'Cloud Impact (%)'
+                        text: i18n.t('astro_weather.chart_cloud_impact')
                     },
                     min: 0,
                     max: 105,
@@ -567,10 +567,10 @@ function renderDewTrackingChart(labels, data) {
     const trackingScore = data.map(item => item.tracking_stability_score);
     
     DOMUtils.clear(container);
-    container.appendChild(createAstroChartShell('💧 Dew Risk & 🎯 Tracking Stability', 'astro-conditions-chart', [
-        { label: 'Dew Risk', color: '#06b6d4' },
-        { label: 'Tracking Stability', color: '#f56565' }
-    ], 'Score (0-100%)'));
+    container.appendChild(createAstroChartShell(i18n.t('astro_weather.chart_dew_tracking_title'), 'astro-conditions-chart', [
+        { label: i18n.t('astro_weather.dew_label'), color: '#06b6d4' },
+        { label: i18n.t('astro_weather.tracking_stability_label'), color: '#f56565' }
+    ], i18n.t('astro_weather.score_100_label')));
     
     // Render chart
     const ctx = document.getElementById('astro-conditions-chart');
@@ -580,7 +580,7 @@ function renderDewTrackingChart(labels, data) {
             labels: labels,
             datasets: [
                 {
-                    label: 'Dew Risk Score',
+                    label: i18n.t('astro_weather.dew_label'),
                     data: dewRiskScore,
                     borderColor: 'rgb(6, 182, 212)',
                     backgroundColor: 'rgba(6, 182, 212, 0.1)',
@@ -588,7 +588,7 @@ function renderDewTrackingChart(labels, data) {
                     tension: 0.4
                 },
                 {
-                    label: 'Tracking Stability',
+                    label: i18n.t('astro_weather.tracking_stability_label'),
                     data: trackingScore,
                     borderColor: 'rgb(245, 101, 101)',
                     backgroundColor: 'rgba(245, 101, 101, 0.1)',
@@ -614,14 +614,14 @@ function renderDewTrackingChart(labels, data) {
                     display: true,
                     title: {
                         display: true,
-                        text: 'Time'
+                        text: i18n.t('common.time_label')
                     }
                 },
                 y: {
                     display: true,
                     title: {
                         display: true,
-                        text: 'Score (0-100%)'
+                        text: i18n.t('astro_weather.score_100_label')
                     },
                     min: 0,
                     max: 105,

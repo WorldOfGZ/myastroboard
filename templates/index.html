@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="/static/js/theme.js?v={{ version }}"></script>
-    <title>MyAstroBoard - Astronomy Observation Planning Dashboard</title>
+    <title data-i18n="common.title_html">MyAstroBoard - Astronomy Observation Planning Dashboard</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="/static/css/bs_variables.css?v={{ version }}">
@@ -25,7 +25,7 @@
     
     <div class="hero text-center mb-2 pb-1">
         <h1 class="display-4 fw-bold"><img src="/static/img/favicon-animated.svg" alt="MyAstroBoard Logo" style="height: 1em; vertical-align: middle;"> MyAstroBoard</h1>
-        <p class="lead">
+        <p class="lead" data-i18n="common.slogan">
             Astronomy Observation Planning Dashboard
         </p>
     </div>
@@ -35,23 +35,23 @@
 
         <!-- Default Password Warning Banner -->
         <div id="default-password-warning" class="alert alert-warning alert-dismissible fade show mb-3" role="alert" style="display: none;">
-            ⚠️ <b>You are using the default password</b>. Please change it in the Users section for security.
+            ⚠️ <b data-i18n="auth.default_password_warning_alert">You are using the default password</b> <span data-i18n="auth.default_password_warning_request">Please change it in the Users section for security.</span>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
         
         <!-- Global cache Status Banner -->
         <div id="global-cache-banner" class="alert alert-info mb-3" role="alert" style="display: none;">
             <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden" data-i18n="common.loading">Loading...</span>
             </div>
-            <span id="cache-banner-text" class="ps-4">
+            <span id="cache-banner-text" class="ps-4" data-i18n="cache.updating_data">
                 Updating astronomical data, please wait...
             </span>
         </div>
 
         <!-- Global UpTonight Scheduler Status Banner -->
         <div id="global-scheduler-banner" class="alert alert-info mb-3" role="alert" style="display: none;">
-            <div id="global-scheduler-progress" class="fw-bold">Processing catalogues...</div>
+            <div id="global-scheduler-progress" class="fw-bold" data-i18n="scheduler.processing_catalogues">Processing UpTonight catalogues...</div>
             <div id="global-scheduler-detail" class="global-status-detail"></div>
         </div>
 
@@ -70,31 +70,31 @@
                 <div class="collapse navbar-collapse" id="navBarMyAstroBoard">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0 nav-pills">
                         <li class="nav-item">
-                            <a class="nav-link main-tab-btn active" aria-current="page" href="#" data-tab="forecast-astro">🌌 Astrophotography</a>
+                            <a class="nav-link main-tab-btn active" aria-current="page" href="#" data-tab="forecast-astro">🌌 <span data-i18n="navbar.astrophotography">Astrophotography</span></a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link main-tab-btn" aria-current="page" href="#" data-tab="forecast-weather">🌦 Weather</a>
+                            <a class="nav-link main-tab-btn" aria-current="page" href="#" data-tab="forecast-weather">🌦 <span data-i18n="navbar.weather">Weather</span></a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link main-tab-btn" href="#" data-tab="uptonight">📊 UpTonight</a>
+                            <a class="nav-link main-tab-btn" href="#" data-tab="uptonight">📊 <span data-i18n="navbar.uptonight">UpTonight</span></a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link main-tab-btn" href="#" data-tab="astrodex">📚 Astrodex</a>
+                            <a class="nav-link main-tab-btn" href="#" data-tab="astrodex">📚 <span data-i18n="navbar.astrodex">Astrodex</span></a>
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle main-tab-dropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 👤 <span id="username-display"></span>
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="equipment">🔭 Equipment</a></li>
-                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="my-settings">👤 My settings</a></li>
-                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="parameters">⚙️ App settings</a></li>
+                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="equipment">🔭 <span data-i18n="navbar.equipment">Equipment</span></a></li>
+                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="my-settings">👤 <span data-i18n="navbar.my_settings">My settings</span></a></li>
+                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="parameters">⚙️ <span data-i18n="navbar.app_settings">App settings</span></a></li>
                             </ul>
                         </li>
                     </ul>
                     <ul class="navbar-nav nav-pills align-items-end" id="end-navbar">
                         <li class="nav-item">
-                            <a class="nav-link" href="#" id="logout-btn">👋 Logout</a>
+                            <a class="nav-link" href="#" id="logout-btn">👋 <span data-i18n="common.logout_label">Logout</span></a>
                         </li>
                     </ul>
                 </div>
@@ -107,25 +107,25 @@
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
                 <ul class="nav nav-pills sub-tabs" id="forecast-astro-subtabs">
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn active" href="#" data-subtab="astro-weather">🔭 Astrophotography</a>
+                        <a class="nav-link sub-tab-btn active" href="#" data-subtab="astro-weather">🔭 <span data-i18n="navbar.astro_weather">Astrophotography</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="window">🌟 Best window</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="window">🌟 <span data-i18n="navbar.best_window">Best window</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="moon">🌘 Moon</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="moon">🌘 <span data-i18n="navbar.moon">Moon</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="sun">☀️ Sun</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="sun">☀️ <span data-i18n="navbar.sun">Sun</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="aurora">🌌 Aurora Borealis</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="aurora">🌌 <span data-i18n="navbar.aurora">Aurora Borealis</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="iss">🛰️ ISS</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="iss">🛰️ <span data-i18n="navbar.iss">ISS</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="calendar">📅 Events Calendar</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="calendar">📅 <span data-i18n="navbar.calendar">Events Calendar</span></a>
                     </li>
                 </ul>
             </div>
@@ -133,15 +133,15 @@
             <!-- Astrophotography Weather Sub-tab -->
             <div id="astro-weather-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌡️ Current Conditions</h2>
+                    <h2>🌡️ <span data-i18n="astro_weather.section_title">Current Conditions</span></h2>
                     
                     <!-- Loading State -->
                     <div id="astro-weather-loading" class="row row-cols-1">
                         <div class="col">
                             <div class="card h-100">
                                 <div class="card-body">
-                                    <h5 class="card-title">☁️ Loading...</h5>
-                                    <p class="card-text">Loading astrophotography weather analysis...</p>
+                                    <h5 class="card-title">☁️ <span data-i18n="common.loading">Loading...</span></h5>
+                                    <p class="card-text" data-i18n="astro_weather.loading_details">Loading astrophotography weather analysis...</p>
                                 </div>
                             </div>
                         </div>
@@ -160,29 +160,29 @@
 
                 <!-- Horizon Graph -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container" id="horizon-graph-main" style="display: none;">
-                    <h2>🌅 Horizon</h2>
-                    <div id="horizon-graph-loading" style="display: none;" class="alert alert-info">Loading horizon graph...</div>
+                    <h2>🌅 <span data-i18n="astro_weather.horizon_title">Horizon</span></h2>
+                    <div id="horizon-graph-loading" style="display: none;" class="alert alert-info" data-i18n="astro_weather.loading_horizon_graph">Loading horizon graph...</div>
                     <div id="horizon-graph-error" style="display: none;"></div>
                     <div id="horizon-graph-display" class="row row-cols-1"></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container" id="best-observation-periods-main" style="display: none;">
-                    <h2>⏳ Best Observation Periods</h2>
+                    <h2>⏳ <span data-i18n="astro_weather.best_periods_title">Best Observation Periods</span></h2>
                     
                     <!-- Best Observation Periods -->
-                    <div>Optimal periods for astrophotography in the next 24 hours</div>
+                    <div data-i18n="astro_weather.best_periods_description">Optimal periods for astrophotography in the next 24 hours</div>
                     <div id="astro-best-periods"></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container" id="astro-weather-alerts-main" style="display: none;">
-                    <h2>⚠️ Weather Alerts</h2>
+                    <h2>⚠️ <span data-i18n="astro_weather.alerts_title">Weather Alerts</span></h2>
                         
                     <!-- Weather Alerts -->
                     <div id="astro-weather-alerts"></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container" id="astro-advanced-weather-main" style="display: none;">
-                    <h2>📊 Advanced Weather Analysis</h2>
+                    <h2>📊 <span data-i18n="astro_weather.advanced_analysis_title">Advanced Weather Analysis</span></h2>
 
                     <!-- Advanced Charts -->
                     <div class="row row-cols-1 row-cols-sm-1 row-cols-lg-1 row-cols-xl-2">
@@ -1180,14 +1180,21 @@
     <footer class="site-footer border-footer">
         <div class="footer-inner">
             <div class="footer-section footer-brand">
-                <span class="text-light">MyAstroBoard - Astronomy Observation Planning Dashboard&nbsp;|&nbsp;<span id="version" class="text-light"></span></span>
+                <span class="text-light"><span data-i18n="common.title_html">MyAstroBoard - Astronomy Observation Planning Dashboard</span>&nbsp;|&nbsp;<span id="version" class="text-light"></span></span>
             </div>
             <div class="footer-section footer-update">
                 <span id="update-notification" class="text-light" style="display: none;">🎆 A new version is available! <a id="update-link" href="#" class="link-light link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover"></a></span>
             </div>
             <div class="footer-section footer-actions">
+                <div class="footer-language">
+                    <label class="language-label" for="language-select-footer" data-i18n="common.language">Language</label>
+                    <select id="language-select-footer" class="form-select form-select-sm language-select" aria-label="Language">
+                        <option value="en">English</option>
+                        <option value="fr">Français</option>
+                    </select>
+                </div>
                 <div class="footer-theme">
-                    <label class="theme-label" for="theme-select-footer">Theme</label>
+                    <label class="theme-label" for="theme-select-footer" data-i18n="common.theme">Theme</label>
                     <select id="theme-select-footer" class="form-select form-select-sm theme-select theme-select-footer" data-theme-picker aria-label="Theme">
                         <option value="auto">Auto</option>
                         <option value="light">Light</option>
@@ -1271,6 +1278,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <script src="/static/js/domUtils.js?v={{ version }}"></script>
+    <script src="/static/js/i18n.js?v={{ version }}"></script>
+    <script src="/static/js/language-selector.js?v={{ version }}"></script>
     <script src="/static/js/auth.js?v={{ version }}"></script>
     <script src="/static/js/apiHelper.js?v={{ version }}"></script>
     <script src="/static/js/events_alerts.js?v={{ version }}"></script>

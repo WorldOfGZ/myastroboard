@@ -804,7 +804,295 @@ function renderMyChart(data) {
 - `solar_eclipse.js`: solar-eclipse-altitude-chart
 - `lunar_eclipse.js`: lunar-eclipse-altitude-chart
 
+## Internationalization (i18n) & Translations
+
+### Overview
+MyAstroBoard supports multiple languages through a structured i18n system. Currently supported languages: **English (en)**, **French (fr)**.
+
+### Key Principles
+- **All user-facing text must be translatable** - No hardcoded strings in UI
+- **Keys use dot notation for organization** - `namespace.section.key` structure
+- **Key naming respects file organization** - Keys grouped by component/file
+- **Backend and Frontend coordination** - Consistent key naming across stack
+- **Fallback to English** - Missing keys default to English
+- **Browser language detection** - Automatically detects browser language preference
+- **User preference persistence** - Stores language choice in localStorage
+
+### Directory Structure
+```
+static/i18n/
+├── en.json          # English translations
+├── fr.json          # French translations
+└── [language].json  # Add new languages here
+
+static/js/
+└── i18n.js          # Global i18n manager (must load early)
+
+backend/
+└── i18n_utils.py    # Backend translation utilities
+```
+
+### Frontend Usage
+
+#### 1. HTML Elements with data-i18n attribute
+```html
+<!-- Static content translation -->
+<h2 data-i18n="astro_weather.section_title">🌡️ Current Conditions</h2>
+<p data-i18n="common.loading">Loading...</p>
+
+<!-- Initialize i18n translations after page load -->
+<script>
+    window.addEventListener('load', () => {
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            el.textContent = i18n.t(key);
+        });
+    });
+</script>
+```
+
+#### 2. JavaScript Direct Translation Calls
+```javascript
+// Get translated string
+const message = i18n.t('common.loading');
+
+// Get translated string with parameters (placeholders)
+const alertMsg = i18n.t('weather_alerts.critical_dew_risk', { time: '14:30' });
+
+// Check if translation exists
+if (i18n.has('my.key')) {
+    console.log(i18n.t('my.key'));
+}
+```
+
+#### 3. Language Switching
+
+**Automatic (User-facing)**:
+```html
+<!-- Language selector dropdown in footer -->
+<select id="language-select-footer" class="form-select form-select-sm">
+    <option value="en">English</option>
+    <option value="fr">Français</option>
+</select>
+```
+
+The `LanguageSelector` class (in `static/js/language-selector.js`) automatically handles user interactions with this dropdown, switching the language and updating all UI elements.
+
+**Programmatic (Developer)**:
+```javascript
+// Switch language programmatically
+await i18n.setLanguage('fr');  // Switch to French
+
+// Get current language
+const currentLang = i18n.getCurrentLanguage();
+
+// Get supported languages
+const langs = i18n.getSupportedLanguages();  // Returns ['en', 'fr']
+
+// Listen for language changes (useful for components needing dynamic updates)
+window.addEventListener('i18nLanguageChanged', (e) => {
+    // Update UI elements here
+    console.log(`Language changed to: ${e.detail.language}`);
+});
+```
+
+**User Experience**:
+- Footer contains language selector dropdown (next to theme selector)
+- Users can click dropdown to switch between English and Français
+- Language preference persists in browser localStorage
+- All page content updates instantly to new language
+- Browser language is auto-detected on first visit
+
+#### 4. Dynamic Content Translation in JavaScript
+```javascript
+// Creating translated content dynamically
+function renderAlert(alert) {
+    const alertDiv = document.createElement('div');
+    
+    // Get translated alert message based on alert type
+    let messageKey;
+    switch(alert.type) {
+        case 'DEW_WARNING':
+            messageKey = 'weather_alerts.alert_dew_warning';
+            break;
+        case 'WIND_WARNING':
+            messageKey = 'weather_alerts.alert_wind_warning';
+            break;
+        default:
+            messageKey = 'weather_alerts.section_title';
+    }
+    
+    alertDiv.textContent = i18n.t(messageKey);
+    container.appendChild(alertDiv);
+}
+```
+
+### Backend Usage
+
+#### 1. Python Translation Utilities
+```python
+from i18n_utils import get_translated_message, I18nManager, create_translated_alert
+
+# Simple translation
+message = get_translated_message('common.loading', language='fr')
+
+# Using manager instance
+manager = I18nManager('en')
+title = manager.t('astro_weather.section_title')
+
+# Get translation with parameters
+alert_msg = manager.t('weather_alerts.critical_dew_risk', time='14:30')
+
+# Get entire namespace
+weather_namespace = manager.get_namespace('weather_alerts')
+```
+
+#### 2. Translated API Responses
+```python
+from flask import jsonify
+from i18n_utils import create_translated_alert, I18nManager
+
+@app.route('/api/weather/alerts', methods=['GET'])
+@login_required
+def get_weather_alerts_api():
+    """Get weather alerts with translation support"""
+    
+    # Get user's preferred language (could come from request headers or DB)
+    language = request.args.get('lang', 'en')
+    
+    # Create alerts with translated messages
+    alerts = [
+        create_translated_alert(
+            alert_type='DEW_WARNING',
+            severity='HIGH',
+            time=alert_time,
+            language=language
+        ),
+        # ... more alerts
+    ]
+    
+    return jsonify({'alerts': alerts})
+```
+
+#### 3. Request-Level i18n Initialization
+```python
+from i18n_utils import init_i18n_for_request
+
+@app.before_request
+def setup_i18n():
+    """Initialize i18n for each request"""
+    language = request.args.get('lang', 'en')
+    g.i18n = init_i18n_for_request(language)
+
+# Later in route handler
+@app.route('/api/some-endpoint', methods=['GET'])
+def some_endpoint():
+    message = g.i18n.t('some.key')
+    # ...
+```
+
+### Translation Key Structure
+
+Keys are organized by component/namespace using dot notation. Hierarchy:
+1. **Namespace** (top level) - Component or feature name
+2. **Section** (optional) - Logical grouping within namespace
+3. **Key** - Specific translation key
+
+Example structure:
+```json
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error"
+  },
+  "astro_weather": {
+    "section_title": "🌡️ Current Conditions",
+    "loading_message": "☁️ Loading...",
+    "no_data": "No data available"
+  },
+  "weather_alerts": {
+    "alert_dew_warning": "Critical dew risk",
+    "critical_dew_risk": "Critical dew risk starting at {time}"
+  }
+}
+```
+
+### Guidelines for Implementing Translations
+
+#### When Adding New User-Facing Text
+1. **Define translation keys** in both `en.json` and `fr.json`
+2. **Use descriptive key names** that reflect the content location
+3. **Group related keys** in the same namespace
+4. **Include context in comments** if key meaning is ambiguous
+
+#### For HTML Templates
+```html
+<!-- GOOD: Static content with data-i18n attribute -->
+<h2 data-i18n="page.section_name">Section Name</h2>
+
+<!-- AVOID: Hardcoded strings -->
+<h2>Section Name</h2>
+```
+
+#### For JavaScript Components
+```javascript
+// GOOD: Use i18n.t() for dynamic content
+const element = document.createElement('div');
+element.textContent = i18n.t('namespace.key');
+
+// AVOID: Hardcoded strings
+element.textContent = 'This is a message';
+```
+
+#### For Backend API Responses
+```python
+# GOOD: Use translated messages in API responses
+return jsonify({
+    'status': 'error',
+    'message': i18n.t('common.error')
+})
+
+# AVOID: Hardcoded English strings
+return jsonify({
+    'status': 'error',
+    'message': 'An error occurred'
+})
+```
+
+### Adding a New Language
+
+1. Create new translation file: `static/i18n/[language].json`
+2. Copy structure from `en.json`
+3. Translate all keys to the new language
+4. Update `SUPPORTED_LANGUAGES` in `backend/i18n_utils.py`
+5. Languages will be automatically available in the UI
+
+### Translation Quality Assurance
+- **Scientific accuracy** - Translations must maintain accuracy for astronomical terms
+- **Consistency** - Use consistent terminology across all translations
+- **Testing** - Test UI with multiple languages before merging
+- **Missing keys** - Check logs for any missing translation keys in production
+
+### Common Issues & Troubleshooting
+
+**Issue**: Text appears untranslated (shows key instead of value)
+- Check if key exists in translation file
+- Verify key path matches exactly (case-sensitive)
+- Check browser console for i18n loading errors
+- Verify `i18n.js` loads before dependent scripts
+
+**Issue**: Translations not updating when language changes
+- Ensure UI has listener for `i18nLanguageChanged` event
+- Update static content using `data-i18n` attributes
+- Update dynamic content by re-rendering components
+
+**Issue**: Backend returns untranslated messages
+- Check if `i18n_utils.py` is imported correctly
+- Verify language parameter is being passed properly
+- Check translation files exist in `/app/static/i18n/`
+
 ## Resources & References
+
 
 ### Astronomy
 - [Astropy Documentation](https://docs.astropy.org/)
