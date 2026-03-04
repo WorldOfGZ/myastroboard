@@ -242,6 +242,72 @@
     "dusk": "Crépuscule : ",
     "dawn": "Aube : "
   },
+
+  "aurora": {
+    "borealis_predictions": "Prévisions des Aurores Boréales",
+    "loading_predictions": "Chargement des prévisions d'aurores boréales...",
+    "visibility": {    
+      "none": "Aucune",
+      "very_low": "Très faible",
+      "low": "Faible",
+      "moderate": "Modérée",
+      "good": "Bonne",
+      "excellent": "Excellente",
+      "severe_storm": "Tempête sévère"
+    },
+    "probability": {    
+      "none": "Aucune",
+      "very_low": "Très faible",
+      "low": "Faible",
+      "moderate": "Modérée",
+      "high": "Élevée",
+      "very_high": "Très élevée"
+    },
+    "description": { 
+      "none": "Aucune activité aurorale prévue",
+      "very_low": "Aurore possible uniquement à des latitudes très élevées",
+      "low": "Aurore possible à des latitudes élevées",
+      "moderate": "Aurore probable à des latitudes élevées",
+      "good": "Aurore probablement visible dans les régions nordiques",
+      "excellent": "Aurore très probable, éventuellement à des latitudes plus basses",
+      "severe_storm": "Activité aurorale intense, visible à des latitudes plus basses"
+    },
+    "geomagnetic_activity": "Activité Géomagnétique",
+    "kp_index": "Indice Kp : ",
+    "aurora_probability": "Probabilité d'Aurore : ",
+    "best_viewing_window": "Meilleure fenêtre d'observation",
+    "local_time": "Heure locale : ",
+    "location": "Emplacement : ",
+    "expected_colors": "Couleurs prévues : ",
+    "colors": {
+      "green": "Vert (le plus courant, 100-300 km d'altitude)",
+      "red": "Rouge (haute altitude, >300 km, avec forte activité)",
+      "blue_purple": "Bleu/Violet (azote, rare, lors de tempêtes sévères)",
+      "pink": "Rose/Magenta (haute altitude, lors de forte activité)"
+    },
+    "guide": {
+      "0": "Aucune aurore",
+      "3": "Latitudes très élevées",
+      "4": "Latitudes élevées possibles",
+      "5": "Régions nordiques probables",
+      "6": "Vue plus large possible",
+      "7": "Latitudes basses possibles"
+    },
+    "alert_1": "Les valeurs de l'indice Kp sont fournies par la NOAA. Des changements soudains entre 'Maintenant' et les valeurs prévues peuvent indiquer des événements ou tempêtes géomagnétiques prévus.",
+    "alert_2": "Ces prévisions sont sujettes à changement et reflètent les dernières prédictions de la NOAA.",
+    "scale_guide": "Guide de l'échelle des aurores",
+    "forecast": "Prévisions",
+    "tips": {
+      "1": "Éloignez-vous de la pollution lumineuse (villes) pour une meilleure observation",
+      "2": "Regardez vers l'horizon nord pendant la fenêtre recommandée",
+      "3": "Habillez-vous chaudement - la chasse aux aurores peut nécessiter d'attendre dehors par temps froid",
+      "4": "Un indice Kp plus élevé signifie que l'aurore pourrait être visible plus au sud",
+      "5": "L'aurore verte est la plus courante, le rouge provient de l'oxygène en haute altitude",
+      "6": "Meilleure visibilité par nuits claires et sans lune"
+    },
+    "failed_to_load_predictions": "Échec du chargement des prévisions d'aurore. Veuillez réessayer plus tard.",
+    "tips_for_aurora_hunting": "Conseils pour l'observation des aurores :"
+  },
   
   "weather_alerts": {
     "section_title": "Alertes Météo",

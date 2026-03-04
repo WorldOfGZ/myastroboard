@@ -242,6 +242,72 @@
     "dusk": "Dusk: ",
     "dawn": "Dawn: "
   },
+
+  "aurora": {
+    "borealis_predictions": "Aurora Borealis Predictions",
+    "loading_predictions": "Loading aurora borealis predictions...",
+    "visibility": {
+      "none": "None",
+      "very_low": "Very Low",
+      "low": "Low",
+      "moderate": "Moderate",
+      "good": "Good",
+      "excellent": "Excellent",
+      "severe_storm": "Severe Storm"
+    },
+    "probability": {
+      "none": "None",
+      "very_low": "Very low",
+      "low": "Low",
+      "moderate": "Moderate",
+      "high": "High",
+      "very_high": "Very high"
+    },
+    "description": {
+      "none": "No aurora activity expected",
+      "very_low": "Aurora possible only at very high latitudes",
+      "low": "Aurora possible at high latitudes",
+      "moderate": "Aurora likely at high latitudes",
+      "good": "Aurora likely visible across northern regions",
+      "excellent": "Aurora very likely, possibly at lower latitudes",
+      "severe_storm": "Intense aurora activity, visible at lower latitudes"
+    },
+    "geomagnetic_activity": "Geomagnetic Activity",
+    "kp_index": "Kp Index: ",
+    "aurora_probability": "Aurora Probability: ",
+    "best_viewing_window": "Best Viewing Window",
+    "local_time": "Local Time: ",
+    "location": "Location: ",
+    "expected_colors": "Expected Colors: ",
+    "colors": {
+      "green": "Green (most common, 100-300 km altitude)",
+      "red": "Red (high altitude, >300 km, with strong activity)",
+      "blue_purple": "Blue/Purple (nitrogen, rare, during severe storms)",
+      "pink": "Pink/Magenta (high altitude, during strong activity)"
+    },
+    "guide": {
+      "0": "No aurora",
+      "3": "Very High latitudes",
+      "4": "High latitudes possible",
+      "5": "Northern regions likely",
+      "6": "Wider view possible",
+      "7": "Low latitude possible"
+    },
+    "alert_1": "The Kp index values are provided by NOAA. Sudden changes between 'Now' and forecasted values may indicate predicted geomagnetic events or storms.",
+    "alert_2": "These forecasts are subject to change and reflect NOAA's latest predictions.",
+    "scale_guide": "Aurora Scale Guide",
+    "forecast": "Forecast",
+    "tips": {
+      "1": "Travel away from light pollution (cities) for best viewing",
+      "2": "Look towards the northern horizon during the recommended window",
+      "3": "Dress warmly - aurora hunting can require waiting outside in cold",
+      "4": "Higher Kp index means aurora could be visible further south",
+      "5": "Green aurora is most common, red is from high altitude oxygen",
+      "6": "Better visibility on clear, moonless nights"
+    },
+    "failed_to_load_predictions": "Failed to load aurora predictions. Please try again later.",
+    "tips_for_aurora_hunting": "Tips for Aurora Hunting:"
+  },
   
   "weather_alerts": {
     "section_title": "Weather Alerts",
