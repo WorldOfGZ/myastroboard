@@ -170,8 +170,8 @@
     "total_duration": "Durée Totale : ",
     "partial_duration": "Durée Partielle : ",
     "none": "Aucune",
-    "partial_begin": "Début Partiel : ",
-    "total_begin": "Début Total : ",
+    "partial_begin": "Début Partielle : ",
+    "total_begin": "Début Totale : ",
     "total_end": "Fin Totale : ",
     "partial_end": "Fin Partielle : ",
     "peak_time": "Heure du pic : ",
@@ -185,14 +185,62 @@
       "low": "Faible intérêt - À peine visible"
     },
     "eclipse_type": {
-      "total": "Total",
-      "partial": "Partiel",
+      "total": "Totale",
+      "partial": "Partielle",
       "penumbral": "Pénombrale"
     },
     "failed_to_load_lunar_eclipse_data": "Échec du chargement des données d'éclipse lunaire",
     "eclipse_chart_title": "Altitude vs Temps",
     "moon_altitude": "Altitude de la Lune (°)",
     "eclipse_chart_footer": "Degrés (°) | Heure Locale"
+  },
+
+  "sun": {
+    "solar_eclipse": "Éclipse Solaire",
+    "no_solar_eclipse_data": "Aucune donnée d'éclipse solaire disponible",
+    "visible": "Visible",
+    "not_visible": "Non visible",
+    "overview": "Aperçu",
+    "timing": "Chronométrage",
+    "position_at_peak": "Position au pic",
+    "astrophoto_score": "Score d'astrophotographie",
+    "eclipse_type": {
+      "total": "Totale",
+      "partial": "Partielle",
+      "annular": "Annulaire"
+    },
+    "type": "Type : ",
+    "visibility": "Visibilité : ",
+    "magnitude": "Magnitude : ",
+    "obscuration": "Obscurcissement : ",
+    "start": "Début : ",
+    "peak": "Pic : ",
+    "end": "Fin : ",
+    "duration": "Durée : ",
+    "altitude": "Altitude : ",
+    "azimuth": "Azimut : ",
+    "direction": "Direction : ",
+    "astrophotography_score_hint": "Score basé sur le type, la visibilité, l'altitude et la durée",
+    "eclipse_classification": {
+      "excellent": "Excellent - Opportunité exceptionnelle",
+      "very_good": "Très bon - Fortement recommandé",
+      "good": "Bon - Valeur d'observation",
+      "moderate": "Intérêt modéré - Observable",
+      "low": "Faible intérêt - À peine visible"
+    },
+    "failed_to_load_solar_eclipse_data": "Échec du chargement des données d'éclipse solaire",
+    "eclipse_chart_title": "Altitude vs Temps",
+    "sun_altitude": "Altitude du Soleil (°)",
+    "eclipse_chart_footer": "Degrés (°) | Heure Locale",
+    "sun_and_twilight": "Heures du Soleil et du Crépuscule",
+    "for_astronomical_observation_planning": "Pour la planification des observations astronomiques",
+    "sunset": "Coucher du Soleil : ",
+    "sunrise": "Lever du Soleil : ",
+    "civil_twilight": "Crépuscule Civil",
+    "nautical_twilight": "Crépuscule Nautique",
+    "astronomical_twilight": "Crépuscule Astronomique",
+    "dusk": "Crépuscule : ",
+    "dawn": "Aube : "
   },
   
   "weather_alerts": {

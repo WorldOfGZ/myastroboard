@@ -13,7 +13,7 @@ async function loadLunarEclipse() {
     try {
         clearContainer(container);
 
-        console.log('Lunar Eclipse data:', data);
+        //console.log('Lunar Eclipse data:', data);
 
         // Check if eclipse data is available
         if (!data.lunar_eclipse) {
@@ -125,8 +125,8 @@ async function loadLunarEclipse() {
         const position = createCardCol(`📍 ${i18n.t('moon.position_at_peak')}`);
         const positionList = createList();
         positionList.appendChild(createListItem(`${i18n.t('moon.peak_time')}`, formatTimeThenDate(eclipse.peak_time)));
-        positionList.appendChild(createListItem(`${i18n.t('moon.altitude')}`, `${eclipse.peak_altitude_deg.toFixed(2)} ${i18n.t('units.degrees')}`));
-        positionList.appendChild(createListItem(`${i18n.t('moon.azimuth')}`, `${eclipse.peak_azimuth_deg.toFixed(2)} ${i18n.t('units.degrees')}`));
+        positionList.appendChild(createListItem(`${i18n.t('moon.altitude')}`, `${eclipse.peak_altitude_deg.toFixed(2)}${i18n.t('units.degrees')}`));
+        positionList.appendChild(createListItem(`${i18n.t('moon.azimuth')}`, `${eclipse.peak_azimuth_deg.toFixed(2)}${i18n.t('units.degrees')}`));
         positionList.appendChild(createListItem(`${i18n.t('moon.direction')}`, getCardinalDirection(eclipse.peak_azimuth_deg)));
         position.card.appendChild(positionList);
         row.appendChild(position.col);

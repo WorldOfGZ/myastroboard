@@ -194,6 +194,54 @@
     "moon_altitude": "Moon Altitude (°)",
     "eclipse_chart_footer": "Degrees (°) | Local Time"
   },
+
+  "sun": {
+    "solar_eclipse": "Solar Eclipse",
+    "no_solar_eclipse_data": "No solar eclipse data available",
+    "visible": "Visible",
+    "not_visible": "Not visible",
+    "overview": "Overview",
+    "timing": "Timing",
+    "position_at_peak": "Position at peak",
+    "astrophoto_score": "Astrophotography Score",
+    "eclipse_type": {
+      "total": "Total",
+      "partial": "Partial",
+      "annular": "Annular"
+    },
+    "type": "Type: ",
+    "visibility": "Visibility: ",
+    "magnitude": "Magnitude: ",
+    "obscuration": "Obscuration: ",
+    "start": "Start: ",
+    "peak": "Peak: ",
+    "end": "End: ",
+    "duration": "Duration: ",
+    "altitude": "Altitude: ",
+    "azimuth": "Azimuth: ",
+    "direction": "Direction: ",
+    "astrophotography_score_hint": "Score based on type, visibility, altitude, and duration",
+    "eclipse_classification": {
+      "excellent": "Excellent - Exceptional opportunity",
+      "very_good": "Very good - Highly recommended",
+      "good": "Good - Worth observing",
+      "moderate": "Moderate interest - Observable",
+      "low": "Low interest - Barely visible"
+    },
+    "failed_to_load_solar_eclipse_data": "Failed to load solar eclipse data",
+    "eclipse_chart_title": "Altitude vs Time",
+    "sun_altitude": "Sun Altitude (°)",
+    "eclipse_chart_footer": "Degrees (°) | Local Time",
+    "sun_and_twilight": "Sun & Twilight Times",
+    "for_astronomical_observation_planning": "For astronomical observation planning",
+    "sunset": "Sunset: ",
+    "sunrise": "Sunrise: ",
+    "civil_twilight": "Civil Twilight",
+    "nautical_twilight": "Nautical Twilight",
+    "astronomical_twilight": "Astronomical Twilight",
+    "dusk": "Dusk: ",
+    "dawn": "Dawn: "
+  },
   
   "weather_alerts": {
     "section_title": "Weather Alerts",

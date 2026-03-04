@@ -6,7 +6,7 @@
 async function loadSolarEclipse() {
     const container = document.getElementById('solar-eclipse-display');
     const data = await fetchJSONWithUI('/api/sun/next-eclipse', container, 'Loading Solar Eclipse data...', {
-        pendingMessage: 'Cache not ready. Retrying...'
+        pendingMessage: i18n.t('cache.cache_not_ready_retrying')
     });
     if (!data) return;
 
@@ -19,7 +19,7 @@ async function loadSolarEclipse() {
             const alert = document.createElement('div');
             alert.className = 'alert alert-info';
             alert.setAttribute('role', 'alert');
-            alert.textContent = `ℹ️ ${data.message || 'No solar eclipse data available'}`;
+            alert.textContent = `ℹ️ ${data.message || i18n.t('sun.no_solar_eclipse_data')}`;
             container.appendChild(alert);
             return;
         }
@@ -28,9 +28,9 @@ async function loadSolarEclipse() {
 
         let visibilityBadge = '';
         if (!eclipse.visible) {
-            visibilityBadge = '<span class="badge bg-danger">Not visible</span>';
+            visibilityBadge = `<span class="badge bg-danger">${i18n.t('sun.not_visible')}</span>`;
         } else {
-            visibilityBadge = '<span class="badge bg-success">Visible</span>';
+            visibilityBadge = `<span class="badge bg-success">${i18n.t('sun.visible')}</span>`;
         }
 
         let scoreColor = 'secondary';
@@ -80,44 +80,53 @@ async function loadSolarEclipse() {
             return item;
         };
 
-        const overview = createCardCol('📊 Overview');
+        // i18n translaton keys for eclipse type
+        const typeEclipseType = {
+            'total': i18n.t('sun.eclipse_type.total'),
+            'partial': i18n.t('sun.eclipse_type.partial'),
+            'annular': i18n.t('sun.eclipse_type.annular')
+        };
+
+        const overview = createCardCol(`📊 ${i18n.t('sun.overview')}`);
         const overviewList = createList();
-        overviewList.appendChild(createListItem('Type:', eclipse.type));
+        overviewList.appendChild(createListItem(`${i18n.t('sun.type')}`, typeEclipseType[eclipse.type.toLowerCase()] || eclipse.type));
         const visibilityItem = document.createElement('li');
         visibilityItem.className = 'list-group-item d-flex justify-content-between align-items-center';
         const visibilityLabel = document.createElement('span');
-        visibilityLabel.textContent = 'Visibility:';
+        visibilityLabel.textContent = `${i18n.t('sun.visibility')}`;
         const visibilityValue = document.createElement('span');
         const visibilityBadgeNode = document.createElement('span');
         visibilityBadgeNode.className = `badge ${eclipse.visible ? 'bg-success' : 'bg-danger'}`;
-        visibilityBadgeNode.textContent = eclipse.visible ? 'Visible' : 'Not visible';
+        visibilityBadgeNode.textContent = eclipse.visible ? i18n.t('sun.visible') : i18n.t('sun.not_visible');
         visibilityValue.appendChild(visibilityBadgeNode);
         visibilityItem.appendChild(visibilityLabel);
         visibilityItem.appendChild(visibilityValue);
         overviewList.appendChild(visibilityItem);
-        overviewList.appendChild(createListItem('Magnitude:', eclipse.magnitude.toFixed(4)));
-        overviewList.appendChild(createListItem('Obscuration:', `${eclipse.obscuration_percent.toFixed(1)}%`));
+        overviewList.appendChild(createListItem(`${i18n.t('sun.magnitude')}`, eclipse.magnitude.toFixed(4)));
+        overviewList.appendChild(createListItem(`${i18n.t('sun.obscuration')}`, `${eclipse.obscuration_percent.toFixed(1)}${i18n.t('units.percent')}`));
         overview.card.appendChild(overviewList);
         row.appendChild(overview.col);
 
-        const timing = createCardCol('⏱️ Timing');
+        const timing = createCardCol(`⏱️ ${i18n.t('sun.timing')}`);
         const timingList = createList();
-        timingList.appendChild(createListItem('Start:', formatTimeThenDate(eclipse.start_time)));
-        timingList.appendChild(createListItem('Peak:', formatTimeThenDate(eclipse.peak_time)));
-        timingList.appendChild(createListItem('End:', formatTimeThenDate(eclipse.end_time)));
-        timingList.appendChild(createListItem('Duration:', `${eclipse.duration_minutes} min`));
+        timingList.appendChild(createListItem(`${i18n.t('sun.start')}`, formatTimeThenDate(eclipse.start_time)));
+        timingList.appendChild(createListItem(`${i18n.t('sun.peak')}`, formatTimeThenDate(eclipse.peak_time)));
+        timingList.appendChild(createListItem(`${i18n.t('sun.end')}`, formatTimeThenDate(eclipse.end_time)));
+        timingList.appendChild(createListItem(`${i18n.t('sun.duration')}`, `${eclipse.duration_minutes} ${i18n.t('units.minute')}`));
         timing.card.appendChild(timingList);
         row.appendChild(timing.col);
 
-        const position = createCardCol('📍 Position at Peak');
+        const position = createCardCol(`📍 ${i18n.t('sun.position_at_peak')}`);
         const positionList = createList();
-        positionList.appendChild(createListItem('Altitude:', `${eclipse.peak_altitude_deg.toFixed(2)}°`));
-        positionList.appendChild(createListItem('Azimuth:', `${eclipse.peak_azimuth_deg.toFixed(2)}°`));
-        positionList.appendChild(createListItem('Direction:', getCardinalDirection(eclipse.peak_azimuth_deg)));
+        positionList.appendChild(createListItem(`${i18n.t('sun.altitude')}`, `${eclipse.peak_altitude_deg.toFixed(2)}${i18n.t('units.degrees')}`));
+        positionList.appendChild(createListItem(`${i18n.t('sun.azimuth')}`, `${eclipse.peak_azimuth_deg.toFixed(2)}${i18n.t('units.degrees')}`));
+        positionList.appendChild(createListItem(`${i18n.t('sun.direction')}`, getCardinalDirection(eclipse.peak_azimuth_deg)));
         position.card.appendChild(positionList);
         row.appendChild(position.col);
 
-        const score = createCardCol('⭐ Astrophotography Score');
+        const classificationText = i18n.t(`sun.eclipse_classification.${eclipse.score_classification}`) || eclipse.score_classification;
+        
+        const score = createCardCol(`⭐ ${i18n.t('sun.astrophoto_score')}`);
         const scoreBody = document.createElement('div');
         scoreBody.className = 'p-3';
         scoreBody.style.textAlign = 'center';
@@ -127,10 +136,10 @@ async function loadSolarEclipse() {
         scoreValue.textContent = `${eclipse.astrophotography_score.toFixed(1)}/10`;
         const scoreBadge = document.createElement('div');
         scoreBadge.className = `badge bg-${scoreColor} mt-2`;
-        scoreBadge.textContent = eclipse.score_classification;
+        scoreBadge.textContent = classificationText;
         const scoreHint = document.createElement('div');
         scoreHint.className = 'small text-muted mt-2';
-        scoreHint.textContent = 'Score based on type, visibility, altitude, and duration';
+        scoreHint.textContent = i18n.t('sun.astrophotography_score_hint');
         scoreBody.appendChild(scoreValue);
         scoreBody.appendChild(scoreBadge);
         scoreBody.appendChild(scoreHint);
@@ -155,7 +164,7 @@ async function loadSolarEclipse() {
         DOMUtils.clear(container);
         const errorBox = document.createElement('div');
         errorBox.className = 'error-box';
-        errorBox.textContent = 'Failed to load Solar Eclipse data';
+        errorBox.textContent = i18n.t('sun.failed_to_load_solar_eclipse_data');
         container.appendChild(errorBox);
     }
 }
@@ -177,7 +186,7 @@ function renderSolarEclipseAltitudeChart(altitudeData) {
     cardHeader.className = 'card-header';
     const title = document.createElement('h5');
     title.className = 'mb-0';
-    title.textContent = '📈 Altitude vs Time';
+    title.textContent = `📈 ${i18n.t('sun.eclipse_chart_title')}`;
     cardHeader.appendChild(title);
 
     const cardBody = document.createElement('div');
@@ -196,13 +205,13 @@ function renderSolarEclipseAltitudeChart(altitudeData) {
     const badge = document.createElement('span');
     badge.className = 'badge';
     badge.style.backgroundColor = '#FDB813';
-    badge.textContent = 'Sun Altitude';
+    badge.textContent = i18n.t('sun.sun_altitude');
     badgeCol.appendChild(badge);
     const textCol = document.createElement('div');
     textCol.className = 'col-auto';
     const text = document.createElement('span');
     text.className = 'text-muted';
-    text.textContent = 'Degrees (°) | Local Time';
+    text.textContent = i18n.t('sun.eclipse_chart_footer');
     textCol.appendChild(text);
     footerRow.appendChild(badgeCol);
     footerRow.appendChild(textCol);
@@ -223,7 +232,7 @@ function renderSolarEclipseAltitudeChart(altitudeData) {
         data: {
             labels: times,
             datasets: [{
-                label: 'Sun Altitude (°)',
+                label: i18n.t('sun.sun_altitude'),
                 data: altitudes,
                 borderColor: '#FDB813',
                 backgroundColor: 'rgba(253, 184, 19, 0.1)',
@@ -250,13 +259,13 @@ function renderSolarEclipseAltitudeChart(altitudeData) {
                     max: 90,
                     title: {
                         display: true,
-                        text: 'Altitude (degrees)'
+                        text: i18n.t('sun.sun_altitude')
                     }
                 },
                 x: {
                     title: {
                         display: true,
-                        text: 'Local Time'
+                        text: i18n.t('common.time_label')
                     }
                 }
             }

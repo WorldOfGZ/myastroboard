@@ -304,15 +304,15 @@ class SolarEclipseService:
 
         # Classification
         if final_score >= 8.5:
-            classification = "Excellent - Outstanding opportunity"
+            classification = "excellent"
         elif final_score >= 7.0:
-            classification = "Very good - Highly recommended"
+            classification = "very_good"
         elif final_score >= 5.0:
-            classification = "Good - Worth considering"
+            classification = "good"
         elif final_score >= 3.0:
-            classification = "Moderate interest"
+            classification = "moderate"
         else:
-            classification = "Low interest"
+            classification = "low"
 
         return final_score, classification
 
