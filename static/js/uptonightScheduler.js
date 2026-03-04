@@ -65,9 +65,9 @@ const UptonightScheduler = (() => {
                     ? ` (${formatDuration(p.execution_duration_seconds)})`
                     : '';
                 els.progress().textContent =
-                    `Processing ${p.current_index}/${p.total_catalogues}${duration}`;
+                    `${i18n.t('scheduler.processing')} ${p.current_index}/${p.total_catalogues}${duration}`;
                 els.detail().textContent =
-                    `Current: ${p.current_catalogue}`;
+                    `${i18n.t('scheduler.current')} ${p.current_catalogue}`;
                 genericMessageLoadingDiv(p.current_catalogue);
 
                 //If current catalogue is different as previous, reload page
@@ -81,7 +81,7 @@ const UptonightScheduler = (() => {
                 last_catalogue_executed = p.current_catalogue;
             } else {
                 els.progress().textContent =
-                    'Processing catalogues...';
+                    i18n.t('scheduler.processing_catalogues');
                 els.detail().textContent = '';
             }
         } else if (state.isExecuting) {

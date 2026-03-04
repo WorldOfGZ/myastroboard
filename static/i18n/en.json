@@ -434,7 +434,9 @@
     "status_running": "Running",
     "status_idle": "Idle",
     "next_execution": "Next execution in",
-    "last_execution": "Last execution"
+    "last_execution": "Last execution",
+    "processing": "Processing",
+    "current": "Current: "
   },
   
   "units": {
