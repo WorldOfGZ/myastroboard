@@ -193,6 +193,23 @@ function formatDateFull(isoString, locale = navigator.language) {
     return dateFormatter.format(date);
 }
 
+// Helper function to format ISO datetime to localized date string
+// Example output: "6/30/2024, 9:30 PM" in US locale, "30/06/2024, 21:30" in many European locales
+function formatDateTime(isoString, locale = navigator.language) {
+    if (!isoString) return 'N/A';
+    const date = new Date(isoString);
+    
+    const dateTimeFormatter = new Intl.DateTimeFormat(locale, {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    return dateTimeFormatter.format(date);
+}
+
 // Helper function to format ISO date to localized date string HH:MM
 // Example output: "21:30" in many locales
 function formatTimeOnly(isoString, locale = navigator.language) {

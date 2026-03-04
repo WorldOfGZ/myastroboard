@@ -885,33 +885,33 @@
             <!-- Users Management Sub-tab (Admin only) -->
             <div id="users-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>👥 <span data-i18n="settings.user_management">User Management</span></h2>
-                    <div data-i18n="settings.manage_users">Manage users and their access roles.</div>
+                    <h2>👥 <span data-i18n="users.user_management">User Management</span></h2>
+                    <div data-i18n="users.manage_users">Manage users and their access roles.</div>
                     
                     <!-- Create User Form -->
                     <form id="create-user-form">
                         <div class="row row-cols-lg-auto g-3 align-items-center">
                             <div class="col-12">
-                                <label class="visually-hidden" for="new-username" data-i18n="settings.username">Username</label>
-                                <input type="text" class="form-control" id="new-username" required autocomplete="off" placeholder="Username" data-i18n-placeholder="settings.username">
+                                <label class="visually-hidden" for="new-username" data-i18n="users.username">Username</label>
+                                <input type="text" class="form-control" id="new-username" required autocomplete="off" placeholder="Username" data-i18n-placeholder="users.username">
                             </div>
 
                             <div class="col-12">
-                                <label class="visually-hidden" for="new-password" data-i18n="settings.password">Password</label>
-                                <input type="password" class="form-control" id="new-password" required autocomplete="off" placeholder="Password" data-i18n-placeholder="settings.password">
+                                <label class="visually-hidden" for="new-password" data-i18n="users.password">Password</label>
+                                <input type="password" class="form-control" id="new-password" required autocomplete="off" placeholder="Password" data-i18n-placeholder="users.password">
                             </div>
 
                             <div class="col-12">
-                                <label class="visually-hidden" for="new-role" data-i18n="settings.role">Role</label>
+                                <label class="visually-hidden" for="new-role" data-i18n="users.role">Role</label>
                                 <select class="form-select" id="new-role" required>
-                                    <option value="read-only" data-i18n="settings.role_read_only">Read-Only (Can view data only)</option>
-                                    <option value="user" data-i18n="settings.role_user">Regular user (Can interact with Astrodex)</option>
-                                    <option value="admin" data-i18n="settings.role_admin">Admin (Full access)</option>
+                                    <option value="read-only" data-i18n="users.role_read_only">Read-Only (Can view data only)</option>
+                                    <option value="user" data-i18n="users.role_user">Regular user (Can interact with Astrodex)</option>
+                                    <option value="admin" data-i18n="users.role_admin">Admin (Full access)</option>
                                 </select>
                             </div>
 
                             <div class="col-12">
-                                <button type="submit" class="btn btn-primary" data-i18n="settings.create_user">Create User</button>
+                                <button type="submit" class="btn btn-primary" data-i18n="users.create_user">Create User</button>
                             </div>
                         </div>   
                     </form>             
@@ -919,7 +919,7 @@
                 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">    
                     <!-- Users List -->
-                    <h2>👥 <span data-i18n="settings.existing_users">Existing Users</span></h2>
+                    <h2>👥 <span data-i18n="users.existing_users">Existing Users</span></h2>
                     <div id="users-list"></div>
                 </div>
             </div>

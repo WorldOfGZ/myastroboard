@@ -166,14 +166,14 @@ async function loadUsers() {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || 'Failed to load users');
+            throw new Error(errorData.error || i18n.t('users.failed_to_load_users') || 'Failed to load users');
         }
 
         const users = await response.json();
         displayUsers(users);
     } catch (error) {
         console.error('Error loading users:', error);
-        showMessage('error', 'Failed to load users');
+        showMessage('error', i18n.t('users.failed_to_load_users'));
     }
 }
 
@@ -185,7 +185,7 @@ function displayUsers(users) {
         DOMUtils.clear(usersList);
         const alert = document.createElement('div');
         alert.className = 'alert alert-warning';
-        alert.textContent = 'No users found.';
+        alert.textContent = i18n.t('users.no_users_found');
         usersList.appendChild(alert);
         return;
     }
@@ -198,11 +198,11 @@ function displayUsers(users) {
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
     const headers = [
-        { text: 'Username' },
-        { text: 'Role' },
-        { text: 'Created', className: 'd-none d-md-table-cell' },
-        { text: 'Last Login', className: 'd-none d-md-table-cell' },
-        { text: 'Actions', className: 'text-center' }
+        { text: i18n.t('users.username') },
+        { text: i18n.t('users.role') },
+        { text: i18n.t('users.created'), className: 'd-none d-md-table-cell' },
+        { text: i18n.t('users.last_login'), className: 'd-none d-md-table-cell' },
+        { text: i18n.t('users.actions'), className: 'text-center' }
     ];
     headers.forEach((header) => {
         const th = document.createElement('th');
@@ -223,8 +223,8 @@ function displayUsers(users) {
     users.forEach(user => {
         const row = document.createElement('tr');
         
-        const createdDate = user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A';
-        const lastLogin = user.last_login ? new Date(user.last_login).toLocaleString() : 'Never';
+        const createdDate = user.created_at ? formatDateFull(new Date(user.created_at)) : i18n.t('users.na');
+        const lastLogin = user.last_login ? formatDateTime(new Date(user.last_login)) : i18n.t('users.never');
         
         const isCurrentUser = user.user_id === currentUser?.user_id;
 
@@ -258,35 +258,35 @@ function displayUsers(users) {
         };
 
         actionsCell.appendChild(createActionButton({
-            className: 'btn btn-primary btn-small user-edit-username mb-2',
+            className: 'btn btn-primary btn-small user-edit-username mb-2 me-2',
             userId: user.user_id,
             username: user.username,
-            text: '✏️ Username'
+            text: `✏️ ${i18n.t('users.username')}`
         }));
 
         if (!isCurrentUser) {
             actionsCell.appendChild(createActionButton({
-                className: 'btn btn-info btn-small user-edit-role mb-2',
+                className: 'btn btn-info btn-small user-edit-role mb-2 me-2',
                 userId: user.user_id,
                 username: user.username,
                 role: user.role,
-                text: '🔑 Role'
+                text: `🔑 ${i18n.t('users.role')}`
             }));
         }
 
         actionsCell.appendChild(createActionButton({
-            className: 'btn btn-secondary btn-small user-change-password mb-2',
+            className: 'btn btn-secondary btn-small user-change-password mb-2 me-2',
             userId: user.user_id,
             username: user.username,
-            text: '🔒 Password'
+            text: `🔒 ${i18n.t('users.password')}`
         }));
 
         if (!isCurrentUser) {
             actionsCell.appendChild(createActionButton({
-                className: 'btn btn-danger btn-small user-delete mb-2',
+                className: 'btn btn-danger btn-small user-delete mb-2 me-2',
                 userId: user.user_id,
                 username: user.username,
-                text: '🗑️ Delete'
+                text: `🗑️ ${i18n.t('users.delete')}`
             }));
         }
 
@@ -365,15 +365,15 @@ function setupCreateUserForm() {
             const data = await response.json();
             
             if (response.ok) {
-                showMessage('success', 'User created successfully');
+                showMessage('success', i18n.t('users.success_create'));
                 form.reset();
                 loadUsers();
             } else {
-                showMessage('error', data.error || 'Failed to create user');
+                showMessage('error', data.error || i18n.t('users.error_create'));
             }
         } catch (error) {
             console.error('Error creating user:', error);
-            showMessage('error', 'Failed to create user');
+            showMessage('error', i18n.t('users.error_create'));
         }
     });
 }
@@ -381,14 +381,14 @@ function setupCreateUserForm() {
 // Edit username using modal dialog
 function editUsername(userId, currentUsername) {
     const titleElement = document.getElementById('modal_lg_close_title');
-    titleElement.textContent = '✏️ Edit Username';
+    titleElement.textContent = `✏️ ${i18n.t('users.edit_username')}`;
     
     const contentElement = document.getElementById('modal_lg_close_body');
     DOMUtils.clear(contentElement);
 
     const infoAlert = document.createElement('div');
     infoAlert.className = 'alert alert-info';
-    infoAlert.append('Edit username for: ');
+    infoAlert.append(i18n.t('users.edit_username_for'));
     const strong = document.createElement('strong');
     strong.textContent = currentUsername;
     infoAlert.appendChild(strong);
@@ -412,13 +412,13 @@ function editUsername(userId, currentUsername) {
     const label = document.createElement('label');
     label.className = 'form-label';
     label.setAttribute('for', 'new-username-input');
-    label.textContent = 'New Username:';
+    label.textContent = i18n.t('users.new_username');
     const input = document.createElement('input');
     input.type = 'text';
     input.id = 'new-username-input';
     input.required = true;
     input.minLength = 3;
-    input.placeholder = 'Minimum 3 characters';
+    input.placeholder = i18n.t('users.new_username_placeholder');
     input.autocomplete = 'username';
     input.className = 'form-control';
     input.value = currentUsername;
@@ -431,7 +431,7 @@ function editUsername(userId, currentUsername) {
     const submitBtn = document.createElement('button');
     submitBtn.type = 'submit';
     submitBtn.className = 'btn btn-primary';
-    submitBtn.textContent = 'Save Username';
+    submitBtn.textContent = i18n.t('users.save_username');
     actionsCol.appendChild(submitBtn);
 
     form.appendChild(hiddenUserId);
@@ -459,13 +459,13 @@ function editUsername(userId, currentUsername) {
         const userId = document.getElementById('edit-user-id').value;
         
         if (newUsername === currentUsername) {
-            errorDiv.textContent = 'Username unchanged';
+            errorDiv.textContent = i18n.t('users.username_unchanged');
             errorDiv.style.display = 'block';
             return;
         }
         
         if (newUsername.length < 3) {
-            errorDiv.textContent = 'Username must be at least 3 characters';
+            errorDiv.textContent = i18n.t('users.username_too_short');
             errorDiv.style.display = 'block';
             return;
         }
@@ -486,16 +486,16 @@ function editUsername(userId, currentUsername) {
             const data = await response.json();
             
             if (response.ok) {
-                showMessage('success', 'Username updated successfully');
+                showMessage('success', i18n.t('users.username_updated'));
                 loadUsers();
                 bs_modal.hide();
             } else {
-                errorDiv.textContent = data.error || 'Failed to update username';
+                errorDiv.textContent = data.error || i18n.t('users.error_update_username');
                 errorDiv.style.display = 'block';
             }
         } catch (error) {
             console.error('Error updating username:', error);
-            errorDiv.textContent = 'Failed to update username';
+            errorDiv.textContent = i18n.t('users.error_update_username');
             errorDiv.style.display = 'block';
         }
     };
@@ -504,14 +504,14 @@ function editUsername(userId, currentUsername) {
 // Edit user role using modal dialog
 function editRole(userId, username, currentRole) {
     const titleElement = document.getElementById('modal_lg_close_title');
-    titleElement.textContent = '🔑 Edit User Role';
+    titleElement.textContent = `🔑 ${i18n.t('users.edit_role')}`;
     
     const contentElement = document.getElementById('modal_lg_close_body');
     DOMUtils.clear(contentElement);
 
     const infoAlert = document.createElement('div');
     infoAlert.className = 'alert alert-info';
-    infoAlert.append('Edit role for: ');
+    infoAlert.append(i18n.t('users.edit_role_for'));
     const strong = document.createElement('strong');
     strong.textContent = username;
     infoAlert.appendChild(strong);
@@ -535,7 +535,7 @@ function editRole(userId, username, currentRole) {
     const label = document.createElement('label');
     label.className = 'form-label';
     label.setAttribute('for', 'new-role-select');
-    label.textContent = 'New Role:';
+    label.textContent = i18n.t('users.new_role');
     const select = document.createElement('select');
     select.id = 'new-role-select';
     select.className = 'form-select';
@@ -562,7 +562,7 @@ function editRole(userId, username, currentRole) {
     const submitBtn = document.createElement('button');
     submitBtn.type = 'submit';
     submitBtn.className = 'btn btn-primary';
-    submitBtn.textContent = 'Save Role';
+    submitBtn.textContent = i18n.t('users.save_role');
     actionsCol.appendChild(submitBtn);
 
     form.appendChild(hiddenUserId);
@@ -590,7 +590,7 @@ function editRole(userId, username, currentRole) {
         const userId = document.getElementById('edit-user-id').value;
         
         if (newRole === currentRole) {
-            errorDiv.textContent = 'Role unchanged';
+            errorDiv.textContent = i18n.t('users.role_unchanged');
             errorDiv.style.display = 'block';
             return;
         }
@@ -611,16 +611,16 @@ function editRole(userId, username, currentRole) {
             const data = await response.json();
             
             if (response.ok) {
-                showMessage('success', 'Role updated successfully');
+                showMessage('success', i18n.t('users.role_updated'));
                 loadUsers();
                 bs_modal.hide();
             } else {
-                errorDiv.textContent = data.error || 'Failed to update role';
+                errorDiv.textContent = data.error || i18n.t('users.error_update_role');
                 errorDiv.style.display = 'block';
             }
         } catch (error) {
             console.error('Error updating role:', error);
-            errorDiv.textContent = 'Failed to update role';
+            errorDiv.textContent = i18n.t('users.error_update_role');
             errorDiv.style.display = 'block';
         }
     };
@@ -630,7 +630,7 @@ function editRole(userId, username, currentRole) {
 function changePassword(userId, username) {
     //Prepare modal title
     const titleElement = document.getElementById('modal_lg_close_title');
-    titleElement.textContent = '🔒 Change Password';
+    titleElement.textContent = `🔒 ${i18n.t('users.change_password')}`;
     
     //Prepare modal content
     const contentElement = document.getElementById('modal_lg_close_body');
@@ -638,7 +638,7 @@ function changePassword(userId, username) {
 
     const infoAlert = document.createElement('div');
     infoAlert.className = 'alert alert-info';
-    infoAlert.append('Change password for user: ');
+    infoAlert.append(i18n.t('users.change_password_for'));
     const strong = document.createElement('strong');
     strong.id = 'password-modal-username';
     infoAlert.appendChild(strong);
@@ -670,13 +670,13 @@ function changePassword(userId, username) {
     const newPasswordLabel = document.createElement('label');
     newPasswordLabel.className = 'form-label';
     newPasswordLabel.setAttribute('for', 'new-password-input');
-    newPasswordLabel.textContent = 'New Password:';
+    newPasswordLabel.textContent = i18n.t('users.new_password');
     const newPasswordInput = document.createElement('input');
     newPasswordInput.type = 'password';
     newPasswordInput.id = 'new-password-input';
     newPasswordInput.required = true;
     newPasswordInput.minLength = 4;
-    newPasswordInput.placeholder = 'Minimum 4 characters';
+    newPasswordInput.placeholder = i18n.t('users.new_password_placeholder');
     newPasswordInput.autocomplete = 'new-password';
     newPasswordInput.className = 'form-control';
     newPasswordCol.appendChild(newPasswordLabel);
@@ -687,13 +687,13 @@ function changePassword(userId, username) {
     const confirmPasswordLabel = document.createElement('label');
     confirmPasswordLabel.className = 'form-label';
     confirmPasswordLabel.setAttribute('for', 'confirm-password-input');
-    confirmPasswordLabel.textContent = 'Confirm Password:';
+    confirmPasswordLabel.textContent = i18n.t('users.confirm_password');
     const confirmPasswordInput = document.createElement('input');
     confirmPasswordInput.type = 'password';
     confirmPasswordInput.id = 'confirm-password-input';
     confirmPasswordInput.required = true;
     confirmPasswordInput.minLength = 4;
-    confirmPasswordInput.placeholder = 'Re-enter password';
+    confirmPasswordInput.placeholder = i18n.t('users.confirm_password_placeholder');
     confirmPasswordInput.autocomplete = 'new-password';
     confirmPasswordInput.className = 'form-control';
     confirmPasswordCol.appendChild(confirmPasswordLabel);
@@ -705,7 +705,7 @@ function changePassword(userId, username) {
     const submitBtn = document.createElement('button');
     submitBtn.type = 'submit';
     submitBtn.className = 'btn btn-primary';
-    submitBtn.textContent = 'Change Password';
+    submitBtn.textContent = i18n.t('users.save_password');
     actionsCol.appendChild(submitBtn);
 
     form.appendChild(hiddenUserId);
@@ -769,14 +769,14 @@ function setupPasswordChangeModal(bs_modal, userId) {
             
             // Validate passwords match
             if (newPassword !== confirmPassword) {
-                errorDiv.textContent = 'Passwords do not match';
+                errorDiv.textContent = i18n.t('users.passwords_do_not_match');
                 errorDiv.style.display = 'block';
                 return;
             }
             
             // Validate password length
-            if (newPassword.length < 4) {
-                errorDiv.textContent = 'Password must be at least 4 characters';
+            if (newPassword.length < 6) {
+                errorDiv.textContent = i18n.t('users.password_too_short');
                 errorDiv.style.display = 'block';
                 return;
             }
@@ -797,19 +797,19 @@ function setupPasswordChangeModal(bs_modal, userId) {
                 const data = await response.json();
                 
                 if (response.ok) {
-                    showMessage('success', 'Password updated successfully');
+                    showMessage('success', i18n.t('users.password_updated'));
                     loadUsers();
 
                     // Close bootstrap modal
                     bs_modal.hide();
 
                 } else {
-                    errorDiv.textContent = data.error || 'Failed to update password';
+                    errorDiv.textContent = data.error || i18n.t('users.error_update_password');
                     errorDiv.style.display = 'block';
                 }
             } catch (error) {
                 console.error('Error updating password:', error);
-                errorDiv.textContent = 'Failed to update password';
+                errorDiv.textContent = i18n.t('users.error_update_password');
                 errorDiv.style.display = 'block';
             }
         };
@@ -818,7 +818,7 @@ function setupPasswordChangeModal(bs_modal, userId) {
 
 // Delete user
 async function deleteUser(userId, username) {
-    if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
+    if (!confirm(i18n.t('users.confirm_delete_user', { username }))) {
         return;
     }
     
@@ -834,14 +834,14 @@ async function deleteUser(userId, username) {
         const data = await response.json();
         
         if (response.ok) {
-            showMessage('success', 'User deleted successfully');
+            showMessage('success', i18n.t('users.user_deleted_successfully'));
             loadUsers();
         } else {
-            showMessage('error', data.error || 'Failed to delete user');
+            showMessage('error', data.error || i18n.t('users.error_delete_user'));
         }
     } catch (error) {
         console.error('Error deleting user:', error);
-        showMessage('error', 'Failed to delete user');
+        showMessage('error', i18n.t('users.error_delete_user'));
     }
 }
 
