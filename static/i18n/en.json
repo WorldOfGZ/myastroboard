@@ -436,7 +436,15 @@
     "next_execution": "Next execution in",
     "last_execution": "Last execution",
     "processing": "Processing",
-    "current": "Current: "
+    "current": "Current: ",
+    "complete": "Execution completed!",
+    "success": "All catalogues processed successfully.",
+    "manual_complete": "UpTonight scheduler execution completed!",
+    "scheduled_complete": "UpTonight scheduled execution completed!",
+    "run_now": "Run UpTonight Now",
+    "results_title": "{catalogue} Results",
+    "currently_loading_catalogue": "Catalogue currently loading via UpTonight...",
+    "loading_results_for": "Loading results for {catalogue}..."
   },
   
   "units": {

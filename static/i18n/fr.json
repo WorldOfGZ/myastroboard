@@ -436,7 +436,15 @@
     "next_execution": "Prochaine exécution dans",
     "last_execution": "Dernière exécution",
     "processing": "Traitement",
-    "current": "En cours : "
+    "current": "En cours : ",
+    "complete": "Exécution terminée !",
+    "success": "Tous les catalogues ont été traités avec succès.",
+    "manual_complete": "Exécution manuelle d'UpTonight terminée !",
+    "scheduled_complete": "Exécution planifiée d'UpTonight terminée !",
+    "run_now": "Exécuter UpTonight maintenant",
+    "results_title": "Résultats - {catalogue}",
+    "currently_loading_catalogue": "Catalogue en cours de chargement via UpTonight...",
+    "loading_results_for": "Chargement des résultats pour {catalogue}..."
   },
   
   "units": {

@@ -101,15 +101,15 @@ const UptonightScheduler = (() => {
     function finish() {
         stopPolling();
 
-        els.progress().textContent = '✅ Execution completed!';
+        els.progress().textContent = `✅ ${i18n.t('scheduler.complete')}`;
         els.detail().textContent =
-            'All catalogues processed successfully';
+            i18n.t('scheduler.success');
 
         showMessage(
             'success',
             state.mode === 'manual'
-                ? 'UpTonight scheduler execution completed!'
-                : 'UpTonight scheduled execution completed!'
+                ? i18n.t('scheduler.manual_complete')
+                : i18n.t('scheduler.scheduled_complete')
         );
 
         setTimeout(resetUI, state.mode === 'manual' ? 3000 : 5000);
@@ -149,14 +149,14 @@ const UptonightScheduler = (() => {
         const btn = els.button();
         if (!btn) return;
         btn.disabled = true;
-        btn.textContent = '⏳ Running...';
+        btn.textContent = `⏳ ${i18n.t('scheduler.status_running')}`;
     }
 
     function resetButton() {
         const btn = els.button();
         if (!btn) return;
         btn.disabled = false;
-        btn.textContent = '▶️ Run UpTonight Now';
+        btn.textContent = `▶️ ${i18n.t('scheduler.run_now')}`;
     }
 
     function resetUI() {
@@ -177,7 +177,7 @@ const UptonightScheduler = (() => {
             wrapper.className = 'shadow p-2 mb-3 rounded bg-sub-container';
 
             const title = document.createElement('h2');
-            title.textContent = `📚 ${catalogue} Results`;
+            title.textContent = `📚 ${i18n.t('scheduler.results_title', { catalogue })}`;
 
             const tabs = document.createElement('ul');
             tabs.className = 'nav nav-pills sub-tabs';
@@ -186,7 +186,7 @@ const UptonightScheduler = (() => {
             const content = document.createElement('div');
             content.id = `catalogue-${catalogue}-content`;
             content.className = 'loading';
-            content.textContent = 'Catalogue currently loading via UpTonight...';
+            content.textContent = i18n.t('scheduler.currently_loading_catalogue', { catalogue });
 
             wrapper.appendChild(title);
             wrapper.appendChild(tabs);
@@ -198,7 +198,7 @@ const UptonightScheduler = (() => {
 
         const div = document.createElement('div');
         div.className = 'loading-message';
-        div.textContent = `Loading results for ${catalogue}...`;
+        div.textContent = i18n.t('scheduler.loading_results_for', { catalogue });
         return div;
     }
 
