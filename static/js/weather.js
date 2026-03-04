@@ -73,10 +73,10 @@ async function loadWeather() {
     const container = document.getElementById('weather-display');
     const containerLocation = document.getElementById('weather-location');
     
-    const data = await fetchJSONWithUI('/api/weather/forecast', container, 'Loading weather data...');
+    const data = await fetchJSONWithUI('/api/weather/forecast', container, i18n.t('weather.loading_title'));
     if (!data) return;
     
-    
+    //console.log('Weather forecast data:', data);
     
     // Clear containers
     clearContainer(containerLocation);
@@ -107,7 +107,7 @@ async function loadWeather() {
         coordBody.className = 'card-body';
         const coordP = document.createElement('p');
         coordP.className = 'card-text';
-        coordP.textContent = `Lat: ${data.location.latitude.toFixed(2)}°\nLon: ${data.location.longitude.toFixed(2)}°\nElevation: ${data.location.elevation} m`;
+        coordP.textContent = `${i18n.t('weather.latitude')}${data.location.latitude.toFixed(2)}${i18n.t('units.degrees')}\n${i18n.t('weather.longitude')}${data.location.longitude.toFixed(2)}${i18n.t('units.degrees')}\n${i18n.t('weather.elevation')}${data.location.elevation} ${i18n.t('units.meters')}`;
         coordP.style.whiteSpace = 'pre-line';
         coordBody.appendChild(coordP);
         coordCard.appendChild(coordBody);
@@ -121,7 +121,7 @@ async function loadWeather() {
         tzBody.className = 'card-body';
         const tzP = document.createElement('p');
         tzP.className = 'card-text';
-        tzP.textContent = `Timezone: ${data.location.timezone}`;
+        tzP.textContent = `${i18n.t('weather.timezone')}${data.location.timezone}`;
         tzBody.appendChild(tzP);
         tzCard.appendChild(tzBody);
         tzCol.appendChild(tzCard);
@@ -151,19 +151,19 @@ async function loadWeather() {
             let quality = '';
             let qualityClass = '';
             if (condition >= 90) {
-                quality = 'Excellent';
+                quality = i18n.t('common.quality_scale.excellent');
                 qualityClass = 'quality-excellent';
             } else if (condition >= 70) {
-                quality = 'Good';
+                quality = i18n.t('common.quality_scale.good');
                 qualityClass = 'quality-good';
             } else if (condition >= 50) {
-                quality = 'Fair';
+                quality = i18n.t('common.quality_scale.fair');
                 qualityClass = 'quality-fair';
             } else if (condition > 30) {
-                quality = 'Poor';
+                quality = i18n.t('common.quality_scale.poor');
                 qualityClass = 'quality-poor';
             } else {
-                quality = 'Bad';
+                quality = i18n.t('common.quality_scale.bad');
                 qualityClass = 'quality-bad';
             }
 
@@ -182,19 +182,19 @@ async function loadWeather() {
             cardBody.className = 'card-body';
             const title = document.createElement('h5');
             title.className = 'card-title card-title-weather';
-            title.textContent = date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+            title.textContent = formatTimeOnly(date);
 
             const list = document.createElement('ul');
             list.className = 'list-group list-group-flush';
-            list.appendChild(createWeatherMetricItem('☁️ Cloud Cover:', `${cloudCover}%`));
-            list.appendChild(createWeatherMetricItem(' > Low:', `${cloudCoverL}%`));
-            list.appendChild(createWeatherMetricItem(' > Mid:', `${cloudCoverM}%`));
-            list.appendChild(createWeatherMetricItem(' > High:', `${cloudCoverH}%`));
-            list.appendChild(createWeatherMetricItem('💧 Humidity:', `${humidity}%`));
-            list.appendChild(createWeatherMetricItem('🌡️ Temperature:', `${temp}°C`));
-            list.appendChild(createWeatherMetricItem('💎 Dew Point:', `${dewPoint}°C`));
-            list.appendChild(createWeatherMetricItem('🔽 Pressure:', `${pressure} hPa`));
-            list.appendChild(createWeatherMetricItem('💨 Wind:', `${windSpeed} km/h`));
+            list.appendChild(createWeatherMetricItem(`☁️ ${i18n.t('weather.cloud_cover')}`, `${cloudCover}${i18n.t('units.percent')}`));
+            list.appendChild(createWeatherMetricItem(` > ${i18n.t('weather.low')}`, `${cloudCoverL}${i18n.t('units.percent')}`));
+            list.appendChild(createWeatherMetricItem(` > ${i18n.t('weather.mid')}`, `${cloudCoverM}${i18n.t('units.percent')}`));
+            list.appendChild(createWeatherMetricItem(` > ${i18n.t('weather.high')}`, `${cloudCoverH}${i18n.t('units.percent')}`));
+            list.appendChild(createWeatherMetricItem(`💧 ${i18n.t('weather.humidity')}`, `${humidity}${i18n.t('units.percent')}`));
+            list.appendChild(createWeatherMetricItem(`🌡️ ${i18n.t('weather.temperature')}`, `${temp}${i18n.t('units.temperature_celsius')}`));
+            list.appendChild(createWeatherMetricItem(`💎 ${i18n.t('weather.dew_point')}`, `${dewPoint}${i18n.t('units.temperature_celsius')}`));
+            list.appendChild(createWeatherMetricItem(`🔽 ${i18n.t('weather.pressure')}`, `${pressure} ${i18n.t('units.hpa')}`));
+            list.appendChild(createWeatherMetricItem(`💨 ${i18n.t('weather.wind')}`, `${windSpeed} ${i18n.t('units.wind_speed_kmh')}`));
 
             cardBody.appendChild(title);
             cardBody.appendChild(list);
@@ -210,9 +210,6 @@ async function loadWeather() {
 let cloudConditionsChartInstance = null;
 let seeingConditionsChartInstance = null;
 
-function isCompactChart() {
-    return window.matchMedia('(max-width: 575.98px)').matches;
-}
 //Load Astronomical Charts
 async function loadAstronomicalCharts() {
     const loadingDiv = document.getElementById('astro-charts-loading');
@@ -237,13 +234,13 @@ async function loadAstronomicalCharts() {
                 const seconds = Math.max(1, Math.round(waitMs / 1000));
                 const message = reason === 'data' && retryData && retryData.message
                     ? retryData.message
-                    : 'Loading astronomical charts...';
-                loadingDiv.textContent = `${message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
+                    : i18n.t('weather.loading_astro_chart');
+                loadingDiv.textContent = `${message} ${i18n.t('common.retrying_in', { seconds, attempt, maxAttempts })}`;
             }
         });
 
         if (data.status === 'pending') {
-            throw new Error(data.message || 'Cache not ready');
+            throw new Error(data.message || i18n.t('cache.cache_not_ready'));
         }
 
         //console.log(data);
@@ -258,7 +255,8 @@ async function loadAstronomicalCharts() {
         // Extract data for charts
         const labels = data.hourly.map(item => {
             const date = new Date(item.date);
-            return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+            //return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+            return formatTimeOnly(date);
         });
         
         const condition = data.hourly.map(item => item.condition);
@@ -285,24 +283,23 @@ async function loadAstronomicalCharts() {
         const container1 = document.getElementById('cloudConditionsChartContainer');
         if (container1) {
             DOMUtils.clear(container1);
-            container1.appendChild(createChartShell('☁️ Clouds & 💨 Wind', 'cloudConditionsChart', [
-                { label: 'Cloudless', color: '#22c55e' },
-                { label: 'Condition', color: '#ef4444' },
-                { label: 'Fog', color: '#808080' }
-            ], 'Percentage (%)'));
+            container1.appendChild(createChartShell(`☁️ ${i18n.t('weather.chart_cloud_title')}`, 'cloudConditionsChart', [
+                { label: i18n.t('weather.chart_cloudless'), color: '#22c55e' },
+                { label: i18n.t('weather.chart_condition'), color: '#ef4444' },
+                { label: i18n.t('weather.chart_fog'), color: '#808080' }
+            ], i18n.t('weather.chart_percentage')));
         }
         
         const ctx1 = document.getElementById('cloudConditionsChart');
         if (!ctx1) return;
         const ctx1_2d = ctx1.getContext('2d');
-        const compactChart = isCompactChart();
         cloudConditionsChartInstance = new Chart(ctx1_2d, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [
                     {
-                        label: 'Fog',
+                        label: i18n.t('weather.chart_fog'),
                         data: fog,
                         type: 'bar',
                         backgroundColor: 'rgba(128, 128, 128, 0.3)',
@@ -312,7 +309,7 @@ async function loadAstronomicalCharts() {
                         yAxisID: 'y'
                     },
                     {
-                        label: 'Condition',
+                        label: i18n.t('weather.chart_condition'),
                         data: condition,
                         borderColor: 'rgb(239, 68, 68)',
                         backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -324,7 +321,7 @@ async function loadAstronomicalCharts() {
                         yAxisID: 'y'
                     },
                     {
-                        label: 'Cloudless',
+                        label: i18n.t('weather.chart_cloudless'),
                         data: cloudless,
                         borderColor: 'rgb(34, 197, 94)',
                         backgroundColor: 'rgba(34, 197, 94, 0.1)',
@@ -335,7 +332,7 @@ async function loadAstronomicalCharts() {
                         yAxisID: 'y'
                     },
                     {
-                        label: 'H (Cloudless High)',
+                        label: i18n.t('weather.chart_cloudless_high'),
                         data: cloudHigh,
                         borderColor: 'rgb(74, 222, 128)',
                         backgroundColor: 'rgba(74, 222, 128, 0.1)',
@@ -347,7 +344,7 @@ async function loadAstronomicalCharts() {
                         yAxisID: 'y'
                     },
                     {
-                        label: 'M (Cloudless Mid)',
+                        label: i18n.t('weather.chart_cloudless_mid'),
                         data: cloudMid,
                         borderColor: 'rgb(134, 239, 172)',
                         backgroundColor: 'rgba(134, 239, 172, 0.1)',
@@ -359,7 +356,7 @@ async function loadAstronomicalCharts() {
                         yAxisID: 'y'
                     },
                     {
-                        label: 'L (Cloudless Low)',
+                        label: i18n.t('weather.chart_cloudless_low'),
                         data: cloudLow,
                         borderColor: 'rgb(187, 247, 208)',
                         backgroundColor: 'rgba(187, 247, 208, 0.1)',
@@ -371,7 +368,7 @@ async function loadAstronomicalCharts() {
                         yAxisID: 'y'
                     },
                     {
-                        label: 'Calm',
+                        label: i18n.t('weather.chart_calm'),
                         data: calm,
                         borderColor: 'rgb(220, 38, 38)',
                         backgroundColor: 'rgba(220, 38, 38, 0.1)',
@@ -415,7 +412,7 @@ async function loadAstronomicalCharts() {
                         position: 'left',
                         title: {
                             display: true,
-                            text: 'Percentage (%)'
+                            text: i18n.t('weather.chart_percentage'),
                         },
                         min: 0,
                         max: 105,
@@ -425,7 +422,7 @@ async function loadAstronomicalCharts() {
                                 if (value === 105) {
                                     return '';
                                 }
-                                return value + '%';
+                                return value + i18n.t('units.percent');
                             }
                         },
                         afterBuildTicks: function(axis) {
@@ -435,7 +432,7 @@ async function loadAstronomicalCharts() {
                     x: {
                         title: {
                             display: true,
-                            text: 'Time'
+                            text: i18n.t('common.time_label'),
                         }
                     }
                 }
@@ -446,27 +443,26 @@ async function loadAstronomicalCharts() {
         const container2 = document.getElementById('seeingConditionsChartContainer');
         if (container2) {
             DOMUtils.clear(container2);
-            container2.appendChild(createChartShell('👁️ Seeing & ✨ Atmospheric Conditions', 'seeingConditionsChart', [
-                { label: 'Fog', color: '#808080' },
-                { label: 'Condition', color: '#ef4444' },
-                { label: 'Seeing', color: '#f97316' },
-                { label: 'Transparency', color: '#1e3a8a' },
-                { label: 'Lifted Index', color: '#06b6d4' },
-                { label: 'Precipitation', color: '#2563eb' }
+            container2.appendChild(createChartShell(`👁️ ${i18n.t('weather.chart_seeing_title')}`, 'seeingConditionsChart', [
+                { label: i18n.t('weather.chart_fog'), color: '#808080' },
+                { label: i18n.t('weather.chart_condition'), color: '#ef4444' },
+                { label: i18n.t('weather.chart_seeing'), color: '#f97316' },
+                { label: i18n.t('weather.chart_transparency'), color: '#1e3a8a' },
+                { label: i18n.t('weather.chart_lifted_index'), color: '#06b6d4' },
+                { label: i18n.t('weather.chart_precipitation'), color: '#2563eb' }
             ], ''));
         }
         
         const ctx2 = document.getElementById('seeingConditionsChart');
         if (!ctx2) return;
         const ctx2_2d = ctx2.getContext('2d');
-        const compactChart2 = isCompactChart();
         seeingConditionsChartInstance = new Chart(ctx2_2d, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [
                     {
-                        label: 'Fog',
+                        label: i18n.t('weather.chart_fog'),
                         data: fog,
                         type: 'bar',
                         backgroundColor: 'rgba(128, 128, 128, 0.3)',
@@ -476,7 +472,7 @@ async function loadAstronomicalCharts() {
                         yAxisID: 'y'
                     },
                     {
-                        label: 'Condition',
+                        label: i18n.t('weather.chart_condition'),
                         data: condition,
                         borderColor: 'rgb(239, 68, 68)',
                         backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -488,7 +484,7 @@ async function loadAstronomicalCharts() {
                         yAxisID: 'y'
                     },
                     {
-                        label: 'Seeing',
+                        label: i18n.t('weather.chart_seeing'),
                         data: seeing,
                         borderColor: 'rgb(249, 115, 22)',
                         backgroundColor: 'rgba(249, 115, 22, 0.1)',
@@ -499,7 +495,7 @@ async function loadAstronomicalCharts() {
                         yAxisID: 'y'
                     },
                     {
-                        label: 'Transparency',
+                        label: i18n.t('weather.chart_transparency'),
                         data: transparency,
                         borderColor: 'rgb(30, 58, 138)',
                         backgroundColor: 'rgba(30, 58, 138, 0.1)',
@@ -510,7 +506,7 @@ async function loadAstronomicalCharts() {
                         yAxisID: 'y'
                     },
                     {
-                        label: 'Lifted Index',
+                        label: i18n.t('weather.chart_lifted_index'),
                         data: liftedIndex,
                         borderColor: 'rgb(6, 182, 212)',
                         backgroundColor: 'rgba(6, 182, 212, 0.1)',
@@ -521,7 +517,7 @@ async function loadAstronomicalCharts() {
                         yAxisID: 'y1'
                     },
                     {
-                        label: 'Precipitation',
+                        label: i18n.t('weather.chart_precipitation'),
                         data: precipitation,
                         borderColor: 'rgb(37, 99, 235)',
                         backgroundColor: 'rgba(37, 99, 235, 0.1)',
@@ -556,10 +552,10 @@ async function loadAstronomicalCharts() {
                                 if (context.dataset.yAxisID === 'y') {
                                     label += Math.round(context.parsed.y * 10) / 10 + '%';
                                 } else if (context.dataset.yAxisID === 'y1') {
-                                    if (context.dataset.label === 'Precipitation') {
-                                        label += Math.round(context.parsed.y * 100) / 100 + 'mm';
+                                    if (context.dataset.label === i18n.t('weather.chart_precipitation')) {
+                                        label += Math.round(context.parsed.y * 100) / 100 + i18n.t('units.precipitation_mm');
                                     } else {
-                                        label += Math.round(context.parsed.y * 10) / 10 + '°C';
+                                        label += Math.round(context.parsed.y * 10) / 10 + i18n.t('units.temperature_celsius');
                                     }
                                 }
                                 return label;
@@ -574,7 +570,7 @@ async function loadAstronomicalCharts() {
                         position: 'left',
                         title: {
                             display: true,
-                            text: 'Percentage (%)'
+                            text: i18n.t('weather.chart_percentage')
                         },
                         min: 0,
                         max: 105,
@@ -584,7 +580,7 @@ async function loadAstronomicalCharts() {
                                 if (value === 105) {
                                     return '';
                                 }
-                                return value + '%';
+                                return value + i18n.t('units.percent');
                             }
                         },
                         afterBuildTicks: function(axis) {
@@ -597,7 +593,7 @@ async function loadAstronomicalCharts() {
                         position: 'right',
                         title: {
                             display: true,
-                            text: 'Temp (°C) / Precip (mm)'
+                            text: i18n.t('weather.chart_temp_precip')
                         },
                         grid: {
                             drawOnChartArea: false,
@@ -606,7 +602,7 @@ async function loadAstronomicalCharts() {
                     x: {
                         title: {
                             display: true,
-                            text: 'Time'
+                            text: i18n.t('common.time_label'),
                         }
                     }
                 }

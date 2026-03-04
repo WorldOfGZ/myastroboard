@@ -68,7 +68,8 @@
     "saturn": "Saturn",
     "uranus": "Uranus",
     "neptune": "Neptune",
-    "pluto": "Pluto"
+    "pluto": "Pluto",
+    "moon": "Moon"
   },
   
   "astro_weather": {
@@ -355,6 +356,45 @@
     "in_days": "In {days} days"
   },
 
+  "weather": {
+    "observation_conditions": "Observation Conditions",
+    "forecast": "Forecast",
+    "loading_title": "Loading weather data...",
+    "loading_text": "Fetching forecast and astronomical information",
+    "observation_next_hours": "Observation Conditions - Next 12 Hours",
+    "loading_astro": "Loading astronomical data...",
+    "loading_astro_failed": "Failed to load astronomical data. Please check your internet connection.",
+    "cloud_cover": "Cloud Cover: ",
+    "low": "Low: ",
+    "mid": "Mid: ",
+    "high": "High: ",
+    "humidity": "Humidity: ",
+    "temperature": "Temperature: ",
+    "dew_point": "Dew Point: ",
+    "pressure": "Pressure: ",
+    "wind": "Wind: ",
+    "loading_astro_chart": "Loading astronomical charts...",
+    "chart_cloud_title": "Clouds & Wind",
+    "chart_cloudless": "Cloudless",
+    "chart_condition": "Condition",
+    "chart_fog": "Fog",
+    "chart_percentage": "Percentage (%)",
+    "chart_cloudless_high": "H (Cloudless High)",
+    "chart_cloudless_mid": "M (Cloudless Mid)",
+    "chart_cloudless_low": "L (Cloudless Low)",
+    "chart_calm": "Calm",
+    "chart_seeing_title": "Seeing & Atmospheric Conditions",
+    "chart_seeing": "Seeing",
+    "chart_transparency": "Transparency",
+    "chart_lifted_index": "Lifted Index",
+    "chart_precipitation": "Precipitation",
+    "chart_temp_precip": "Temp (°C) / Precip (mm)",
+    "longitude": "Longitude: ",
+    "latitude": "Latitude: ",
+    "elevation": "Elevation: ",
+    "timezone": "Timezone: "
+  },
+
   "events_api": {
     "solar_eclipse_description": "{eclipse_type} eclipse with {obscuration_percent}% obscuration. Peak at {peak_altitude_deg}° altitude.",
     "lunar_eclipse_description": "{eclipse_type} lunar eclipse with {obscuration_percent}% coverage at peak.",
@@ -454,8 +494,11 @@
     "degrees": "°",
     "percent": "%",
     "km": "km",
+    "meters": "m",
+    "precipitation_mm": "mm",
     "wind_speed_kmh": "km/h",
     "temperature_celsius": "°C",
+    "hpa": "hPa",
     "na": "N/A"
   },
 

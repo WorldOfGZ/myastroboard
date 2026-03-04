@@ -280,10 +280,10 @@
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
                 <ul class="nav nav-pills sub-tabs" id="forecast-weather-subtabs">
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="weather">🌤️ Weather</a>
+                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="weather">🌤️ <span data-i18n="navbar.weather">Weather</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="trend">📈 Observation Conditions</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="trend">📈 <span data-i18n="weather.observation_conditions">Observation Conditions</span></a>
                     </li>
                 </ul>
             </div>
@@ -291,14 +291,14 @@
             <!-- Weather Sub-tab -->
             <div id="weather-subtab" class="sub-tab-content active">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌤️ Weather Forecast</h2>
+                    <h2>🌤️ <span data-i18n="weather.forecast">Weather Forecast</span></h2>
                     <div id="weather-location" class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4"></div>
                     <div id="weather-display" class="row row-cols-1 row-cols-sm-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6">
                         <div class="col">
                             <div class="card h-100">
                                 <div class="card-body">
-                                    <h5 class="card-title">☁️ Loading weather data...</h5>
-                                    <p class="card-text">Fetching forecast and astronomical information</p>
+                                    <h5 class="card-title">☁️ <span data-i18n="weather.loading_title">Loading weather data...</span></h5>
+                                    <p class="card-text" data-i18n="weather.loading_text">Fetching forecast and astronomical information</p>
                                 </div>
                             </div>
                         </div>
@@ -310,8 +310,8 @@
             <div id="trend-subtab" class="sub-tab-content">
                 <!-- Astronomical Observation Charts -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📈 Observation Conditions - Next 12 Hours</h2>
-                    <div id="astro-charts-loading" class="alert alert-info" role="alert">
+                    <h2>📈 <span data-i18n="weather.observation_next_hours">Observation Conditions - Next 12 Hours</span></h2>
+                    <div id="astro-charts-loading" class="alert alert-info" role="alert" data-i18n="weather.loading_astro">
                         Loading astronomical data...
                     </div>
 
@@ -320,7 +320,7 @@
                         <div id="seeingConditionsChartContainer" class="col mb-3"></div>
                     </div>
                     
-                    <div id="astro-charts-error" class="alert alert-danger" role="alert" style="display: none">
+                    <div id="astro-charts-error" class="alert alert-danger" role="alert" style="display: none" data-i18n="weather.loading_astro_failed">
                         Failed to load astronomical data. Please check your internet connection.
                     </div>
                 </div>
