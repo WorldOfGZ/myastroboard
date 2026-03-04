@@ -110,7 +110,10 @@ async function loadAstroWeather() {
     if (container) container.style.display = 'none';
     
     try {
-        const data = await fetchJSONWithRetry('/api/weather/astro-analysis?hours=24', {}, {
+        const currentLang = (typeof i18n !== 'undefined' && typeof i18n.getCurrentLanguage === 'function')
+            ? i18n.getCurrentLanguage()
+            : 'en';
+        const data = await fetchJSONWithRetry(`/api/weather/astro-analysis?hours=24&lang=${encodeURIComponent(currentLang)}`, {}, {
             maxAttempts: 8,
             baseDelayMs: 1000,
             maxDelayMs: 15000,
@@ -683,7 +686,7 @@ function renderWeatherAlerts(alerts) {
         const title = document.createElement('div');
         title.className = 'fw-bold';
         const time = new Date(alertData.time);
-        title.textContent = `${getSeverityIcon(alertData.severity)} ${alertData.type.replace('_', ' ')} ${formatTimeOnly(time)}`;
+        title.textContent = `${getSeverityIcon(alertData.severity)} ${getWeatherAlertTypeLabel(alertData.type)} ${formatTimeOnly(time)}`;
 
         const message = document.createElement('div');
         message.textContent = alertData.message;
@@ -746,6 +749,20 @@ function getSeverityIcon(severity) {
         case 'LOW': return '🟢';
         default: return 'ℹ️';
     }
+}
+
+function getWeatherAlertTypeLabel(type) {
+    const keyMap = {
+        DEW_WARNING: 'weather_alerts.alert_dew_warning',
+        WIND_WARNING: 'weather_alerts.alert_wind_warning',
+        SEEING_WARNING: 'weather_alerts.alert_seeing_warning',
+        TRANSPARENCY_WARNING: 'weather_alerts.alert_transparency_warning',
+    };
+    const key = keyMap[type];
+    if (key) {
+        return i18n.t(key);
+    }
+    return String(type || '').replaceAll('_', ' ');
 }
 
 /**

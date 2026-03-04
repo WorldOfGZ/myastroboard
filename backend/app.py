@@ -1129,12 +1129,17 @@ def get_astro_weather_analysis_api():
     """Get comprehensive astrophotography weather analysis"""
     try:
         from weather_astro import get_astro_weather_analysis
+
+        requested_language = request.args.get("lang") or request.headers.get("Accept-Language", "en")
+        requested_language = requested_language.split(",")[0].split("-")[0].lower()
+        supported_languages = I18nManager.get_supported_languages()
+        language = requested_language if requested_language in supported_languages else "en"
         
         # Get optional hours parameter (default 24)
         hours = request.args.get('hours', 24, type=int)
         hours = min(max(hours, 1), 72)  # Limit between 1-72 hours
         
-        analysis = get_astro_weather_analysis(hours)
+        analysis = get_astro_weather_analysis(hours, language=language)
         if analysis is None:
             return jsonify({"error": "Failed to fetch astrophotography weather analysis"}), 500
         
@@ -1167,8 +1172,13 @@ def get_weather_alerts_api():
     """Get weather alerts for astrophotography"""
     try:
         from weather_astro import get_astro_weather_analysis
+
+        requested_language = request.args.get("lang") or request.headers.get("Accept-Language", "en")
+        requested_language = requested_language.split(",")[0].split("-")[0].lower()
+        supported_languages = I18nManager.get_supported_languages()
+        language = requested_language if requested_language in supported_languages else "en"
         
-        analysis = get_astro_weather_analysis(6)  # Next 6 hours for alerts
+        analysis = get_astro_weather_analysis(6, language=language)  # Next 6 hours for alerts
         if analysis is None:
             return jsonify({"error": "Failed to fetch weather alerts"}), 500
         

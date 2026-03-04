@@ -18,6 +18,7 @@ Usage:
 import json
 import os
 from typing import Dict, Optional, Any
+from datetime import datetime
 from logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -224,15 +225,22 @@ def create_translated_alert(
     
     # Map alert types to translation keys
     alert_message_keys = {
-        'DEW_WARNING': 'weather_alerts.alert_dew_warning',
-        'WIND_WARNING': 'weather_alerts.alert_wind_warning',
-        'SEEING_WARNING': 'weather_alerts.alert_seeing_warning',
-        'TRANSPARENCY_WARNING': 'weather_alerts.alert_transparency_warning',
+        'DEW_WARNING': 'weather_alerts.critical_dew_risk',
+        'WIND_WARNING': 'weather_alerts.critical_wind_conditions',
+        'SEEING_WARNING': 'weather_alerts.poor_seeing_conditions',
+        'TRANSPARENCY_WARNING': 'weather_alerts.poor_transparency_conditions',
     }
     
+    # Format display time for message placeholder
+    display_time = time
+    try:
+        display_time = datetime.fromisoformat(time).strftime('%H:%M')
+    except Exception:
+        pass
+
     # Get translated message
     message_key = alert_message_keys.get(alert_type, 'weather_alerts.section_title')
-    message = manager.t(message_key)
+    message = manager.t(message_key, time=display_time)
     
     return {
         'type': alert_type,

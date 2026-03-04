@@ -40,7 +40,10 @@ class WeatherAlertsSystem {
     
     async checkForAlerts() {
         try {
-            const data = await fetchJSONWithRetry('/api/weather/alerts', {}, {
+            const currentLang = (typeof i18n !== 'undefined' && typeof i18n.getCurrentLanguage === 'function')
+                ? i18n.getCurrentLanguage()
+                : 'en';
+            const data = await fetchJSONWithRetry(`/api/weather/alerts?lang=${encodeURIComponent(currentLang)}`, {}, {
                 maxAttempts: 3,
                 baseDelayMs: 1000,
                 maxDelayMs: 8000,
@@ -120,7 +123,7 @@ class WeatherAlertsSystem {
         const activeAlerts = this.alerts.filter(alert => this.isAlertActive(alert));
 
         // Set modal content
-        document.getElementById('modal_lg_close_title').textContent = 'Weather Alerts for Astrophotography';
+        document.getElementById('modal_lg_close_title').textContent = i18n.t('weather_alerts.section_title');
         const modalBody = document.getElementById('modal_lg_close_body');
         DOMUtils.clear(modalBody);
 
@@ -130,7 +133,7 @@ class WeatherAlertsSystem {
         if (activeAlerts.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'modal-no-alerts';
-            empty.textContent = 'No active weather alerts';
+            empty.textContent = i18n.t('weather_alerts.no_alerts');
             wrapper.appendChild(empty);
         } else {
             activeAlerts.forEach((alert) => {
@@ -147,7 +150,7 @@ class WeatherAlertsSystem {
                 const iconSpan = document.createElement('span');
                 iconSpan.textContent = icon;
                 const typeSpan = document.createElement('span');
-                typeSpan.textContent = ` ${String(alert.type || '').replaceAll('_', ' ')}`;
+                typeSpan.textContent = ` ${this.getAlertTypeLabel(alert.type)}`;
                 const timeSpan = document.createElement('span');
                 timeSpan.textContent = ` ${alertTime.toLocaleString()}`;
 
@@ -201,6 +204,20 @@ class WeatherAlertsSystem {
             'CLOUD_WARNING': '☁️'
         };
         return icons[type] || '⚠️';
+    }
+
+    getAlertTypeLabel(type) {
+        const keyMap = {
+            DEW_WARNING: 'weather_alerts.alert_dew_warning',
+            WIND_WARNING: 'weather_alerts.alert_wind_warning',
+            SEEING_WARNING: 'weather_alerts.alert_seeing_warning',
+            TRANSPARENCY_WARNING: 'weather_alerts.alert_transparency_warning',
+        };
+        const key = keyMap[type];
+        if (key) {
+            return i18n.t(key);
+        }
+        return String(type || '').replaceAll('_', ' ');
     }
     
     destroy() {

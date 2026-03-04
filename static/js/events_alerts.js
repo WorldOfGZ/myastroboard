@@ -93,7 +93,7 @@ function displayEvents(eventsData) {
 
     //console.log("Events data received:", eventsData);
     //console.log("Next event:", nextEvent);
-    console.log("All events in next 30 days:", eventsIn30Days);
+    //console.log("All events in next 30 days:", eventsIn30Days);
     //console.log("Visible events in next 30 days:", visibleEvents);
 
 
