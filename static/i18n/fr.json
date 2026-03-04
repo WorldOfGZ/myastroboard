@@ -58,6 +58,18 @@
     "iss": "ISS",
     "calendar": "Calendrier des événements"
   },
+
+  "planets": {
+    "mercury": "Mercure",
+    "venus": "Vénus",
+    "earth": "Terre",
+    "mars": "Mars",
+    "jupiter": "Jupiter",
+    "saturn": "Saturne",
+    "uranus": "Uranus",
+    "neptune": "Neptune",
+    "pluto": "Pluton"
+  },
   
   "astro_weather": {
     "section_title": "Conditions Actuelles",
@@ -336,7 +348,43 @@
     "no_significant_events": "Aucun événement astronomique significatif dans les 30 prochains jours.",
     "details": "Détails",
     "visible": "Visible",
-    "invisible": "Invisible"
+    "invisible": "Invisible",
+    "happening_now": "En cours !",
+    "today": "Aujourd'hui !",
+    "tomorrow": "Demain !",
+    "in_days": "Dans {days} jours"
+  },
+
+  "events_api": {
+    "solar_eclipse_description": "Éclipse {eclipse_type} avec {obscuration_percent}% d'obscuration. Pic à {peak_altitude_deg}° d'altitude.",
+    "lunar_eclipse_description": "Éclipse lunaire {eclipse_type} avec {obscuration_percent}% de couverture au pic.",
+    "aurora_description": "Visibilité aurorale : {visibility_percent}% de probabilité. Indice Kp : {kp_index}",
+    "moon_phase_description": "{phase} à observer. Bon moment pour {activity}.",
+    "iss_description": "Score du passage ISS {score}/100 ({visibility_day_night}). Altitude maximale {peak_altitude_deg}°.",
+    "activities": {
+      "deep_sky_observations": "l'observation du ciel profond",
+      "lunar_observations": "l'observation lunaire",
+      "lunar_photography": "la photographie lunaire",
+      "observing": "l'observation"
+    },
+    "iss_periods": {
+      "astronomical_night": "Nuit astronomique",
+      "nautical_twilight": "Crépuscule nautique",
+      "civil_twilight": "Crépuscule civil",
+      "twilight": "Crépuscule",
+      "daylight": "Lumière du jour",
+      "unknown": "Inconnu"
+    },
+    "planetary": {
+      "conjunction_title": "Conjonction {planet1} - {planet2}",
+      "conjunction_description": "{planet1} et {planet2} apparaissent très proches dans le ciel",
+      "opposition_title": "{planet} en opposition",
+      "opposition_description": "{planet} est en opposition (visibilité optimale). Conditions idéales pour l'observation.",
+      "elongation_title": "{planet} à l'élongation maximale",
+      "elongation_description": "{planet} atteint son élongation maximale ({elongation_degrees}°). Meilleur moment d'observation.",
+      "retrograde_title": "Mouvement rétrograde de {planet}",
+      "retrograde_description": "{planet} semble se déplacer vers l'arrière pendant ~{duration_days} jours."
+    }
   },
   
   "weather_alerts": {

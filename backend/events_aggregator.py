@@ -42,6 +42,7 @@ from typing import Optional, List, Dict, Any
 from zoneinfo import ZoneInfo
 from enum import Enum
 from logging_config import get_logger
+from i18n_utils import I18nManager
 
 logger = get_logger(__name__)
 
@@ -91,6 +92,7 @@ class AstronomicalEvent:
     importance: str                           # Importance level
     score: Optional[float]                    # Importance score (0-10)
     raw_data: Dict[str, Any]                  # Original data for detailed view
+    structure_key: str                        # Stable frontend section key (moon, sun, ...)
 
 
 class EventsAggregator:
@@ -99,7 +101,7 @@ class EventsAggregator:
     Provides unified interface for event queries.
     """
 
-    def __init__(self, latitude: float, longitude: float, timezone: str):
+    def __init__(self, latitude: float, longitude: float, timezone: str, language: str = "en"):
         """
         Initialize events aggregator
         
@@ -111,7 +113,121 @@ class EventsAggregator:
         self.latitude = latitude
         self.longitude = longitude
         self.timezone = ZoneInfo(timezone)
+        self.i18n = I18nManager(language)
         self.local_now = self._get_local_now()
+
+    def _t(self, key: str, fallback: str, **params: Any) -> str:
+        """Translate a key with fallback when missing."""
+        translated = self.i18n.t(key, **params)
+        if translated == key:
+            return fallback
+        return translated
+
+    def _translate_eclipse_type(self, eclipse_type: str, namespace: str) -> str:
+        """Translate eclipse type using i18n keys with English fallback."""
+        key_map = {
+            "Total": "total",
+            "Partial": "partial",
+            "Annular": "annular",
+            "Penumbral": "penumbral",
+        }
+        key_suffix = key_map.get(eclipse_type, eclipse_type.lower())
+        return self._t(f"{namespace}.eclipse_type.{key_suffix}", eclipse_type)
+
+    def _get_moon_phase_translation(self, phase_type: str) -> str:
+        """Translate moon phase label with fallback."""
+        key_map = {
+            "New Moon": "new_moon",
+            "First Quarter": "first_quarter",
+            "Full Moon": "full_moon",
+            "Last Quarter": "last_quarter",
+            "Waxing Crescent": "waxing_crescent",
+            "Waxing Gibbous": "waxing_gibbous",
+            "Waning Gibbous": "waning_gibbous",
+            "Waning Crescent": "waning_crescent",
+        }
+        phase_key = key_map.get(phase_type)
+        if not phase_key:
+            return phase_type
+        return self._t(f"moon.{phase_key}", phase_type)
+
+    def _translate_planet_name(self, planet_name: str) -> str:
+        """Translate planet name where available (fallback to source name)."""
+        if not planet_name:
+            return planet_name
+        return self._t(f"planets.{planet_name.lower()}", planet_name)
+
+    def _translate_visibility_period(self, period_label: str) -> str:
+        """Translate ISS day/night classification labels."""
+        key_map = {
+            "Astronomical Night": "astronomical_night",
+            "Nautical Twilight": "nautical_twilight",
+            "Civil Twilight": "civil_twilight",
+            "Twilight": "twilight",
+            "Daylight": "daylight",
+            "Unknown": "unknown",
+        }
+        key_suffix = key_map.get(period_label)
+        if not key_suffix:
+            return period_label
+        return self._t(f"events_api.iss_periods.{key_suffix}", period_label)
+
+    def _localize_planetary_text(self, event_data: Dict[str, Any]) -> tuple[str, str]:
+        """Localize planetary event title and description using raw_data."""
+        event_type = event_data.get("event_type", "")
+        raw = event_data.get("raw_data", {}) or {}
+        fallback_title = event_data.get("title", "Planetary Event")
+        fallback_description = event_data.get("description", "")
+
+        if event_type == EventType.PLANETARY_CONJUNCTION.value:
+            planet1 = self._translate_planet_name(str(raw.get("planet1", "")))
+            planet2 = self._translate_planet_name(str(raw.get("planet2", "")))
+            return (
+                self._t("events_api.planetary.conjunction_title", fallback_title, planet1=planet1, planet2=planet2),
+                self._t(
+                    "events_api.planetary.conjunction_description",
+                    fallback_description,
+                    planet1=planet1,
+                    planet2=planet2,
+                ),
+            )
+
+        if event_type == EventType.PLANETARY_OPPOSITION.value:
+            planet = self._translate_planet_name(str(raw.get("planet", "")))
+            return (
+                self._t("events_api.planetary.opposition_title", fallback_title, planet=planet),
+                self._t("events_api.planetary.opposition_description", fallback_description, planet=planet),
+            )
+
+        if event_type == EventType.PLANETARY_ELONGATION.value:
+            planet = self._translate_planet_name(str(raw.get("planet", "")))
+            elongation = event_data.get("elongation_degrees") or raw.get("elongation")
+            elongation_value = f"{float(elongation):.1f}" if elongation is not None else ""
+            return (
+                self._t("events_api.planetary.elongation_title", fallback_title, planet=planet),
+                self._t(
+                    "events_api.planetary.elongation_description",
+                    fallback_description,
+                    planet=planet,
+                    elongation_degrees=elongation_value,
+                ),
+            )
+
+        if event_type == EventType.PLANETARY_RETROGRADE.value:
+            planet = self._translate_planet_name(str(raw.get("planet", "")))
+            duration_days = event_data.get("duration_days") or raw.get("duration_days")
+            duration_value = f"{float(duration_days):.0f}" if duration_days is not None else ""
+            return (
+                self._t("events_api.planetary.retrograde_title", fallback_title, planet=planet),
+                self._t(
+                    "events_api.planetary.retrograde_description",
+                    fallback_description,
+                    planet=planet,
+                    duration_days=duration_value,
+                ),
+            )
+
+        return fallback_title, fallback_description
 
     def aggregate_all_events(
         self,
@@ -260,10 +376,19 @@ class EventsAggregator:
             id=f"solar_eclipse_{peak_time_str.split('T')[0]}",
             event_type=EventType.SOLAR_ECLIPSE.value,
             emoji="☀️",
-            title=f"{eclipse_type} Solar Eclipse",
+            title=(
+                f"{self._translate_eclipse_type(eclipse_type, 'sun')} "
+                f"{self._t('sun.solar_eclipse', 'Solar Eclipse')}"
+            ),
             description=(
-                f"{eclipse_type} eclipse with {solar_eclipse.get('obscuration_percent', 0):.1f}% "
-                f"obscuration. Peak at {solar_eclipse.get('peak_altitude_deg', 0):.1f}° altitude."
+                self._t(
+                    "events_api.solar_eclipse_description",
+                    f"{eclipse_type} eclipse with {solar_eclipse.get('obscuration_percent', 0):.1f}% "
+                    f"obscuration. Peak at {solar_eclipse.get('peak_altitude_deg', 0):.1f}° altitude.",
+                    eclipse_type=self._translate_eclipse_type(eclipse_type, "sun"),
+                    obscuration_percent=f"{solar_eclipse.get('obscuration_percent', 0):.1f}",
+                    peak_altitude_deg=f"{solar_eclipse.get('peak_altitude_deg', 0):.1f}",
+                )
             ),
             start_time=solar_eclipse.get("start_time"),
             peak_time=peak_time_str,
@@ -273,6 +398,7 @@ class EventsAggregator:
             importance=importance,
             score=score,
             raw_data=eclipse_data,
+            structure_key="sun",
         )
         events.append(event)
         return events
@@ -308,10 +434,18 @@ class EventsAggregator:
             id=f"lunar_eclipse_{peak_time_str.split('T')[0]}",
             event_type=EventType.LUNAR_ECLIPSE.value,
             emoji="🌙",
-            title=f"{eclipse_type} Lunar Eclipse",
+            title=(
+                f"{self._translate_eclipse_type(eclipse_type, 'moon')} "
+                f"{self._t('moon.lunar_eclipse', 'Lunar Eclipse')}"
+            ),
             description=(
-                f"{eclipse_type} lunar eclipse with {lunar_eclipse.get('obscuration_percent', 0):.1f}% "
-                f"coverage at peak."
+                self._t(
+                    "events_api.lunar_eclipse_description",
+                    f"{eclipse_type} lunar eclipse with {lunar_eclipse.get('obscuration_percent', 0):.1f}% "
+                    f"coverage at peak.",
+                    eclipse_type=self._translate_eclipse_type(eclipse_type, "moon"),
+                    obscuration_percent=f"{lunar_eclipse.get('obscuration_percent', 0):.1f}",
+                )
             ),
             start_time=lunar_eclipse.get("start_time"),
             peak_time=peak_time_str,
@@ -321,6 +455,7 @@ class EventsAggregator:
             importance=importance,
             score=lunar_eclipse.get("astrophotography_score"),
             raw_data=eclipse_data,
+            structure_key="moon",
         )
         events.append(event)
         return events
@@ -370,10 +505,14 @@ class EventsAggregator:
                 id=f"aurora_{timestamp}",
                 event_type=EventType.AURORA.value,
                 emoji="🌌",
-                title="Aurora Borealis",
+                title=self._t("navbar.aurora", "Aurora Borealis"),
                 description=(
-                    f"Aurora visibility: {visibility_percent:.0f}% likelihood. "
-                    f"Kp index: {kp_index:.1f}"
+                    self._t(
+                        "events_api.aurora_description",
+                        f"Aurora visibility: {visibility_percent:.0f}% likelihood. Kp index: {kp_index:.1f}",
+                        visibility_percent=f"{visibility_percent:.0f}",
+                        kp_index=f"{kp_index:.1f}",
+                    )
                 ),
                 start_time=None,
                 peak_time=event_date.isoformat(),
@@ -383,6 +522,7 @@ class EventsAggregator:
                 importance=importance,
                 score=visibility_percent,
                 raw_data=entry,
+                structure_key="aurora",
             )
 
             return [event]  # Immediately return the first strong event
@@ -410,12 +550,18 @@ class EventsAggregator:
                     "Last Quarter": {"emoji": "🌗", "importance": EventImportance.LOW.value},
                 }
                 phase_details = phase_info.get(phase_type, {"emoji": "🌙", "importance": EventImportance.LOW.value})
+                localized_phase_type = self._get_moon_phase_translation(phase_type)
                 event = AstronomicalEvent(
                     id=f"moon_phase_{phase_date_str}_{phase_type.lower().replace(' ', '_')}",
                     event_type=EventType.MOON_PHASE.value,
                     emoji=phase_details["emoji"],
-                    title=phase_type,
-                    description=f"{phase_type} occurs. Good time for {self._get_moon_phase_activity(phase_type)}.",
+                    title=localized_phase_type,
+                    description=self._t(
+                        "events_api.moon_phase_description",
+                        f"{phase_type} occurs. Good time for {self._get_moon_phase_activity(phase_type)}.",
+                        phase=localized_phase_type,
+                        activity=self._get_moon_phase_activity(phase_type),
+                    ),
                     start_time=None,
                     peak_time=phase_date_str,
                     end_time=None,
@@ -424,6 +570,7 @@ class EventsAggregator:
                     importance=phase_details["importance"],
                     score=None,
                     raw_data=moon_data,
+                    structure_key="moon",
                 )
                 events.append(event)
             return events
@@ -453,8 +600,13 @@ class EventsAggregator:
                 id=f"moon_phase_{date_str}_{phase_type.lower().replace(' ', '_')}",
                 event_type=EventType.MOON_PHASE.value,
                 emoji=emoji,
-                title=phase_type,
-                description=f"{phase_type} occurs. Good time for {self._get_moon_phase_activity(phase_type)}.",
+                title=self._get_moon_phase_translation(phase_type),
+                description=self._t(
+                    "events_api.moon_phase_description",
+                    f"{phase_type} occurs. Good time for {self._get_moon_phase_activity(phase_type)}.",
+                    phase=self._get_moon_phase_translation(phase_type),
+                    activity=self._get_moon_phase_activity(phase_type),
+                ),
                 start_time=None,
                 peak_time=date_str,
                 end_time=None,
@@ -463,6 +615,7 @@ class EventsAggregator:
                 importance=importance,
                 score=None,
                 raw_data=moon_data,
+                structure_key="moon",
             )
             events.append(event)
         return events
@@ -492,6 +645,7 @@ class EventsAggregator:
 
             score = float(iss_pass.get("visibility_score", 0) or 0)
             visibility_day_night = iss_pass.get("visibility_day_night", "Unknown")
+            visibility_period_localized = self._translate_visibility_period(str(visibility_day_night))
 
             if score >= 75:
                 importance = EventImportance.HIGH.value
@@ -504,10 +658,19 @@ class EventsAggregator:
                 id=f"iss_pass_{peak_time_str.replace(':', '').replace('-', '')}",
                 event_type=EventType.ISS_PASS.value,
                 emoji="🛰️",
-                title="ISS Visible Passage",
+                title=(
+                    "ISS Visible Passage"
+                    if self.i18n.get_language() == "en"
+                    else self._t("iss.next_visible_passage", "ISS Visible Passage")
+                ),
                 description=(
-                    f"ISS pass score {score:.0f}/100 ({visibility_day_night}). "
-                    f"Peak altitude {float(iss_pass.get('peak_altitude_deg', 0)):.1f}°."
+                    self._t(
+                        "events_api.iss_description",
+                        f"ISS pass score {score:.0f}/100 ({visibility_day_night}). Peak altitude {float(iss_pass.get('peak_altitude_deg', 0)):.1f}°.",
+                        score=f"{score:.0f}",
+                        visibility_day_night=visibility_period_localized,
+                        peak_altitude_deg=f"{float(iss_pass.get('peak_altitude_deg', 0)):.1f}",
+                    )
                 ),
                 start_time=iss_pass.get("start_time"),
                 peak_time=peak_time_str,
@@ -517,6 +680,7 @@ class EventsAggregator:
                 importance=importance,
                 score=score,
                 raw_data=iss_pass,
+                structure_key="iss",
             )
             events.append(event)
 
@@ -525,13 +689,20 @@ class EventsAggregator:
 
     def _get_moon_phase_activity(self, phase_type: str) -> str:
         """Get recommended activity for moon phase"""
-        activities = {
-            "New Moon": "deep-sky observations",
-            "First Quarter": "lunar observations",
-            "Full Moon": "lunar photography",
-            "Last Quarter": "lunar observations",
+        activity_key_map = {
+            "New Moon": "deep_sky_observations",
+            "First Quarter": "lunar_observations",
+            "Full Moon": "lunar_photography",
+            "Last Quarter": "lunar_observations",
         }
-        return activities.get(phase_type, "observing")
+        activity_key = activity_key_map.get(phase_type, "observing")
+        fallback_map = {
+            "deep_sky_observations": "deep-sky observations",
+            "lunar_observations": "lunar observations",
+            "lunar_photography": "lunar photography",
+            "observing": "observing",
+        }
+        return self._t(f"events_api.activities.{activity_key}", fallback_map.get(activity_key, "observing"))
 
     def _parse_iso_time(self, iso_string: str) -> datetime.datetime:
         """Parse ISO format time string"""
@@ -570,8 +741,7 @@ class EventsAggregator:
                 
                 event_type = event_data.get("event_type", "Planetary Event")
                 emoji = event_data.get("emoji", "⭐")
-                title = event_data.get("title", "Planetary Event")
-                description = event_data.get("description", "")
+                title, description = self._localize_planetary_text(event_data)
                 
                 event = AstronomicalEvent(
                     id=f"planetary_{peak_time_str.replace(':', '').replace('-', '')}_{event_type.lower().replace(' ', '_')}",
@@ -587,6 +757,7 @@ class EventsAggregator:
                     importance=importance,
                     score=event_data.get("score"),
                     raw_data=event_data,
+                    structure_key="calendar",
                 )
                 events.append(event)
             except Exception as e:
@@ -633,6 +804,7 @@ class EventsAggregator:
                     importance=importance,
                     score=event_data.get("score"),
                     raw_data=event_data,
+                    structure_key="calendar",
                 )
                 events.append(event)
             except Exception as e:
@@ -679,6 +851,7 @@ class EventsAggregator:
                     importance=importance,
                     score=event_data.get("score"),
                     raw_data=event_data,
+                    structure_key="calendar",
                 )
                 events.append(event)
             except Exception as e:

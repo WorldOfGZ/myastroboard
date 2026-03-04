@@ -58,6 +58,18 @@
     "iss": "ISS",
     "calendar": "Events Calendar"
   },
+
+  "planets": {
+    "mercury": "Mercury",
+    "venus": "Venus",
+    "earth": "Earth",
+    "mars": "Mars",
+    "jupiter": "Jupiter",
+    "saturn": "Saturn",
+    "uranus": "Uranus",
+    "neptune": "Neptune",
+    "pluto": "Pluto"
+  },
   
   "astro_weather": {
     "section_title": "Current Conditions",
@@ -336,7 +348,43 @@
     "no_significant_events": "No significant astronomical events in the next 30 days.",
     "details": "Details",
     "visible": "Visible",
-    "invisible": "Invisible"
+    "invisible": "Invisible",
+    "happening_now": "Happening now!",
+    "today": "Today!",
+    "tomorrow": "Tomorrow!",
+    "in_days": "In {days} days"
+  },
+
+  "events_api": {
+    "solar_eclipse_description": "{eclipse_type} eclipse with {obscuration_percent}% obscuration. Peak at {peak_altitude_deg}° altitude.",
+    "lunar_eclipse_description": "{eclipse_type} lunar eclipse with {obscuration_percent}% coverage at peak.",
+    "aurora_description": "Aurora visibility: {visibility_percent}% likelihood. Kp index: {kp_index}",
+    "moon_phase_description": "{phase} occurs. Good time for {activity}.",
+    "iss_description": "ISS pass score {score}/100 ({visibility_day_night}). Peak altitude {peak_altitude_deg}°.",
+    "activities": {
+      "deep_sky_observations": "deep-sky observations",
+      "lunar_observations": "lunar observations",
+      "lunar_photography": "lunar photography",
+      "observing": "observing"
+    },
+    "iss_periods": {
+      "astronomical_night": "Astronomical Night",
+      "nautical_twilight": "Nautical Twilight",
+      "civil_twilight": "Civil Twilight",
+      "twilight": "Twilight",
+      "daylight": "Daylight",
+      "unknown": "Unknown"
+    },
+    "planetary": {
+      "conjunction_title": "{planet1} - {planet2} Conjunction",
+      "conjunction_description": "{planet1} and {planet2} appear very close in the sky",
+      "opposition_title": "{planet} at Opposition",
+      "opposition_description": "{planet} is at opposition (best visibility). Optimal for observation.",
+      "elongation_title": "{planet} at Maximum Elongation",
+      "elongation_description": "{planet} reaches maximum elongation ({elongation_degrees}°). Best viewing time.",
+      "retrograde_title": "{planet} Retrograde Motion",
+      "retrograde_description": "{planet} appears to move backward for ~{duration_days} days."
+    }
   },
   
   "weather_alerts": {

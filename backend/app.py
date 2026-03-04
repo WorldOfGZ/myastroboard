@@ -37,6 +37,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from weather_openmeteo import get_hourly_forecast
 from uptonight_parser import get_catalogue_reports
 from events_aggregator import EventsAggregator
+from i18n_utils import I18nManager
 from txtconf_loader import get_repo_version
 from repo_config import load_config, save_config
 from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, OUTPUT_DIR, CONFIG_DIR, CACHE_TTL, UPTONIGHT_CATALOGUES
@@ -1432,6 +1433,11 @@ def get_upcoming_events_api():
         longitude = location.get("longitude", 0)
         user_timezone = location.get("timezone", "UTC")
 
+        requested_language = request.args.get("lang") or request.headers.get("Accept-Language", "en")
+        requested_language = requested_language.split(",")[0].split("-")[0].lower()
+        supported_languages = I18nManager.get_supported_languages()
+        language = requested_language if requested_language in supported_languages else "en"
+
         # Get cached event data
         solar_eclipse_data = None
         lunar_eclipse_data = None
@@ -1499,7 +1505,7 @@ def get_upcoming_events_api():
                 solar_system_events_data = cache_store._solar_system_events_cache.get("data")
 
         # Aggregate events
-        aggregator = EventsAggregator(latitude, longitude, user_timezone)
+        aggregator = EventsAggregator(latitude, longitude, user_timezone, language=language)
         events = aggregator.aggregate_all_events(
             solar_eclipse_data=solar_eclipse_data,
             lunar_eclipse_data=lunar_eclipse_data,

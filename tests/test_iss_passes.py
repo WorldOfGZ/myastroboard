@@ -117,3 +117,29 @@ class TestISSCalendarAggregation:
         assert result["events_count"] == 2
         assert result["upcoming_events"][0]["event_type"] == "ISS Pass"
         assert result["upcoming_events"][0]["title"] == "ISS Visible Passage"
+        assert result["upcoming_events"][0]["structure_key"] == "iss"
+
+    def test_aggregate_all_events_localizes_titles_with_language(self):
+        aggregator = EventsAggregator(45.5, -73.5, "America/Montreal", language="fr")
+
+        peak_time = (aggregator.local_now + timedelta(days=2)).replace(hour=12, minute=0, second=0, microsecond=0)
+        solar_payload = {
+            "solar_eclipse": {
+                "visible": True,
+                "type": "Partial",
+                "peak_time": peak_time.isoformat(),
+                "start_time": (peak_time - timedelta(minutes=30)).isoformat(),
+                "end_time": (peak_time + timedelta(minutes=30)).isoformat(),
+                "obscuration_percent": 38.0,
+                "peak_altitude_deg": 22.0,
+                "astrophotography_score": 6.2,
+            }
+        }
+
+        result = aggregator.aggregate_all_events(solar_eclipse_data=solar_payload)
+
+        assert result["events_count"] == 1
+        event = result["upcoming_events"][0]
+        assert event["event_type"] == "Solar Eclipse"
+        assert "Éclipse Solaire" in event["title"]
+        assert event["structure_key"] == "sun"
