@@ -21,7 +21,24 @@
     "failed_to_load_element": "Échec du chargement de cet élément : ",
     "duration": "Durée : ",
     "quality": "Qualité : ",
-    "time_label": "Temps"
+    "time_label": "Temps",
+    "quality_scale": 
+      {
+        "unknown": "Inconnu",
+        "low": "Faible",
+        "poor": "Médiocre",
+        "minimal": "Minimal",
+        "medium": "Moyen",
+        "moderate": "Modéré",
+        "fair": "Passable",
+        "good": "Bon",
+        "high": "Élevé",
+        "excellent": "Excellent",
+        "critical": "Critique"
+      },
+    "retrying_in": "Nouvelle tentative dans {seconds}s ({attempt}/{maxAttempts})",
+    "sun": "Soleil",
+    "moon": "Lune"
   },
   
   "navbar": {
@@ -74,6 +91,7 @@
     "discrimination_score": "Score de Discrimination",
     "temperature_spread": "Écart de Température",
     "wind_stability": "Stabilité du Vent",
+    "no_observation_periods": "Aucune période d'observation optimale trouvée dans les 24 prochaines heures",
     "chart_seeing_title": "👁️ Visibilité & ✨ Transparence",
     "chart_cloud_title": "☁️ Impact de la couverture nuageuse",
     "high_cloud_impact": "Haut",
@@ -81,7 +99,14 @@
     "low_cloud_impact": "Bas",
     "chart_cloud_impact": "Impact (%)",
     "chart_dew_tracking_title": "💧 Risque de Rosée & 🎯 Stabilité du Suivi",
-    "score_100_label": "Score (0-100%)"
+    "score_100_label": "Score (0-100%)",
+    "no_horizon_data": "Aucune donnée d'horizon disponible",
+    "error_loading_horizon_graph": "Impossible de charger le graphique d'horizon",
+    "horizon_badge": "Horizon",
+    "now_badge": "Maintenant",
+    "chart_horizon_axis": "Altitude (degrées)",
+    "horizon_graph_details": "Altitude (-90° to +90°) | Date: {date}",
+    "chart_time_axis": "Local Time (24h format)"
   },
   
   "weather_alerts": {
@@ -104,7 +129,8 @@
     "wind_impact": "Impact du Vent sur le Suivi",
     "seeing_pickering": "Échelle de Pickering Seeing",
     "transparency_score": "Score de Transparence",
-    "no_observation_periods": "Aucune période d'observation optimale trouvée dans les 24 prochaines heures"
+    "no_astro_alerts": "Aucune alerte météo pour l'astrophotographie",
+    "conditions_next_6_hours": "Conditions affectant l'astrophotographie dans les 6 prochaines heures"
   },
   
   "auth": {

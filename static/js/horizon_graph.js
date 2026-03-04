@@ -32,13 +32,13 @@ async function loadHorizonGraph() {
                 const seconds = Math.max(1, Math.round(waitMs / 1000));
                 const message = reason === 'data' && retryData && retryData.message
                     ? retryData.message
-                    : 'Loading horizon graph data...';
-                loadingDiv.textContent = `${message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
+                    : i18n.t('astro_weather.loading_horizon_graph');
+                loadingDiv.textContent = `${message} ${i18n.t('common.retrying_in', { seconds, attempt, maxAttempts })}`;
             }
         });
 
         if (data.status === 'pending') {
-            throw new Error(data.message || 'Cache not ready');
+            throw new Error(data.message || i18n.t('cache.cache_not_ready'));
         }
         
         if (data.error) {
@@ -57,7 +57,7 @@ async function loadHorizonGraph() {
                 DOMUtils.clear(container);
                 const alert = document.createElement('div');
                 alert.className = 'alert alert-warning';
-                alert.textContent = 'No horizon data available';
+                alert.textContent = i18n.t('astro_weather.no_horizon_data');
                 container.appendChild(alert);
             }
         }
@@ -77,10 +77,10 @@ async function loadHorizonGraph() {
             cardBody.className = 'card-body';
             const title = document.createElement('h5');
             title.className = 'card-title';
-            title.textContent = 'Error...';
+            title.textContent = i18n.t('common.error');
             const message = document.createElement('p');
             message.className = 'card-text';
-            message.textContent = `Failed to load horizon graph data: ${error.message}`;
+            message.textContent = `${i18n.t('astro_weather.error_loading_horizon_graph')}: ${error.message}`;
             cardBody.appendChild(title);
             cardBody.appendChild(message);
             card.appendChild(cardBody);
@@ -125,7 +125,7 @@ function renderHorizonChart(horizonData) {
     cardHeader.className = 'card-header';
     const title = document.createElement('h5');
     title.className = 'mb-0';
-    title.textContent = '🌅 Horizon Graph';
+    title.textContent = `🌅 ${i18n.t('astro_weather.title_horizon_graph')}`;
     cardHeader.appendChild(title);
 
     const cardBody = document.createElement('div');
@@ -153,16 +153,17 @@ function renderHorizonChart(horizonData) {
         return itemCol;
     };
 
-    footerRow.appendChild(createBadgeItem('☀️ Sun', 'badge', '#FDB813'));
-    footerRow.appendChild(createBadgeItem('🌙 Moon', 'badge', '#C0C0C0'));
-    footerRow.appendChild(createBadgeItem('━ Horizon (0°)', 'badge bg-secondary'));
-    footerRow.appendChild(createBadgeItem(`┃ Now ${currentTimeLabel || ''}`, 'badge', '#ef4444'));
+    footerRow.appendChild(createBadgeItem(`☀️ ${i18n.t('common.sun')}`, 'badge', '#FDB813'));
+    footerRow.appendChild(createBadgeItem(`🌙 ${i18n.t('common.moon')}`, 'badge', '#C0C0C0'));
+    footerRow.appendChild(createBadgeItem(`━ ${i18n.t('astro_weather.horizon_badge')} (0°)`, 'badge bg-secondary'));
+    footerRow.appendChild(createBadgeItem(`┃ ${i18n.t('astro_weather.now_badge')} ${currentTimeLabel || ''}`, 'badge', '#ef4444'));
 
     const detailsCol = document.createElement('div');
     detailsCol.className = 'col-auto';
     const details = document.createElement('span');
     details.className = 'text-muted';
     details.textContent = `Altitude (-90° to +90°) | Date: ${horizonData.date}`;
+    details.textContent = i18n.t('astro_weather.horizon_graph_details', { date: horizonData.date });
     detailsCol.appendChild(details);
     footerRow.appendChild(detailsCol);
 
@@ -184,7 +185,7 @@ function renderHorizonChart(horizonData) {
         data: {
             datasets: [
                 {
-                    label: 'Sun Altitude',
+                    label: i18n.t('common.sun'),
                     data: sunAltitudes,
                     parsing: false,
                     borderColor: '#FDB813',
@@ -199,7 +200,7 @@ function renderHorizonChart(horizonData) {
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Moon Altitude',
+                    label: i18n.t('common.moon'),
                     data: moonAltitudes,
                     parsing: false,
                     borderColor: '#C0C0C0',
@@ -215,7 +216,7 @@ function renderHorizonChart(horizonData) {
                 },
                 ...(currentTimeLine.length
                     ? [{
-                        label: 'Now',
+                        label: i18n.t('astro_weather.now_badge'),
                         data: currentTimeLine,
                         parsing: false,
                         borderColor: '#ef4444',
@@ -256,7 +257,7 @@ function renderHorizonChart(horizonData) {
                                 label += ': ';
                             }
                             if (context.parsed.y !== null) {
-                                label += context.parsed.y.toFixed(1) + '°';
+                                label += context.parsed.y.toFixed(1) + i18n.t('units.degrees');
                             }
                             return label;
                         }
@@ -274,7 +275,7 @@ function renderHorizonChart(horizonData) {
                             borderDash: [5, 5],
                             label: {
                                 display: true,
-                                content: ['Horizon']
+                                content: [i18n.t('astro_weather.horizon_badge')]
                             }
                         },
                         currentTime: null
@@ -288,7 +289,7 @@ function renderHorizonChart(horizonData) {
                     position: 'left',
                     title: {
                         display: true,
-                        text: 'Altitude (degrees)',
+                        text: i18n.t('astro_weather.chart_horizon_axis'),
                         font: {
                             size: 12
                         }
@@ -297,7 +298,7 @@ function renderHorizonChart(horizonData) {
                     max: 90,
                     ticks: {
                         callback: function(value) {
-                            return value + '°';
+                            return value + i18n.t('units.degrees');
                         }
                     },
                     grid: {
@@ -324,7 +325,7 @@ function renderHorizonChart(horizonData) {
                     max: 24,
                     title: {
                         display: true,
-                        text: 'Local Time (24h format)',
+                        text: i18n.t('astro_weather.chart_time_axis'),
                         font: {
                             size: 12
                         }

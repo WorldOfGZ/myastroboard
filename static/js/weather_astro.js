@@ -122,7 +122,7 @@ async function loadAstroWeather() {
                 const message = reason === 'data' && retryData && retryData.message
                     ? retryData.message
                     : i18n.t('astro_weather.loading_details');
-                loadingDiv.textContent = `${message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
+                loadingDiv.textContent = `${message} ${i18n.t('common.retrying_in', { seconds, attempt, maxAttempts })}`;
             }
         });
 
@@ -217,9 +217,9 @@ function renderCurrentAstroConditions(conditions) {
         }),
         createAstroConditionCard({
             title: `💧 ${i18n.t('astro_weather.dew_risk')}`,
-            value: `${Math.round(conditions.dew_point_spread * 10) / 10}°C`,
-            badgeClass: `astro-quality-text dew-box ${dewRiskColor}`,
-            badgeText: conditions.dew_risk_level,
+            value: `${Math.round(conditions.dew_point_spread * 10) / 10}${i18n.t('units.temperature_celsius')}`,
+            badgeClass: `astro-quality-text dew-box ${dewRiskColor.class}`,
+            badgeText: `${dewRiskColor.text}`,
             note: i18n.t('astro_weather.temperature_spread')
         }),
         createAstroConditionCard({
@@ -660,7 +660,7 @@ function renderWeatherAlerts(alerts) {
         alert.setAttribute('role', 'alert');
         const title = document.createElement('div');
         title.className = 'fw-bold';
-        title.textContent = '✅ No weather alerts for astrophotography';
+        title.textContent = `✅ ${i18n.t('weather_alerts.no_astro_alerts')}`;
         alert.appendChild(title);
         container.appendChild(alert);
         return;
@@ -669,7 +669,7 @@ function renderWeatherAlerts(alerts) {
     DOMUtils.clear(container);
     const intro = document.createElement('div');
     intro.className = 'mb-2';
-    intro.textContent = 'Conditions affecting astrophotography in the next 6 hours';
+    intro.textContent = i18n.t('weather_alerts.conditions_next_6_hours');
     container.appendChild(intro);
 
     const list = document.createElement('div');
@@ -683,7 +683,7 @@ function renderWeatherAlerts(alerts) {
         const title = document.createElement('div');
         title.className = 'fw-bold';
         const time = new Date(alertData.time);
-        title.textContent = `${getSeverityIcon(alertData.severity)} ${alertData.type.replace('_', ' ')} ${time.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}`;
+        title.textContent = `${getSeverityIcon(alertData.severity)} ${alertData.type.replace('_', ' ')} ${formatTimeOnly(time)}`;
 
         const message = document.createElement('div');
         message.textContent = alertData.message;
@@ -701,41 +701,41 @@ function renderWeatherAlerts(alerts) {
  */
 
 function getSeeingQualityText(seeingValue) {
-    if (seeingValue >= 8) return { text: 'EXCELLENT', class: 'quality-excellent' };
-    if (seeingValue >= 6) return { text: 'GOOD', class: 'quality-good' };
-    if (seeingValue >= 4) return { text: 'FAIR', class: 'quality-fair' };
-    return { text: 'POOR', class: 'quality-poor' };
+    if (seeingValue >= 8) return { text: i18n.t('common.quality_scale.excellent'), class: 'quality-excellent' };
+    if (seeingValue >= 6) return { text: i18n.t('common.quality_scale.good'), class: 'quality-good' };
+    if (seeingValue >= 4) return { text: i18n.t('common.quality_scale.fair'), class: 'quality-fair' };
+    return { text: i18n.t('common.quality_scale.poor'), class: 'quality-poor' };
 }
 
 function getTransparencyQualityText(transparencyValue) {
-    if (transparencyValue >= 80) return { text: 'EXCELLENT', class: 'quality-excellent' };
-    if (transparencyValue >= 60) return { text: 'GOOD', class: 'quality-good' };
-    if (transparencyValue >= 40) return { text: 'FAIR', class: 'quality-fair' };
-    return { text: 'POOR', class: 'quality-poor' };
+    if (transparencyValue >= 80) return { text: i18n.t('common.quality_scale.excellent'), class: 'quality-excellent' };
+    if (transparencyValue >= 60) return { text: i18n.t('common.quality_scale.good'), class: 'quality-good' };
+    if (transparencyValue >= 40) return { text: i18n.t('common.quality_scale.fair'), class: 'quality-fair' };
+    return { text: i18n.t('common.quality_scale.poor'), class: 'quality-poor' };
 }
 
 function getCloudQualityText(cloudValue) {
-    if (cloudValue >= 80) return { text: 'EXCELLENT', class: 'quality-excellent' };
-    if (cloudValue >= 60) return { text: 'GOOD', class: 'quality-good' };
-    if (cloudValue >= 40) return { text: 'FAIR', class: 'quality-fair' };
-    return { text: 'POOR', class: 'quality-poor' };
+    if (cloudValue >= 80) return { text: i18n.t('common.quality_scale.excellent'), class: 'quality-excellent' };
+    if (cloudValue >= 60) return { text: i18n.t('common.quality_scale.good'), class: 'quality-good' };
+    if (cloudValue >= 40) return { text: i18n.t('common.quality_scale.fair'), class: 'quality-fair' };
+    return { text: i18n.t('common.quality_scale.poor'), class: 'quality-poor' };
 }
 
 function getTrackingQualityText(trackingValue) {
-    if (trackingValue >= 80) return { text: 'EXCELLENT', class: 'quality-excellent' };
-    if (trackingValue >= 60) return { text: 'GOOD', class: 'quality-good' };
-    if (trackingValue >= 40) return { text: 'FAIR', class: 'quality-fair' };
-    return { text: 'POOR', class: 'quality-poor' };
+    if (trackingValue >= 80) return { text: i18n.t('common.quality_scale.excellent'), class: 'quality-excellent' };
+    if (trackingValue >= 60) return { text: i18n.t('common.quality_scale.good'), class: 'quality-good' };
+    if (trackingValue >= 40) return { text: i18n.t('common.quality_scale.fair'), class: 'quality-fair' };
+    return { text: i18n.t('common.quality_scale.poor'), class: 'quality-poor' };
 }
 
 function getDewRiskColor(riskLevel) {
     switch (riskLevel) {
-        case 'MINIMAL': return 'dew-minimal';
-        case 'LOW': return 'dew-low';
-        case 'MODERATE': return 'dew-moderate';
-        case 'HIGH': return 'dew-high';
-        case 'CRITICAL': return 'dew-critical';
-        default: return 'dew-unknown';
+        case 'MINIMAL': return { text: i18n.t('common.quality_scale.minimal'), class: 'dew-minimal' };
+        case 'LOW': return { text: i18n.t('common.quality_scale.low'), class: 'dew-low' };
+        case 'MODERATE': return { text: i18n.t('common.quality_scale.moderate'), class: 'dew-moderate' };
+        case 'HIGH': return { text: i18n.t('common.quality_scale.high'), class: 'dew-high' };
+        case 'CRITICAL': return { text: i18n.t('common.quality_scale.critical'), class: 'dew-critical' };
+        default: return { text: i18n.t('common.quality_scale.unknown'), class: 'dew-unknown' };
     }
 }
 

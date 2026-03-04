@@ -24,10 +24,10 @@ MyAstroBoard i18n System
 
 ### Language Support
 
-| Language | Code | Status | Completeness | Translation |
+| Language | Code | Status | Translation | Type |
 |----------|------|--------|--------------|--------------|
-| English | `en` | ✅ Active | low% | Human | 
-| French | `fr` | ✅ Active | low% | Human | 
+| English | `en` | ✅ Active | Human | Default | 
+| French | `fr` | ✅ Active | Human | - | 
 
 ## Frontend Implementation
 
@@ -90,7 +90,7 @@ async function switchLanguage(lang) {
 // Components listen for language changes
 window.addEventListener('i18nLanguageChanged', (e) => {
     const newLang = e.detail.language;
-    // Update dynamic content
+    // Example pdate dynamic content
     refreshWeatherDisplay();
 });
 ```
@@ -149,7 +149,7 @@ window.languageSelector = new LanguageSelector();
 1. User opens the application (language auto-detected from browser settings)
 2. User clicks the language dropdown in the footer
 3. User selects new language (e.g., "Français")
-4. All page content updates instantly to French
+4. All page content is refreshed to French
 5. Selection is saved in localStorage and persists across sessions
 
 ## Backend Implementation

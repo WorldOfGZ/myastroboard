@@ -132,6 +132,7 @@ function escapeForJs(text) {
 // =======================
 
 // Helper function to format ISO date to local time string
+// Example output: "9:30 PM (6/30)" in US locale, "21:30 (30/06)" in many European locales
 function formatTimeThenDate(isoString, locale = navigator.language) {
     if (!isoString) return 'N/A';
     const date = new Date(isoString);
@@ -151,6 +152,8 @@ function formatTimeThenDate(isoString, locale = navigator.language) {
     return `${timeFormatter.format(date)} (${dateFormatter.format(date)})`;
 }
 
+// Format time, then date with seconds
+// Example output: "9:30:45 PM (6/30)" in US locale, "21:30:45 (30/06)" in many European locales
 function formatTimeThenDateWithSeconds(isoString, locale = navigator.language) {
     if (!isoString) return 'N/A';
     const date = new Date(isoString);
@@ -183,6 +186,18 @@ function formatDateFull(isoString, locale = navigator.language) {
     });
 
     return dateFormatter.format(date);
+}
+
+// Helper function to format ISO date to localized date string HH:MM
+// Example output: "21:30" in many locales
+function formatTimeOnly(isoString, locale = navigator.language) {
+    if (!isoString) return 'N/A';
+    const date = new Date(isoString);
+    const timeFormatter = new Intl.DateTimeFormat(locale, {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    return timeFormatter.format(date);
 }
 
 

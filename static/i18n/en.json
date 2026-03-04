@@ -21,7 +21,24 @@
     "failed_to_load_element": "Failed to load this element: ",
     "duration": "Duration: ",
     "quality": "Quality: ",
-    "time_label": "Time"
+    "time_label": "Time",
+    "quality_scale": 
+      {
+        "unknown": "Unknown",
+        "low": "Low",
+        "poor": "Poor",
+        "minimal": "Minimal",
+        "medium": "Medium",
+        "moderate": "Moderate",
+        "fair": "Fair",
+        "good": "Good",
+        "high": "High",
+        "excellent": "Excellent",
+        "critical": "Critical"
+      },
+    "retrying_in": "Retrying in {seconds}s ({attempt}/{maxAttempts})",
+    "sun": "Sun",
+    "moon": "Moon"
   },
   
   "navbar": {
@@ -82,7 +99,14 @@
     "low_cloud_impact": "Low",
     "chart_cloud_impact": "Impact (%)",
     "chart_dew_tracking_title": "💧 Dew Risk & 🎯 Tracking Stability",
-    "score_100_label": "Score (0-100%)"
+    "score_100_label": "Score (0-100%)",
+    "no_horizon_data": "No horizon data available",
+    "error_loading_horizon_graph": "Failed to load horizon graph",
+    "horizon_badge": "Horizon",
+    "now_badge": "Now",
+    "chart_horizon_axis": "Altitude (degrees)",
+    "horizon_graph_details": "Altitude (-90° to +90°) | Date: {date}",
+    "chart_time_axis": "Local Time (24h format)"
   },
   
   "weather_alerts": {
@@ -104,7 +128,9 @@
     "dew_risk_level": "Dew Risk Level",
     "wind_impact": "Wind Tracking Impact",
     "seeing_pickering": "Pickering Seeing Scale",
-    "transparency_score": "Transparency Score"
+    "transparency_score": "Transparency Score",
+    "no_astro_alerts": "No weather alerts for astrophotography",
+    "conditions_next_6_hours": "Conditions affecting astrophotography in the next 6 hours"
   },
   
   "auth": {
