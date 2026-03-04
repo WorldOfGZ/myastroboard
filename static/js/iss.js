@@ -57,7 +57,7 @@ function createVisibilityGauge(scorePercent) {
  */
 async function loadIss() {
     const container = document.getElementById('iss-display');
-    const data = await fetchJSONWithUI('/api/iss/passes?days=20', container, 'Loading ISS passages...');
+    const data = await fetchJSONWithUI('/api/iss/passes?days=20', container, i18n.t('iss.loading_passes'));
     if (!data) return;
 
     const nextVisible = data.next_visible_passage;
@@ -68,7 +68,7 @@ async function loadIss() {
     const infoAlert = document.createElement('div');
     infoAlert.className = 'alert alert-info';
     infoAlert.setAttribute('role', 'alert');
-    infoAlert.textContent = `ISS visible passages for the next ${Number(data.window_days || 20)} days (sunlit ISS and dark-enough sky), computed for your configured location and timezone.`;
+    infoAlert.textContent = i18n.t('iss.info_tab', { days: Number(data.window_days || 20) });
     container.appendChild(infoAlert);
 
     if (nextVisible) {
@@ -80,7 +80,7 @@ async function loadIss() {
         card.className = 'card h-100 border-success';
         const cardHeader = document.createElement('div');
         cardHeader.className = 'card-header fw-bold';
-        cardHeader.textContent = '✅ Next visible passage';
+        cardHeader.textContent = `✅ ${i18n.t('iss.next_visible_passage')}`;
         const cardBody = document.createElement('div');
         cardBody.className = 'card-body';
         const bodyRow = document.createElement('div');
@@ -101,15 +101,15 @@ async function loadIss() {
         };
 
         bodyRow.appendChild(createInfoColumn([
-            { label: '🕐 Start:', value: formatTimeThenDateWithSeconds(nextVisible.start_time) },
-            { label: '⏱️ Culmination:', value: formatTimeThenDateWithSeconds(nextVisible.peak_time) },
-            { label: '🕔 End:', value: formatTimeThenDateWithSeconds(nextVisible.end_time) }
+            { label: `🕐 ${i18n.t('iss.start')}`, value: formatTimeThenDateWithSeconds(nextVisible.start_time) },
+            { label: `⏱️ ${i18n.t('iss.culmination')}`, value: formatTimeThenDateWithSeconds(nextVisible.peak_time) },
+            { label: `🕔 ${i18n.t('iss.end')}`, value: formatTimeThenDateWithSeconds(nextVisible.end_time) }
         ]));
 
         bodyRow.appendChild(createInfoColumn([
-            { label: '📐 Start Alt/Az:', value: formatAltAz(nextVisible.start_altitude_deg, nextVisible.start_azimuth_cardinal, nextVisible.start_azimuth_deg) },
-            { label: '📐 Peak Alt/Az:', value: formatAltAz(nextVisible.peak_altitude_deg, nextVisible.peak_azimuth_cardinal, nextVisible.peak_azimuth_deg) },
-            { label: '📐 End Alt/Az:', value: formatAltAz(nextVisible.end_altitude_deg, nextVisible.end_azimuth_cardinal, nextVisible.end_azimuth_deg) }
+            { label: `📐 ${i18n.t('iss.start_alt_az')}`, value: formatAltAz(nextVisible.start_altitude_deg, nextVisible.start_azimuth_cardinal, nextVisible.start_azimuth_deg) },
+            { label: `📐 ${i18n.t('iss.peak_alt_az')}`, value: formatAltAz(nextVisible.peak_altitude_deg, nextVisible.peak_azimuth_cardinal, nextVisible.peak_azimuth_deg) },
+            { label: `📐 ${i18n.t('iss.end_alt_az')}`, value: formatAltAz(nextVisible.end_altitude_deg, nextVisible.end_azimuth_cardinal, nextVisible.end_azimuth_deg) }
         ]));
 
         cardBody.appendChild(bodyRow);
@@ -122,7 +122,7 @@ async function loadIss() {
         const warning = document.createElement('div');
         warning.className = 'alert alert-warning';
         warning.setAttribute('role', 'alert');
-        warning.textContent = 'No visible ISS passage found in the selected forecast window.';
+        warning.textContent = i18n.t('iss.no_passes');
         container.appendChild(warning);
     }
 
@@ -134,7 +134,7 @@ async function loadIss() {
     tableCard.className = 'card h-100';
     const tableHeader = document.createElement('div');
     tableHeader.className = 'card-header fw-bold';
-    tableHeader.textContent = '📅 Upcoming ISS passages';
+    tableHeader.textContent = `📅 ${i18n.t('iss.upcoming_passages')}`;
     const tableResponsive = document.createElement('div');
     tableResponsive.className = 'table-responsive';
     const table = document.createElement('table');
@@ -142,11 +142,11 @@ async function loadIss() {
     const thead = document.createElement('thead');
     const headRowTop = document.createElement('tr');
     [
-        { text: 'Date', rowSpan: 2 },
-        { text: 'Visibility', rowSpan: 2 },
-        { text: 'Start', colSpan: 2, className: 'iss-group-head' },
-        { text: 'Culmination', colSpan: 2, className: 'iss-group-head' },
-        { text: 'End', colSpan: 2, className: 'iss-group-head' }
+        { text: i18n.t('iss.table_date'), rowSpan: 2 },
+        { text: i18n.t('iss.table_visibility'), rowSpan: 2 },
+        { text: i18n.t('iss.table_start'), colSpan: 2, className: 'iss-group-head' },
+        { text: i18n.t('iss.table_culmination'), colSpan: 2, className: 'iss-group-head' },
+        { text: i18n.t('iss.table_end'), colSpan: 2, className: 'iss-group-head' }
     ].forEach((headerConfig) => {
         const th = document.createElement('th');
         th.textContent = headerConfig.text;
@@ -157,7 +157,7 @@ async function loadIss() {
     });
 
     const headRowBottom = document.createElement('tr');
-    ['Time', 'Elev / Az', 'Time', 'Elev / Az', 'Time', 'Elev / Az'].forEach((headerText) => {
+    [i18n.t('iss.table_time'), i18n.t('iss.table_elev'), i18n.t('iss.table_time'), i18n.t('iss.table_elev'), i18n.t('iss.table_time'), i18n.t('iss.table_elev')].forEach((headerText) => {
         const th = document.createElement('th');
         th.className = 'text-center';
         th.textContent = headerText;
@@ -201,7 +201,7 @@ async function loadIss() {
         const cell = document.createElement('td');
         cell.colSpan = 8;
         cell.className = 'text-center text-muted';
-        cell.textContent = 'No visible ISS passages found.';
+        cell.textContent = i18n.t('iss.not_found');
         row.appendChild(cell);
         tbody.appendChild(row);
     }

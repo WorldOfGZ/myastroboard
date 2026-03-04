@@ -308,6 +308,29 @@
     "failed_to_load_predictions": "Échec du chargement des prévisions d'aurore. Veuillez réessayer plus tard.",
     "tips_for_aurora_hunting": "Conseils pour l'observation des aurores :"
   },
+
+  "iss": {
+    "passes": "Passages de l'ISS",
+    "loading_passes": "Chargement des prévisions de passages de l'ISS...",
+    "info_tab": "Passages visibles de l'ISS pour les {days} prochains jours (ISS éclairée par le soleil et ciel suffisamment sombre), calculés pour votre emplacement et fuseau horaire configurés.",
+    "next_visible_passage": "Prochain passage visible",
+    "start": "Début : ",
+    "culmination": "Culmination : ",
+    "end": "Fin : ",
+    "start_alt_az": "Début Alt/Az : ",
+    "peak_alt_az": "Culmination Alt/Az : ",
+    "end_alt_az": "Fin Alt/Az : ",
+    "no_passes": "Aucun passage visible de l'ISS trouvé dans la fenêtre de prévision sélectionnée.",
+    "upcoming_passages": "Prochains passages de l'ISS",
+    "table_date": "Date",
+    "table_visibility": "Visibilité",
+    "table_start": "Début",
+    "table_culmination": "Culmination",
+    "table_end": "Fin",
+    "table_time": "Heure",
+    "table_elev": "Élévation / Azimut",
+    "not_found": "Aucun passage visible de l'ISS trouvé."
+  },
   
   "weather_alerts": {
     "section_title": "Alertes Météo",

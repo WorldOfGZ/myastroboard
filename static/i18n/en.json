@@ -308,6 +308,33 @@
     "failed_to_load_predictions": "Failed to load aurora predictions. Please try again later.",
     "tips_for_aurora_hunting": "Tips for Aurora Hunting:"
   },
+
+  "iss": {
+    "passes": "ISS Passes",
+    "loading_passes": "Loading ISS pass predictions...",
+    "info_tab": "ISS visible passages for the next {days} days (sunlit ISS and dark-enough sky), computed for your configured location and timezone.",
+    "next_visible_passage": "Next visible passage",
+    "start": "Start: ",
+    "culmination": "Culmination: ",
+    "end": "End: ",
+    "start_alt_az": "Start Alt/Az: ",
+    "peak_alt_az": "Peak Alt/Az: ",
+    "end_alt_az": "End Alt/Az: ",
+    "no_passes": "No visible ISS passage found in the selected forecast window.",
+    "upcoming_passages": "Upcoming ISS passages",
+    "table_date": "Date",
+    "table_visibility": "Visibility",
+    "table_start": "Start",
+    "table_culmination": "Culmination",
+    "table_end": "End",
+    "table_time": "Time",
+    "table_elev": "Elev / Az",
+    "not_found": "No visible ISS passages found."
+  },
+
+  "calendar": {
+
+  },
   
   "weather_alerts": {
     "section_title": "Weather Alerts",
