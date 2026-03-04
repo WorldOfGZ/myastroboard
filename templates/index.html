@@ -541,10 +541,10 @@
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
                 <ul class="nav nav-pills sub-tabs" id="my-settings-subtabs">
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn active" href="#" data-subtab="customize">🔧 Customize</a>
+                        <a class="nav-link sub-tab-btn active" href="#" data-subtab="customize">🔧 <span data-i18n="settings.customize">Customize</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" aria-current="page" href="#" data-subtab="security">🔒 Security</a>
+                        <a class="nav-link sub-tab-btn" aria-current="page" href="#" data-subtab="security">🔒 <span data-i18n="settings.security">Security</span></a>
                     </li>
                 </ul>
             </div>
@@ -552,7 +552,7 @@
             <!-- Customize Sub-tab -->
             <div id="customize-subtab" class="sub-tab-content active">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🔧 Customize</h2>
+                    <h2>🔧 <span data-i18n="settings.customize">Customize</span></h2>
                     
                     <div class="alert alert-info" role="alert">This is currently a placeholder for customization settings.</div>
                 </div>
@@ -561,7 +561,7 @@
             <!-- Security Sub-tab -->
             <div id="security-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🔒 Security Settings</h2>
+                    <h2>🔒 <span data-i18n="settings.security">Security</span></h2>
                     
                     <div class="alert alert-info" role="alert">This is currently a placeholder for security settings.</div>
                 </div>
@@ -575,19 +575,19 @@
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
                 <ul class="nav nav-pills sub-tabs" id="forecast-subtabs">
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="configuration">🗺️ Configuration</a>
+                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="configuration">🗺️ <span data-i18n="settings.configuration">Configuration</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="advanced">🔧 Advanced Settings</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="advanced">🔧 <span data-i18n="settings.advanced">Advanced Settings</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="logs">📋 Logs</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="logs">📋 <span data-i18n="settings.logs">Logs</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="users">👥 Users</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="users">👥 <span data-i18n="settings.users">Users</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="metrics">📊 Metrics</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="metrics">📊 <span data-i18n="settings.metrics">Metrics</span></a>
                     </li>
                 </ul>
             </div>
@@ -595,26 +595,26 @@
             <!-- Configuration Sub-tab -->
             <div id="configuration-subtab" class="sub-tab-content active">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📍 Location Settings</h2>
+                    <h2>📍 <span data-i18n="settings.location">Location Settings</span></h2>
                     
-                    <div class="alert alert-info" role="alert">Location parameters are used for accurate weather, astronomical calculations, and UpTonight scheduling.</div>
+                    <div class="alert alert-info" role="alert" data-i18n="settings.location_info">Location parameters are used for accurate weather, astronomical calculations, and UpTonight scheduling.</div>
                     
                     <div class="row g-3">
                         <div class="col-12">
-                            <label for="location-name" class="form-label">Location Name:</label>
-                            <input type="text" id="location-name" class="form-control" placeholder="My Observatory">
+                            <label for="location-name" class="form-label" data-i18n="settings.location_name">Location Name:</label>
+                            <input type="text" id="location-name" class="form-control" placeholder="My Observatory" data-i18n-placeholder="settings.location_name_placeholder">
                         </div>
                                                 
                         <div class="col-md-3">
-                            <label for="latitude-input" class="form-label">Latitude (DMS or Decimal):</label>
-                            <input type="text" id="latitude-input" class="form-control" placeholder="48d38m36.16s or 48.6434">
+                            <label for="latitude-input" class="form-label" data-i18n="settings.latitude">Latitude (DMS or Decimal):</label>
+                            <input type="text" id="latitude-input" class="form-control" placeholder="48d38m36.16s or 48.6434" data-i18n-placeholder="settings.latitude_placeholder">
                             <div id="latitude-converted" class="valid-feedback"></div>
                             <div id="latitude-error" class="invalid-feedback"></div>
                         </div>
 
                         <div class="col-md-3">
-                            <label for="longitude-input" class="form-label">Longitude (DMS or Decimal):</label>
-                            <input type="text" id="longitude-input" class="form-control" placeholder="9d25m48.96s or 9.4303">
+                            <label for="longitude-input" class="form-label" data-i18n="settings.longitude">Longitude (DMS or Decimal):</label>
+                            <input type="text" id="longitude-input" class="form-control" placeholder="9d25m48.96s or 9.4303" data-i18n-placeholder="settings.longitude_placeholder">
                             <div id="longitude-converted" class="valid-feedback"></div>
                             <div id="longitude-error" class="invalid-feedback"></div>
                         </div>
@@ -623,14 +623,14 @@
                     <div class="row g-3 mt-1 mb-2">
 
                         <div class="col-md-3">
-                            <label for="elevation" class="form-label">Elevation (meters):</label>
-                            <input type="number" id="elevation" class="form-control" placeholder="10" step="0.1">
+                            <label for="elevation" class="form-label" data-i18n="settings.elevation">Elevation (meters):</label>
+                            <input type="number" id="elevation" class="form-control" placeholder="10" step="0.1" data-i18n-placeholder="settings.elevation_placeholder">
                         </div>
 
                         <div class="col-md-3">
-                            <label for="timezone" class="form-label">Timezone:</label>
+                            <label for="timezone" class="form-label" data-i18n="settings.timezone">Timezone:</label>
                             <select id="timezone" class="form-select">
-                                <option value="">Loading timezones...</option>
+                                <option value="" data-i18n="settings.timezone_loading">Loading timezones...</option>
                             </select>
                         </div>
 
@@ -638,45 +638,45 @@
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📚 Target Catalogues</h2>
+                    <h2>📚 <span data-i18n="settings.target_catalogues">Target Catalogues</span></h2>
                     
-                    <div class="alert alert-info" role="alert">These parameters are used for UpTonight scheduler.</div>
+                    <div class="alert alert-info" role="alert" data-i18n="settings.target_catalogues_info">These parameters are used for UpTonight scheduler.</div>
 
                     <div id="catalogues-list"></div>
 
-                    <div class="mt-2 mb-3"><small class="info-msg">⚠️ At least one catalogue must be selected. Messier is selected by default.</small></div>
+                    <div class="mt-2 mb-3"><small class="info-msg">⚠️ <span data-i18n="settings.target_catalogues_warning">At least one catalogue must be selected. Messier is selected by default.</span></small></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📚 Astrodex</h2>
+                    <h2>📚 <span data-i18n="settings.astrodex">Astrodex</span></h2>
 
                     <div class="alert alert-info" role="alert">
-                        The Astrodex is shared by default between all users. Thats mean every body can fill the Astrodex, but only the owner of the picture can edit or delete it.<br>
-                        If needed, you can set up a private Astrodex for each user.
+                        <span data-i18n="settings.astrodex_info_1">The Astrodex is shared by default between all users. Thats mean every body can fill the Astrodex, but only the owner of the picture can edit or delete it.</span><br>
+                        <span data-i18n="settings.astrodex_info_2">If needed, you can set up a private Astrodex for each user.</span>
                     </div>
 
                     <div class="bg-features p-3 rounded">
                         <div class="form-check form-switch">
                             <input type="checkbox" id="astrodex-private" class="form-check-input" switch>
-                            <label class="form-check-label" for="astrodex-private"> Private Astrodex</label>
-                            <div class="form-text">Enable this option to set up a private Astrodex for each user</div>
+                            <label class="form-check-label" for="astrodex-private"> <span data-i18n="settings.astrodex_private">Private Astrodex</span></label>
+                            <div class="form-text" data-i18n="settings.astrodex_private_info">Enable this option to set up a private Astrodex for each user</div>
                         </div>
                     </div>
 
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>💾 Save & Actions</h2>
+                    <h2>💾 <span data-i18n="settings.save_actions">Save & Actions</span></h2>
                     
-                    <div class="alert alert-info" role="alert">
+                    <div class="alert alert-info" role="alert" data-i18n="settings.save_actions_info">
                         When new UpTonight settings are saved, a manual run may be required to see changes on dashboard, or wait for the next scheduled run.
                     </div>
 
                     <div>
-                        <button id="save-config" class="btn btn-primary mb-2">💾 Save Configuration</button>
-                        <button id="run-now" class="btn btn-success mb-2">▶️ Run UpTonight Now</button>
-                        <button id="view-config-main" class="btn btn-secondary mb-2">👁️ View UpTonight Configs</button>
-                        <button id="export-config-main" class="btn btn-secondary mb-2">⬇️ Export General Config</button>
+                        <button id="save-config" class="btn btn-primary mb-2">💾 <span data-i18n="settings.save_configuration">Save Configuration</span></button>
+                        <button id="run-now" class="btn btn-success mb-2">▶️ <span data-i18n="scheduler.run_now">Run UpTonight Now</span></button>
+                        <button id="view-config-main" class="btn btn-secondary mb-2">👁️ <span data-i18n="settings.view_uptonight_configs">View UpTonight Configs</span></button>
+                        <button id="export-config-main" class="btn btn-secondary mb-2">⬇️ <span data-i18n="settings.export_general_config">Export General Config</span></button>
                     </div>
                 </div>
             </div>
@@ -685,110 +685,110 @@
             <div id="advanced-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
                     <div class="alert alert-info" role="alert">
-                        All parameters of this page are coming from UpTonight, please check the <a href="https://github.com/mawinkler/uptonight" target="_blank">UpTonight documentation</a> for more details.
+                        <span data-i18n="settings.uptonight_info">All parameters of this page are coming from UpTonight, please check the UpTonight documentation for more details.</span> <a href="https://github.com/mawinkler/uptonight" target="_blank">Github</a>
                     </div>
-                    <h2>🎯 Features</h2>
+                    <h2>🎯 <span data-i18n="settings.features">Features</span></h2>
                     <div class="bg-features p-3 rounded">
                         <div class="form-check form-switch">
                             <input type="checkbox" id="feature-horizon" class="form-check-input" checked switch>
-                            <label class="form-check-label" for="feature-horizon"> Horizon</label>
-                            <div class="form-text">Plot the horizon based on `horizon.anchor_points` to configure below</div>
+                            <label class="form-check-label" for="feature-horizon"> <span data-i18n="settings.feature_horizon">Horizon</span></label>
+                            <div class="form-text" data-i18n="settings.feature_horizon_info">Plot the horizon based on `horizon.anchor_points` to configure below</div>
                         </div>
                         <div class="form-check form-switch">
                             <input type="checkbox" id="feature-objects" class="form-check-input" checked switch>
-                            <label class="form-check-label" for="feature-objects"> Objects</label>
-                            <div class="form-text">Calculate and plot deep sky objects based on the chosen target list</div>
+                            <label class="form-check-label" for="feature-objects"> <span data-i18n="settings.feature_objects">Objects</span></label>
+                            <div class="form-text" data-i18n="settings.feature_objects_info">Calculate and plot deep sky objects based on the chosen target list</div>
                         </div>
                         <div class="form-check form-switch">
                             <input type="checkbox" id="feature-bodies" class="form-check-input" checked switch >
-                            <label class="form-check-label" for="feature-bodies"> Bodies</label>
-                            <div class="form-text">Calculate and plot solar system bodies</div>
+                            <label class="form-check-label" for="feature-bodies"> <span data-i18n="settings.feature_bodies">Bodies</span></label>
+                            <div class="form-text" data-i18n="settings.feature_bodies_info">Calculate and plot solar system bodies</div>
                         </div>
                         <div class="form-check form-switch">
                             <input type="checkbox" id="feature-comets" class="form-check-input" checked switch>
-                            <label class="form-check-label" for="feature-comets"> Comets</label>
-                            <div class="form-text">Calculate and plot comets</div>
+                            <label class="form-check-label" for="feature-comets"> <span data-i18n="settings.feature_comets">Comets</span></label>
+                            <div class="form-text" data-i18n="settings.feature_comets_info">Calculate and plot comets</div>
                         </div>
                         <div class="form-check form-switch">
                             <input type="checkbox" id="feature-alttime" class="form-check-input" checked switch>
-                            <label class="form-check-label" for="feature-alttime"> Altitude/Time Plots</label>
-                            <div class="form-text">Calculate and plot altitude vs time diagrams</div>
+                            <label class="form-check-label" for="feature-alttime"> <span data-i18n="settings.feature_alttime">Altitude/Time Plots</span></label>
+                            <div class="form-text" data-i18n="settings.feature_alttime_info">Calculate and plot altitude vs time diagrams</div>
                         </div>
                     </div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🔍 Constraints</h2>
+                    <h2>🔍 <span data-i18n="settings.constraints">Constraints</span></h2>
                     <div class="form-check form-switch form-check-inline bg-checkbox">
                         <input id="use-constraints" class="form-check-input" type="checkbox" switch>
-                        <label class="form-check-label" for="use-constraints">Use Constraints</label>
+                        <label class="form-check-label" for="use-constraints" data-i18n="settings.use_constraints">Use Constraints</label>
                     </div>
                     <div class="row g-3 mt-1 mb-2" id="constraints-fields">
                         <div class="col-md-3">
-                            <label for="altitude-min" class="form-label">Min Altitude (°):</label>
-                            <input type="number" id="altitude-min" class="form-control" value="30" step="1" title="Minimum altitude in degrees above horizon (typical: 30°)">
-                            <div class="form-text">Degrees above horizon</div>
+                            <label for="altitude-min" class="form-label" data-i18n="settings.altitude_min">Min Altitude (°):</label>
+                            <input type="number" id="altitude-min" class="form-control" value="30" step="1" title="Minimum altitude in degrees above horizon (typical: 30°)" data-i18n-title="settings.altitude_min_title">
+                            <div class="form-text" data-i18n="settings.altitude_min_info">Degrees above horizon</div>
                         </div>
                         <div class="col-md-3">
-                            <label for="altitude-max" class="form-label">Max Altitude (°):</label>
-                            <input type="number" id="altitude-max" class="form-control" value="80" step="1" title="Maximum altitude in degrees above horizon (typical: 80°)">
-                            <div class="form-text">Degrees above horizon</div>
+                            <label for="altitude-max" class="form-label" data-i18n="settings.altitude_max">Max Altitude (°):</label>
+                            <input type="number" id="altitude-max" class="form-control" value="80" step="1" title="Maximum altitude in degrees above horizon (typical: 80°)" data-i18n-title="settings.altitude_max_title">
+                            <div class="form-text" data-i18n="settings.altitude_max_info">Degrees above horizon</div>
                         </div>
                         <div class="col-md-3">
-                            <label for="airmass" class="form-label">Airmass Constraint:</label>
-                            <input type="number" id="airmass" class="form-control" value="2" step="0.1" title="Maximum airmass (2 = 60° zenith angle, 3 = 70.5°)">
-                            <div class="form-text">2 = 1/cos(60°)</div>
+                            <label for="airmass" class="form-label" data-i18n="settings.airmass_constraint">Airmass Constraint:</label>
+                            <input type="number" id="airmass" class="form-control" value="2" step="0.1" title="Maximum airmass (2 = 60° zenith angle, 3 = 70.5°)" data-i18n-title="settings.airmass_constraint_title">
+                            <div class="form-text" data-i18n="settings.airmass_constraint_info">2 = 1/cos(60°)</div>
                         </div>
                         <div class="col-md-3">
-                            <label for="size-min" class="form-label">Min Size (arcmin):</label>
+                            <label for="size-min" class="form-label" data-i18n="settings.size_min">Min Size (arcmin):</label>
                             <input type="number" id="size-min" class="form-control" value="10" step="1">
-                            <div class="form-text">Minimum object size in arc minutes</div>
+                            <div class="form-text" data-i18n="settings.size_min_info">Minimum object size in arc minutes</div>
                         </div>
                         <div class="col-md-3">
-                            <label for="size-max" class="form-label">Max Size (arcmin):</label>
+                            <label for="size-max" class="form-label" data-i18n="settings.size_max">Max Size (arcmin):</label>
                             <input type="number" id="size-max" class="form-control" value="300" step="1">
-                            <div class="form-text">Maximum object size in arc minutes</div>
+                            <div class="form-text" data-i18n="settings.size_max_info">Maximum object size in arc minutes</div>
                         </div>
                         <div class="col-md-3">
-                            <label for="moon-sep" class="form-label">Min Moon Separation (°):</label>
+                            <label for="moon-sep" class="form-label" data-i18n="settings.moon_sep">Min Moon Separation (°):</label>
                             <input type="number" id="moon-sep" class="form-control" value="45" step="1">
-                            <div class="form-text">Minimum separation from moon in degrees (overridden if 'Use Moon Illumination' is checked)</div>
+                            <div class="form-text" data-i18n="settings.moon_sep_info">Minimum separation from moon in degrees (overridden if 'Use Moon Illumination' is checked)</div>
                         </div>
                         <div class="col-md-3">
-                            <label for="time-threshold" class="form-label">Observable Time Threshold:</label>
+                            <label for="time-threshold" class="form-label" data-i18n="settings.time_threshold">Observable Time Threshold:</label>
                             <input type="number" id="time-threshold" class="form-control" value="0.5" step="0.1" min="0" max="1">
-                            <div class="form-text">Fraction of darkness time object must be observable (0.0-1.0, e.g., 0.5 = 50%)</div>
+                            <div class="form-text" data-i18n="settings.time_threshold_info">Fraction of darkness time object must be observable (0.0-1.0, e.g., 0.5 = 50%)</div>
                         </div>
                         <div class="col-md-3">
-                            <label for="max-targets" class="form-label">Max Targets in Threshold:</label>
+                            <label for="max-targets" class="form-label" data-i18n="settings.max_targets">Max Targets in Threshold:</label>
                             <input type="number" id="max-targets" class="form-control" value="60" step="1">
-                            <div class="form-text">Maximum number of targets to calculate (recommended: ~45 for MQTT, ~60 otherwise)</div>
+                            <div class="form-text" data-i18n="settings.max_targets_info">Maximum number of targets to calculate (recommended: ~45 for MQTT, ~60 otherwise)</div>
                         </div>
                     </div>
                     <div class="form-check form-switch form-check-inline bg-checkbox col-md-3">
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" id="moon-illumination" checked switch>
-                            <label class="form-check-label" for="moon-illumination">Use Moon Illumination</label>
-                            <div class="form-text">If enabled, minimum moon separation is derived from moon illumination percentage (1% = 1°)</div>
+                            <label class="form-check-label" for="moon-illumination" data-i18n="settings.use_moon_illumination">Use Moon Illumination</label>
+                            <div class="form-text" data-i18n="settings.use_moon_illumination_info">If enabled, minimum moon separation is derived from moon illumination percentage (1% = 1°)</div>
                         </div>
 
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" id="north-ccw" checked switch>
-                            <label class="form-check-label" for="north-ccw">North to East CCW</label>
-                            <div class="form-text">Set azimuth display: counter-clockwise (north at top, east at left) or clockwise</div>
+                            <label class="form-check-label" for="north-ccw" data-i18n="settings.north_ccw">North to East CCW</label>
+                            <div class="form-text" data-i18n="settings.north_ccw_info">Set azimuth display: counter-clockwise (north at top, east at left) or clockwise</div>
                         </div>
                     </div>
                 </div>
                 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📌 Bucket List</h2>
+                    <h2>📌 <span data-i18n="settings.bucket_list">Bucket List</span></h2>
                     <div class="form-group">
-                        <small>Targets to always include (one per line). These will show if visible, ignoring constraints. Use the 'name' attribute for identification.</small>
+                        <small data-i18n="settings.bucket_list_info">Targets to always include (one per line). These will show if visible, ignoring constraints. Use the 'name' attribute for identification.</small>
                         <div class="yaml-editor-container" id="bucket-list-container">
-                            <textarea id="bucket-list" class="yaml-editor" rows="4" placeholder="IC 434&#10;NGC 2359&#10;M 16" title="Personal bucket list - targets that will always be included if visible"></textarea>
+                            <textarea id="bucket-list" class="yaml-editor" rows="4" placeholder="IC 434&#10;NGC 2359&#10;M 16" title="Personal bucket list - targets that will always be included if visible" data-i18n-title="settings.bucket_list_title"></textarea>
                             <div class="yaml-validation-status" id="bucket-list-status">
                                 <span class="icon">⏺</span>
-                                <span class="yaml-validation-message">Ready</span>
+                                <span class="yaml-validation-message" data-i18n="settings.ready">Ready</span>
                             </div>
                         </div>
                         <small id="bucket-list-error" class="error-msg"></small>
@@ -796,14 +796,14 @@
                 </div>
                 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>✔️ Done List</h2>
+                    <h2>✔️ <span data-i18n="settings.done_list">Done List</span></h2>
                     <div class="form-group">
-                        <small>Targets to never show (one per line). Use the 'name' attribute for identification.</small>
+                        <small data-i18n="settings.done_list_info">Targets to never show (one per line). Use the 'name' attribute for identification.</small>
                         <div class="yaml-editor-container" id="done-list-container">
-                            <textarea id="done-list" class="yaml-editor"  rows="4" placeholder="IC 1795&#10;LBN 535" title="Targets you've already observed and want to exclude"></textarea>
+                            <textarea id="done-list" class="yaml-editor"  rows="4" placeholder="IC 1795&#10;LBN 535" title="Targets you've already observed and want to exclude" data-i18n-title="settings.done_list_title"></textarea>
                             <div class="yaml-validation-status" id="done-list-status">
                                 <span class="icon">⏺</span>
-                                <span class="yaml-validation-message">Ready</span>
+                                <span class="yaml-validation-message" data-i18n="settings.ready">Ready</span>
                             </div>
                         </div>
                         <small id="done-list-error" class="error-msg"></small>
@@ -811,14 +811,14 @@
                 </div>
                 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🎯 Custom Targets</h2>
+                    <h2>🎯 <span data-i18n="settings.custom_targets">Custom Targets</span></h2>
                     <div class="form-group">
-                        <small>Define custom targets in YAML format. Required fields: name, ra, dec. Optional: description, type, constellation, size, mag.</small>
+                        <small data-i18n="settings.custom_targets_info">Define custom targets in YAML format. Required fields: name, ra, dec. Optional: description, type, constellation, size, mag.</small>
                         <div class="yaml-editor-container" id="custom-targets-container">
-                            <textarea id="custom-targets" class="yaml-editor" rows="10" placeholder="- name: NGC 4395&#10;  description: NGC 4395&#10;  type: Galaxy&#10;  constellation: Canes Venatici&#10;  size: 13&#10;  ra: 12 25 48&#10;  dec: +33 32 48&#10;  mag: 10.0" title="Add your own custom targets not in the standard catalogues"></textarea>
+                            <textarea id="custom-targets" class="yaml-editor" rows="10" placeholder="- name: NGC 4395&#10;  description: NGC 4395&#10;  type: Galaxy&#10;  constellation: Canes Venatici&#10;  size: 13&#10;  ra: 12 25 48&#10;  dec: +33 32 48&#10;  mag: 10.0" title="Add your own custom targets not in the standard catalogues" data-i18n-title="settings.custom_targets_title"></textarea>
                             <div class="yaml-validation-status" id="custom-targets-status">
                                 <span class="icon">⏺</span>
-                                <span class="yaml-validation-message">Ready</span>
+                                <span class="yaml-validation-message" data-i18n="settings.ready">Ready</span>
                             </div>
                         </div>
                         <small id="custom-targets-error" class="error-msg"></small>
@@ -826,25 +826,25 @@
                 </div>
                 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌄 Horizon</h2>
+                    <h2>🌄 <span data-i18n="settings.horizon">Horizon</span></h2>
                     <div class="form-group">
-                        <small>Define horizon anchor points in YAML format. Anchor points should start with azimuth 0 and end with 360 degrees. Feature Horizon must be enabled.</small>
+                        <small data-i18n="settings.horizon_info">Define horizon anchor points in YAML format. Anchor points should start with azimuth 0 and end with 360 degrees. Feature Horizon must be enabled.</small>
                         <div class="yaml-editor-container" id="horizon-config-container">
-                            <textarea id="horizon-config" class="yaml-editor" rows="8" placeholder="step_size: 5&#10;anchor_points:&#10;  - alt: 20&#10;    az: 0&#10;  ...&#10;  - alt: 20&#10;    az: 360" title="Define your custom horizon profile with altitude/azimuth pairs"></textarea>
+                            <textarea id="horizon-config" class="yaml-editor" rows="8" placeholder="step_size: 5&#10;anchor_points:&#10;  - alt: 20&#10;    az: 0&#10;  ...&#10;  - alt: 20&#10;    az: 360" title="Define your custom horizon profile with altitude/azimuth pairs" data-i18n-title="settings.horizon_config_title"></textarea>
                             <div class="yaml-validation-status" id="horizon-config-status">
                                 <span class="icon">⏺</span>
-                                <span class="yaml-validation-message">Ready</span>
+                                <span class="yaml-validation-message" data-i18n="settings.ready">Ready</span>
                             </div>
                         </div>
                         <small id="horizon-error" class="error-msg"></small>
                     </div>
 
-                    <div class="alert alert-info mt-3" role="alert">
+                    <div class="alert alert-info mt-3" role="alert" data-i18n="settings.uptonight_reload_info">
                         When new UpTonight settings are saved, a manual run may be required to see changes on dashboard, or wait for the next scheduled run.
                     </div>
 
                     <div class="button-group">
-                        <button id="save-advanced" class="btn btn-primary">💾 Save Advanced Settings</button>
+                        <button id="save-advanced" class="btn btn-primary">💾 <span data-i18n="settings.save_advanced_settings">Save Advanced Settings</span></button>
                     </div>
                 </div>
             </div>
@@ -852,11 +852,11 @@
             <!-- Logs Sub-tab -->
             <div id="logs-subtab" class="sub-tab-content">                
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📋 System Logs</h2>
+                    <h2>📋 <span data-i18n="settings.system_logs">System Logs</span></h2>
                     <div class="row row-cols-lg-auto g-3 align-items-center">
                         <div class="col-12">
                             <select class="form-select" id="log-level">
-                                <option value="all">All Levels</option>
+                                <option value="all" data-i18n="settings.log_level_all">All Levels</option>
                                 <option value="INFO" selected>INFO</option>
                                 <option value="WARNING">WARNING</option>
                                 <option value="ERROR">ERROR</option>
@@ -865,17 +865,17 @@
                         </div>
                         <div class="col-12">
                             <select class="form-select" id="log-limit">
-                                <option value="100">Last 100</option>
-                                <option value="500" selected>Last 500</option>
-                                <option value="1000">Last 1000</option>
-                                <option value="5000">Last 5000</option>
+                                <option value="100" data-i18n="settings.log_limit_100">Last 100</option>
+                                <option value="500" selected data-i18n="settings.log_limit_500">Last 500</option>
+                                <option value="1000" data-i18n="settings.log_limit_1000">Last 1000</option>
+                                <option value="5000" data-i18n="settings.log_limit_5000">Last 5000</option>
                             </select>
                         </div>                        
                         <div class="col-12">
-                            <button id="refresh-logs" class="btn btn-secondary">🔄 Refresh</button>
+                            <button id="refresh-logs" class="btn btn-secondary">🔄 <span data-i18n="settings.refresh_logs">Refresh</span></button>
                         </div> 
                         <div class="col-12">         
-                            <button id="clear-logs-display" class="btn btn-secondary">🗑️ Delete logs (empty log file)</button>
+                            <button id="clear-logs-display" class="btn btn-secondary">🗑️ <span data-i18n="settings.clear_logs">Delete logs (empty log file)</span></button>
                         </div>          
                     </div>
                     <div id="logs-display" class="logs-container mt-3 rounded"></div>
@@ -885,33 +885,33 @@
             <!-- Users Management Sub-tab (Admin only) -->
             <div id="users-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>👥 User Management</h2>
-                    <div>Manage users and their access roles.</div>
+                    <h2>👥 <span data-i18n="settings.user_management">User Management</span></h2>
+                    <div data-i18n="settings.manage_users">Manage users and their access roles.</div>
                     
                     <!-- Create User Form -->
                     <form id="create-user-form">
                         <div class="row row-cols-lg-auto g-3 align-items-center">
                             <div class="col-12">
-                                <label class="visually-hidden" for="new-username">Username</label>
-                                <input type="text" class="form-control" id="new-username" required autocomplete="off" placeholder="Username">
+                                <label class="visually-hidden" for="new-username" data-i18n="settings.username">Username</label>
+                                <input type="text" class="form-control" id="new-username" required autocomplete="off" placeholder="Username" data-i18n-placeholder="settings.username">
                             </div>
 
                             <div class="col-12">
-                                <label class="visually-hidden" for="new-password">Password</label>
-                                <input type="password" class="form-control" id="new-password" required autocomplete="off" placeholder="Password">
+                                <label class="visually-hidden" for="new-password" data-i18n="settings.password">Password</label>
+                                <input type="password" class="form-control" id="new-password" required autocomplete="off" placeholder="Password" data-i18n-placeholder="settings.password">
                             </div>
 
                             <div class="col-12">
-                                <label class="visually-hidden" for="new-role">Role</label>
+                                <label class="visually-hidden" for="new-role" data-i18n="settings.role">Role</label>
                                 <select class="form-select" id="new-role" required>
-                                    <option value="read-only">Read-Only (Can view data only)</option>
-                                    <option value="user">Regular user (Can interact with Astrodex)</option>
-                                    <option value="admin">Admin (Full access)</option>
+                                    <option value="read-only" data-i18n="settings.role_read_only">Read-Only (Can view data only)</option>
+                                    <option value="user" data-i18n="settings.role_user">Regular user (Can interact with Astrodex)</option>
+                                    <option value="admin" data-i18n="settings.role_admin">Admin (Full access)</option>
                                 </select>
                             </div>
 
                             <div class="col-12">
-                                <button type="submit" class="btn btn-primary">Create User</button>
+                                <button type="submit" class="btn btn-primary" data-i18n="settings.create_user">Create User</button>
                             </div>
                         </div>   
                     </form>             
@@ -919,7 +919,7 @@
                 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">    
                     <!-- Users List -->
-                    <h2>👥 Existing Users</h2>
+                    <h2>👥 <span data-i18n="settings.existing_users">Existing Users</span></h2>
                     <div id="users-list"></div>
                 </div>
             </div>

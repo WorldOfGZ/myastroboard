@@ -145,7 +145,7 @@ class LanguageSelector {
         // Schedule the update for the next animation frame to avoid blocking
         requestAnimationFrame(() => {
             try {
-                const elements = document.querySelectorAll('[data-i18n]');
+                const elements = document.querySelectorAll('[data-i18n], [data-i18n-placeholder], [data-i18n-title]');
                 const totalElements = elements.length;
                 const batchSize = 50; // Process 50 elements at a time
                 
@@ -157,17 +157,40 @@ class LanguageSelector {
                     // Process batch of elements
                     for (let i = index; i < endIndex; i++) {
                         const element = elements[i];
-                        const key = element.getAttribute('data-i18n');
-                        
-                        if (key) {
+                        const textKey = element.getAttribute('data-i18n');
+                        const placeholderKey = element.getAttribute('data-i18n-placeholder');
+                        const titleKey = element.getAttribute('data-i18n-title');
+
+                        if (textKey) {
                             try {
-                                const translated = i18n.t(key);
-                                // Only update if element text has changed
+                                const translated = i18n.t(textKey);
                                 if (element.textContent !== translated) {
                                     element.textContent = translated;
                                 }
                             } catch (error) {
-                                console.warn(`[LanguageSelector] Error translating key: ${key}`, error);
+                                console.warn(`[LanguageSelector] Error translating key: ${textKey}`, error);
+                            }
+                        }
+
+                        if (placeholderKey) {
+                            try {
+                                const translatedPlaceholder = i18n.t(placeholderKey);
+                                if ('placeholder' in element && element.placeholder !== translatedPlaceholder) {
+                                    element.placeholder = translatedPlaceholder;
+                                }
+                            } catch (error) {
+                                console.warn(`[LanguageSelector] Error translating placeholder key: ${placeholderKey}`, error);
+                            }
+                        }
+
+                        if (titleKey) {
+                            try {
+                                const translatedTitle = i18n.t(titleKey);
+                                if (element.getAttribute('title') !== translatedTitle) {
+                                    element.setAttribute('title', translatedTitle);
+                                }
+                            } catch (error) {
+                                console.warn(`[LanguageSelector] Error translating title key: ${titleKey}`, error);
                             }
                         }
                     }
