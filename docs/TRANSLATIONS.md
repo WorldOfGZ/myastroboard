@@ -373,6 +373,30 @@ await i18n.setLanguage('en');
 console.log(i18n.t('common.loading'));  // Should show "Loading..."
 ```
 
+### Translation Completeness Checker
+
+Use the helper script to compare all translation files in `static/i18n` against `en.json`.
+
+**Script location**: `scripts/translate_checker.py`
+
+**Run command**:
+
+```bash
+py scripts/translate_checker.py
+```
+
+The script prints a clear console report with:
+
+- **Global completion percentage by language** compared to `en.json`
+- **Missing keys by file** (full key paths)
+- **Missing keys count by language**
+
+Example of expected output sections:
+
+- `TRANSLATION COMPLETENESS SUMMARY`
+- `MISSING KEYS BY FILE`
+- `MISSING KEYS COUNT BY LANGUAGE`
+
 ## Common Patterns
 
 ### Pattern 1: Static HTML Content
