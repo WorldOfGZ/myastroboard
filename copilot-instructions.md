@@ -817,6 +817,8 @@ MyAstroBoard supports multiple languages through a structured i18n system. Curre
 - **Fallback to English** - Missing keys default to English
 - **Browser language detection** - Automatically detects browser language preference
 - **User preference persistence** - Stores language choice in localStorage
+- **Translated API payloads required** - No hardcoded English messages in API responses when i18n keys exist
+- **Parameterized keys must be resolved** - Always pass required placeholders (example: `{time}`) before returning payloads
 
 ### Directory Structure
 ```
@@ -1058,6 +1060,12 @@ return jsonify({
     'message': 'An error occurred'
 })
 ```
+
+#### API Language Propagation Rule
+
+- Frontend must send current language via `?lang=<code>` for endpoints returning translated content.
+- Backend must normalize language from query param first, then `Accept-Language`, then fallback to `en`.
+- Applies to weather alerts, astro-analysis alerts, events, and any future translated API payload.
 
 ### Adding a New Language
 

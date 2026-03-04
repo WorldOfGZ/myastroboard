@@ -4,7 +4,7 @@
 
 MyAstroBoard implements a structured multilingual system supporting English and French. The i18n system ensures all user-facing content can be translated while maintaining code structure and preventing hardcoded strings.
 
-**Current Status**: 🚀 Proof of Concept - Initial structure in place for `astro-weather` tab and weather alerts
+**Current Status**: ✅ Active implementation for weather alerts, astro-weather dynamic content, and events API translations
 
 ## Architecture
 
@@ -90,7 +90,7 @@ async function switchLanguage(lang) {
 // Components listen for language changes
 window.addEventListener('i18nLanguageChanged', (e) => {
     const newLang = e.detail.language;
-    // Example pdate dynamic content
+    // Example: update dynamic content
     refreshWeatherDisplay();
 });
 ```
@@ -186,7 +186,8 @@ from i18n_utils import create_translated_alert, I18nManager
 
 @app.route('/api/weather/alerts', methods=['GET'])
 def get_weather_alerts():
-    language = request.args.get('lang', 'en')
+    requested = request.args.get('lang') or request.headers.get('Accept-Language', 'en')
+    language = requested.split(',')[0].split('-')[0].lower()
     
     # Create alert with translated message
     alert = create_translated_alert(
@@ -198,6 +199,21 @@ def get_weather_alerts():
     
     return jsonify({'alerts': [alert]})
 ```
+
+### API Language Contract
+
+For endpoints returning translated user-facing content:
+
+- Frontend sends current language via `?lang=<code>`
+- Backend may fallback to `Accept-Language`, then default to `en`
+- Backend must resolve placeholders before response serialization (example: `{time}`)
+- API responses must not return hardcoded English messages when i18n keys exist
+
+Implemented examples:
+
+- `/api/weather/alerts?lang=fr`
+- `/api/weather/astro-analysis?hours=24&lang=fr`
+- `/api/events/upcoming?lang=fr`
 
 ## Translation Keys Structure
 
@@ -258,17 +274,21 @@ namespace.section.key
 - UI update coordination with i18n manager
 - Auto-initialization on page load
 
-### JavaScript Files 🔄 (Ready for implementation)
+### JavaScript Files ✅
 
 **`static/js/weather_astro.js`** - Astrophotography weather analysis
 - Chart titles and labels
 - Condition descriptions
 - Error messages
+- Translated weather alert type labels
+- Sends `lang` when calling `/api/weather/astro-analysis`
 
 **`static/js/weather_alerts.js`** - Weather alert system
 - Alert type messages
 - Severity labels
 - Timestamp formatting
+- Modal texts translated
+- Sends `lang` when calling `/api/weather/alerts`
 
 ### CSS Files ✅
 
@@ -277,12 +297,20 @@ namespace.section.key
 - `.language-select` - Select element styling
 - Responsive layout for mobile
 
-### Backend Files 🔄 (Ready for implementation)
+### Backend Files ✅
 
 **`backend/weather_astro.py`** - Weather analysis engine
 - Alert messages (DEW_WARNING, WIND_WARNING, etc.)
 - Analysis descriptions
 - Condition labels
+- Uses translated weather alert messages from `i18n_utils.py`
+
+**`backend/events_aggregator.py`** - Unified events API payloads
+- Supports per-request language (`lang`)
+- Uses stable `structure_key` for frontend routing (`moon`, `sun`, `aurora`, `iss`, `calendar`)
+
+**`backend/app.py`** - API routes
+- Resolves request language for translated API responses
 
 ## Implementation Guide
 
@@ -341,8 +369,8 @@ myastroboard/
 │   └── js/
 │       ├── i18n.js                  # ✅ i18n manager
 │       ├── language-selector.js     # ✅ Language selector UI controller
-│       ├── weather_astro.js         # 🔄 Ready for implementation
-│       └── weather_alerts.js        # 🔄 Ready for implementation
+│       ├── weather_astro.js         # ✅ Uses lang-aware API + translated labels
+│       └── weather_alerts.js        # ✅ Uses lang-aware API + translated labels
 └── backend/
     └── i18n_utils.py                # ✅ Backend utilities
 ```
@@ -358,6 +386,8 @@ myastroboard/
 - [ ] **Fallback mechanism** - Missing keys show fallback English
 - [ ] **Placeholder replacement** - Alert with `{time}` parameter displays correctly
 - [ ] **API responses** - Backend returns translated alert messages
+- [ ] **API lang propagation** - Frontend sends `lang`, backend resolves and applies it
+- [ ] **No untranslated placeholders** - API responses never contain raw tokens like `{time}`
 - [ ] **HTML attributes** - `data-i18n` attributes translate on page load
 - [ ] **Dynamic content** - JavaScript-generated content uses `i18n.t()`
 
@@ -450,6 +480,10 @@ manager = I18nManager('fr')
 # Get different formats for different languages
 time_format = manager.t('common.time_format')  # Could return "HH:mm" or different
 ```
+
+### Additional Namespaces
+
+- Root namespace `planets.*` contains Solar System names used across features (independent from `events_api`).
 
 ## Best Practices
 
@@ -564,6 +598,6 @@ Translations must be:
 
 ---
 
-**Last Updated**: March 3, 2026  
-**Proof of Concept**: ✅ Complete (Astro-Weather tab, Weather Alerts, Language Selector)  
-**Next Phase**: Full implementation across all components and additional languages
+**Last Updated**: March 4, 2026  
+**Implementation Status**: ✅ Weather Alerts + Astro Weather + Events APIs are language-aware (`lang`) with placeholder resolution  
+**Next Phase**: Extend same level of i18n coverage to remaining dynamic modules
