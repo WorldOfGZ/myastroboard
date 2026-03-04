@@ -333,7 +333,10 @@
   },
 
   "calendar": {
-
+    "no_significant_events": "No significant astronomical events in the next 30 days.",
+    "details": "Details",
+    "visible": "Visible",
+    "invisible": "Invisible"
   },
   
   "weather_alerts": {
@@ -370,6 +373,7 @@
   
   "cache": {
     "updating_data": "Updating astronomical data, please wait...",
+    "updating_data_details": "Updating astronomical data ({currentStep}/{totalSteps}) {progress}% - {stepName}",
     "cache_valid": "Cache is up to date",
     "cache_updating": "Updating cache...",
     "cache_error": "Cache update failed",

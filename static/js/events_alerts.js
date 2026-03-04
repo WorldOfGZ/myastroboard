@@ -90,7 +90,7 @@ function displayEvents(eventsData) {
 
     //console.log("Events data received:", eventsData);
     //console.log("Next event:", nextEvent);
-    //console.log("All events in next 30 days:", eventsIn30Days);
+    console.log("All events in next 30 days:", eventsIn30Days);
     //console.log("Visible events in next 30 days:", visibleEvents);
 
 
@@ -99,7 +99,7 @@ function displayEvents(eventsData) {
     if (!nextEvent || eventsIn30Days.length === 0) {
         const noEventsMsg = document.createElement('div');
         noEventsMsg.className = 'alert alert-info';
-        noEventsMsg.textContent = 'No significant astronomical events in the next 30 days.';
+        noEventsMsg.textContent = i18n.t('calendar.no_significant_events');
         timelineContainer.appendChild(noEventsMsg);
 
     // Events to display in timeline 
@@ -196,7 +196,7 @@ function createEventAlertCard(event) {
     const learnMoreButton = document.createElement('a');
     learnMoreButton.className = 'btn btn-sm sub-tab-btn active';
     learnMoreButton.href = '#';
-    learnMoreButton.textContent = '📖 Details';
+    learnMoreButton.textContent = `📖 ${i18n.t('calendar.details')}`;
     learnMoreButton.addEventListener('click', (e) => {
         e.preventDefault();
         scrollToEventDetails(event.event_type);
@@ -231,11 +231,11 @@ function createEventTimeline(events) {
         if (event.visibility) {
             iconSpan.classList.add('bg-success');
             visibilityBadge.classList.add('bg-success');
-            visibilityBadge.textContent = 'Visible';
+            visibilityBadge.textContent = i18n.t('calendar.visible');
         } else {
             iconSpan.classList.add('bg-danger');
             visibilityBadge.classList.add('bg-danger');
-            visibilityBadge.textContent = 'Invisible';
+            visibilityBadge.textContent = i18n.t('calendar.invisible');
         }
         // Add opacity to bg
         iconSpan.classList.add('bg-opacity-75');

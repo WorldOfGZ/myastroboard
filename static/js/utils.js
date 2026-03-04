@@ -73,9 +73,14 @@ async function checkCacheStatus() {
                 const stepName = data.step_name || '';
                 
                 if (totalSteps > 0) {
-                    bannerText.textContent = `Updating astronomical data (${currentStep}/${totalSteps}) ${progress}%${stepName ? ' - ' + stepName : ''}...`;
+                    bannerText.textContent = i18n.t('cache.updating_data_details', {
+                        currentStep,
+                        totalSteps,
+                        progress,
+                        stepName
+                    });
                 } else {
-                    bannerText.textContent = 'Updating astronomical data, please wait...';
+                    bannerText.textContent = i18n.t('cache.updating_data');
                 }
             }
             // Check more frequently during initialization (every 10 seconds)

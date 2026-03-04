@@ -331,6 +331,13 @@
     "table_elev": "Élévation / Azimut",
     "not_found": "Aucun passage visible de l'ISS trouvé."
   },
+
+  "calendar": {
+    "no_significant_events": "Aucun événement astronomique significatif dans les 30 prochains jours.",
+    "details": "Détails",
+    "visible": "Visible",
+    "invisible": "Invisible"
+  },
   
   "weather_alerts": {
     "section_title": "Alertes Météo",
@@ -366,6 +373,7 @@
   
   "cache": {
     "updating_data": "Mise à jour des données astronomiques, veuillez patienter...",
+    "updating_data_details": "Mise à jour des données astronomiques ({currentStep}/{totalSteps}) {progress}% - {stepName}",
     "cache_valid": "Le cache est à jour",
     "cache_updating": "Mise à jour du cache...",
     "cache_error": "Échec de la mise à jour du cache",
