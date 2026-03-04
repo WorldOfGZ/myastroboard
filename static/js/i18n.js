@@ -21,6 +21,11 @@ class I18nManager {
         
         // Initialize with default language
         this.loadLanguage(this.currentLanguage);
+
+        // Ensure fallback language is available for key-level fallback lookups
+        if (this.currentLanguage !== this.fallbackLanguage) {
+            this.loadLanguage(this.fallbackLanguage, { activate: false, persistSelection: false });
+        }
     }
 
     /**
@@ -46,10 +51,16 @@ class I18nManager {
     /**
      * Load translation file for a language
      */
-    async loadLanguage(lang) {
+    async loadLanguage(lang, options = {}) {
+        const { activate = true, persistSelection = activate } = options;
+
         if (this.loadedLanguages.has(lang)) {
-            this.currentLanguage = lang;
-            localStorage.setItem('myastroboard_language', lang);
+            if (activate) {
+                this.currentLanguage = lang;
+                if (persistSelection) {
+                    localStorage.setItem('myastroboard_language', lang);
+                }
+            }
             //console.log(`[i18n] Language already loaded: ${lang}`);
             return;
         }
@@ -65,8 +76,12 @@ class I18nManager {
             const translations = await response.json();
             this.translations[lang] = translations;
             this.loadedLanguages.add(lang);
-            this.currentLanguage = lang;
-            localStorage.setItem('myastroboard_language', lang);
+            if (activate) {
+                this.currentLanguage = lang;
+                if (persistSelection) {
+                    localStorage.setItem('myastroboard_language', lang);
+                }
+            }
 
             //console.log(`[i18n] Language loaded successfully: ${lang}`, translations);
         } catch (error) {
@@ -88,35 +103,33 @@ class I18nManager {
      * @returns {string} The translated string or key if not found
      */
     t(key, params = {}) {
-        const keys = key.split('.');
-        let current = this.translations[this.currentLanguage];
+        const requestedLanguage = this.currentLanguage;
+        const requestedTranslation = this.getValueByPath(this.translations[requestedLanguage], key);
+        const fallbackTranslations = this.translations[this.fallbackLanguage];
+        const fallbackTranslation = this.getValueByPath(fallbackTranslations, key);
 
-        // Debug logging for missing translations
-        if (!current) {
-            console.warn(`[i18n] Translations not loaded for ${this.currentLanguage}, key: ${key}`);
+        let current = requestedTranslation;
+
+        if (requestedTranslation === undefined && requestedLanguage !== this.fallbackLanguage) {
+            console.warn(
+                `[i18n] Missing key "${key}" in requested translation file: ${requestedLanguage}.json`
+            );
+            current = fallbackTranslation;
         }
 
-        // Navigate through nested object
-        for (const k of keys) {
-            if (current && typeof current === 'object' && k in current) {
-                current = current[k];
-            } else {
-                // Fallback to English if key not found
-                if (this.currentLanguage !== this.fallbackLanguage) {
-                    current = this.translations[this.fallbackLanguage];
-                    for (const fallbackKey of keys) {
-                        if (current && typeof current === 'object' && fallbackKey in current) {
-                            current = current[fallbackKey];
-                        } else {
-                            console.debug(`[i18n] Missing translation key: ${key} (fallback also not found)`);
-                            return key; // Return key itself if not found
-                        }
-                    }
-                } else {
-                    console.debug(`[i18n] Missing translation key: ${key}`);
-                    return key; // Return key itself if not found
-                }
+        if (current === undefined) {
+            if (requestedLanguage !== this.fallbackLanguage && !fallbackTranslations) {
+                console.warn(
+                    `[i18n] Fallback language ${this.fallbackLanguage}.json is not loaded yet for key "${key}"`
+                );
+                this.loadLanguage(this.fallbackLanguage, { activate: false, persistSelection: false });
+                return key;
             }
+
+            console.warn(
+                `[i18n] Missing key "${key}" in default translation file: ${this.fallbackLanguage}.json`
+            );
+            return key;
         }
 
         let result = typeof current === 'string' ? current : key;
@@ -128,6 +141,32 @@ class I18nManager {
         }
 
         return result;
+    }
+
+    /**
+     * Resolve a dot-notated translation path from an object
+     *
+     * @param {object} source - Source translation object
+     * @param {string} key - Dot-notated translation key
+     * @returns {string|undefined} Translation value if found
+     */
+    getValueByPath(source, key) {
+        if (!source || typeof source !== 'object') {
+            return undefined;
+        }
+
+        const keys = key.split('.');
+        let current = source;
+
+        for (const k of keys) {
+            if (current && typeof current === 'object' && k in current) {
+                current = current[k];
+            } else {
+                return undefined;
+            }
+        }
+
+        return typeof current === 'string' ? current : undefined;
     }
 
     /**

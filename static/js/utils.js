@@ -229,12 +229,13 @@ function getCardinalDirection(azimuth) {
     const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 
                        'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
     const index = Math.round((azimuth % 360) / 22.5);
-    return directions[index % 16];
+    const direction = directions[index % 16];
+    return i18n.t(`cardinal_directions.${direction}`);
 }
 
 function formatAltAz(altitudeDeg, azimuthCardinal, azimuthDeg) {
-    const safeAlt = Number.isFinite(Number(altitudeDeg)) ? `${Number(altitudeDeg).toFixed(1)}°` : 'N/A';
-    const safeCardinal = escapeHtml(azimuthCardinal || 'N/A');
-    const safeAz = Number.isFinite(Number(azimuthDeg)) ? `${Number(azimuthDeg).toFixed(1)}°` : 'N/A';
+    const safeAlt = Number.isFinite(Number(altitudeDeg)) ? `${Number(altitudeDeg).toFixed(1)}${i18n.t('units.degrees')}` : i18n.t('units.na');
+    const safeCardinal = escapeHtml(azimuthCardinal || i18n.t('units.na'));
+    const safeAz = Number.isFinite(Number(azimuthDeg)) ? `${Number(azimuthDeg).toFixed(1)}${i18n.t('units.degrees')}` : i18n.t('units.na');
     return `${safeAlt} / ${safeCardinal} (${safeAz})`;
 }

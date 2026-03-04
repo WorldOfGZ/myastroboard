@@ -151,19 +151,19 @@ h3 {
   overflow-x: auto;
 }*/
 
-.theme-label {
+.theme-label, .language-label {
     color: var(--text-light);
     font-weight: var(--font-medium);
 }
 
-.theme-select {
+.theme-select, .language-select {
     background-color: var(--surface-2);
     color: var(--text-color);
     border: 1px solid var(--surface-border-strong);
     box-shadow: none;
 }
 
-.theme-select:focus {
+.theme-select:focus, .language-select:focus {
     border-color: var(--border-violet);
     box-shadow: 0 0 0 0.2rem var(--accent-soft);
 }

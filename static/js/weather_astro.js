@@ -366,7 +366,7 @@ function renderSeeingTransparencyChart(labels, data) {
     const transparencyData = data.map(item => item.transparency_score);
     
     DOMUtils.clear(container);
-    container.appendChild(createAstroChartShell(i18n.t('astro_weather.chart_seeing_title'), 'astro-seeing-chart', [
+    container.appendChild(createAstroChartShell(`👁️ ${i18n.t('astro_weather.chart_seeing_title')}` , 'astro-seeing-chart', [
         { label: i18n.t('astro_weather.seeing_label'), color: '#3b82f6' },
         { label: i18n.t('astro_weather.transparency_label'), color: '#a855f7' }
     ], i18n.t('astro_weather.quality_score_label')));
@@ -463,7 +463,7 @@ function renderCloudLayersChart(labels, data) {
     const lowCloudImpact = data.map(item => item.low_cloud_impact);
     
     DOMUtils.clear(container);
-    container.appendChild(createAstroChartShell(i18n.t('astro_weather.chart_cloud_title'), 'astro-clouds-chart', [
+    container.appendChild(createAstroChartShell(`☁️ ${i18n.t('astro_weather.chart_cloud_title')}`, 'astro-clouds-chart', [
         { label: i18n.t('astro_weather.high_cloud_impact'), color: '#22c55e' },
         { label: i18n.t('astro_weather.mid_cloud_impact'), color: '#fbbf24' },
         { label: i18n.t('astro_weather.low_cloud_impact'), color: '#ef4444' }
@@ -567,7 +567,7 @@ function renderDewTrackingChart(labels, data) {
     const trackingScore = data.map(item => item.tracking_stability_score);
     
     DOMUtils.clear(container);
-    container.appendChild(createAstroChartShell(i18n.t('astro_weather.chart_dew_tracking_title'), 'astro-conditions-chart', [
+    container.appendChild(createAstroChartShell(`💧 ${i18n.t('astro_weather.chart_dew_tracking_title')}`, 'astro-conditions-chart', [
         { label: i18n.t('astro_weather.dew_label'), color: '#06b6d4' },
         { label: i18n.t('astro_weather.tracking_stability_label'), color: '#f56565' }
     ], i18n.t('astro_weather.score_100_label')));

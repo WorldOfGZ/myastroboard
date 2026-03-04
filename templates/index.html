@@ -196,12 +196,12 @@
             <!-- Window Sub-tab -->
             <div id="window-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌟 Best Observation Window</h2>
+                    <h2>🌟 <span data-i18n="best_window.section_title">Best Observation Window</span></h2>
                     <div class="alert alert-info" role="alert">
-                        Best next window is calculated within three differents modes, return is in hours:<br>
-                        - <b>Strict</b>: Sun altitude < -18° AND Moon altitude < 0° => No moon on sky<br>
-                        - <b>Practical</b>: Sun < -18° AND Moon altitude < 5° => Moon, but negligible<br>
-                        - <b>Illumination</b>: Sun < -18° AND Moon illumination < 15% => Visible moon, but faint
+                        <span data-i18n="best_window.info_1">Best next window is calculated within three differents modes, return is in hours:</span><br>
+                        - <b><span data-i18n="best_window.strict">Strict</span></b>: <span data-i18n="best_window.info_2">Sun altitude < -18° AND Moon altitude < 0° => No moon on sky</span><br>
+                        - <b><span data-i18n="best_window.practical">Practical</span></b>: <span data-i18n="best_window.info_3">Sun < -18° AND Moon altitude < 5° => Moon, but negligible</span><br>
+                        - <b><span data-i18n="best_window.illumination">Illumination</span></b>: <span data-i18n="best_window.info_4">Sun < -18° AND Moon illumination < 15% => Visible moon, but faint</span>
                     </div>
                     <div class="alert alert-info" role="alert" id="window-loader-info-notice"></div>
                     <div id="window-display" class="row row-cols-1 row-cols-sm-1 row-cols-lg-2 row-cols-xl-4"></div>
@@ -211,23 +211,23 @@
             <!-- Moon Sub-tab -->
             <div id="moon-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌓 Moon</h2>
+                    <h2>🌓 <span data-i18n="navbar.moon">Moon</span></h2>
                     <div id="moon-display" class="moon-info-card rounded"></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌓 Moon next days</h2>
+                    <h2>🌓 <span data-i18n="moon.next_days">Moon next days</span></h2>
                     <div class="alert alert-info" role="alert">
-                        Dark-time is calculated within three differents modes, return is in hours:<br>
-                        - <b>Strict</b>: Sun altitude < -18° AND Moon altitude < 0° => No moon on sky<br>
-                        - <b>Practical</b>: Sun < -18° AND Moon altitude < 5° => Moon, but negligible<br>
-                        - <b>Illumination</b>: Sun < -18° AND Moon illumination < 15% => Visible moon, but faint
+                        <span data-i18n="moon.info_1">Best next window is calculated within three differents modes, return is in hours:</span><br>
+                        - <b><span data-i18n="best_window.strict">Strict</span></b>: <span data-i18n="best_window.info_2">Sun altitude < -18° AND Moon altitude < 0° => No moon on sky</span><br>
+                        - <b><span data-i18n="best_window.practical">Practical</span></b>: <span data-i18n="best_window.info_3">Sun < -18° AND Moon altitude < 5° => Moon, but negligible</span><br>
+                        - <b><span data-i18n="best_window.illumination">Illumination</span></b>: <span data-i18n="best_window.info_4">Sun < -18° AND Moon illumination < 15% => Visible moon, but faint</span>
                     </div>
                     <div id="moon-planner-display"></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌑 Lunar Eclipse</h2>
+                    <h2>🌑 <span data-i18n="moon.lunar_eclipse">Lunar Eclipse</span></h2>
                     <div id="lunar-eclipse-display" class="lunar-eclipse-info-card rounded"></div>
                 </div>
             </div>

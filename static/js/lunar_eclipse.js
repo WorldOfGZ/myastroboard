@@ -6,12 +6,14 @@
 async function loadLunarEclipse() {
     const container = document.getElementById('lunar-eclipse-display');
     const data = await fetchJSONWithUI('/api/moon/next-eclipse', container, 'Loading Lunar Eclipse data...', {
-        pendingMessage: 'Cache not ready. Retrying...'
+        pendingMessage: i18n.t('cache.cache_not_ready_retrying')
     });
     if (!data) return;
 
     try {
         clearContainer(container);
+
+        console.log('Lunar Eclipse data:', data);
 
         // Check if eclipse data is available
         if (!data.lunar_eclipse) {
@@ -19,7 +21,7 @@ async function loadLunarEclipse() {
             const alert = document.createElement('div');
             alert.className = 'alert alert-info';
             alert.setAttribute('role', 'alert');
-            alert.textContent = `ℹ️ ${data.message || 'No lunar eclipse data available'}`;
+            alert.textContent = `ℹ️ ${data.message || i18n.t('moon.no_lunar_eclipse_data')}`;
             container.appendChild(alert);
             return;
         }
@@ -28,9 +30,9 @@ async function loadLunarEclipse() {
 
         let visibilityBadge = '';
         if (!eclipse.visible) {
-            visibilityBadge = '<span class="badge bg-danger">Not visible</span>';
+            visibilityBadge = `<span class="badge bg-danger">${i18n.t('moon.not_visible')}</span>`;
         } else {
-            visibilityBadge = '<span class="badge bg-success">Visible</span>';
+            visibilityBadge = `<span class="badge bg-success">${i18n.t('moon.visible')}</span>`;
         }
 
         let scoreColor = 'secondary';
@@ -76,53 +78,62 @@ async function loadLunarEclipse() {
             return item;
         };
 
-        const overview = createCardCol('📊 Overview');
+        // i18n translaton keys for eclipse type
+        const typeEclipseType = {
+            'total': i18n.t('moon.eclipse_type.total'),
+            'partial': i18n.t('moon.eclipse_type.partial'),
+            'penumbral': i18n.t('moon.eclipse_type.penumbral')
+        };
+
+        const overview = createCardCol(`📊 ${i18n.t('moon.overview')}`);
         const overviewList = createList();
-        overviewList.appendChild(createListItem('Type:', eclipse.type));
+        overviewList.appendChild(createListItem(`${i18n.t('moon.type')}`, typeEclipseType[eclipse.type.toLowerCase()] || eclipse.type));
         const visibilityItem = document.createElement('li');
         visibilityItem.className = 'list-group-item d-flex justify-content-between align-items-center';
         const visibilityLabel = document.createElement('span');
-        visibilityLabel.textContent = 'Visibility:';
+        visibilityLabel.textContent = `${i18n.t('moon.visibility')}`;
         const visibilityValue = document.createElement('span');
         const visibilityBadgeNode = document.createElement('span');
         visibilityBadgeNode.className = `badge ${eclipse.visible ? 'bg-success' : 'bg-danger'}`;
-        visibilityBadgeNode.textContent = eclipse.visible ? 'Visible' : 'Not visible';
+        visibilityBadgeNode.textContent = eclipse.visible ? i18n.t('moon.visible') : i18n.t('moon.not_visible');
         visibilityValue.appendChild(visibilityBadgeNode);
         visibilityItem.appendChild(visibilityLabel);
         visibilityItem.appendChild(visibilityValue);
         overviewList.appendChild(visibilityItem);
         overviewList.appendChild(createListItem(
-            'Total Duration:',
-            eclipse.total_duration_minutes > 0 ? `${eclipse.total_duration_minutes} min` : 'None'
+            `${i18n.t('moon.total_duration')}`,
+            eclipse.total_duration_minutes > 0 ? `${eclipse.total_duration_minutes} ${i18n.t('units.minute')}` : i18n.t('moon.none')
         ));
         overviewList.appendChild(createListItem(
-            'Partial Duration:',
-            eclipse.partial_duration_minutes > 0 ? `${eclipse.partial_duration_minutes} min` : 'None'
+            `${i18n.t('moon.partial_duration')}`,
+            eclipse.partial_duration_minutes > 0 ? `${eclipse.partial_duration_minutes} ${i18n.t('units.minute')}` : i18n.t('moon.none')
         ));
         overview.card.appendChild(overviewList);
         row.appendChild(overview.col);
 
-        const timing = createCardCol('⏱️ Timing');
+        const timing = createCardCol(`⏱️ ${i18n.t('moon.timing')}`);
         const timingList = createList();
-        timingList.appendChild(createListItem('Partial begin:', formatTimeThenDate(eclipse.partial_begin)));
+        timingList.appendChild(createListItem(`${i18n.t('moon.partial_begin')}`, formatTimeThenDate(eclipse.partial_begin)));
         if (eclipse.total_begin) {
-            timingList.appendChild(createListItem('Total begin:', formatTimeThenDate(eclipse.total_begin)));
-            timingList.appendChild(createListItem('Total end:', formatTimeThenDate(eclipse.total_end)));
+            timingList.appendChild(createListItem(`${i18n.t('moon.total_begin')}`, formatTimeThenDate(eclipse.total_begin)));
+            timingList.appendChild(createListItem(`${i18n.t('moon.total_end')}`, formatTimeThenDate(eclipse.total_end)));
         }
-        timingList.appendChild(createListItem('Partial end:', formatTimeThenDate(eclipse.partial_end)));
+        timingList.appendChild(createListItem(`${i18n.t('moon.partial_end')}`, formatTimeThenDate(eclipse.partial_end)));
         timing.card.appendChild(timingList);
         row.appendChild(timing.col);
 
-        const position = createCardCol('📍 Position at Peak');
+        const position = createCardCol(`📍 ${i18n.t('moon.position_at_peak')}`);
         const positionList = createList();
-        positionList.appendChild(createListItem('Peak Time:', formatTimeThenDate(eclipse.peak_time)));
-        positionList.appendChild(createListItem('Altitude:', `${eclipse.peak_altitude_deg.toFixed(2)}°`));
-        positionList.appendChild(createListItem('Azimuth:', `${eclipse.peak_azimuth_deg.toFixed(2)}°`));
-        positionList.appendChild(createListItem('Direction:', getCardinalDirection(eclipse.peak_azimuth_deg)));
+        positionList.appendChild(createListItem(`${i18n.t('moon.peak_time')}`, formatTimeThenDate(eclipse.peak_time)));
+        positionList.appendChild(createListItem(`${i18n.t('moon.altitude')}`, `${eclipse.peak_altitude_deg.toFixed(2)} ${i18n.t('units.degrees')}`));
+        positionList.appendChild(createListItem(`${i18n.t('moon.azimuth')}`, `${eclipse.peak_azimuth_deg.toFixed(2)} ${i18n.t('units.degrees')}`));
+        positionList.appendChild(createListItem(`${i18n.t('moon.direction')}`, getCardinalDirection(eclipse.peak_azimuth_deg)));
         position.card.appendChild(positionList);
         row.appendChild(position.col);
 
-        const score = createCardCol('⭐ Astrophotography Score');
+        const classificationText = i18n.t(`moon.eclipse_classification.${eclipse.score_classification}`) || eclipse.score_classification;
+
+        const score = createCardCol(`⭐ ${i18n.t('moon.astrophoto_score')}`);
         const scoreBody = document.createElement('div');
         scoreBody.className = 'p-3';
         scoreBody.style.textAlign = 'center';
@@ -132,10 +143,10 @@ async function loadLunarEclipse() {
         scoreValue.textContent = `${eclipse.astrophotography_score.toFixed(1)}/10`;
         const scoreBadge = document.createElement('div');
         scoreBadge.className = `badge bg-${scoreColor} mt-2`;
-        scoreBadge.textContent = eclipse.score_classification;
+        scoreBadge.textContent = classificationText;
         const scoreHint = document.createElement('div');
         scoreHint.className = 'small text-muted mt-2';
-        scoreHint.textContent = 'Score based on type, visibility, altitude, and duration';
+        scoreHint.textContent = i18n.t('moon.astrophotography_score_hint');
         scoreBody.appendChild(scoreValue);
         scoreBody.appendChild(scoreBadge);
         scoreBody.appendChild(scoreHint);
@@ -160,7 +171,7 @@ async function loadLunarEclipse() {
         DOMUtils.clear(container);
         const errorBox = document.createElement('div');
         errorBox.className = 'error-box';
-        errorBox.textContent = 'Failed to load Lunar Eclipse data';
+        errorBox.textContent = i18n.t('moon.failed_to_load_lunar_eclipse_data');
         container.appendChild(errorBox);
     }
 }
@@ -182,7 +193,7 @@ function renderLunarEclipseAltitudeChart(altitudeData) {
     cardHeader.className = 'card-header';
     const title = document.createElement('h5');
     title.className = 'mb-0';
-    title.textContent = '📈 Altitude vs Time';
+    title.textContent = `📈 ${i18n.t('moon.eclipse_chart_title')}`;
     cardHeader.appendChild(title);
 
     const cardBody = document.createElement('div');
@@ -201,13 +212,13 @@ function renderLunarEclipseAltitudeChart(altitudeData) {
     const badge = document.createElement('span');
     badge.className = 'badge';
     badge.style.backgroundColor = '#C0C0C0';
-    badge.textContent = 'Moon Altitude';
+    badge.textContent = i18n.t('moon.moon_altitude');
     badgeCol.appendChild(badge);
     const textCol = document.createElement('div');
     textCol.className = 'col-auto';
     const text = document.createElement('span');
     text.className = 'text-muted';
-    text.textContent = 'Degrees (°) | Local Time';
+    text.textContent = i18n.t('moon.eclipse_chart_footer');
     textCol.appendChild(text);
     footerRow.appendChild(badgeCol);
     footerRow.appendChild(textCol);
@@ -228,7 +239,7 @@ function renderLunarEclipseAltitudeChart(altitudeData) {
         data: {
             labels: times,
             datasets: [{
-                label: 'Moon Altitude (°)',
+                label: i18n.t('moon.moon_altitude'),
                 data: altitudes,
                 borderColor: '#C0C0C0',
                 backgroundColor: 'rgba(192, 192, 192, 0.1)',
@@ -255,13 +266,13 @@ function renderLunarEclipseAltitudeChart(altitudeData) {
                     max: 90,
                     title: {
                         display: true,
-                        text: 'Altitude (degrees)'
+                        text: i18n.t('moon.moon_altitude')
                     }
                 },
                 x: {
                     title: {
                         display: true,
-                        text: 'Local Time'
+                        text: i18n.t('common.time_label')
                     }
                 }
             }
