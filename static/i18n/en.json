@@ -40,7 +40,8 @@
     "retrying_in": "Retrying in {seconds}s ({attempt}/{maxAttempts})",
     "sun": "Sun",
     "moon": "Moon",
-    "modal_not_initialized": "Configuration modal not properly initialized"
+    "modal_not_initialized": "Configuration modal not properly initialized",
+    "comming_soon": "Cette fonctionnalité est en cours de développement et sera bientôt disponible !"
   },
   
   "navbar": {
