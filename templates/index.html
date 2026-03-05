@@ -419,25 +419,25 @@
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
                 <ul class="nav nav-pills sub-tabs" id="equipment-subtabs">
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="combinations">🔗 Combinations</a>
+                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="combinations">🔗 <span data-i18n="equipment.combinations">Combinations</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="fov">📐 FOV Calculator</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="fov">📐 <span data-i18n="equipment.fov_calculator">FOV Calculator</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="telescopes">🔭 Telescopes</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="telescopes">🔭 <span data-i18n="equipment.telescopes">Telescopes</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="cameras">📷 Cameras</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="cameras">📷 <span data-i18n="equipment.cameras">Cameras</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="mounts">🏔️ Mounts</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="mounts">🏔️ <span data-i18n="equipment.mounts">Mounts</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="filters">🎨 Filters</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="filters">🎨 <span data-i18n="equipment.filters">Filters</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="accessories">🔧 Accessories</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="accessories">🔧 <span data-i18n="equipment.accessories">Accessories</span></a>
                     </li>
                 </ul>
             </div>
@@ -445,10 +445,10 @@
             <!-- Combinations Sub-tab -->
             <div id="combinations-subtab" class="sub-tab-content active">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2>🔗 Equipment Combinations</h2>
+                    <h2>🔗 <span data-i18n="equipment.eq_combinations">Equipment Combinations</span></h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted">Combine telescope, camera, mount, accessories, and filters to analyze setup compatibility and FOV. This setup will be also selectable on Astrodex.</p>
-                        <button class="btn btn-success btn-new-combination">+ New Combination</button>
+                        <p class="text-muted" data-i18n="equipment.eq_combinations_description">Combine telescope, camera, mount, accessories, and filters to analyze setup compatibility and FOV. This setup will be also selectable on Astrodex.</p>
+                        <button class="btn btn-success btn-new-combination" data-i18n="equipment.new_combination">New Combination</button>
                     </div>
                     <div id="equipment-combinations-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
                         <!-- Combinations will be rendered here -->
@@ -459,7 +459,7 @@
             <!-- FOV Calculator Sub-tab -->
             <div id="fov-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2>📐 Field of View Calculator</h2>
+                    <h2>📐 <span data-i18n="equipment.fov_calculator_cpl">Field of View Calculator</span></h2>
                     <div id="equipment-fov-display"></div>
                 </div>
             </div>
@@ -467,10 +467,10 @@
             <!-- Telescopes Sub-tab -->
             <div id="telescopes-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2>🔭 Telescope Profiles</h2>
+                    <h2>🔭 <span data-i18n="equipment.telescopes">Telescopes</span></h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted">Manage your telescope profiles with automatic calculation of focal ratios and effective focal lengths.</p>                    
-                        <button class="btn btn-success btn-new-telescope">+ New Telescope</button>
+                        <p class="text-muted" data-i18n="equipment.telescopes_description">Manage your telescope profiles with automatic calculation of focal ratios and effective focal lengths.</p>                    
+                        <button class="btn btn-success btn-new-telescope" data-i18n="equipment.new_telescope">New Telescope</button>
                     </div>
                     <div id="equipment-telescopes-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
                         <!-- Telescopes will be rendered here -->
@@ -481,10 +481,10 @@
             <!-- Cameras Sub-tab -->
             <div id="cameras-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                        <h2>📷 Camera Profiles</h2>
+                        <h2>📷 <span data-i18n="equipment.cameras">Cameras</span></h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted">Manage your camera profiles with automatic calculation of sensor diagonal and image scale.</p>
-                        <button class="btn btn-success btn-new-camera">+ New Camera</button>
+                        <p class="text-muted" data-i18n="equipment.cameras_description">Manage your camera profiles with automatic calculation of sensor diagonal and image scale.</p>
+                        <button class="btn btn-success btn-new-camera" data-i18n="equipment.new_camera">New Camera</button>
                     </div>
                     <div id="equipment-cameras-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
                         <!-- Cameras will be rendered here -->
@@ -495,10 +495,10 @@
             <!-- Mounts Sub-tab -->
             <div id="mounts-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2>🏔️ Mount Profiles</h2>
+                    <h2>🏔️ <span data-i18n="equipment.mounts">Mounts</span></h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted">Manage your mount profiles with automatic calculation of recommended imaging payload.</p>
-                        <button class="btn btn-success btn-new-mount">+ New Mount</button>
+                        <p class="text-muted" data-i18n="equipment.mounts_description">Manage your mount profiles with automatic calculation of recommended imaging payload.</p>
+                        <button class="btn btn-success btn-new-mount" data-i18n="equipment.new_mount">New Mount</button>
                     </div>
                     <div id="equipment-mounts-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
                         <!-- Mounts will be rendered here -->
@@ -509,10 +509,10 @@
             <!-- Filters Sub-tab -->
             <div id="filters-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2>🎨 Filter Profiles</h2>
+                    <h2>🎨 <span data-i18n="equipment.filters">Filters</span></h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted">Manage your filter profiles for LRGB, narrowband, broadband, and other imaging filters.</p>
-                        <button class="btn btn-success btn-new-filter">+ New Filter</button>
+                        <p class="text-muted" data-i18n="equipment.filters_description">Manage your filter profiles for LRGB, narrowband, broadband, and other imaging filters.</p>
+                        <button class="btn btn-success btn-new-filter" data-i18n="equipment.new_filter">New Filter</button>
                     </div>
                     <div id="equipment-filters-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
                         <!-- Filters will be rendered here -->
@@ -523,10 +523,10 @@
             <!-- Accessories Sub-tab -->
             <div id="accessories-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2>🔧 Accessory Profiles</h2>
+                    <h2>🔧 <span data-i18n="equipment.accessories">Accessories</span></h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted">Manage your accessory profiles for focusers, field flatteners, filter wheels, and other equipment.</p>
-                        <button class="btn btn-success btn-new-accessory">+ New Accessory</button>
+                        <p class="text-muted" data-i18n="equipment.accessories_description">Manage your accessory profiles for focusers, field flatteners, filter wheels, and other equipment.</p>
+                        <button class="btn btn-success btn-new-accessory" data-i18n="equipment.new_accessory">New Accessory</button>
                     </div>
                     <div id="equipment-accessories-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
                         <!-- Accessories will be rendered here -->
@@ -927,33 +927,36 @@
             <!-- Metrics Sub-tab -->
             <div id="metrics-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📊 System Metrics</h2>
-                    <div class="alert alert-info" role="alert">
+                    <h2>📊 <span data-i18n="metrics.system_metrics">System Metrics</span></h2>
+                    <div class="alert alert-info" role="alert" data-i18n="metrics.info_title">
                         System performance and resource monitoring. Data refreshes automatically every 5 seconds.
                     </div>
                 </div>
 
                 <!-- CPU Metrics -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3>💻 CPU</h3>
+                    <h3>💻 <span data-i18n="metrics.cpu">CPU</span></h3>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.cpu_usage">CPU Usage</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">CPU Usage</h5>
                                     <div class="progress" style="height: 30px;">
                                         <div id="cpu-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small id="cpu-usage-text">-</small>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.cpu_info">CPU Info</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">CPU Info</h5>
-                                    <p class="mb-1"><strong>Logical Cores:</strong> <span id="cpu-logical">-</span></p>
-                                    <p class="mb-1"><strong>Physical Cores:</strong> <span id="cpu-physical">-</span></p>
-                                    <p class="mb-0"><strong>Frequency:</strong> <span id="cpu-frequency">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.logical_cores">Logical Cores:</strong> <span id="cpu-logical">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.physical_cores">Physical Cores:</strong> <span id="cpu-physical">-</span></p>
+                                    <p class="mb-0"><strong data-i18n="metrics.frequency">Frequency:</strong> <span id="cpu-frequency">-</span></p>
                                 </div>
                             </div>
                         </div>
@@ -962,12 +965,12 @@
 
                 <!-- Memory Metrics -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3>🧠 Memory</h3>
+                    <h3>🧠 <span data-i18n="metrics.memory">Memory</span></h3>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.ram_usage">RAM Usage</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">RAM Usage</h5>
                                     <div class="progress" style="height: 30px;">
                                         <div id="memory-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
                                     </div>
@@ -978,9 +981,9 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.swap_usage">Swap Usage</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">Swap Usage</h5>
                                     <div class="progress" style="height: 30px;">
                                         <div id="swap-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
                                     </div>
@@ -995,10 +998,10 @@
 
                 <!-- Disk Metrics -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3>💾 Disk Storage</h3>
-                    <div class="card bg-card-container border-0">
+                    <h3>💾 <span data-i18n="metrics.disk_storage">Disk Storage</span></h3>
+                    <div class="card  h-100">
+                        <div class="card-header" data-i18n="metrics.root_filesystem">Root Filesystem</div>
                         <div class="card-body">
-                            <h5 class="card-title mb-3">Root Filesystem</h5>
                             <div class="progress" style="height: 30px;">
                                 <div id="disk-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
                             </div>
@@ -1011,9 +1014,9 @@
                     <!-- Disk Folder Breakdown -->
                     <div class="row g-3 mt-3">
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.folder_usage">Folder Usage</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">Folder Usage</h5>
                                     <div class="mb-3">
                                         <small class="d-block mb-1"><strong>data/</strong></small>
                                         <div class="progress" style="height: 20px;">
@@ -1046,9 +1049,9 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.config_outputs">Config & Outputs</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">Config & Outputs</h5>
                                     <div class="mb-3">
                                         <small class="d-block mb-1"><strong>uptonight_configs/</strong></small>
                                         <div class="progress" style="height: 20px;">
@@ -1071,27 +1074,27 @@
 
                 <!-- System Info -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3>🖥️ System Information</h3>
+                    <h3>🖥️ <span data-i18n="metrics.system_info">System Information</span></h3>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.platform">Platform</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">Platform</h5>
-                                    <p class="mb-1"><strong>OS:</strong> <span id="platform-system">-</span></p>
-                                    <p class="mb-1"><strong>Release:</strong> <span id="platform-release">-</span></p>
-                                    <p class="mb-1"><strong>Machine:</strong> <span id="platform-machine">-</span></p>
-                                    <p class="mb-0"><strong>Python:</strong> <span id="platform-python">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.os">OS:</strong> <span id="platform-system">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.release">Release:</strong> <span id="platform-release">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.machine">Machine:</strong> <span id="platform-machine">-</span></p>
+                                    <p class="mb-0"><strong data-i18n="metrics.python">Python:</strong> <span id="platform-python">-</span></p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.system_status">System Status</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">System Status</h5>
-                                    <p class="mb-1"><strong>Uptime:</strong> <span id="system-uptime">-</span></p>
-                                    <p class="mb-1"><strong>Processes:</strong> <span id="process-count">-</span></p>
-                                    <p class="mb-1"><strong>Network Sent:</strong> <span id="network-sent">-</span></p>
-                                    <p class="mb-0"><strong>Network Received:</strong> <span id="network-recv">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.uptime">Uptime:</strong> <span id="system-uptime">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.processes">Processes:</strong> <span id="process-count">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.network_sent">Network Sent:</strong> <span id="network-sent">-</span></p>
+                                    <p class="mb-0"><strong data-i18n="metrics.network_received">Network Received:</strong> <span id="network-recv">-</span></p>
                                 </div>
                             </div>
                         </div>
@@ -1100,33 +1103,34 @@
 
                 <!-- Environment & Container Detection -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3>🌐 Environment</h3>
-                    <div class="card bg-card-container border-0">
+                    <h3>🌐 <span data-i18n="metrics.environment">Environment</span></h3>
+                    <div class="card h-100">
+                        <div class="card-header" data-i18n="metrics.container">Container</div>
                         <div class="card-body">
-                            <p class="mb-1"><strong>Container/VM:</strong> <span id="container-status">-</span> <span id="container-badge" class="badge" style="display:none;"></span></p>
-                            <p class="mb-0"><strong>Container Type:</strong> <span id="container-type">Not running in container</span></p>
+                            <p class="mb-1"><strong data-i18n="metrics.container_vm">Container/VM:</strong> <span id="container-status">-</span> <span id="container-badge" class="badge" style="display:none;"></span></p>
+                            <p class="mb-0"><strong data-i18n="metrics.container_type">Container Type:</strong> <span id="container-type" data-i18n="metrics.not_in_container">Not running in container</span></p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Process Details -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3>⚙️ Current Process</h3>
+                    <h3>⚙️ <span data-i18n="metrics.current_process">Current Process</span></h3>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.process_info">Process Info</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">Process Info</h5>
-                                    <p class="mb-1"><strong>PID:</strong> <span id="process-pid">-</span></p>
-                                    <p class="mb-1"><strong>Name:</strong> <span id="process-name">-</span></p>
-                                    <p class="mb-0"><strong>Status:</strong> <span id="process-status">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.pid">PID:</strong> <span id="process-pid">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.name">Name:</strong> <span id="process-name">-</span></p>
+                                    <p class="mb-0"><strong data-i18n="metrics.status">Status:</strong> <span id="process-status">-</span></p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.memory_usage">Memory Usage</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">Memory Usage</h5>
                                     <div class="progress" style="height: 25px; margin-bottom: 8px;">
                                         <div id="process-memory-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
                                     </div>
@@ -1137,17 +1141,17 @@
                     </div>
                     <div class="row g-3 mt-0">
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.cpu_time">CPU Time</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">CPU Time</h5>
                                     <div class="mb-3">
-                                        <small class="d-block mb-2"><strong>User Time:</strong> <span id="process-cpu-user">-</span></small>
+                                        <small class="d-block mb-2"><strong data-i18n="metrics.user_time">User Time:</strong> <span id="process-cpu-user">-</span></small>
                                         <div class="progress" style="height: 20px;">
                                             <div id="process-cpu-user-bar" class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
                                     </div>
                                     <div class="mb-0">
-                                        <small class="d-block mb-2"><strong>System Time:</strong> <span id="process-cpu-system">-</span></small>
+                                        <small class="d-block mb-2"><strong data-i18n="metrics.system_time">System Time:</strong> <span id="process-cpu-system">-</span></small>
                                         <div class="progress" style="height: 20px;">
                                             <div id="process-cpu-system-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
@@ -1156,13 +1160,13 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.resources">Resources</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">Resources</h5>
-                                    <p class="mb-1"><strong>Threads:</strong> <span id="process-threads">-</span></p>
-                                    <p class="mb-1"><strong>File Descriptors:</strong> <span id="process-fds">-</span></p>
-                                    <p class="mb-1"><strong>Virtual Memory:</strong> <span id="process-memory-vms">-</span></p>
-                                    <p class="mb-0"><strong>Resident Memory:</strong> <span id="process-memory-rss">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.threads">Threads:</strong> <span id="process-threads">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.file_descriptors">File Descriptors:</strong> <span id="process-fds">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.virtual_memory">Virtual Memory:</strong> <span id="process-memory-vms">-</span></p>
+                                    <p class="mb-0"><strong data-i18n="metrics.resident_memory">Resident Memory:</strong> <span id="process-memory-rss">-</span></p>
                                 </div>
                             </div>
                         </div>

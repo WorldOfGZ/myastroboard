@@ -19,14 +19,15 @@ async function loadSystemMetrics() {
         
         // Update CPU metrics
         updateProgressBar('cpu-usage-bar', data.cpu.percent);
-        document.getElementById('cpu-logical').textContent = data.cpu.count_logical || 'N/A';
-        document.getElementById('cpu-physical').textContent = data.cpu.count_physical || 'N/A';
+        document.getElementById('cpu-usage-text').textContent = `${data.cpu.percent}${i18n.t('units.percent')}` || i18n.t('units.na');
+        document.getElementById('cpu-logical').textContent = data.cpu.count_logical || i18n.t('units.na');
+        document.getElementById('cpu-physical').textContent = data.cpu.count_physical || i18n.t('units.na');
         
         if (data.cpu.frequency && data.cpu.frequency.current) {
             document.getElementById('cpu-frequency').textContent = 
-                `${(data.cpu.frequency.current / 1000).toFixed(2)} GHz`;
+                `${(data.cpu.frequency.current / 1000).toFixed(2)} ${i18n.t('units.ghz')}`;
         } else {
-            document.getElementById('cpu-frequency').textContent = 'N/A';
+            document.getElementById('cpu-frequency').textContent = i18n.t('units.na');
         }
         
         // Update Memory metrics
@@ -119,15 +120,15 @@ function updateEnvironmentMetrics(environment) {
     const typeElement = document.getElementById('container-type');
     
     if (environment.is_container) {
-        statusElement.textContent = 'Yes';
+        statusElement.textContent = i18n.t('metrics.yes');
         badgeElement.style.display = 'inline-block';
         badgeElement.className = 'badge bg-info';
-        badgeElement.textContent = environment.container_type || 'Unknown';
-        typeElement.textContent = environment.container_type || 'Unknown container detected';
+        badgeElement.textContent = environment.container_type || i18n.t('metrics.unknown');
+        typeElement.textContent = environment.container_type || i18n.t('metrics.unknown_container');
     } else {
-        statusElement.textContent = 'No';
+        statusElement.textContent = i18n.t('metrics.no');
         badgeElement.style.display = 'none';
-        typeElement.textContent = 'Not running in container (bare metal or VM)';
+        typeElement.textContent = i18n.t('metrics.no_running_in_container');
     }
 }
 
@@ -182,9 +183,9 @@ function updateProcessMetrics(processData) {
     
     // Display actual values or "-" if truly undefined from backend
     document.getElementById('process-cpu-user').textContent = 
-        (cpuUser !== undefined && cpuUser !== null) ? `${cpuUser.toFixed(2)}s` : '-';
+        (cpuUser !== undefined && cpuUser !== null) ? `${cpuUser.toFixed(2)}${i18n.t('units.second')}` : '-';
     document.getElementById('process-cpu-system').textContent = 
-        (cpuSystem !== undefined && cpuSystem !== null) ? `${cpuSystem.toFixed(2)}s` : '-';
+        (cpuSystem !== undefined && cpuSystem !== null) ? `${cpuSystem.toFixed(2)}${i18n.t('units.second')}` : '-';
     
     // Update CPU time bars
     updateProgressBar('process-cpu-user-bar', userPercent);
@@ -200,9 +201,9 @@ function updateProgressBar(elementId, percent) {
     if (!bar) return;
     
     const roundedPercent = Math.round(percent * 10) / 10;
-    bar.style.width = `${roundedPercent}%`;
+    bar.style.width = `${roundedPercent}${i18n.t('units.percent')}`;
     bar.setAttribute('aria-valuenow', roundedPercent);
-    bar.textContent = `${roundedPercent}%`;
+    bar.textContent = `${roundedPercent}${i18n.t('units.percent')}`;
     
     // Color coding
     bar.className = 'progress-bar';
@@ -230,11 +231,11 @@ function formatUptime(seconds) {
     const minutes = Math.floor((seconds % 3600) / 60);
     
     const parts = [];
-    if (days > 0) parts.push(`${days}d`);
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
+    if (days > 0) parts.push(`${days}${i18n.t('units.day')}`);
+    if (hours > 0) parts.push(`${hours}${i18n.t('units.hour')}`);
+    if (minutes > 0) parts.push(`${minutes}${i18n.t('units.minute')}`);
     
-    return parts.length > 0 ? parts.join(' ') : '< 1m';
+    return parts.length > 0 ? parts.join(' ') : `< 1${i18n.t('units.minute')}`;
 }
 
 function startMetricsAutoRefresh() {
