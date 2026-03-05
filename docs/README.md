@@ -19,6 +19,7 @@ Welcome to the comprehensive documentation for MyAstroBoard, the integrated astr
 
 ### For Maintainers
 - [Release Guide](4.RELEASE.md) - How to publish new versions and create releases
+- [Translation](7.TRANSLATIONS.md) - How to contribute in translation 
 
 ### Advanced Topics
 - [Organization](5.ORGANIZATION.md) - How the repo is organized
