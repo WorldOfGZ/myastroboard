@@ -295,6 +295,23 @@ function updateElementHTML(element, key, params = {}) {
     }
 }
 
+/**
+ * Convert a string to a translation key format
+ * Example: "More Info" -> "more_info"
+ * 
+ * @param {string} str 
+ * @returns {string} Translation key
+ */
+function strToTranslateKey(str) {
+    return str
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
 // Listen for language changes and update UI
 window.addEventListener('i18nLanguageChanged', () => {
     console.log('[i18n] Language changed, triggering UI update');
