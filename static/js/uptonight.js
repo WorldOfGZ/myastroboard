@@ -1131,7 +1131,7 @@ async function updateCatalogueCapturedBadge(itemDataOrName, isInAstrodex) {
                 DOMUtils.clear(astrodexCell);
                 const badge = document.createElement('span');
                 badge.className = 'in-astrodex-badge';
-                badge.textContent = `✓ ${i18n.t('uptonight.captured')}`;
+                badge.textContent = `✓ ${i18n.t('uptonight.catched')}`;
                 astrodexCell.appendChild(badge);
             } else {
                 const itemDataJson = JSON.stringify(rowItemData);

@@ -124,6 +124,41 @@ async function getConstellationsList() {
     }
 }
 
+function getConstellationDisplayName(value) {
+    const normalizedValue = (value || '').toString().trim();
+    if (!normalizedValue) {
+        return '';
+    }
+
+    const translationKey = 'constellations.' + strToTranslateKey(normalizedValue);
+    if (i18n.has(translationKey)) {
+        return i18n.t(translationKey);
+    }
+
+    return capitalizeWords(normalizedValue);
+}
+
+function normalizeConstellationValue(value) {
+    return (value || '').toString().trim().toLowerCase();
+}
+
+function isConstellationOptionSelected(currentValue, constellationOption) {
+    const normalizedCurrentValue = normalizeConstellationValue(currentValue);
+    if (!normalizedCurrentValue) {
+        return false;
+    }
+
+    const normalizedOptionValue = normalizeConstellationValue(constellationOption);
+    if (normalizedCurrentValue === normalizedOptionValue) {
+        return true;
+    }
+
+    const normalizedTranslatedOption = normalizeConstellationValue(
+        getConstellationDisplayName(constellationOption)
+    );
+    return normalizedCurrentValue === normalizedTranslatedOption;
+}
+
 // ============================================
 // Astrodex Rendering
 // ============================================
@@ -152,7 +187,7 @@ function updateAstrodexCollectionTitle() {
     if (astrodexData.privateMode) {
         title.textContent = `📚 ${i18n.t('astrodex.my_collection')}`;
         if (subtitle) {
-            subtitle.textContent = i18n.t('astrodex.your_personal_collection');
+            subtitle.textContent = i18n.t('astrodex.your_collection');
         }
     } else {
         title.textContent = `📚 ${i18n.t('astrodex.common_collection')}`;
@@ -277,7 +312,7 @@ function renderAstrodexGrid(items, isAllowedAstrodex) {
             const body = document.createElement('div');
             body.className = 'card-body text-center';
             const title = document.createElement('b');
-            title.textContent = '📚 Your Astrodex is empty';
+            title.textContent = `📚 ${i18n.t('astrodex.astrodex_empty')}`;
             body.appendChild(title);
             body.appendChild(document.createElement('br'));
             body.append(i18n.t('astrodex.start_adding'));
@@ -375,17 +410,11 @@ function renderAstrodexGrid(items, isAllowedAstrodex) {
         body.appendChild(type);
 
         if (item.constellation) {
-            // Translate constellation name if possible
-            let translationKey = 'constellations.' + strToTranslateKey(item.constellation);
-            if (i18n.has(translationKey)) {
-                item.constellation = i18n.t(translationKey);
-            } else {
-                item.constellation = capitalizeWords(item.constellation);
-            }
+            const constellationLabel = getConstellationDisplayName(item.constellation);
 
             const constellation = document.createElement('div');
             constellation.className = 'astrodex-card-constellation';
-            constellation.textContent = `📍 ${item.constellation}`;
+            constellation.textContent = `📍 ${constellationLabel}`;
             body.appendChild(constellation);
         }
 
@@ -568,15 +597,15 @@ async function addToAstrodex(itemData) {
             
             return true;
         } else {
-            showMessage('error', response.error || 'Failed to add item');
+            showMessage('error', response.error || i18n.t('astrodex.failed_to_add_item'));
             return false;
         }
     } catch (error) {
         console.error('Error adding to astrodex:', error);
         if (error.message && error.message.includes('already exists')) {
-            showMessage('warning', 'This object is already in your Astrodex');
+            showMessage('warning', i18n.t('astrodex.item_already_exists'));
         } else {
-            showMessage('error', 'Failed to add to Astrodex');
+            showMessage('error', i18n.t('astrodex.failed_to_add_astrodex_item'));
         }
         return false;
     }
@@ -587,7 +616,7 @@ async function addFromCatalogue(catalogueItem) {
     const itemName = catalogueItem.id || catalogueItem['target name'] || catalogueItem.name;
     
     if (!itemName) {
-        showMessage('error', 'Invalid item data');
+        showMessage('error', i18n.t('astrodex.invalid_item_data'));
         return;
     }
     
@@ -652,41 +681,41 @@ async function showAddAstrodexItemModal() {
     const constellations = await getConstellationsList();
     //console.log("Fetched constellations for select options:", constellations);
 
-    createModal('Add to Astrodex', `
+    createModal(i18n.t('astrodex.add_to_astrodex'), `
         <form id="add-astrodex-form" class="form row g-3">
             <div class="col-md-12">
-                <label for="item-name" class="form-label">Object Name *</label>
+                <label for="item-name" class="form-label">${i18n.t('astrodex.form_object_name')} *</label>
                 <input type="text" id="item-name" class="form-control" required>
             </div>
             <div class="col-md-6">
-                <label for="item-type" class="form-label">Type</label>
+                <label for="item-type" class="form-label">${i18n.t('astrodex.form_object_type')}</label>
                 <select id="item-type" class="form-select">
-                    <option value="Galaxy">Galaxy</option>
-                    <option value="Nebula">Nebula</option>
-                    <option value="Planetary Nebula">Planetary Nebula</option>
-                    <option value="Star Cluster">Star Cluster</option>
-                    <option value="Open Cluster">Open Cluster</option>
-                    <option value="Globular Cluster">Globular Cluster</option>
-                    <option value="Planet">Planet</option>
-                    <option value="Moon">Moon</option>
-                    <option value="Sun">Sun</option>
-                    <option value="Comet">Comet</option>
-                    <option value="Other">Other</option>
+                    <option value="Galaxy">${i18n.t('uptonight.type_galaxy')}</option>
+                    <option value="Nebula">${i18n.t('uptonight.type_nebula')}</option>
+                    <option value="Planetary Nebula">${i18n.t('uptonight.type_planetary_nebula')}</option>
+                    <option value="Star Cluster">${i18n.t('uptonight.type_star_cluster')}</option>
+                    <option value="Open Cluster">${i18n.t('uptonight.type_open_cluster')}</option>
+                    <option value="Globular Cluster">${i18n.t('uptonight.type_globular_cluster')}</option>
+                    <option value="Planet">${i18n.t('uptonight.type_planet')}</option>
+                    <option value="Moon">${i18n.t('uptonight.type_moon')}</option>
+                    <option value="Sun">${i18n.t('uptonight.type_sun')}</option>
+                    <option value="Comet">${i18n.t('uptonight.type_comet')}</option>
+                    <option value="Other">${i18n.t('uptonight.type_other')}</option>
                 </select>
             </div>            
             <div class="col-md-6">
-                <label for="item-constellation" class="form-label">Constellation</label>
+                <label for="item-constellation" class="form-label">${i18n.t('astrodex.form_constellation')}</label>
                 <select id="item-constellation" class="form-select">
                     <option value=""></option>
-                    ${constellations.map(c => `<option value="${escapeHtml(c.toLowerCase())}">${escapeHtml(c)}</option>`).join('')}
+                    ${constellations.map(c => `<option value="${escapeHtml(c.toLowerCase())}">${escapeHtml(getConstellationDisplayName(c))}</option>`).join('')}
                 </select>
             </div>
             <div class="col-md-12">
-                <label for="item-notes" class="form-label">Notes</label>
-                <textarea id="item-notes" class="form-control" rows="3"></textarea>
+                <label for="item-notes" class="form-label">${i18n.t('astrodex.form_notes')}</label>
+                <textarea id="item-notes" class="form-control" rows="3"placeholder="${i18n.t('astrodex.form_notes_placeholder')}"></textarea>
             </div>
             <div class="text-end">
-                <button type="submit" class="btn btn-primary">Add to Astrodex</button>
+                <button type="submit" class="btn btn-primary">${i18n.t('astrodex.form_add_to_astrodex')}</button>
             </div>
         </form>
     `, 'lg');
@@ -766,49 +795,49 @@ async function showAstrodexItemDetail(itemId) {
         : (item.pictures ? item.pictures.length : 0);
     const totalPicturesCount = Number(item.total_pictures ?? ownPicturesCount);
     const picturesTitle = totalPicturesCount > ownPicturesCount
-        ? `My Photos (${ownPicturesCount}) • Shared Total (${totalPicturesCount})`
-        : `Photos (${ownPicturesCount})`;
+        ? i18n.t('astrodex.my_photos', { ownPicturesCount, totalPicturesCount })
+        : i18n.t('astrodex.all_photos', { ownPicturesCount });
     
     const modal = createModal(item.name, `                    
-        <h3>Object Information</h3>
+        <h3>${i18n.t('astrodex.object_info')}</h3>
         <form id="edit-item-form-${escapeHtml(item.id)}" class="form row g-3">
             <div class="col-md-6">
-                <label for="edit-type-${escapeHtml(item.id)}" class="col-sm-2 form-label">Type</label>
+                <label for="edit-type-${escapeHtml(item.id)}" class="col form-label">${i18n.t('astrodex.form_object_type')}</label>
                 <select id="edit-type-${escapeHtml(item.id)}" class="form-select" data-action="update-field" data-item-id="${escapeHtml(item.id)}" data-field="type">
-                    <option value="Galaxy" ${item.type === 'Galaxy' ? 'selected' : ''}>Galaxy</option>
-                    <option value="Nebula" ${item.type === 'Nebula' ? 'selected' : ''}>Nebula</option>
-                    <option value="Planetary Nebula" ${item.type === 'Planetary Nebula' ? 'selected' : ''}>Planetary Nebula</option>
-                    <option value="Star Cluster" ${item.type === 'Star Cluster' ? 'selected' : ''}>Star Cluster</option>
-                    <option value="Open Cluster" ${item.type === 'Open Cluster' ? 'selected' : ''}>Open Cluster</option>
-                    <option value="Globular Cluster" ${item.type === 'Globular Cluster' ? 'selected' : ''}>Globular Cluster</option>
-                    <option value="Planet" ${item.type === 'Planet' ? 'selected' : ''}>Planet</option>
-                    <option value="Moon" ${item.type === 'Moon' ? 'selected' : ''}>Moon</option>
-                    <option value="Comet" ${item.type === 'Comet' ? 'selected' : ''}>Comet</option>
-                    <option value="Sun" ${item.type === 'Sun' ? 'selected' : ''}>Sun</option>
-                    <option value="Other" ${item.type === 'Other' ? 'selected' : ''}>Other</option>
-                    <option value="Unknown" ${item.type === 'Unknown' || !item.type ? 'selected' : ''}>Unknown</option>
+                    <option value="Galaxy" ${item.type === 'Galaxy' ? 'selected' : ''}>${i18n.t('uptonight.type_galaxy')}</option>
+                    <option value="Nebula" ${item.type === 'Nebula' ? 'selected' : ''}>${i18n.t('uptonight.type_nebula')}</option>
+                    <option value="Planetary Nebula" ${item.type === 'Planetary Nebula' ? 'selected' : ''}>${i18n.t('uptonight.type_planetary_nebula')}</option>
+                    <option value="Star Cluster" ${item.type === 'Star Cluster' ? 'selected' : ''}>${i18n.t('uptonight.type_star_cluster')}</option>
+                    <option value="Open Cluster" ${item.type === 'Open Cluster' ? 'selected' : ''}>${i18n.t('uptonight.type_open_cluster')}</option>
+                    <option value="Globular Cluster" ${item.type === 'Globular Cluster' ? 'selected' : ''}>${i18n.t('uptonight.type_globular_cluster')}</option>
+                    <option value="Planet" ${item.type === 'Planet' ? 'selected' : ''}>${i18n.t('uptonight.type_planet')}</option>
+                    <option value="Moon" ${item.type === 'Moon' ? 'selected' : ''}>${i18n.t('uptonight.type_moon')}</option>
+                    <option value="Comet" ${item.type === 'Comet' ? 'selected' : ''}>${i18n.t('uptonight.type_comet')}</option>
+                    <option value="Sun" ${item.type === 'Sun' ? 'selected' : ''}>${i18n.t('uptonight.type_sun')}</option>
+                    <option value="Other" ${item.type === 'Other' ? 'selected' : ''}>${i18n.t('uptonight.type_other')}</option>
+                    <option value="Unknown" ${item.type === 'Unknown' || !item.type ? 'selected' : ''}>${i18n.t('astrodex.unknown')}</option>
                 </select>
             </div>
 
             <div class="col-md-6">
-                <label for="edit-constellation-${escapeHtml(item.id)}" class="form-label">Constellation</label>
+                <label for="edit-constellation-${escapeHtml(item.id)}" class="form-label">${i18n.t('astrodex.constellations')}</label>
                 <select id="edit-constellation-${escapeHtml(item.id)}" class="form-select" data-action="update-field" data-item-id="${escapeHtml(item.id)}" data-field="constellation">
                     <option value=""></option>
-                    ${constellations.map(c => `<option value="${escapeHtml(c.toLowerCase())}" ${item.constellation && item.constellation.toLowerCase() === c.toLowerCase() ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
+                    ${constellations.map(c => `<option value="${escapeHtml(c.toLowerCase())}" ${isConstellationOptionSelected(item.constellation, c) ? 'selected' : ''}>${escapeHtml(getConstellationDisplayName(c))}</option>`).join('')}
                 </select>
             </div>
 
             ${catalogueAliasesSection}
 
             <div class="col-md-12">
-                <label for="edit-notes-${escapeHtml(item.id)}" class="form-label">Notes</label>
-                <textarea id="edit-notes-${escapeHtml(item.id)}" class="form-control" rows="3" data-action="update-field" data-item-id="${escapeHtml(item.id)}" data-field="notes" placeholder="Add your notes...">${escapeHtml(item.notes || '')}</textarea>
+                <label for="edit-notes-${escapeHtml(item.id)}" class="form-label">${i18n.t('astrodex.form_notes')}</label>
+                <textarea id="edit-notes-${escapeHtml(item.id)}" class="form-control" rows="3" data-action="update-field" data-item-id="${escapeHtml(item.id)}" data-field="notes" placeholder="${i18n.t('astrodex.form_notes_placeholder')}">${escapeHtml(item.notes || '')}</textarea>
             </div>
         </form>
 
         <div class="mt-3 mb-3 text-end">
-            <button class="btn btn-sm btn-primary me-3" data-action="add-picture" data-item-id="${escapeHtml(item.id)}">📷 Add Photo</button>
-            <button class="btn btn-sm btn-danger" data-action="delete-item" data-item-id="${escapeHtml(item.id)}">🗑️ Remove</button>
+            <button class="btn btn-sm btn-primary me-3" data-action="add-picture" data-item-id="${escapeHtml(item.id)}">📷 ${i18n.t('astrodex.add_picture')}</button>
+            <button class="btn btn-sm btn-danger" data-action="delete-item" data-item-id="${escapeHtml(item.id)}">🗑️ ${i18n.t('astrodex.remove')}</button>
         </div>
 
         <h3>${escapeHtml(picturesTitle)}</h3>
@@ -853,7 +882,7 @@ function renderCatalogueAliasesSection(item) {
                         data-item-id="${escapeForJs(item.id)}"
                         data-catalogue="${escapeForJs(catalogueName)}"
                         ${isCurrent ? 'disabled' : ''}
-                        title="Use this catalogue name"
+                        title="${i18n.t('astrodex.use_this_name')}"
                     >✏️</button>
                 </div>
             `;
@@ -862,7 +891,7 @@ function renderCatalogueAliasesSection(item) {
 
     return `
         <div class="col-md-12">
-            <label class="form-label">Catalogue Names</label>
+            <label class="form-label">${i18n.t('astrodex.catalogue_names')}</label>
             <div class="astrodex-catalogue-alias-list">
                 ${rows}
             </div>
@@ -878,8 +907,8 @@ function renderPicturesGrid(item) {
             <div class="col">
                 <div class="card h-100">
                     <div class="card-body text-center">
-                        <p>No personal photos yet</p>
-                        <button class="btn btn-primary" data-action="add-picture" data-item-id="${item.id}">Add First Photo</button>
+                        <p>${i18n.t('astrodex.no_personal_photos_yet')}</p>
+                        <button class="btn btn-primary" data-action="add-picture" data-item-id="${item.id}">${i18n.t('astrodex.add_first_picture')}</button>
                     </div>
                 </div>
             </div>
@@ -901,7 +930,7 @@ function renderPicturesGrid(item) {
                 <div class="card h-100">
                     <div class="astrodex-card-image-no-hover rounded">
                         <img src="${escapedImageUrl}" class="card-img-top" alt="Photo" >
-                        ${picture.is_main ? '<div class="main-badge">⭐ Main</div>' : ''}
+                        ${picture.is_main ? `<div class="main-badge">⭐ ${i18n.t('astrodex.main_picture')}</div>` : ''}
                     </div>
                     <div class="card-body">
                         <p class="card-text">
@@ -911,9 +940,9 @@ function renderPicturesGrid(item) {
                         </p>
                     </div>
                     <div class="card-footer text-center">
-                        ${!picture.is_main ? `<button class="btn btn-outline-light" data-action="set-main-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="Set as main">⭐</button>` : '<span class="btn-icon-placeholder"></span>'}
-                        <button class="btn btn-outline-light" data-action="edit-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="Edit">✏️</button>
-                        <button class="btn btn-danger" data-action="delete-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="Delete">🗑️</button>
+                        ${!picture.is_main ? `<button class="btn btn-outline-light" data-action="set-main-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="${i18n.t('astrodex.set_as_main')}">⭐</button>` : '<span class="btn-icon-placeholder"></span>'}
+                        <button class="btn btn-outline-light" data-action="edit-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="${i18n.t('astrodex.edit')}">✏️</button>
+                        <button class="btn btn-danger" data-action="delete-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="${i18n.t('astrodex.delete')}">🗑️</button>
                     </div>
                 </div>
             </div>
@@ -953,65 +982,65 @@ function showAddPictureModal(itemId) {
     const equipmentComboOptions = buildEquipmentCombinationOptions();
     const equipmentFilterOptions = buildEquipmentFilterOptions();
     
-    createModal('Add Photo', `
+    createModal(`${i18n.t('astrodex.add_picture')}`, `
         <form id="add-picture-form" class="form row g-3">
             <div class="col-md-12">
-                <label for="picture-file" class="form-label">Image File *</label>
+                <label for="picture-file" class="form-label">${i18n.t('astrodex.image_file')} *</label>
                 <input type="file" class="form-control" id="picture-file" accept="image/*" required>
             </div>
             <div class="col-md-6">
-                <label for="picture-date" class="form-label">Observation Date</label>
+                <label for="picture-date" class="form-label">${i18n.t('astrodex.observation_date')}</label>
                 <input type="date" class="form-control" id="picture-date" value="${escapeHtml(today)}">
             </div>
             <div class="col-md-6">
-                <label for="picture-exposition" class="form-label">Exposition Time</label>
-                <input type="text" class="form-control" id="picture-exposition" placeholder="e.g., 120x30s">
+                <label for="picture-exposition" class="form-label">${i18n.t('astrodex.exposition_time')}</label>
+                <input type="text" class="form-control" id="picture-exposition" placeholder="${i18n.t('astrodex.exposition_time_placeholder')}">
             </div>
             <div class="col-md-6">
-                <label for="picture-device" class="form-label">Equipment Combinations</label>
+                <label for="picture-device" class="form-label">${i18n.t('astrodex.equipment_combinations')}</label>
                 <select class="form-select" id="picture-device-select" onchange="updateDeviceField()">
-                    <option value="">-- Free text --</option>
+                    <option value="">-- ${i18n.t('astrodex.free_text')} --</option>
                     ${equipmentComboOptions}
                 </select>
             </div>            
             <div class="col-md-6">
-                <label for="picture-device" class="form-label">Or enter custom equipment combination</label>
+                <label for="picture-device" class="form-label">${i18n.t('astrodex.custom_equipment')}</label>
                 <input type="text" class="form-control" id="picture-device" list="device-list" autocomplete="off">
                 <datalist id="device-list">
                     ${deviceOptions}
                 </datalist>
             </div>
             <div class="col-md-6">
-                <label for="picture-filters" class="form-label">Filters</label>
+                <label for="picture-filters" class="form-label">${i18n.t('astrodex.filters')}</label>
                 <select class="form-select" id="picture-filters-select" onchange="updateFilterField()">
-                    <option value="">-- Free text --</option>
+                    <option value="">-- ${i18n.t('astrodex.free_text')} --</option>
                     ${equipmentFilterOptions}
                 </select>
             </div>
             <div class="col-md-6">
-                <label for="picture-filters" class="form-label">Or enter custom filters</label>
-                <input type="text" class="form-control" id="picture-filters" placeholder="e.g., LRGB, Ha-OIII" list="filters-list" autocomplete="off">
+                <label for="picture-filters" class="form-label">${i18n.t('astrodex.custom_filters')}</label>
+                <input type="text" class="form-control" id="picture-filters" placeholder="${i18n.t('astrodex.filters_placeholder')}" list="filters-list" autocomplete="off">
                 <datalist id="filters-list">
                     ${filterOptions}
                 </datalist>
             </div>
             <div class="col-md-6">
-                <label for="picture-iso" class="form-label">ISO</label>
+                <label for="picture-iso" class="form-label">${i18n.t('astrodex.iso')}</label>
                 <input type="text" class="form-control" id="picture-iso" list="iso-list" autocomplete="off">
                 <datalist id="iso-list">
                     ${isoOptions}
                 </datalist>
             </div>
             <div class="col-md-6">
-                <label for="picture-frames" class="form-label">Number of Frames</label>
+                <label for="picture-frames" class="form-label">${i18n.t('astrodex.number_of_frames')}</label>
                 <input type="text" class="form-control" id="picture-frames">
             </div>
             <div class="col-md-12">
-                <label for="picture-notes" class="form-label">Notes</label>
+                <label for="picture-notes" class="form-label">${i18n.t('astrodex.form_notes')}</label>
                 <textarea id="picture-notes" class="form-control" rows="3"></textarea>
             </div>
             <div class="form-actions text-end">
-                <button type="submit" class="btn btn-primary">Upload Photo</button>
+                <button type="submit" class="btn btn-primary">${i18n.t('astrodex.upload_photo')}</button>
             </div>
         </form>
     `, 'lg');
@@ -1049,7 +1078,7 @@ async function uploadPicture(itemId) {
     const file = fileInput.files[0];
     
     if (!file) {
-        showMessage('error', 'Please select an image');
+        showMessage('error', i18n.t('astrodex.please_select_image'));
         return;
     }
     
@@ -1060,7 +1089,7 @@ async function uploadPicture(itemId) {
     try {
         // Disable button and show loading state
         submitButton.disabled = true;
-        submitButton.textContent = 'Uploading...';
+        submitButton.textContent = i18n.t('astrodex.uploading');
         
         // Upload file first
         const formData = new FormData();
@@ -1110,7 +1139,7 @@ async function uploadPicture(itemId) {
         }
     } catch (error) {
         console.error('Error uploading picture:', error);
-        showMessage('error', 'Failed to upload photo');
+        showMessage('error', i18n.t('astrodex.failed_to_upload_photo'));
         // Re-enable button on error so user can retry
         submitButton.disabled = false;
         submitButton.textContent = originalButtonText;
@@ -1129,23 +1158,23 @@ async function setMainPicture(itemId, pictureId) {
         //showAstrodexItemDetail(itemId);
     } catch (error) {
         console.error('Error setting main picture:', error);
-        showMessage('error', 'Failed to update main photo');
+        showMessage('error', i18n.t('astrodex.failed_to_update_main_photo'));
     }
 }
 
 async function deletePicture(itemId, pictureId) {
-    if (window.confirm("Are you sure you want to delete this photo? This action cannot be undone.")) {
+    if (window.confirm(i18n.t('astrodex.confirm_delete_photo'))) {
         try {
             await fetchJSON(`/api/astrodex/items/${itemId}/pictures/${pictureId}`, {
                 method: 'DELETE'
             });
             
-            showMessage('success', 'Photo deleted');
+            showMessage('success', i18n.t('astrodex.photo_deleted'));
             await loadAstrodex();
             showAstrodexItemDetail(itemId);
         } catch (error) {
             console.error('Error deleting picture:', error);
-            showMessage('error', 'Failed to delete photo');
+            showMessage('error', i18n.t('astrodex.failed_to_delete_photo'));
         }
     }
 }
@@ -1159,13 +1188,13 @@ async function deleteAstrodexItem(itemId) {
     const item = astrodexData.items.find(i => i.id === itemId);
     const itemPayload = item ? item : null;
     
-    if (window.confirm("Are you sure you want to remove this object from your Astrodex? This will also delete all associated photos. This action cannot be undone.")) {
+    if (window.confirm(i18n.t('astrodex.confirm_delete_item'))) {
         try {
             await fetchJSON(`/api/astrodex/items/${itemId}`, {
                 method: 'DELETE'
             });
             
-            showMessage('success', 'Object removed from Astrodex');
+            showMessage('success', i18n.t('astrodex.item_deleted'));
             await loadAstrodex();
             
             // Update catalogue badges if the function exists (from app.js)
@@ -1176,7 +1205,7 @@ async function deleteAstrodexItem(itemId) {
             closeModal();
         } catch (error) {
             console.error('Error deleting item:', error);
-            showMessage('error', 'Failed to remove object');
+            showMessage('error', i18n.t('astrodex.failed_to_delete_item'));
         }
     }
 }
@@ -1194,13 +1223,13 @@ async function switchItemCatalogueName(itemId, catalogue) {
         if (response.status === 'success') {
             await loadAstrodex();
             showAstrodexItemDetail(itemId);
-            showMessage('success', 'Object name updated');
+            showMessage('success', i18n.t('astrodex.object_name_updated'));
         } else {
-            showMessage('error', response.error || 'Failed to update object name');
+            showMessage('error', response.error || i18n.t('astrodex.failed_to_update_object_name'));
         }
     } catch (error) {
         console.error('Error switching catalogue name:', error);
-        showMessage('error', 'Failed to update object name');
+        showMessage('error', i18n.t('astrodex.failed_to_update_object_name'));
     }
 }
 
@@ -1223,10 +1252,10 @@ async function updateItemField(itemId, field, value) {
             item[field] = value;
         }
         
-        showMessage('success', 'Updated successfully');
+        showMessage('success', i18n.t('astrodex.updated_successfully'));
     } catch (error) {
         console.error('Error updating item:', error);
-        showMessage('error', 'Failed to update item');
+        showMessage('error', i18n.t('astrodex.failed_to_update_item'));
     }
 }
 
@@ -1239,53 +1268,53 @@ function showEditPictureModal(itemId, pictureId) {
     const picture = item.pictures.find(p => p.id === pictureId);
     if (!picture) return;
     
-    createModal('Edit Photo', `
+    createModal(i18n.t('astrodex.edit_photo'), `
         <form id="edit-picture-form" class="form row g-3">            
             <div class="col-md-6">
-                <label for="edit-picture-date" class="form-label">Observation Date</label>
+                <label for="edit-picture-date" class="form-label">${i18n.t('astrodex.observation_date')}</label>
                 <input type="date" class="form-control" id="edit-picture-date" value="${escapeHtml(picture.date || '')}">
             </div>
             <div class="col-md-6">
-                <label for="edit-picture-exposition" class="form-label">Exposition Time</label>
+                <label for="edit-picture-exposition" class="form-label">${i18n.t('astrodex.exposition_time')}</label>
                 <input type="text" class="form-control" id="edit-picture-exposition" placeholder="e.g., 120x30s" value="${escapeHtml(picture.exposition_time || '')}">
             </div>
             <div class="col-md-6">
-                <label for="edit-picture-device" class="form-label">Equipment Combinations</label>                
+                <label for="edit-picture-device" class="form-label">${i18n.t('astrodex.equipment_combinations')}</label>                
                 <select class="form-select" id="edit-picture-device-select" onchange="updateEditDeviceField()">
-                    <option value="">-- Free text --</option>
+                    <option value="">${i18n.t('astrodex.free_text')}</option>
                     ${buildEquipmentCombinationOptions()}
                 </select>
             </div>
             <div class="col-md-6">
-                <label for="edit-picture-device" class="form-label">Or enter custom equipment combination</label>
+                <label for="edit-picture-device" class="form-label">${i18n.t('astrodex.custom_equipment')}</label>
                 <input type="text" class="form-control" id="edit-picture-device" list="device-list" autocomplete="off" value="${escapeHtml(picture.device || '')}">
             </div>
             <div class="col-md-6">
-                <label for="edit-picture-filters" class="form-label">Filters</label>
+                <label for="edit-picture-filters" class="form-label">${i18n.t('astrodex.filters')}</label>
                 <select class="form-select" id="edit-picture-filters-select" onchange="updateEditFilterField()">
-                    <option value="">-- Free text --</option>
+                    <option value="">${i18n.t('astrodex.free_text')}</option>
                     ${buildEquipmentFilterOptions()}
                 </select>
             </div>
             <div class="col-md-6">
-                <label for="edit-picture-filters" class="form-label">Or enter custom filters</label>
-                <input type="text" class="form-control" id="edit-picture-filters" placeholder="e.g., LRGB, Ha-OIII" list="filters-list" autocomplete="off" value="${escapeHtml(picture.filters || '')}">
+                <label for="edit-picture-filters" class="form-label">${i18n.t('astrodex.custom_filters')}</label>
+                <input type="text" class="form-control" id="edit-picture-filters" placeholder="${i18n.t('astrodex.custom_filters_placeholder')}" list="filters-list" autocomplete="off" value="${escapeHtml(picture.filters || '')}">
             </div>
             <div class="col-md-6">
-                <label for="edit-picture-iso" class="form-label">ISO</label>
+                <label for="edit-picture-iso" class="form-label">${i18n.t('astrodex.iso')}</label>
                 <input type="text" class="form-control" id="edit-picture-iso" list="iso-list" autocomplete="off" value="${escapeHtml(picture.iso || '')}">
             </div>
             <div class="col-md-6">
-                <label for="edit-picture-frames" class="form-label">Number of Frames</label>
+                <label for="edit-picture-frames" class="form-label">${i18n.t('astrodex.number_of_frames')}</label>
                 <input type="text" class="form-control" id="edit-picture-frames" value="${escapeHtml(picture.frames || '')}">
             </div>
             <div class="col-md-12">
-                <label for="edit-picture-notes" class="form-label">Notes</label>
+                <label for="edit-picture-notes" class="form-label">${i18n.t('astrodex.form_notes')}</label>
                 <textarea id="edit-picture-notes" class="form-control" rows="3">${escapeHtml(picture.notes || '')}</textarea>
             </div>
             </div>
             <div class="form-actions text-end">
-                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <button type="submit" class="btn btn-primary">${i18n.t('astrodex.save_changes')}</button>
             </div>
         </form>
     `, 'lg');
@@ -1345,7 +1374,7 @@ async function updatePicture(itemId, pictureId) {
         showAstrodexItemDetail(itemId);
     } catch (error) {
         console.error('Error updating picture:', error);
-        showMessage('error', 'Failed to update photo');
+        showMessage('error', i18n.t('astrodex.failed_to_update_photo'));
     }
 }
 
@@ -1371,13 +1400,13 @@ function showPictureSlideshow(itemId) {
         <div class="slideshow-info mt-4">
             <div class="row mb-3">
                 <div class="col text-center">
-                    <span class="badge bg-primary fs-6">Photo ${escapeHtml((currentIndex + 1).toString())} of ${escapeHtml(slideshowPictures.length.toString())}</span>
+                    <span class="badge bg-primary fs-6">${i18n.t('astrodex.photo_x_on_y', { current: currentIndex + 1, total: slideshowPictures.length })}</span>
                 </div>
             </div>
             ${showOwner ? `
                 <div class="row mb-3">
                     <div class="col text-center">
-                        <span class="badge bg-secondary fs-6">Captured by ${escapeHtml(ownerUsername)}</span>
+                        <span class="badge bg-secondary fs-6">${i18n.t('astrodex.captured_by', { owner: escapeHtml(ownerUsername) })}</span>
                     </div>
                 </div>
             ` : ''}
@@ -1387,7 +1416,7 @@ function showPictureSlideshow(itemId) {
                         <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
                             <div class="me-3 fs-4">📅</div>
                             <div>
-                                <small class="text-muted d-block">Observation Date</small>
+                                <small class="text-muted d-block">${i18n.t('astrodex.observation_date')}</small>
                                 <strong class="text-dark">${escapeHtml(formatStringToDate(picture.date))}</strong>
                             </div>
                         </div>
@@ -1398,7 +1427,7 @@ function showPictureSlideshow(itemId) {
                         <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
                             <div class="me-3 fs-4">⏱️</div>
                             <div>
-                                <small class="text-muted d-block">Exposition Time</small>
+                                <small class="text-muted d-block">${i18n.t('astrodex.exposition_time')}</small>
                                 <strong class="text-dark">${escapeHtml(picture.exposition_time)}</strong>
                             </div>
                         </div>
@@ -1409,7 +1438,7 @@ function showPictureSlideshow(itemId) {
                         <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
                             <div class="me-3 fs-4">🔭</div>
                             <div>
-                                <small class="text-muted d-block">Device/Telescope</small>
+                                <small class="text-muted d-block">${i18n.t('astrodex.device_telescope')}</small>
                                 <strong class="text-dark">${escapeHtml(picture.device)}</strong>
                             </div>
                         </div>
@@ -1420,7 +1449,7 @@ function showPictureSlideshow(itemId) {
                         <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
                             <div class="me-3 fs-4">🎨</div>
                             <div>
-                                <small class="text-muted d-block">Filters</small>
+                                <small class="text-muted d-block">${i18n.t('astrodex.filters')}</small>
                                 <strong class="text-dark">${escapeHtml(picture.filters)}</strong>
                             </div>
                         </div>
@@ -1431,7 +1460,7 @@ function showPictureSlideshow(itemId) {
                         <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
                             <div class="me-3 fs-4">📷</div>
                             <div>
-                                <small class="text-muted d-block">ISO</small>
+                                <small class="text-muted d-block">${i18n.t('astrodex.iso')}</small>
                                 <strong class="text-dark">${escapeHtml(picture.iso)}</strong>
                             </div>
                         </div>
@@ -1442,7 +1471,7 @@ function showPictureSlideshow(itemId) {
                         <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
                             <div class="me-3 fs-4">🎞️</div>
                             <div>
-                                <small class="text-muted d-block">Frames</small>
+                                <small class="text-muted d-block">${i18n.t('astrodex.number_of_frames')}</small>
                                 <strong class="text-dark">${escapeHtml(picture.frames)}</strong>
                             </div>
                         </div>
@@ -1455,7 +1484,7 @@ function showPictureSlideshow(itemId) {
                         <div class="d-flex align-items-start p-2 rounded shadow-sm bg-light">
                             <div class="me-3 fs-4">📝</div>
                             <div>
-                                <small class="text-muted d-block">Notes</small>
+                                <small class="text-muted d-block">${i18n.t('astrodex.notes')}</small>
                                 <p class="mb-0" style="white-space: pre-wrap;">${escapeHtml(picture.notes)}</p>
                             </div>
                         </div>
@@ -1585,7 +1614,7 @@ function showPictureSlideshow(itemId) {
     }
     
     // Create modal using existing Bootstrap structure
-    createModal(`${escapeHtml(item.name)} - Photos`, '', 'full');
+    createModal(`${escapeHtml(item.name)} - ${i18n.t('astrodex.photos')}`, '', 'full');
     
     // Show the modal
     bs_modal = new bootstrap.Modal('#modal_full_close', {
@@ -1625,10 +1654,10 @@ async function toggleAstrodexSortOrder() {
     const button = document.getElementById('astrodex-sort-order');
     if (astrodexFilters.sortOrder === 'asc') {
         astrodexFilters.sortOrder = 'desc';
-        button.textContent = '⬇️ Descending';
+        button.textContent = `⬇️ ${i18n.t('astrodex.sort_order_descending')}`;
     } else {
         astrodexFilters.sortOrder = 'asc';
-        button.textContent = '⬆️ Ascending';
+        button.textContent = `⬆️ ${i18n.t('astrodex.sort_order_ascending')}`;
     }
     renderAstrodexView(isAllowedAstrodex);
 }
@@ -1707,6 +1736,7 @@ async function initializeAstrodexEventListeners() {
     buttonSort.textContent = `⬆️ ${i18n.t('astrodex.sort_order_ascending')}`;
     const buttonAddItem = document.getElementById('add-astrodex-item');
     buttonAddItem.textContent = `➕ ${i18n.t('astrodex.add_object')}`;
+    console.log('here');
     
     // ============================================
     // Event delegation on document.body for modals and dynamic content
