@@ -1736,7 +1736,6 @@ async function initializeAstrodexEventListeners() {
     buttonSort.textContent = `⬆️ ${i18n.t('astrodex.sort_order_ascending')}`;
     const buttonAddItem = document.getElementById('add-astrodex-item');
     buttonAddItem.textContent = `➕ ${i18n.t('astrodex.add_object')}`;
-    console.log('here');
     
     // ============================================
     // Event delegation on document.body for modals and dynamic content

@@ -1025,7 +1025,16 @@
     "default_password_warning_request": "Veuillez le changer dans la section Utilisateurs pour la sécurité.",
     "please_authenticate": "Veuillez vous connecter pour continuer",
     "invalid_credentials": "Nom d'utilisateur ou mot de passe invalide",
-    "session_expired": "Votre session a expiré. Veuillez vous reconnecter"
+    "session_expired": "Votre session a expiré. Veuillez vous reconnecter",
+    "login_page_title": "Connexion - MyAstroBoard",
+    "remember_me_30_days": "Se souvenir de moi (rester connecté pendant 30 jours)",
+    "sign_in": "Se connecter",
+    "signing_in": "Connexion en cours...",
+    "enter_username_password": "Veuillez saisir le nom d'utilisateur et le mot de passe",
+    "login_success_redirecting": "Connexion réussie ! Redirection...",
+    "login_failed_generic": "Échec de la connexion",
+    "network_error_retry": "Erreur réseau. Vérifiez votre connexion et réessayez.",
+    "internal_server_error": "Erreur interne du serveur"
   },
   
   "cache": {
