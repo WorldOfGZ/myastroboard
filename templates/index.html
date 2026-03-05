@@ -345,8 +345,8 @@
         <div id="astrodex-tab" class="main-tab-content">
             <div id="astrodex-subtab" class="sub-tab-content active">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📚 Astrodex - Gotta Catch 'Em All!</h2>                
-                    <p id="astrodex-collection-subtitle">Your personal collection of captured celestial objects</p>
+                    <h2>📚 <span data-i18n="astrodex.title">Astrodex - Gotta Catch 'Em All!</span></h2>                
+                    <p id="astrodex-collection-subtitle" data-i18n="astrodex.your_collection">Your personal collection of captured celestial objects</p>
                     
                     <!-- Stats Cards -->
                     <div id="astrodex-stats" class="row row-cols-2 row-cols-md-5 g-4">
@@ -355,50 +355,50 @@
                 
                 </div>
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2 id="astrodex-collection-title">📚 My Collection</h2>
+                    <h2 id="astrodex-collection-title">📚 <span data-i18n="astrodex.my_collection"></span>My Collection</span></h2>
                     <!-- Filters and Search -->
                     <div class="row g-3 mt-2 mb-3">
                         <div class="col-md-2">
-                            <input type="text" id="astrodex-search" class="form-control" placeholder="🔍 Search objects...">
+                            <input type="text" id="astrodex-search" class="form-control" placeholder="Search objects..." data-i18n-placeholder="astrodex.search">
                         </div>
 
                         <div class="col-md-2">
                             <select id="astrodex-type-filter" class="form-select">
-                                <option value="all">All Types</option>
-                                <option value="Galaxy">Galaxy</option>
-                                <option value="Nebula">Nebula</option>
-                                <option value="Planetary Nebula">Planetary Nebula</option>
-                                <option value="Star Cluster">Star Cluster</option>
-                                <option value="Open Cluster">Open Cluster</option>
-                                <option value="Globular Cluster">Globular Cluster</option>
-                                <option value="Planet">Planet</option>
-                                <option value="Comet">Comet</option>
+                                <option value="all" data-i18n="astrodex.filter_type_all">All Types</option>
+                                <option value="Galaxy" data-i18n="uptonight.type_galaxy">Galaxy</option>
+                                <option value="Nebula" data-i18n="uptonight.type_nebula">Nebula</option>
+                                <option value="Planetary Nebula" data-i18n="uptonight.type_planetary_nebula">Planetary Nebula</option>
+                                <option value="Star Cluster" data-i18n="uptonight.type_star_cluster">Star Cluster</option>
+                                <option value="Open Cluster" data-i18n="uptonight.type_open_cluster">Open Cluster</option>
+                                <option value="Globular Cluster" data-i18n="uptonight.type_globular_cluster">Globular Cluster</option>
+                                <option value="Planet" data-i18n="uptonight.type_planet">Planet</option>
+                                <option value="Comet" data-i18n="uptonight.type_comet">Comet</option>
                             </select>
                         </div>
 
                         <div class="col-md-2">
                             <select id="astrodex-photo-filter" class="form-select">
-                                <option value="all">All Objects</option>
-                                <option value="yes">With Photos</option>
-                                <option value="no">Without Photos</option>
+                                <option value="all" data-i18n="astrodex.filter_photo_all">All Objects</option>
+                                <option value="yes" data-i18n="astrodex.filter_photo_yes">With Photos</option>
+                                <option value="no" data-i18n="astrodex.filter_photo_no">Without Photos</option>
                             </select>
                         </div>
 
                         <div class="col-md-2">
                             <select id="astrodex-sort" class="form-select">
-                                <option value="name">Sort by Name</option>
-                                <option value="type">Sort by Type</option>
-                                <option value="date">Sort by Date Added</option>
-                                <option value="photos">Sort by Photo Count</option>
+                                <option value="name" data-i18n="astrodex.sort_by_name">Sort by Name</option>
+                                <option value="type" data-i18n="astrodex.sort_by_type">Sort by Type</option>
+                                <option value="date" data-i18n="astrodex.sort_by_date">Sort by Date Added</option>
+                                <option value="photos" data-i18n="astrodex.sort_by_photos">Sort by Photo Count</option>
                             </select>
                         </div>
 
                         <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary form-control" id="astrodex-sort-order">⬆️ Ascending</button>
+                            <button type="submit" class="btn btn-primary form-control" id="astrodex-sort-order" data-i18n="astrodex.sort_order_ascending">⬆️ Ascending</button>
                         </div>
 
                         <div class="col-md-2">
-                            <button type="submit" class="btn btn-success form-control" id="add-astrodex-item" data-action="add-astrodex-item">➕ Add Object</button>
+                            <button type="submit" class="btn btn-success form-control" id="add-astrodex-item" data-action="add-astrodex-item" data-i18n="astrodex.add_object">➕ Add Object</button>
                         </div>
                     </div>
                     

@@ -467,6 +467,39 @@
     "failed_export_config": "Failed to export configuration"
   }, 
 
+  "astrodex": {
+    "title": "Astrodex - Gotta Catch 'Em All!",
+    "your_collection": "Your personal collection of captured celestial objects",
+    "shared_collection": "Shared collection of captured celestial objects (read-only for items from other users)",
+    "my_collection": "My Collection",
+    "common_collection": "Common Collection",
+    "search": "Search objects...",
+    "filter_type_all": "All types",
+    "filter_photo_all": "All Objects",
+    "filter_photo_no": "Without Photos",
+    "filter_photo_yes": "With Photos",
+    "sort_by_name": "Sort by Name",
+    "sort_by_date": "Sort by Capture Date",
+    "sort_by_type": "Sort by Type",
+    "sort_by_photos": "Sort by Photo Count",
+    "add_object": "Add New Object",
+    "edit_object": "Edit Object",
+    "sort_order_ascending": "Ascending",
+    "sort_order_descending": "Descending",
+    "failed_to_load_astrodex": "Failed to load Astrodex data",
+    "failed_to_add_object": "Failed to add object",
+    "unknown": "Unknown",
+    "personal": "Personal: ",
+    "total_objects": "Total objects",
+    "total_photos": "Total photos",
+    "with_photos": "With photos",
+    "object_types": "Object types",
+    "constellations": "Constellations",
+    "start_adding": "Start adding objects to your Astrodex! You can add any celestial object you have observed, along with photos and details. Your collection will grow over time as you capture more of the night sky. Happy stargazing!",
+    "read_only_user": "As read-only user, you can't add new objects.",
+    "click_to_view_photos": "Click to view photos"
+  }, 
+
   "uptonight": {
     "info_1": "UpTonight scheduler calculates the best observation targets for the night based on your location, weather forecast, and target catalogues. You can configure parameters and features in the Parameters tab.",
     "info_2": "Wait before loading, or check parameters if fail.",
@@ -552,7 +585,9 @@
     "type_duplicate": "Duplicate",
     "type_diffuse_nebula": "Diffuse Nebula",
     "type_galaxy_pair": "Galaxy Pair",
-    "type_n_cl":  "N+CL"
+    "type_n_cl":  "N+CL",
+    "type_star_cluster": "Star Cluster",
+    "type_comet": "Comet"
   },
 
   "users": {

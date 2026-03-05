@@ -467,6 +467,39 @@
     "failed_export_config": "Échec de l'exportation de la configuration"
   }, 
 
+  "astrodex": {
+    "title": "Astrodex - Attrapez-les tous !",
+    "your_collection": "Votre collection personnelle d'objets célestes capturés",
+    "shared_collection": "Collection partagée d'objets célestes capturés (lecture seule pour les éléments d'autres utilisateurs)",
+    "my_collection": "Ma collection",
+    "common_collection": "Collection commune",
+    "search": "Rechercher des objets...",
+    "filter_type_all": "Tous les types",
+    "filter_photo_all": "Tous les objets",
+    "filter_photo_no": "Sans photos",
+    "filter_photo_yes": "Avec photos",
+    "sort_by_name": "Trier par nom",
+    "sort_by_date": "Trier par date de capture",
+    "sort_by_type": "Trier par type",
+    "sort_by_photos": "Trier par nombre de photos",
+    "add_object": "Ajouter un nouvel objet",
+    "edit_object": "Modifier l'objet",
+    "sort_order_ascending": "Croissant",
+    "sort_order_descending": "Décroissant",
+    "failed_to_load_astrodex": "Échec du chargement des données d'Astrodex",
+    "failed_to_add_object": "Échec de l'ajout de l'objet",
+    "unknown": "Inconnu",
+    "personal": "Personnelle : ",
+    "total_objects": "Objets totaux",
+    "total_photos": "Photos totales",
+    "with_photos": "Avec photos",
+    "object_types": "Types d'objets",
+    "constellations": "Constellations",
+    "start_adding": "Commencez à ajouter des objets à votre Astrodex ! Vous pouvez ajouter n'importe quel objet céleste que vous avez observé, avec des photos et des détails. Votre collection grandira au fil du temps à mesure que vous capturerez davantage le ciel nocturne. Bonnes observations !",
+    "read_only_user": "En tant qu'utilisateur en lecture seule, vous ne pouvez pas ajouter de nouveaux objets.",
+    "click_to_view_photos": "Cliquez pour voir les photos"
+  },
+
   "uptonight": {
     "info_1": "Le planificateur UpTonight calcule les meilleures cibles d'observation pour la nuit en fonction de votre emplacement, des prévisions météorologiques et des catalogues de cibles. Vous pouvez configurer les paramètres et les fonctionnalités dans l'onglet Paramètres.",
     "info_2": "Attendez avant de charger, ou vérifiez les paramètres en cas d'échec.",
@@ -552,7 +585,9 @@
     "type_duplicate": "Dupliqué",
     "type_diffuse_nebula": "Nébuleuse diffuse",
     "type_galaxy_pair": "Paire de galaxies",
-    "type_n_cl":  "N+CL"
+    "type_n_cl": "N+CL",
+    "type_star_cluster": "Amas d'étoiles",
+    "type_comet": "Comète"
   },
 
   "users": {

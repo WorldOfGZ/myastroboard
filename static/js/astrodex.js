@@ -110,7 +110,7 @@ async function loadAstrodex() {
         renderAstrodexView(isAllowedAstrodex);
     } catch (error) {
         console.error('Error loading astrodex:', error);
-        showMessage('error', 'Failed to load Astrodex');
+        showMessage('error', i18n.t('astrodex.failed_to_load_astrodex'));
     }
 }
 
@@ -150,14 +150,14 @@ function updateAstrodexCollectionTitle() {
     if (!title) return;
 
     if (astrodexData.privateMode) {
-        title.textContent = '📚 My Collection';
+        title.textContent = `📚 ${i18n.t('astrodex.my_collection')}`;
         if (subtitle) {
-            subtitle.textContent = 'Your personal collection of captured celestial objects';
+            subtitle.textContent = i18n.t('astrodex.your_personal_collection');
         }
     } else {
-        title.textContent = '📚 Common Collection';
+        title.textContent = `📚 ${i18n.t('astrodex.common_collection')}`;
         if (subtitle) {
-            subtitle.textContent = 'Shared collection of captured celestial objects (read-only for items from other users)';
+            subtitle.textContent = i18n.t('astrodex.shared_collection');
         }
     }
 }
@@ -168,7 +168,7 @@ function getPersonalAstrodexStats() {
     const personalConstellations = new Set();
 
     personalItems.forEach(item => {
-        const itemType = (item.type || 'Unknown').toString().trim();
+        const itemType = (item.type || i18n.t('astrodex.unknown')).toString().trim();
         if (itemType) {
             personalTypes.add(itemType);
         }
@@ -219,27 +219,27 @@ function renderAstrodexStats() {
     const personalStats = getPersonalAstrodexStats();
     const personalSuffix = astrodexData.privateMode
         ? ''
-        : ` (personnal: ${personalStats.totalItems})`;
+        : ` (${i18n.t('astrodex.personal')}${personalStats.totalItems})`;
     const personalPicturesSuffix = astrodexData.privateMode
         ? ''
-        : ` (personnal: ${personalStats.itemsWithPictures})`;
+        : ` (${i18n.t('astrodex.personal')}${personalStats.itemsWithPictures})`;
     const personalTotalPhotosSuffix = astrodexData.privateMode
         ? ''
-        : ` (personnal: ${personalStats.totalPictures})`;
+        : ` (${i18n.t('astrodex.personal')}${personalStats.totalPictures})`;
     const personalObjectTypesSuffix = astrodexData.privateMode
         ? ''
-        : ` (personnal: ${personalStats.objectTypesCount})`;
+        : ` (${i18n.t('astrodex.personal')}${personalStats.objectTypesCount})`;
     const personalConstellationsSuffix = astrodexData.privateMode
         ? ''
-        : ` (personnal: ${personalStats.constellationsCount})`;
+        : ` (${i18n.t('astrodex.personal')}${personalStats.constellationsCount})`;
 
     DOMUtils.clear(statsContainer);
     const statItems = [
-        { value: totalItems.toFixed(0), label: `Total Objects${personalSuffix}` },
-        { value: itemsWithPictures.toFixed(0), label: `With Photos${personalPicturesSuffix}` },
-        { value: totalPictures.toFixed(0), label: `Total Photos${personalTotalPhotosSuffix}` },
-        { value: objectTypesCount.toFixed(0), label: `Object Types${personalObjectTypesSuffix}` },
-        { value: constellationCount.toFixed(0), label: `Constellations${personalConstellationsSuffix}` }
+        { value: totalItems.toFixed(0), label: `${i18n.t('astrodex.total_objects')}${personalSuffix}` },
+        { value: itemsWithPictures.toFixed(0), label: `${i18n.t('astrodex.with_photos')}${personalPicturesSuffix}` },
+        { value: totalPictures.toFixed(0), label: `${i18n.t('astrodex.total_photos')}${personalTotalPhotosSuffix}` },
+        { value: objectTypesCount.toFixed(0), label: `${i18n.t('astrodex.object_types')}${personalObjectTypesSuffix}` },
+        { value: constellationCount.toFixed(0), label: `${i18n.t('astrodex.constellations')}${personalConstellationsSuffix}` }
     ];
 
     statItems.forEach((statItem) => {
@@ -280,14 +280,14 @@ function renderAstrodexGrid(items, isAllowedAstrodex) {
             title.textContent = '📚 Your Astrodex is empty';
             body.appendChild(title);
             body.appendChild(document.createElement('br'));
-            body.append('Start adding celestial objects you\'ve captured!');
+            body.append(i18n.t('astrodex.start_adding'));
 
             const footer = document.createElement('div');
             footer.className = 'card-footer text-center';
             const button = document.createElement('button');
             button.className = 'btn btn-outline-primary';
             button.setAttribute('data-action', 'add-astrodex-item');
-            button.textContent = '➕ Add First Object';
+            button.textContent = `➕ ${i18n.t('astrodex.add_object')}`;
             footer.appendChild(button);
 
             card.appendChild(body);
@@ -305,7 +305,7 @@ function renderAstrodexGrid(items, isAllowedAstrodex) {
             title.textContent = '📚 Astrodex is empty';
             body.appendChild(title);
             body.appendChild(document.createElement('br'));
-            body.append('As read-only user, you can\'t add new objects.');
+            body.append(i18n.t('astrodex.read_only_user'));
             card.appendChild(body);
             col.appendChild(card);
             gridContainer.appendChild(col);
@@ -336,7 +336,7 @@ function renderAstrodexGrid(items, isAllowedAstrodex) {
         imageWrap.setAttribute('role', 'button');
         imageWrap.setAttribute('aria-label', `View ${item.name} photos`);
         imageWrap.style.cursor = 'pointer';
-        imageWrap.title = 'Click to view photos';
+        imageWrap.title = i18n.t('astrodex.click_to_view_photos');
 
         const img = document.createElement('img');
         img.src = imageUrl;
@@ -365,14 +365,27 @@ function renderAstrodexGrid(items, isAllowedAstrodex) {
         title.textContent = item.name;
         const type = document.createElement('div');
         type.className = 'astrodex-card-type';
-        type.textContent = item.type || 'Unknown';
+        let traslationKey = 'uptonight.type_' + strToTranslateKey(item.type);
+        if (i18n.has(traslationKey)) {
+            type.textContent = i18n.t(traslationKey);
+        } else {
+            type.textContent = item.type || i18n.t('astrodex.unknown');
+        }
         body.appendChild(title);
         body.appendChild(type);
 
         if (item.constellation) {
+            // Translate constellation name if possible
+            let translationKey = 'constellations.' + strToTranslateKey(item.constellation);
+            if (i18n.has(translationKey)) {
+                item.constellation = i18n.t(translationKey);
+            } else {
+                item.constellation = capitalizeWords(item.constellation);
+            }
+
             const constellation = document.createElement('div');
             constellation.className = 'astrodex-card-constellation';
-            constellation.textContent = `📍 ${capitalizeWords(item.constellation)}`;
+            constellation.textContent = `📍 ${item.constellation}`;
             body.appendChild(constellation);
         }
 
@@ -1686,6 +1699,14 @@ async function initializeAstrodexEventListeners() {
     // Use event delegation for dynamically created elements
     const astrodexTab = document.getElementById('astrodex-tab');
     if (!astrodexTab) return;
+
+    //Buttons 
+
+    //Init buttons
+    const buttonSort = document.getElementById('astrodex-sort-order');
+    buttonSort.textContent = `⬆️ ${i18n.t('astrodex.sort_order_ascending')}`;
+    const buttonAddItem = document.getElementById('add-astrodex-item');
+    buttonAddItem.textContent = `➕ ${i18n.t('astrodex.add_object')}`;
     
     // ============================================
     // Event delegation on document.body for modals and dynamic content
