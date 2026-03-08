@@ -116,6 +116,28 @@ Manage completely your equipment:
 
 ---
 
+## Various Features
+
+### Events calendar
+
+All the next events in a same timeline for a better organization.
+
+![Events calendar](img/events_calendar.png)
+
+### Aurora Borealis Predictions
+
+Get predictions from your location.
+
+![Aurora Borealis Predictions](img/aurora_prediction.png)
+
+### ISS Passes
+
+Next 20 passes of ISS in your location.
+
+![ISS Passes](img/iss_passes.png)
+
+---
+
 ## Advanced Features
 
 ### Smart Scheduling
