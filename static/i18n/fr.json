@@ -647,7 +647,25 @@
     "type_star_cluster": "Amas d'étoiles",
     "type_comet": "Comète",
     "type_sun": "Soleil",
-    "type_other": "Autre"
+    "type_other": "Autre",
+    "type_ass": "*Ass",
+    "type_bn_oc": "BN+OC",
+    "type_cl_n": "CL+N",
+    "type_dn": "DN",
+    "type_double_star": "Étoile double",
+    "type_elliptical_galaxy": "Galaxie elliptique",
+    "type_emn": "EmN",
+    "type_galaxy_duo": "Duo de galaxies",
+    "type_ggroup": "Groupe de galaxies",
+    "type_group_asterism": "Groupe/Astérisme",
+    "type_gtrpl": "GTrpl",
+    "type_nonex": "NonEx",
+    "type_nova": "Nova",
+    "type_preplanetary_nebula": "Nébuleuse préplanétaire",
+    "type_s": "*'S",
+    "type_star": "Étoile",
+    "type_star_cloud": "Nuage d'étoiles",
+    "type_variable_nebula": "Nébuleuse variable"
   },
 
   "users": {
