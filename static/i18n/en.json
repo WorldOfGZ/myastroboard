@@ -1216,5 +1216,23 @@
     "virgo": "Virgo",
     "volans": "Volans",
     "vulpecula": "Vulpecula"
+  },
+
+  "pwa": {
+    "install_app": "Install app",
+    "install_prompt_unavailable": "Install prompt is not currently available in this browser.",
+    "install_dismissed": "Install dismissed. You can install later from the browser menu.",
+    "install_ready": "Install MyAstroBoard for faster launch and offline access.",
+    "install_success": "MyAstroBoard installed successfully.",
+    "running_installed": "MyAstroBoard is running as an installed app.",
+    "ios_add_to_home": "On iOS, use Share -> Add to Home Screen to install this app.",
+    "offline_support_unavailable": "Background offline support is unavailable right now.",
+    "offline_page_title": "Offline - MyAstroBoard",
+    "offline_title": "You are offline",
+    "offline_message": "MyAstroBoard cannot reach the server right now. You can keep viewing cached pages and retry once your connection is back.",
+    "retry_connection": "Retry connection",
+    "checking_connection": "Checking connection...",
+    "still_offline": "Still offline. Please verify your network and try again.",
+    "auto_retry_in": "Automatic retry in {seconds}s"
   }
 }

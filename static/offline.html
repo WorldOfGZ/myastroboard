@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Offline</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle at top, #1f2b4d 0%, #0b1220 65%);
+            color: #eef3ff;
+            padding: 1.5rem;
+        }
+        .card {
+            max-width: 34rem;
+            width: 100%;
+            background: rgba(16, 23, 41, 0.84);
+            border: 1px solid rgba(150, 170, 220, 0.35);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32);
+        }
+        h1 {
+            margin: 0 0 0.75rem;
+            font-size: 1.6rem;
+        }
+        p {
+            line-height: 1.5;
+            margin: 0 0 1rem;
+        }
+        a {
+            color: #b5c8ff;
+        }
+        .retry {
+            display: inline-block;
+            border: 0;
+            border-radius: 999px;
+            padding: 0.65rem 1rem;
+            background: #2f7ef7;
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .retry:hover {
+            background: #2367cc;
+        }
+        .retry-countdown {
+            margin-top: 0.75rem;
+            margin-bottom: 0;
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+    <main class="card" role="main" aria-live="polite">
+        <h1 data-i18n="pwa.offline_title"></h1>
+        <p data-i18n="pwa.offline_message"></p>
+        <button id="retry-connection-btn" class="retry" type="button" data-i18n="pwa.retry_connection"></button>
+        <p id="retry-countdown" class="retry-countdown"></p>
+    </main>
+
+    <script src="/static/js/i18n.js"></script>
+    <script src="/static/js/apiHelper.js"></script>
+    <script src="/static/js/offline.js"></script>
+</body>
+</html>

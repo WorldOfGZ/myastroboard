@@ -230,6 +230,15 @@ h3 {
     gap: 0.35rem;
 }
 
+.pwa-install-btn {
+    white-space: nowrap;
+}
+
+.pwa-install-status {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
 .language-select {
     min-width: 160px;
 }

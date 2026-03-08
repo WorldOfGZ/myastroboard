@@ -1,16 +1,47 @@
 // Authentication and User Management
 
 let currentUser = null;
+let offlineRedirectInProgress = false;
+
+function getAuthStatusRetryOptions() {
+    // Keep auth probing fast to avoid long hangs before offline fallback.
+    if (window.navigator && window.navigator.onLine === false) {
+        return {
+            maxAttempts: 1,
+            timeoutMs: 1500,
+            retryOnNetworkError: false
+        };
+    }
+
+    return {
+        maxAttempts: 2,
+        timeoutMs: 3000,
+        baseDelayMs: 250,
+        maxDelayMs: 1000,
+        retryOnNetworkError: true
+    };
+}
+
+function isOfflineOrNetworkError(error) {
+    if (window.navigator && window.navigator.onLine === false) {
+        return true;
+    }
+
+    const message = String(error?.message || '').toLowerCase();
+    return error?.code === 'ETIMEDOUT'
+        || message.includes('failed to fetch')
+        || message.includes('networkerror')
+        || message.includes('network request failed')
+        || message.includes('timed out')
+        || message.includes('load failed');
+}
 
 // Check authentication status on page load
 async function checkAuthStatus() {
     try {
         const data = await fetchJSONWithRetry('/api/auth/status', {
             credentials: 'include'
-        }, {
-            maxAttempts: 3,
-            timeoutMs: 10000
-        });
+        }, getAuthStatusRetryOptions());
         
         if (data.authenticated) {
             currentUser = data;
@@ -26,6 +57,13 @@ async function checkAuthStatus() {
         }
     } catch (error) {
         console.error('Error checking auth status:', error);
+        if (isOfflineOrNetworkError(error)) {
+            // Network unavailable: show dedicated offline page instead of login.
+            if (!window.location.pathname.includes('/offline.html')) {
+                window.location.href = '/offline.html';
+            }
+            return;
+        }
         window.location.href = '/login';
     }
 }
@@ -35,10 +73,7 @@ async function getUserRole() {
     try {
         const data = await fetchJSONWithRetry('/api/auth/status', {
             credentials: 'include'
-        }, {
-            maxAttempts: 3,
-            timeoutMs: 10000
-        });
+        }, getAuthStatusRetryOptions());
         
         if (data.authenticated) {
             return data.role;
@@ -849,33 +884,47 @@ async function deleteUser(userId, username) {
 function setupGlobalErrorHandler() {
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
-        const response = await originalFetch(...args);
-        
         // Extract URL from fetch arguments for logging
         const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || 'unknown';
         const method = args[1]?.method || 'GET';
-        
-        // Only redirect on 401 (Unauthorized - not logged in)
-        if (response.status === 401) {
-            console.warn(`[Auth] 401 Unauthorized: ${method} ${url} - Redirecting to login`);
-            // Only redirect if not already on login page
-            if (!window.location.pathname.includes('/login')) {
-                window.location.href = '/login';
+
+        try {
+            const response = await originalFetch(...args);
+
+            // Only redirect on 401 (Unauthorized - not logged in)
+            if (response.status === 401) {
+                console.warn(`[Auth] 401 Unauthorized: ${method} ${url} - Redirecting to login`);
+                // Only redirect if not already on login page
+                if (!window.location.pathname.includes('/login')) {
+                    window.location.href = '/login';
+                }
             }
+
+            // Log 403 (Forbidden - insufficient permissions) for debugging
+            // Don't redirect - this prevents read-only users from being logged out when they
+            // inadvertently trigger admin-only endpoints
+            if (response.status === 403) {
+                console.warn(
+                    `[Auth] 403 Forbidden: ${method} ${url}\n` +
+                    `Reason: Insufficient permissions for this endpoint.\n` +
+                    `This is expected for read-only users accessing admin-only endpoints.`
+                );
+            }
+
+            return response;
+        } catch (error) {
+            const isApiCall = String(url).includes('/api/');
+            const onOfflinePage = window.location.pathname.includes('/offline.html');
+            const onLoginPage = window.location.pathname.includes('/login');
+
+            if (isApiCall && !onOfflinePage && !onLoginPage && isOfflineOrNetworkError(error) && !offlineRedirectInProgress) {
+                offlineRedirectInProgress = true;
+                console.warn(`[Auth] Network error on ${method} ${url} - Redirecting to offline page`);
+                window.location.href = '/offline.html';
+            }
+
+            throw error;
         }
-        
-        // Log 403 (Forbidden - insufficient permissions) for debugging
-        // Don't redirect - this prevents read-only users from being logged out when they
-        // inadvertently trigger admin-only endpoints
-        if (response.status === 403) {
-            console.warn(
-                `[Auth] 403 Forbidden: ${method} ${url}\n` +
-                `Reason: Insufficient permissions for this endpoint.\n` +
-                `This is expected for read-only users accessing admin-only endpoints.`
-            );
-        }
-        
-        return response;
     };
 }
 
