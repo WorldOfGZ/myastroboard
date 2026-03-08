@@ -43,8 +43,7 @@ class I18nManager {
         const browserLang = navigator.language || navigator.userLanguage;
         const shortLang = browserLang.split('-')[0]; // e.g., 'en' from 'en-US'
 
-        // Only support en and fr for now
-        const supportedLanguages = ['en', 'fr'];
+        const supportedLanguages = ['en', 'fr', 'es', 'de'];
         return supportedLanguages.includes(shortLang) ? shortLang : 'en';
     }
 
@@ -207,7 +206,7 @@ class I18nManager {
      * @returns {array} Array of language codes
      */
     getSupportedLanguages() {
-        return ['en', 'fr'];
+        return ['en', 'fr', 'es', 'de'];
     }
 
     /**
@@ -250,7 +249,9 @@ class I18nManager {
         // Map internal codes to html lang codes
         const htmlLangMap = {
             'en': 'en-US',
-            'fr': 'fr-FR'
+            'fr': 'fr-FR',
+            'es': 'es-ES',
+            'de': 'de-DE'
         };
         return htmlLangMap[this.currentLanguage] || this.currentLanguage;
     }

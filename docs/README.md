@@ -37,3 +37,7 @@ Welcome to the comprehensive documentation for MyAstroBoard, the integrated astr
 ## 📄 License
 
 MyAstroBoard is open source software licensed under the AGPL-3.0 License.
+Copyright (C) 2025-2026 WorldOfGZ and contributors.
+
+In accordance with AGPL-3.0 requirements for network use, the corresponding source code for deployed versions is available in this repository:
+https://github.com/WorldOfGZ/myastroboard

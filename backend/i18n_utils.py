@@ -24,11 +24,13 @@ from logging_config import get_logger
 logger = get_logger(__name__)
 
 # Supported languages
-SUPPORTED_LANGUAGES = ['en', 'fr']
+SUPPORTED_LANGUAGES = ['en', 'fr', 'es', 'de']
 DEFAULT_LANGUAGE = 'en'
 _TRANSLATION_FILENAMES = {
     'en': 'en.json',
     'fr': 'fr.json',
+    'es': 'es.json',
+    'de': 'de.json',
 }
 
 # Cache for loaded translations
