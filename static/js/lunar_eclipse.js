@@ -131,7 +131,10 @@ async function loadLunarEclipse() {
         position.card.appendChild(positionList);
         row.appendChild(position.col);
 
-        const classificationText = i18n.t(`moon.eclipse_classification.${eclipse.score_classification}`) || eclipse.score_classification;
+        const classificationKey = `moon.eclipse_classification.${eclipse.score_classification}`;
+        const classificationText = i18n.has(classificationKey)
+            ? i18n.t(classificationKey)
+            : i18n.t('moon.not_visible');
 
         const score = createCardCol(`⭐ ${i18n.t('moon.astrophoto_score')}`);
         const scoreBody = document.createElement('div');

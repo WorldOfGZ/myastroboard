@@ -18,10 +18,14 @@ async function loadSystemMetrics() {
         console.debug('Metrics data received:', data);
         
         // Update CPU metrics
-        updateProgressBar('cpu-usage-bar', data.cpu.percent);
-        document.getElementById('cpu-usage-text').textContent = `${data.cpu.percent}${i18n.t('units.percent')}` || i18n.t('units.na');
-        document.getElementById('cpu-logical').textContent = data.cpu.count_logical || i18n.t('units.na');
-        document.getElementById('cpu-physical').textContent = data.cpu.count_physical || i18n.t('units.na');
+        const cpuPercent = Number(data?.cpu?.percent);
+        const hasCpuPercent = Number.isFinite(cpuPercent);
+        updateProgressBar('cpu-usage-bar', hasCpuPercent ? cpuPercent : 0);
+        document.getElementById('cpu-usage-text').textContent = hasCpuPercent
+            ? `${cpuPercent}${i18n.t('units.percent')}`
+            : i18n.t('units.na');
+        document.getElementById('cpu-logical').textContent = data?.cpu?.count_logical ?? i18n.t('units.na');
+        document.getElementById('cpu-physical').textContent = data?.cpu?.count_physical ?? i18n.t('units.na');
         
         if (data.cpu.frequency && data.cpu.frequency.current) {
             document.getElementById('cpu-frequency').textContent = 

@@ -257,7 +257,10 @@ function getCardinalDirection(azimuth) {
 
 function formatAltAz(altitudeDeg, azimuthCardinal, azimuthDeg) {
     const safeAlt = Number.isFinite(Number(altitudeDeg)) ? `${Number(altitudeDeg).toFixed(1)}${i18n.t('units.degrees')}` : i18n.t('units.na');
-    const safeCardinal = escapeHtml(i18n.t(`cardinal_directions.${azimuthCardinal}`) || i18n.t('units.na'));
+    const cardinalKey = azimuthCardinal ? `cardinal_directions.${azimuthCardinal}` : null;
+    const safeCardinal = (cardinalKey && i18n.has(cardinalKey))
+        ? escapeHtml(i18n.t(cardinalKey))
+        : i18n.t('units.na');
     const safeAz = Number.isFinite(Number(azimuthDeg)) ? `${Number(azimuthDeg).toFixed(1)}${i18n.t('units.degrees')}` : i18n.t('units.na');
     return `${safeAlt} / ${safeCardinal} (${safeAz})`;
 }

@@ -162,7 +162,6 @@ function renderHorizonChart(horizonData) {
     detailsCol.className = 'col-auto';
     const details = document.createElement('span');
     details.className = 'text-muted';
-    details.textContent = `Altitude (-90° to +90°) | Date: ${horizonData.date}`;
     details.textContent = i18n.t('astro_weather.horizon_graph_details', { date: horizonData.date });
     detailsCol.appendChild(details);
     footerRow.appendChild(detailsCol);

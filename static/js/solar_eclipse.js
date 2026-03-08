@@ -124,7 +124,10 @@ async function loadSolarEclipse() {
         position.card.appendChild(positionList);
         row.appendChild(position.col);
 
-        const classificationText = i18n.t(`sun.eclipse_classification.${eclipse.score_classification}`) || eclipse.score_classification;
+        const classificationKey = `sun.eclipse_classification.${eclipse.score_classification}`;
+        const classificationText = i18n.has(classificationKey)
+            ? i18n.t(classificationKey)
+            : i18n.t('sun.not_visible');
         
         const score = createCardCol(`⭐ ${i18n.t('sun.astrophoto_score')}`);
         const scoreBody = document.createElement('div');

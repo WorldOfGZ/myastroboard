@@ -606,7 +606,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                 
                 if(displayAstrodex) {
                     if (isInAstrodex) {
-                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><span class="in-astrodex-badge">✓ ${i18n.t('uptonight.catched')}</span></td>`;
+                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><span class="in-astrodex-badge">✓ ${i18n.t('uptonight.captured')}</span></td>`;
                     } else if (itemName) {
                         html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><button class="btn btn-sm btn-outline-primary astrodex-add-btn" data-item="${itemDataJson}">➕ ${i18n.t('uptonight.add')}</button></td>`;
                     } else {
@@ -1131,7 +1131,7 @@ async function updateCatalogueCapturedBadge(itemDataOrName, isInAstrodex) {
                 DOMUtils.clear(astrodexCell);
                 const badge = document.createElement('span');
                 badge.className = 'in-astrodex-badge';
-                badge.textContent = `✓ ${i18n.t('uptonight.catched')}`;
+                badge.textContent = `✓ ${i18n.t('uptonight.captured')}`;
                 astrodexCell.appendChild(badge);
             } else {
                 const itemDataJson = JSON.stringify(rowItemData);

@@ -301,7 +301,7 @@ class LunarEclipseService:
         """
         
         if not visible:
-            return 0.0, "Not visible from location"
+            return 0.0, "not_visible"
 
         eclipse_type_normalized = eclipse_type.strip().lower()
 

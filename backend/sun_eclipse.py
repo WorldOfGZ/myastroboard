@@ -267,7 +267,7 @@ class SolarEclipseService:
         """
         
         if not visible:
-            return 0.0, "Not visible from location"
+            return 0.0, "not_visible"
 
         # Base score from type
         if eclipse_type == "Total":
