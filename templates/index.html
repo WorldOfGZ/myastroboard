@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="/static/js/theme.js?v={{ version }}"></script>
-    <title>MyAstroBoard - Astronomy Observation Planning Dashboard</title>
+    <title data-i18n="common.title_html">MyAstroBoard - Astronomy Observation Planning Dashboard</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="/static/css/bs_variables.css?v={{ version }}">
@@ -25,7 +25,7 @@
     
     <div class="hero text-center mb-2 pb-1">
         <h1 class="display-4 fw-bold"><img src="/static/img/favicon-animated.svg" alt="MyAstroBoard Logo" style="height: 1em; vertical-align: middle;"> MyAstroBoard</h1>
-        <p class="lead">
+        <p class="lead" data-i18n="common.slogan">
             Astronomy Observation Planning Dashboard
         </p>
     </div>
@@ -35,23 +35,23 @@
 
         <!-- Default Password Warning Banner -->
         <div id="default-password-warning" class="alert alert-warning alert-dismissible fade show mb-3" role="alert" style="display: none;">
-            ⚠️ <b>You are using the default password</b>. Please change it in the Users section for security.
+            ⚠️ <b data-i18n="auth.default_password_warning_alert">You are using the default password</b> <span data-i18n="auth.default_password_warning_request">Please change it in the Users section for security.</span>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
         
         <!-- Global cache Status Banner -->
         <div id="global-cache-banner" class="alert alert-info mb-3" role="alert" style="display: none;">
             <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden" data-i18n="common.loading">Loading...</span>
             </div>
-            <span id="cache-banner-text" class="ps-4">
+            <span id="cache-banner-text" class="ps-4" data-i18n="cache.updating_data">
                 Updating astronomical data, please wait...
             </span>
         </div>
 
         <!-- Global UpTonight Scheduler Status Banner -->
         <div id="global-scheduler-banner" class="alert alert-info mb-3" role="alert" style="display: none;">
-            <div id="global-scheduler-progress" class="fw-bold">Processing catalogues...</div>
+            <div id="global-scheduler-progress" class="fw-bold" data-i18n="scheduler.processing_catalogues">Processing UpTonight catalogues...</div>
             <div id="global-scheduler-detail" class="global-status-detail"></div>
         </div>
 
@@ -70,31 +70,31 @@
                 <div class="collapse navbar-collapse" id="navBarMyAstroBoard">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0 nav-pills">
                         <li class="nav-item">
-                            <a class="nav-link main-tab-btn active" aria-current="page" href="#" data-tab="forecast-astro">🌌 Astrophotography</a>
+                            <a class="nav-link main-tab-btn active" aria-current="page" href="#" data-tab="forecast-astro">🌌 <span data-i18n="navbar.astrophotography">Astrophotography</span></a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link main-tab-btn" aria-current="page" href="#" data-tab="forecast-weather">🌦 Weather</a>
+                            <a class="nav-link main-tab-btn" aria-current="page" href="#" data-tab="forecast-weather">🌦 <span data-i18n="navbar.weather">Weather</span></a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link main-tab-btn" href="#" data-tab="uptonight">📊 UpTonight</a>
+                            <a class="nav-link main-tab-btn" href="#" data-tab="uptonight">📊 <span data-i18n="navbar.uptonight">UpTonight</span></a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link main-tab-btn" href="#" data-tab="astrodex">📚 Astrodex</a>
+                            <a class="nav-link main-tab-btn" href="#" data-tab="astrodex">📚 <span data-i18n="navbar.astrodex">Astrodex</span></a>
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle main-tab-dropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 👤 <span id="username-display"></span>
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="equipment">🔭 Equipment</a></li>
-                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="my-settings">👤 My settings</a></li>
-                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="parameters">⚙️ App settings</a></li>
+                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="equipment">🔭 <span data-i18n="navbar.equipment">Equipment</span></a></li>
+                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="my-settings">👤 <span data-i18n="navbar.my_settings">My settings</span></a></li>
+                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="parameters">⚙️ <span data-i18n="navbar.app_settings">App settings</span></a></li>
                             </ul>
                         </li>
                     </ul>
                     <ul class="navbar-nav nav-pills align-items-end" id="end-navbar">
                         <li class="nav-item">
-                            <a class="nav-link" href="#" id="logout-btn">👋 Logout</a>
+                            <a class="nav-link" href="#" id="logout-btn">👋 <span data-i18n="common.logout_label">Logout</span></a>
                         </li>
                     </ul>
                 </div>
@@ -107,25 +107,25 @@
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
                 <ul class="nav nav-pills sub-tabs" id="forecast-astro-subtabs">
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn active" href="#" data-subtab="astro-weather">🔭 Astrophotography</a>
+                        <a class="nav-link sub-tab-btn active" href="#" data-subtab="astro-weather">🔭 <span data-i18n="navbar.astro_weather">Astrophotography</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="window">🌟 Best window</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="window">🌟 <span data-i18n="navbar.best_window">Best window</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="moon">🌘 Moon</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="moon">🌘 <span data-i18n="navbar.moon">Moon</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="sun">☀️ Sun</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="sun">☀️ <span data-i18n="navbar.sun">Sun</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="aurora">🌌 Aurora Borealis</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="aurora">🌌 <span data-i18n="navbar.aurora">Aurora Borealis</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="iss">🛰️ ISS</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="iss">🛰️ <span data-i18n="navbar.iss">ISS</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="calendar">📅 Events Calendar</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="calendar">📅 <span data-i18n="navbar.calendar">Events Calendar</span></a>
                     </li>
                 </ul>
             </div>
@@ -133,15 +133,15 @@
             <!-- Astrophotography Weather Sub-tab -->
             <div id="astro-weather-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌡️ Current Conditions</h2>
+                    <h2>🌡️ <span data-i18n="astro_weather.section_title">Current Conditions</span></h2>
                     
                     <!-- Loading State -->
                     <div id="astro-weather-loading" class="row row-cols-1">
                         <div class="col">
                             <div class="card h-100">
                                 <div class="card-body">
-                                    <h5 class="card-title">☁️ Loading...</h5>
-                                    <p class="card-text">Loading astrophotography weather analysis...</p>
+                                    <h5 class="card-title">☁️ <span data-i18n="common.loading">Loading...</span></h5>
+                                    <p class="card-text" data-i18n="astro_weather.loading_details">Loading astrophotography weather analysis...</p>
                                 </div>
                             </div>
                         </div>
@@ -160,29 +160,29 @@
 
                 <!-- Horizon Graph -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container" id="horizon-graph-main" style="display: none;">
-                    <h2>🌅 Horizon</h2>
-                    <div id="horizon-graph-loading" style="display: none;" class="alert alert-info">Loading horizon graph...</div>
+                    <h2>🌅 <span data-i18n="astro_weather.horizon_title">Horizon</span></h2>
+                    <div id="horizon-graph-loading" style="display: none;" class="alert alert-info" data-i18n="astro_weather.loading_horizon_graph">Loading horizon graph...</div>
                     <div id="horizon-graph-error" style="display: none;"></div>
                     <div id="horizon-graph-display" class="row row-cols-1"></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container" id="best-observation-periods-main" style="display: none;">
-                    <h2>⏳ Best Observation Periods</h2>
+                    <h2>⏳ <span data-i18n="astro_weather.best_periods_title">Best Observation Periods</span></h2>
                     
                     <!-- Best Observation Periods -->
-                    <div>Optimal periods for astrophotography in the next 24 hours</div>
+                    <div data-i18n="astro_weather.best_periods_description">Optimal periods for astrophotography in the next 24 hours</div>
                     <div id="astro-best-periods"></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container" id="astro-weather-alerts-main" style="display: none;">
-                    <h2>⚠️ Weather Alerts</h2>
+                    <h2>⚠️ <span data-i18n="astro_weather.alerts_title">Weather Alerts</span></h2>
                         
                     <!-- Weather Alerts -->
                     <div id="astro-weather-alerts"></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container" id="astro-advanced-weather-main" style="display: none;">
-                    <h2>📊 Advanced Weather Analysis</h2>
+                    <h2>📊 <span data-i18n="astro_weather.advanced_analysis_title">Advanced Weather Analysis</span></h2>
 
                     <!-- Advanced Charts -->
                     <div class="row row-cols-1 row-cols-sm-1 row-cols-lg-1 row-cols-xl-2">
@@ -196,12 +196,12 @@
             <!-- Window Sub-tab -->
             <div id="window-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌟 Best Observation Window</h2>
+                    <h2>🌟 <span data-i18n="best_window.section_title">Best Observation Window</span></h2>
                     <div class="alert alert-info" role="alert">
-                        Best next window is calculated within three differents modes, return is in hours:<br>
-                        - <b>Strict</b>: Sun altitude < -18° AND Moon altitude < 0° => No moon on sky<br>
-                        - <b>Practical</b>: Sun < -18° AND Moon altitude < 5° => Moon, but negligible<br>
-                        - <b>Illumination</b>: Sun < -18° AND Moon illumination < 15% => Visible moon, but faint
+                        <span data-i18n="best_window.info_1">Best next window is calculated within three differents modes, return is in hours:</span><br>
+                        - <b><span data-i18n="best_window.strict">Strict</span></b>: <span data-i18n="best_window.info_2">Sun altitude < -18° AND Moon altitude < 0° => No moon on sky</span><br>
+                        - <b><span data-i18n="best_window.practical">Practical</span></b>: <span data-i18n="best_window.info_3">Sun < -18° AND Moon altitude < 5° => Moon, but negligible</span><br>
+                        - <b><span data-i18n="best_window.illumination">Illumination</span></b>: <span data-i18n="best_window.info_4">Sun < -18° AND Moon illumination < 15% => Visible moon, but faint</span>
                     </div>
                     <div class="alert alert-info" role="alert" id="window-loader-info-notice"></div>
                     <div id="window-display" class="row row-cols-1 row-cols-sm-1 row-cols-lg-2 row-cols-xl-4"></div>
@@ -211,23 +211,23 @@
             <!-- Moon Sub-tab -->
             <div id="moon-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌓 Moon</h2>
+                    <h2>🌓 <span data-i18n="navbar.moon">Moon</span></h2>
                     <div id="moon-display" class="moon-info-card rounded"></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌓 Moon next days</h2>
+                    <h2>🌓 <span data-i18n="moon.next_days">Moon next days</span></h2>
                     <div class="alert alert-info" role="alert">
-                        Dark-time is calculated within three differents modes, return is in hours:<br>
-                        - <b>Strict</b>: Sun altitude < -18° AND Moon altitude < 0° => No moon on sky<br>
-                        - <b>Practical</b>: Sun < -18° AND Moon altitude < 5° => Moon, but negligible<br>
-                        - <b>Illumination</b>: Sun < -18° AND Moon illumination < 15% => Visible moon, but faint
+                        <span data-i18n="moon.info_1">Best next window is calculated within three differents modes, return is in hours:</span><br>
+                        - <b><span data-i18n="best_window.strict">Strict</span></b>: <span data-i18n="best_window.info_2">Sun altitude < -18° AND Moon altitude < 0° => No moon on sky</span><br>
+                        - <b><span data-i18n="best_window.practical">Practical</span></b>: <span data-i18n="best_window.info_3">Sun < -18° AND Moon altitude < 5° => Moon, but negligible</span><br>
+                        - <b><span data-i18n="best_window.illumination">Illumination</span></b>: <span data-i18n="best_window.info_4">Sun < -18° AND Moon illumination < 15% => Visible moon, but faint</span>
                     </div>
                     <div id="moon-planner-display"></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌑 Lunar Eclipse</h2>
+                    <h2>🌑 <span data-i18n="moon.lunar_eclipse">Lunar Eclipse</span></h2>
                     <div id="lunar-eclipse-display" class="lunar-eclipse-info-card rounded"></div>
                 </div>
             </div>
@@ -235,12 +235,12 @@
             <!-- Sun Sub-tab -->
             <div id="sun-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌞 Sun</h2>
+                    <h2>🌞 <span data-i18n="navbar.sun">Sun</span></h2>
                     <div id="sun-display" class="sun-info-card rounded"></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>☀️ Solar Eclipse</h2>
+                    <h2>☀️ <span data-i18n="sun.solar_eclipse">Solar Eclipse</span></h2>
                     <div id="solar-eclipse-display" class="solar-eclipse-info-card rounded"></div>
                 </div>
             </div>
@@ -248,7 +248,7 @@
             <!-- Aurora Borealis Sub-tab -->
             <div id="aurora-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌌 Aurora Borealis Predictions</h2>
+                    <h2>🌌 <span data-i18n="aurora.borealis_predictions">Aurora Borealis Predictions</span></h2>
                     <div id="aurora-display" class="aurora-info-card rounded"></div>
                 </div>
             </div>
@@ -256,7 +256,7 @@
             <!-- ISS Sub-tab -->
             <div id="iss-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🛰️ ISS Passes</h2>
+                    <h2>🛰️ <span data-i18n="iss.passes">ISS Passes</span></h2>
                     <div id="iss-display" class="iss-info-card rounded"></div>
                 </div>
             </div>
@@ -264,9 +264,9 @@
             <!-- Events Calendar Sub-tab -->
             <div id="calendar-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📅 Events Calendar</h2>
+                    <h2>📅 <span data-i18n="navbar.calendar">Events Calendar</span></h2>
                     <div id="calendar-display" class="calendar-info-card rounded">
-                        <div class="alert alert-info" role="alert">This is currently a placeholder for a future function.</div>
+                        <div class="alert alert-info" role="alert"></div>
                     </div>
                 </div>
             </div>
@@ -280,10 +280,10 @@
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
                 <ul class="nav nav-pills sub-tabs" id="forecast-weather-subtabs">
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="weather">🌤️ Weather</a>
+                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="weather">🌤️ <span data-i18n="navbar.weather">Weather</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="trend">📈 Observation Conditions</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="trend">📈 <span data-i18n="weather.observation_conditions">Observation Conditions</span></a>
                     </li>
                 </ul>
             </div>
@@ -291,14 +291,14 @@
             <!-- Weather Sub-tab -->
             <div id="weather-subtab" class="sub-tab-content active">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌤️ Weather Forecast</h2>
+                    <h2>🌤️ <span data-i18n="weather.forecast">Weather Forecast</span></h2>
                     <div id="weather-location" class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4"></div>
                     <div id="weather-display" class="row row-cols-1 row-cols-sm-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6">
                         <div class="col">
                             <div class="card h-100">
                                 <div class="card-body">
-                                    <h5 class="card-title">☁️ Loading weather data...</h5>
-                                    <p class="card-text">Fetching forecast and astronomical information</p>
+                                    <h5 class="card-title">☁️ <span data-i18n="weather.loading_title">Loading weather data...</span></h5>
+                                    <p class="card-text" data-i18n="weather.loading_text">Fetching forecast and astronomical information</p>
                                 </div>
                             </div>
                         </div>
@@ -310,8 +310,8 @@
             <div id="trend-subtab" class="sub-tab-content">
                 <!-- Astronomical Observation Charts -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📈 Observation Conditions - Next 12 Hours</h2>
-                    <div id="astro-charts-loading" class="alert alert-info" role="alert">
+                    <h2>📈 <span data-i18n="weather.observation_next_hours">Observation Conditions - Next 12 Hours</span></h2>
+                    <div id="astro-charts-loading" class="alert alert-info" role="alert" data-i18n="weather.loading_astro">
                         Loading astronomical data...
                     </div>
 
@@ -320,7 +320,7 @@
                         <div id="seeingConditionsChartContainer" class="col mb-3"></div>
                     </div>
                     
-                    <div id="astro-charts-error" class="alert alert-danger" role="alert" style="display: none">
+                    <div id="astro-charts-error" class="alert alert-danger" role="alert" style="display: none" data-i18n="weather.loading_astro_failed">
                         Failed to load astronomical data. Please check your internet connection.
                     </div>
                 </div>
@@ -334,8 +334,8 @@
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
                 <ul class="nav nav-pills sub-tabs" id="uptonight-subtabs">
                     <div class="alert alert-info mb-2" role="alert">
-                        UpTonight scheduler calculates the best observation targets for the night based on your location, weather forecast, and target catalogues. You can configure parameters and features in the Parameters tab.<br>
-                        Wait before loading, or check parameters if fail.
+                        <span data-i18n="uptonight.info_1"></span><br>
+                        <span data-i18n="uptonight.info_2"></span>
                     </div>
                 </ul>
             </div>            
@@ -345,8 +345,8 @@
         <div id="astrodex-tab" class="main-tab-content">
             <div id="astrodex-subtab" class="sub-tab-content active">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📚 Astrodex - Gotta Catch 'Em All!</h2>                
-                    <p id="astrodex-collection-subtitle">Your personal collection of captured celestial objects</p>
+                    <h2>📚 <span data-i18n="astrodex.title">Astrodex - Gotta Catch 'Em All!</span></h2>                
+                    <p id="astrodex-collection-subtitle" data-i18n="astrodex.your_collection">Your personal collection of captured celestial objects</p>
                     
                     <!-- Stats Cards -->
                     <div id="astrodex-stats" class="row row-cols-2 row-cols-md-5 g-4">
@@ -355,41 +355,41 @@
                 
                 </div>
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2 id="astrodex-collection-title">📚 My Collection</h2>
+                    <h2 id="astrodex-collection-title">📚 <span data-i18n="astrodex.my_collection"></span>My Collection</span></h2>
                     <!-- Filters and Search -->
                     <div class="row g-3 mt-2 mb-3">
                         <div class="col-md-2">
-                            <input type="text" id="astrodex-search" class="form-control" placeholder="🔍 Search objects...">
+                            <input type="text" id="astrodex-search" class="form-control" placeholder="Search objects..." data-i18n-placeholder="astrodex.search">
                         </div>
 
                         <div class="col-md-2">
                             <select id="astrodex-type-filter" class="form-select">
-                                <option value="all">All Types</option>
-                                <option value="Galaxy">Galaxy</option>
-                                <option value="Nebula">Nebula</option>
-                                <option value="Planetary Nebula">Planetary Nebula</option>
-                                <option value="Star Cluster">Star Cluster</option>
-                                <option value="Open Cluster">Open Cluster</option>
-                                <option value="Globular Cluster">Globular Cluster</option>
-                                <option value="Planet">Planet</option>
-                                <option value="Comet">Comet</option>
+                                <option value="all" data-i18n="astrodex.filter_type_all">All Types</option>
+                                <option value="Galaxy" data-i18n="uptonight.type_galaxy">Galaxy</option>
+                                <option value="Nebula" data-i18n="uptonight.type_nebula">Nebula</option>
+                                <option value="Planetary Nebula" data-i18n="uptonight.type_planetary_nebula">Planetary Nebula</option>
+                                <option value="Star Cluster" data-i18n="uptonight.type_star_cluster">Star Cluster</option>
+                                <option value="Open Cluster" data-i18n="uptonight.type_open_cluster">Open Cluster</option>
+                                <option value="Globular Cluster" data-i18n="uptonight.type_globular_cluster">Globular Cluster</option>
+                                <option value="Planet" data-i18n="uptonight.type_planet">Planet</option>
+                                <option value="Comet" data-i18n="uptonight.type_comet">Comet</option>
                             </select>
                         </div>
 
                         <div class="col-md-2">
                             <select id="astrodex-photo-filter" class="form-select">
-                                <option value="all">All Objects</option>
-                                <option value="yes">With Photos</option>
-                                <option value="no">Without Photos</option>
+                                <option value="all" data-i18n="astrodex.filter_photo_all">All Objects</option>
+                                <option value="yes" data-i18n="astrodex.filter_photo_yes">With Photos</option>
+                                <option value="no" data-i18n="astrodex.filter_photo_no">Without Photos</option>
                             </select>
                         </div>
 
                         <div class="col-md-2">
                             <select id="astrodex-sort" class="form-select">
-                                <option value="name">Sort by Name</option>
-                                <option value="type">Sort by Type</option>
-                                <option value="date">Sort by Date Added</option>
-                                <option value="photos">Sort by Photo Count</option>
+                                <option value="name" data-i18n="astrodex.sort_by_name">Sort by Name</option>
+                                <option value="type" data-i18n="astrodex.sort_by_type">Sort by Type</option>
+                                <option value="date" data-i18n="astrodex.sort_by_date">Sort by Date Added</option>
+                                <option value="photos" data-i18n="astrodex.sort_by_photos">Sort by Photo Count</option>
                             </select>
                         </div>
 
@@ -419,25 +419,25 @@
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
                 <ul class="nav nav-pills sub-tabs" id="equipment-subtabs">
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="combinations">🔗 Combinations</a>
+                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="combinations">🔗 <span data-i18n="equipment.combinations">Combinations</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="fov">📐 FOV Calculator</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="fov">📐 <span data-i18n="equipment.fov_calculator">FOV Calculator</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="telescopes">🔭 Telescopes</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="telescopes">🔭 <span data-i18n="equipment.telescopes">Telescopes</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="cameras">📷 Cameras</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="cameras">📷 <span data-i18n="equipment.cameras">Cameras</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="mounts">🏔️ Mounts</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="mounts">🏔️ <span data-i18n="equipment.mounts">Mounts</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="filters">🎨 Filters</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="filters">🎨 <span data-i18n="equipment.filters">Filters</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="accessories">🔧 Accessories</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="accessories">🔧 <span data-i18n="equipment.accessories">Accessories</span></a>
                     </li>
                 </ul>
             </div>
@@ -445,10 +445,10 @@
             <!-- Combinations Sub-tab -->
             <div id="combinations-subtab" class="sub-tab-content active">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2>🔗 Equipment Combinations</h2>
+                    <h2>🔗 <span data-i18n="equipment.eq_combinations">Equipment Combinations</span></h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted">Combine telescope, camera, mount, accessories, and filters to analyze setup compatibility and FOV. This setup will be also selectable on Astrodex.</p>
-                        <button class="btn btn-success btn-new-combination">+ New Combination</button>
+                        <p class="text-muted" data-i18n="equipment.eq_combinations_description">Combine telescope, camera, mount, accessories, and filters to analyze setup compatibility and FOV. This setup will be also selectable on Astrodex.</p>
+                        <button class="btn btn-success btn-new-combination" data-i18n="equipment.new_combination">New Combination</button>
                     </div>
                     <div id="equipment-combinations-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
                         <!-- Combinations will be rendered here -->
@@ -459,7 +459,7 @@
             <!-- FOV Calculator Sub-tab -->
             <div id="fov-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2>📐 Field of View Calculator</h2>
+                    <h2>📐 <span data-i18n="equipment.fov_calculator_cpl">Field of View Calculator</span></h2>
                     <div id="equipment-fov-display"></div>
                 </div>
             </div>
@@ -467,10 +467,10 @@
             <!-- Telescopes Sub-tab -->
             <div id="telescopes-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2>🔭 Telescope Profiles</h2>
+                    <h2>🔭 <span data-i18n="equipment.telescopes">Telescopes</span></h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted">Manage your telescope profiles with automatic calculation of focal ratios and effective focal lengths.</p>                    
-                        <button class="btn btn-success btn-new-telescope">+ New Telescope</button>
+                        <p class="text-muted" data-i18n="equipment.telescopes_description">Manage your telescope profiles with automatic calculation of focal ratios and effective focal lengths.</p>                    
+                        <button class="btn btn-success btn-new-telescope" data-i18n="equipment.new_telescope">New Telescope</button>
                     </div>
                     <div id="equipment-telescopes-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
                         <!-- Telescopes will be rendered here -->
@@ -481,10 +481,10 @@
             <!-- Cameras Sub-tab -->
             <div id="cameras-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                        <h2>📷 Camera Profiles</h2>
+                        <h2>📷 <span data-i18n="equipment.cameras">Cameras</span></h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted">Manage your camera profiles with automatic calculation of sensor diagonal and image scale.</p>
-                        <button class="btn btn-success btn-new-camera">+ New Camera</button>
+                        <p class="text-muted" data-i18n="equipment.cameras_description">Manage your camera profiles with automatic calculation of sensor diagonal and image scale.</p>
+                        <button class="btn btn-success btn-new-camera" data-i18n="equipment.new_camera">New Camera</button>
                     </div>
                     <div id="equipment-cameras-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
                         <!-- Cameras will be rendered here -->
@@ -495,10 +495,10 @@
             <!-- Mounts Sub-tab -->
             <div id="mounts-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2>🏔️ Mount Profiles</h2>
+                    <h2>🏔️ <span data-i18n="equipment.mounts">Mounts</span></h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted">Manage your mount profiles with automatic calculation of recommended imaging payload.</p>
-                        <button class="btn btn-success btn-new-mount">+ New Mount</button>
+                        <p class="text-muted" data-i18n="equipment.mounts_description">Manage your mount profiles with automatic calculation of recommended imaging payload.</p>
+                        <button class="btn btn-success btn-new-mount" data-i18n="equipment.new_mount">New Mount</button>
                     </div>
                     <div id="equipment-mounts-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
                         <!-- Mounts will be rendered here -->
@@ -509,10 +509,10 @@
             <!-- Filters Sub-tab -->
             <div id="filters-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2>🎨 Filter Profiles</h2>
+                    <h2>🎨 <span data-i18n="equipment.filters">Filters</span></h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted">Manage your filter profiles for LRGB, narrowband, broadband, and other imaging filters.</p>
-                        <button class="btn btn-success btn-new-filter">+ New Filter</button>
+                        <p class="text-muted" data-i18n="equipment.filters_description">Manage your filter profiles for LRGB, narrowband, broadband, and other imaging filters.</p>
+                        <button class="btn btn-success btn-new-filter" data-i18n="equipment.new_filter">New Filter</button>
                     </div>
                     <div id="equipment-filters-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
                         <!-- Filters will be rendered here -->
@@ -523,10 +523,10 @@
             <!-- Accessories Sub-tab -->
             <div id="accessories-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2>🔧 Accessory Profiles</h2>
+                    <h2>🔧 <span data-i18n="equipment.accessories">Accessories</span></h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted">Manage your accessory profiles for focusers, field flatteners, filter wheels, and other equipment.</p>
-                        <button class="btn btn-success btn-new-accessory">+ New Accessory</button>
+                        <p class="text-muted" data-i18n="equipment.accessories_description">Manage your accessory profiles for focusers, field flatteners, filter wheels, and other equipment.</p>
+                        <button class="btn btn-success btn-new-accessory" data-i18n="equipment.new_accessory">New Accessory</button>
                     </div>
                     <div id="equipment-accessories-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
                         <!-- Accessories will be rendered here -->
@@ -541,10 +541,10 @@
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
                 <ul class="nav nav-pills sub-tabs" id="my-settings-subtabs">
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn active" href="#" data-subtab="customize">🔧 Customize</a>
+                        <a class="nav-link sub-tab-btn active" href="#" data-subtab="customize">🔧 <span data-i18n="settings.customize">Customize</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" aria-current="page" href="#" data-subtab="security">🔒 Security</a>
+                        <a class="nav-link sub-tab-btn" aria-current="page" href="#" data-subtab="security">🔒 <span data-i18n="settings.security">Security</span></a>
                     </li>
                 </ul>
             </div>
@@ -552,18 +552,18 @@
             <!-- Customize Sub-tab -->
             <div id="customize-subtab" class="sub-tab-content active">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🔧 Customize</h2>
+                    <h2>🔧 <span data-i18n="settings.customize">Customize</span></h2>
                     
-                    <div class="alert alert-info" role="alert">This is currently a placeholder for customization settings.</div>
+                    <div class="alert alert-info" role="alert" data-i18n="common.comming_soon">This is currently a placeholder for customization settings.</div>
                 </div>
             </div>
 
             <!-- Security Sub-tab -->
             <div id="security-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🔒 Security Settings</h2>
+                    <h2>🔒 <span data-i18n="settings.security">Security</span></h2>
                     
-                    <div class="alert alert-info" role="alert">This is currently a placeholder for security settings.</div>
+                    <div class="alert alert-info" role="alert" data-i18n="common.comming_soon">This is currently a placeholder for security settings.</div>
                 </div>
             </div>
 
@@ -575,19 +575,19 @@
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
                 <ul class="nav nav-pills sub-tabs" id="forecast-subtabs">
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="configuration">🗺️ Configuration</a>
+                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="configuration">🗺️ <span data-i18n="settings.configuration">Configuration</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="advanced">🔧 Advanced Settings</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="advanced">🔧 <span data-i18n="settings.advanced">Advanced Settings</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="logs">📋 Logs</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="logs">📋 <span data-i18n="settings.logs">Logs</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="users">👥 Users</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="users">👥 <span data-i18n="settings.users">Users</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="metrics">📊 Metrics</a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="metrics">📊 <span data-i18n="settings.metrics">Metrics</span></a>
                     </li>
                 </ul>
             </div>
@@ -595,26 +595,26 @@
             <!-- Configuration Sub-tab -->
             <div id="configuration-subtab" class="sub-tab-content active">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📍 Location Settings</h2>
+                    <h2>📍 <span data-i18n="settings.location">Location Settings</span></h2>
                     
-                    <div class="alert alert-info" role="alert">Location parameters are used for accurate weather, astronomical calculations, and UpTonight scheduling.</div>
+                    <div class="alert alert-info" role="alert" data-i18n="settings.location_info">Location parameters are used for accurate weather, astronomical calculations, and UpTonight scheduling.</div>
                     
                     <div class="row g-3">
                         <div class="col-12">
-                            <label for="location-name" class="form-label">Location Name:</label>
-                            <input type="text" id="location-name" class="form-control" placeholder="My Observatory">
+                            <label for="location-name" class="form-label" data-i18n="settings.location_name">Location Name:</label>
+                            <input type="text" id="location-name" class="form-control" placeholder="My Observatory" data-i18n-placeholder="settings.location_name_placeholder">
                         </div>
                                                 
                         <div class="col-md-3">
-                            <label for="latitude-input" class="form-label">Latitude (DMS or Decimal):</label>
-                            <input type="text" id="latitude-input" class="form-control" placeholder="48d38m36.16s or 48.6434">
+                            <label for="latitude-input" class="form-label" data-i18n="settings.latitude">Latitude (DMS or Decimal):</label>
+                            <input type="text" id="latitude-input" class="form-control" placeholder="48d38m36.16s or 48.6434" data-i18n-placeholder="settings.latitude_placeholder">
                             <div id="latitude-converted" class="valid-feedback"></div>
                             <div id="latitude-error" class="invalid-feedback"></div>
                         </div>
 
                         <div class="col-md-3">
-                            <label for="longitude-input" class="form-label">Longitude (DMS or Decimal):</label>
-                            <input type="text" id="longitude-input" class="form-control" placeholder="9d25m48.96s or 9.4303">
+                            <label for="longitude-input" class="form-label" data-i18n="settings.longitude">Longitude (DMS or Decimal):</label>
+                            <input type="text" id="longitude-input" class="form-control" placeholder="9d25m48.96s or 9.4303" data-i18n-placeholder="settings.longitude_placeholder">
                             <div id="longitude-converted" class="valid-feedback"></div>
                             <div id="longitude-error" class="invalid-feedback"></div>
                         </div>
@@ -623,14 +623,14 @@
                     <div class="row g-3 mt-1 mb-2">
 
                         <div class="col-md-3">
-                            <label for="elevation" class="form-label">Elevation (meters):</label>
-                            <input type="number" id="elevation" class="form-control" placeholder="10" step="0.1">
+                            <label for="elevation" class="form-label" data-i18n="settings.elevation">Elevation (meters):</label>
+                            <input type="number" id="elevation" class="form-control" placeholder="10" step="0.1" data-i18n-placeholder="settings.elevation_placeholder">
                         </div>
 
                         <div class="col-md-3">
-                            <label for="timezone" class="form-label">Timezone:</label>
+                            <label for="timezone" class="form-label" data-i18n="settings.timezone">Timezone:</label>
                             <select id="timezone" class="form-select">
-                                <option value="">Loading timezones...</option>
+                                <option value="" data-i18n="settings.timezone_loading">Loading timezones...</option>
                             </select>
                         </div>
 
@@ -638,45 +638,45 @@
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📚 Target Catalogues</h2>
+                    <h2>📚 <span data-i18n="settings.target_catalogues">Target Catalogues</span></h2>
                     
-                    <div class="alert alert-info" role="alert">These parameters are used for UpTonight scheduler.</div>
+                    <div class="alert alert-info" role="alert" data-i18n="settings.target_catalogues_info">These parameters are used for UpTonight scheduler.</div>
 
                     <div id="catalogues-list"></div>
 
-                    <div class="mt-2 mb-3"><small class="info-msg">⚠️ At least one catalogue must be selected. Messier is selected by default.</small></div>
+                    <div class="mt-2 mb-3"><small class="info-msg">⚠️ <span data-i18n="settings.target_catalogues_warning">At least one catalogue must be selected. Messier is selected by default.</span></small></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📚 Astrodex</h2>
+                    <h2>📚 <span data-i18n="settings.astrodex">Astrodex</span></h2>
 
                     <div class="alert alert-info" role="alert">
-                        The Astrodex is shared by default between all users. Thats mean every body can fill the Astrodex, but only the owner of the picture can edit or delete it.<br>
-                        If needed, you can set up a private Astrodex for each user.
+                        <span data-i18n="settings.astrodex_info_1">The Astrodex is shared by default between all users. Thats mean every body can fill the Astrodex, but only the owner of the picture can edit or delete it.</span><br>
+                        <span data-i18n="settings.astrodex_info_2">If needed, you can set up a private Astrodex for each user.</span>
                     </div>
 
                     <div class="bg-features p-3 rounded">
                         <div class="form-check form-switch">
                             <input type="checkbox" id="astrodex-private" class="form-check-input" switch>
-                            <label class="form-check-label" for="astrodex-private"> Private Astrodex</label>
-                            <div class="form-text">Enable this option to set up a private Astrodex for each user</div>
+                            <label class="form-check-label" for="astrodex-private"> <span data-i18n="settings.astrodex_private">Private Astrodex</span></label>
+                            <div class="form-text" data-i18n="settings.astrodex_private_info">Enable this option to set up a private Astrodex for each user</div>
                         </div>
                     </div>
 
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>💾 Save & Actions</h2>
+                    <h2>💾 <span data-i18n="settings.save_actions">Save & Actions</span></h2>
                     
-                    <div class="alert alert-info" role="alert">
+                    <div class="alert alert-info" role="alert" data-i18n="settings.save_actions_info">
                         When new UpTonight settings are saved, a manual run may be required to see changes on dashboard, or wait for the next scheduled run.
                     </div>
 
                     <div>
-                        <button id="save-config" class="btn btn-primary mb-2">💾 Save Configuration</button>
-                        <button id="run-now" class="btn btn-success mb-2">▶️ Run UpTonight Now</button>
-                        <button id="view-config-main" class="btn btn-secondary mb-2">👁️ View UpTonight Configs</button>
-                        <button id="export-config-main" class="btn btn-secondary mb-2">⬇️ Export General Config</button>
+                        <button id="save-config" class="btn btn-primary mb-2">💾 <span data-i18n="settings.save_configuration">Save Configuration</span></button>
+                        <button id="run-now" class="btn btn-success mb-2">▶️ <span data-i18n="scheduler.run_now">Run UpTonight Now</span></button>
+                        <button id="view-config-main" class="btn btn-secondary mb-2">👁️ <span data-i18n="settings.view_uptonight_configs">View UpTonight Configs</span></button>
+                        <button id="export-config-main" class="btn btn-secondary mb-2">⬇️ <span data-i18n="settings.export_general_config">Export General Config</span></button>
                     </div>
                 </div>
             </div>
@@ -685,110 +685,110 @@
             <div id="advanced-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
                     <div class="alert alert-info" role="alert">
-                        All parameters of this page are coming from UpTonight, please check the <a href="https://github.com/mawinkler/uptonight" target="_blank">UpTonight documentation</a> for more details.
+                        <span data-i18n="settings.uptonight_info">All parameters of this page are coming from UpTonight, please check the UpTonight documentation for more details.</span> <a href="https://github.com/mawinkler/uptonight" target="_blank">Github</a>
                     </div>
-                    <h2>🎯 Features</h2>
+                    <h2>🎯 <span data-i18n="settings.features">Features</span></h2>
                     <div class="bg-features p-3 rounded">
                         <div class="form-check form-switch">
                             <input type="checkbox" id="feature-horizon" class="form-check-input" checked switch>
-                            <label class="form-check-label" for="feature-horizon"> Horizon</label>
-                            <div class="form-text">Plot the horizon based on `horizon.anchor_points` to configure below</div>
+                            <label class="form-check-label" for="feature-horizon"> <span data-i18n="settings.feature_horizon">Horizon</span></label>
+                            <div class="form-text" data-i18n="settings.feature_horizon_info">Plot the horizon based on `horizon.anchor_points` to configure below</div>
                         </div>
                         <div class="form-check form-switch">
                             <input type="checkbox" id="feature-objects" class="form-check-input" checked switch>
-                            <label class="form-check-label" for="feature-objects"> Objects</label>
-                            <div class="form-text">Calculate and plot deep sky objects based on the chosen target list</div>
+                            <label class="form-check-label" for="feature-objects"> <span data-i18n="settings.feature_objects">Objects</span></label>
+                            <div class="form-text" data-i18n="settings.feature_objects_info">Calculate and plot deep sky objects based on the chosen target list</div>
                         </div>
                         <div class="form-check form-switch">
                             <input type="checkbox" id="feature-bodies" class="form-check-input" checked switch >
-                            <label class="form-check-label" for="feature-bodies"> Bodies</label>
-                            <div class="form-text">Calculate and plot solar system bodies</div>
+                            <label class="form-check-label" for="feature-bodies"> <span data-i18n="settings.feature_bodies">Bodies</span></label>
+                            <div class="form-text" data-i18n="settings.feature_bodies_info">Calculate and plot solar system bodies</div>
                         </div>
                         <div class="form-check form-switch">
                             <input type="checkbox" id="feature-comets" class="form-check-input" checked switch>
-                            <label class="form-check-label" for="feature-comets"> Comets</label>
-                            <div class="form-text">Calculate and plot comets</div>
+                            <label class="form-check-label" for="feature-comets"> <span data-i18n="settings.feature_comets">Comets</span></label>
+                            <div class="form-text" data-i18n="settings.feature_comets_info">Calculate and plot comets</div>
                         </div>
                         <div class="form-check form-switch">
                             <input type="checkbox" id="feature-alttime" class="form-check-input" checked switch>
-                            <label class="form-check-label" for="feature-alttime"> Altitude/Time Plots</label>
-                            <div class="form-text">Calculate and plot altitude vs time diagrams</div>
+                            <label class="form-check-label" for="feature-alttime"> <span data-i18n="settings.feature_alttime">Altitude/Time Plots</span></label>
+                            <div class="form-text" data-i18n="settings.feature_alttime_info">Calculate and plot altitude vs time diagrams</div>
                         </div>
                     </div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🔍 Constraints</h2>
+                    <h2>🔍 <span data-i18n="settings.constraints">Constraints</span></h2>
                     <div class="form-check form-switch form-check-inline bg-checkbox">
                         <input id="use-constraints" class="form-check-input" type="checkbox" switch>
-                        <label class="form-check-label" for="use-constraints">Use Constraints</label>
+                        <label class="form-check-label" for="use-constraints" data-i18n="settings.use_constraints">Use Constraints</label>
                     </div>
                     <div class="row g-3 mt-1 mb-2" id="constraints-fields">
                         <div class="col-md-3">
-                            <label for="altitude-min" class="form-label">Min Altitude (°):</label>
-                            <input type="number" id="altitude-min" class="form-control" value="30" step="1" title="Minimum altitude in degrees above horizon (typical: 30°)">
-                            <div class="form-text">Degrees above horizon</div>
+                            <label for="altitude-min" class="form-label" data-i18n="settings.altitude_min">Min Altitude (°):</label>
+                            <input type="number" id="altitude-min" class="form-control" value="30" step="1" title="Minimum altitude in degrees above horizon (typical: 30°)" data-i18n-title="settings.altitude_min_title">
+                            <div class="form-text" data-i18n="settings.altitude_min_info">Degrees above horizon</div>
                         </div>
                         <div class="col-md-3">
-                            <label for="altitude-max" class="form-label">Max Altitude (°):</label>
-                            <input type="number" id="altitude-max" class="form-control" value="80" step="1" title="Maximum altitude in degrees above horizon (typical: 80°)">
-                            <div class="form-text">Degrees above horizon</div>
+                            <label for="altitude-max" class="form-label" data-i18n="settings.altitude_max">Max Altitude (°):</label>
+                            <input type="number" id="altitude-max" class="form-control" value="80" step="1" title="Maximum altitude in degrees above horizon (typical: 80°)" data-i18n-title="settings.altitude_max_title">
+                            <div class="form-text" data-i18n="settings.altitude_max_info">Degrees above horizon</div>
                         </div>
                         <div class="col-md-3">
-                            <label for="airmass" class="form-label">Airmass Constraint:</label>
-                            <input type="number" id="airmass" class="form-control" value="2" step="0.1" title="Maximum airmass (2 = 60° zenith angle, 3 = 70.5°)">
-                            <div class="form-text">2 = 1/cos(60°)</div>
+                            <label for="airmass" class="form-label" data-i18n="settings.airmass_constraint">Airmass Constraint:</label>
+                            <input type="number" id="airmass" class="form-control" value="2" step="0.1" title="Maximum airmass (2 = 60° zenith angle, 3 = 70.5°)" data-i18n-title="settings.airmass_constraint_title">
+                            <div class="form-text" data-i18n="settings.airmass_constraint_info">2 = 1/cos(60°)</div>
                         </div>
                         <div class="col-md-3">
-                            <label for="size-min" class="form-label">Min Size (arcmin):</label>
+                            <label for="size-min" class="form-label" data-i18n="settings.size_min">Min Size (arcmin):</label>
                             <input type="number" id="size-min" class="form-control" value="10" step="1">
-                            <div class="form-text">Minimum object size in arc minutes</div>
+                            <div class="form-text" data-i18n="settings.size_min_info">Minimum object size in arc minutes</div>
                         </div>
                         <div class="col-md-3">
-                            <label for="size-max" class="form-label">Max Size (arcmin):</label>
+                            <label for="size-max" class="form-label" data-i18n="settings.size_max">Max Size (arcmin):</label>
                             <input type="number" id="size-max" class="form-control" value="300" step="1">
-                            <div class="form-text">Maximum object size in arc minutes</div>
+                            <div class="form-text" data-i18n="settings.size_max_info">Maximum object size in arc minutes</div>
                         </div>
                         <div class="col-md-3">
-                            <label for="moon-sep" class="form-label">Min Moon Separation (°):</label>
+                            <label for="moon-sep" class="form-label" data-i18n="settings.moon_sep">Min Moon Separation (°):</label>
                             <input type="number" id="moon-sep" class="form-control" value="45" step="1">
-                            <div class="form-text">Minimum separation from moon in degrees (overridden if 'Use Moon Illumination' is checked)</div>
+                            <div class="form-text" data-i18n="settings.moon_sep_info">Minimum separation from moon in degrees (overridden if 'Use Moon Illumination' is checked)</div>
                         </div>
                         <div class="col-md-3">
-                            <label for="time-threshold" class="form-label">Observable Time Threshold:</label>
+                            <label for="time-threshold" class="form-label" data-i18n="settings.time_threshold">Observable Time Threshold:</label>
                             <input type="number" id="time-threshold" class="form-control" value="0.5" step="0.1" min="0" max="1">
-                            <div class="form-text">Fraction of darkness time object must be observable (0.0-1.0, e.g., 0.5 = 50%)</div>
+                            <div class="form-text" data-i18n="settings.time_threshold_info">Fraction of darkness time object must be observable (0.0-1.0, e.g., 0.5 = 50%)</div>
                         </div>
                         <div class="col-md-3">
-                            <label for="max-targets" class="form-label">Max Targets in Threshold:</label>
+                            <label for="max-targets" class="form-label" data-i18n="settings.max_targets">Max Targets in Threshold:</label>
                             <input type="number" id="max-targets" class="form-control" value="60" step="1">
-                            <div class="form-text">Maximum number of targets to calculate (recommended: ~45 for MQTT, ~60 otherwise)</div>
+                            <div class="form-text" data-i18n="settings.max_targets_info">Maximum number of targets to calculate (recommended: ~45 for MQTT, ~60 otherwise)</div>
                         </div>
                     </div>
                     <div class="form-check form-switch form-check-inline bg-checkbox col-md-3">
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" id="moon-illumination" checked switch>
-                            <label class="form-check-label" for="moon-illumination">Use Moon Illumination</label>
-                            <div class="form-text">If enabled, minimum moon separation is derived from moon illumination percentage (1% = 1°)</div>
+                            <label class="form-check-label" for="moon-illumination" data-i18n="settings.use_moon_illumination">Use Moon Illumination</label>
+                            <div class="form-text" data-i18n="settings.use_moon_illumination_info">If enabled, minimum moon separation is derived from moon illumination percentage (1% = 1°)</div>
                         </div>
 
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" id="north-ccw" checked switch>
-                            <label class="form-check-label" for="north-ccw">North to East CCW</label>
-                            <div class="form-text">Set azimuth display: counter-clockwise (north at top, east at left) or clockwise</div>
+                            <label class="form-check-label" for="north-ccw" data-i18n="settings.north_ccw">North to East CCW</label>
+                            <div class="form-text" data-i18n="settings.north_ccw_info">Set azimuth display: counter-clockwise (north at top, east at left) or clockwise</div>
                         </div>
                     </div>
                 </div>
                 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📌 Bucket List</h2>
+                    <h2>📌 <span data-i18n="settings.bucket_list">Bucket List</span></h2>
                     <div class="form-group">
-                        <small>Targets to always include (one per line). These will show if visible, ignoring constraints. Use the 'name' attribute for identification.</small>
+                        <small data-i18n="settings.bucket_list_info">Targets to always include (one per line). These will show if visible, ignoring constraints. Use the 'name' attribute for identification.</small>
                         <div class="yaml-editor-container" id="bucket-list-container">
-                            <textarea id="bucket-list" class="yaml-editor" rows="4" placeholder="IC 434&#10;NGC 2359&#10;M 16" title="Personal bucket list - targets that will always be included if visible"></textarea>
+                            <textarea id="bucket-list" class="yaml-editor" rows="4" placeholder="IC 434&#10;NGC 2359&#10;M 16" title="Personal bucket list - targets that will always be included if visible" data-i18n-title="settings.bucket_list_title"></textarea>
                             <div class="yaml-validation-status" id="bucket-list-status">
                                 <span class="icon">⏺</span>
-                                <span class="yaml-validation-message">Ready</span>
+                                <span class="yaml-validation-message" data-i18n="settings.ready">Ready</span>
                             </div>
                         </div>
                         <small id="bucket-list-error" class="error-msg"></small>
@@ -796,14 +796,14 @@
                 </div>
                 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>✔️ Done List</h2>
+                    <h2>✔️ <span data-i18n="settings.done_list">Done List</span></h2>
                     <div class="form-group">
-                        <small>Targets to never show (one per line). Use the 'name' attribute for identification.</small>
+                        <small data-i18n="settings.done_list_info">Targets to never show (one per line). Use the 'name' attribute for identification.</small>
                         <div class="yaml-editor-container" id="done-list-container">
-                            <textarea id="done-list" class="yaml-editor"  rows="4" placeholder="IC 1795&#10;LBN 535" title="Targets you've already observed and want to exclude"></textarea>
+                            <textarea id="done-list" class="yaml-editor"  rows="4" placeholder="IC 1795&#10;LBN 535" title="Targets you've already observed and want to exclude" data-i18n-title="settings.done_list_title"></textarea>
                             <div class="yaml-validation-status" id="done-list-status">
                                 <span class="icon">⏺</span>
-                                <span class="yaml-validation-message">Ready</span>
+                                <span class="yaml-validation-message" data-i18n="settings.ready">Ready</span>
                             </div>
                         </div>
                         <small id="done-list-error" class="error-msg"></small>
@@ -811,14 +811,14 @@
                 </div>
                 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🎯 Custom Targets</h2>
+                    <h2>🎯 <span data-i18n="settings.custom_targets">Custom Targets</span></h2>
                     <div class="form-group">
-                        <small>Define custom targets in YAML format. Required fields: name, ra, dec. Optional: description, type, constellation, size, mag.</small>
+                        <small data-i18n="settings.custom_targets_info">Define custom targets in YAML format. Required fields: name, ra, dec. Optional: description, type, constellation, size, mag.</small>
                         <div class="yaml-editor-container" id="custom-targets-container">
-                            <textarea id="custom-targets" class="yaml-editor" rows="10" placeholder="- name: NGC 4395&#10;  description: NGC 4395&#10;  type: Galaxy&#10;  constellation: Canes Venatici&#10;  size: 13&#10;  ra: 12 25 48&#10;  dec: +33 32 48&#10;  mag: 10.0" title="Add your own custom targets not in the standard catalogues"></textarea>
+                            <textarea id="custom-targets" class="yaml-editor" rows="10" placeholder="- name: NGC 4395&#10;  description: NGC 4395&#10;  type: Galaxy&#10;  constellation: Canes Venatici&#10;  size: 13&#10;  ra: 12 25 48&#10;  dec: +33 32 48&#10;  mag: 10.0" title="Add your own custom targets not in the standard catalogues" data-i18n-title="settings.custom_targets_title"></textarea>
                             <div class="yaml-validation-status" id="custom-targets-status">
                                 <span class="icon">⏺</span>
-                                <span class="yaml-validation-message">Ready</span>
+                                <span class="yaml-validation-message" data-i18n="settings.ready">Ready</span>
                             </div>
                         </div>
                         <small id="custom-targets-error" class="error-msg"></small>
@@ -826,25 +826,25 @@
                 </div>
                 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>🌄 Horizon</h2>
+                    <h2>🌄 <span data-i18n="settings.horizon">Horizon</span></h2>
                     <div class="form-group">
-                        <small>Define horizon anchor points in YAML format. Anchor points should start with azimuth 0 and end with 360 degrees. Feature Horizon must be enabled.</small>
+                        <small data-i18n="settings.horizon_info">Define horizon anchor points in YAML format. Anchor points should start with azimuth 0 and end with 360 degrees. Feature Horizon must be enabled.</small>
                         <div class="yaml-editor-container" id="horizon-config-container">
-                            <textarea id="horizon-config" class="yaml-editor" rows="8" placeholder="step_size: 5&#10;anchor_points:&#10;  - alt: 20&#10;    az: 0&#10;  ...&#10;  - alt: 20&#10;    az: 360" title="Define your custom horizon profile with altitude/azimuth pairs"></textarea>
+                            <textarea id="horizon-config" class="yaml-editor" rows="8" placeholder="step_size: 5&#10;anchor_points:&#10;  - alt: 20&#10;    az: 0&#10;  ...&#10;  - alt: 20&#10;    az: 360" title="Define your custom horizon profile with altitude/azimuth pairs" data-i18n-title="settings.horizon_config_title"></textarea>
                             <div class="yaml-validation-status" id="horizon-config-status">
                                 <span class="icon">⏺</span>
-                                <span class="yaml-validation-message">Ready</span>
+                                <span class="yaml-validation-message" data-i18n="settings.ready">Ready</span>
                             </div>
                         </div>
                         <small id="horizon-error" class="error-msg"></small>
                     </div>
 
-                    <div class="alert alert-info mt-3" role="alert">
+                    <div class="alert alert-info mt-3" role="alert" data-i18n="settings.uptonight_reload_info">
                         When new UpTonight settings are saved, a manual run may be required to see changes on dashboard, or wait for the next scheduled run.
                     </div>
 
                     <div class="button-group">
-                        <button id="save-advanced" class="btn btn-primary">💾 Save Advanced Settings</button>
+                        <button id="save-advanced" class="btn btn-primary">💾 <span data-i18n="settings.save_advanced_settings">Save Advanced Settings</span></button>
                     </div>
                 </div>
             </div>
@@ -852,11 +852,11 @@
             <!-- Logs Sub-tab -->
             <div id="logs-subtab" class="sub-tab-content">                
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📋 System Logs</h2>
+                    <h2>📋 <span data-i18n="settings.system_logs">System Logs</span></h2>
                     <div class="row row-cols-lg-auto g-3 align-items-center">
                         <div class="col-12">
                             <select class="form-select" id="log-level">
-                                <option value="all">All Levels</option>
+                                <option value="all" data-i18n="settings.log_level_all">All Levels</option>
                                 <option value="INFO" selected>INFO</option>
                                 <option value="WARNING">WARNING</option>
                                 <option value="ERROR">ERROR</option>
@@ -865,17 +865,17 @@
                         </div>
                         <div class="col-12">
                             <select class="form-select" id="log-limit">
-                                <option value="100">Last 100</option>
-                                <option value="500" selected>Last 500</option>
-                                <option value="1000">Last 1000</option>
-                                <option value="5000">Last 5000</option>
+                                <option value="100" data-i18n="settings.log_limit_100">Last 100</option>
+                                <option value="500" selected data-i18n="settings.log_limit_500">Last 500</option>
+                                <option value="1000" data-i18n="settings.log_limit_1000">Last 1000</option>
+                                <option value="5000" data-i18n="settings.log_limit_5000">Last 5000</option>
                             </select>
                         </div>                        
                         <div class="col-12">
-                            <button id="refresh-logs" class="btn btn-secondary">🔄 Refresh</button>
+                            <button id="refresh-logs" class="btn btn-secondary">🔄 <span data-i18n="settings.refresh_logs">Refresh</span></button>
                         </div> 
                         <div class="col-12">         
-                            <button id="clear-logs-display" class="btn btn-secondary">🗑️ Delete logs (empty log file)</button>
+                            <button id="clear-logs-display" class="btn btn-secondary">🗑️ <span data-i18n="settings.clear_logs">Delete logs (empty log file)</span></button>
                         </div>          
                     </div>
                     <div id="logs-display" class="logs-container mt-3 rounded"></div>
@@ -885,33 +885,33 @@
             <!-- Users Management Sub-tab (Admin only) -->
             <div id="users-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>👥 User Management</h2>
-                    <div>Manage users and their access roles.</div>
+                    <h2>👥 <span data-i18n="users.user_management">User Management</span></h2>
+                    <div data-i18n="users.manage_users">Manage users and their access roles.</div>
                     
                     <!-- Create User Form -->
                     <form id="create-user-form">
                         <div class="row row-cols-lg-auto g-3 align-items-center">
                             <div class="col-12">
-                                <label class="visually-hidden" for="new-username">Username</label>
-                                <input type="text" class="form-control" id="new-username" required autocomplete="off" placeholder="Username">
+                                <label class="visually-hidden" for="new-username" data-i18n="users.username">Username</label>
+                                <input type="text" class="form-control" id="new-username" required autocomplete="off" placeholder="Username" data-i18n-placeholder="users.username">
                             </div>
 
                             <div class="col-12">
-                                <label class="visually-hidden" for="new-password">Password</label>
-                                <input type="password" class="form-control" id="new-password" required autocomplete="off" placeholder="Password">
+                                <label class="visually-hidden" for="new-password" data-i18n="users.password">Password</label>
+                                <input type="password" class="form-control" id="new-password" required autocomplete="off" placeholder="Password" data-i18n-placeholder="users.password">
                             </div>
 
                             <div class="col-12">
-                                <label class="visually-hidden" for="new-role">Role</label>
+                                <label class="visually-hidden" for="new-role" data-i18n="users.role">Role</label>
                                 <select class="form-select" id="new-role" required>
-                                    <option value="read-only">Read-Only (Can view data only)</option>
-                                    <option value="user">Regular user (Can interact with Astrodex)</option>
-                                    <option value="admin">Admin (Full access)</option>
+                                    <option value="read-only" data-i18n="users.role_read_only">Read-Only (Can view data only)</option>
+                                    <option value="user" data-i18n="users.role_user">Regular user (Can interact with Astrodex)</option>
+                                    <option value="admin" data-i18n="users.role_admin">Admin (Full access)</option>
                                 </select>
                             </div>
 
                             <div class="col-12">
-                                <button type="submit" class="btn btn-primary">Create User</button>
+                                <button type="submit" class="btn btn-primary" data-i18n="users.create_user">Create User</button>
                             </div>
                         </div>   
                     </form>             
@@ -919,7 +919,7 @@
                 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">    
                     <!-- Users List -->
-                    <h2>👥 Existing Users</h2>
+                    <h2>👥 <span data-i18n="users.existing_users">Existing Users</span></h2>
                     <div id="users-list"></div>
                 </div>
             </div>
@@ -927,33 +927,36 @@
             <!-- Metrics Sub-tab -->
             <div id="metrics-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>📊 System Metrics</h2>
-                    <div class="alert alert-info" role="alert">
+                    <h2>📊 <span data-i18n="metrics.system_metrics">System Metrics</span></h2>
+                    <div class="alert alert-info" role="alert" data-i18n="metrics.info_title">
                         System performance and resource monitoring. Data refreshes automatically every 5 seconds.
                     </div>
                 </div>
 
                 <!-- CPU Metrics -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3>💻 CPU</h3>
+                    <h3>💻 <span data-i18n="metrics.cpu">CPU</span></h3>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.cpu_usage">CPU Usage</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">CPU Usage</h5>
                                     <div class="progress" style="height: 30px;">
                                         <div id="cpu-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small id="cpu-usage-text">-</small>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.cpu_info">CPU Info</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">CPU Info</h5>
-                                    <p class="mb-1"><strong>Logical Cores:</strong> <span id="cpu-logical">-</span></p>
-                                    <p class="mb-1"><strong>Physical Cores:</strong> <span id="cpu-physical">-</span></p>
-                                    <p class="mb-0"><strong>Frequency:</strong> <span id="cpu-frequency">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.logical_cores">Logical Cores:</strong> <span id="cpu-logical">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.physical_cores">Physical Cores:</strong> <span id="cpu-physical">-</span></p>
+                                    <p class="mb-0"><strong data-i18n="metrics.frequency">Frequency:</strong> <span id="cpu-frequency">-</span></p>
                                 </div>
                             </div>
                         </div>
@@ -962,12 +965,12 @@
 
                 <!-- Memory Metrics -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3>🧠 Memory</h3>
+                    <h3>🧠 <span data-i18n="metrics.memory">Memory</span></h3>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.ram_usage">RAM Usage</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">RAM Usage</h5>
                                     <div class="progress" style="height: 30px;">
                                         <div id="memory-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
                                     </div>
@@ -978,9 +981,9 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.swap_usage">Swap Usage</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">Swap Usage</h5>
                                     <div class="progress" style="height: 30px;">
                                         <div id="swap-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
                                     </div>
@@ -995,10 +998,10 @@
 
                 <!-- Disk Metrics -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3>💾 Disk Storage</h3>
-                    <div class="card bg-card-container border-0">
+                    <h3>💾 <span data-i18n="metrics.disk_storage">Disk Storage</span></h3>
+                    <div class="card  h-100">
+                        <div class="card-header" data-i18n="metrics.root_filesystem">Root Filesystem</div>
                         <div class="card-body">
-                            <h5 class="card-title mb-3">Root Filesystem</h5>
                             <div class="progress" style="height: 30px;">
                                 <div id="disk-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
                             </div>
@@ -1011,9 +1014,9 @@
                     <!-- Disk Folder Breakdown -->
                     <div class="row g-3 mt-3">
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.folder_usage">Folder Usage</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">Folder Usage</h5>
                                     <div class="mb-3">
                                         <small class="d-block mb-1"><strong>data/</strong></small>
                                         <div class="progress" style="height: 20px;">
@@ -1046,9 +1049,9 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.config_outputs">Config & Outputs</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">Config & Outputs</h5>
                                     <div class="mb-3">
                                         <small class="d-block mb-1"><strong>uptonight_configs/</strong></small>
                                         <div class="progress" style="height: 20px;">
@@ -1071,27 +1074,27 @@
 
                 <!-- System Info -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3>🖥️ System Information</h3>
+                    <h3>🖥️ <span data-i18n="metrics.system_info">System Information</span></h3>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.platform">Platform</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">Platform</h5>
-                                    <p class="mb-1"><strong>OS:</strong> <span id="platform-system">-</span></p>
-                                    <p class="mb-1"><strong>Release:</strong> <span id="platform-release">-</span></p>
-                                    <p class="mb-1"><strong>Machine:</strong> <span id="platform-machine">-</span></p>
-                                    <p class="mb-0"><strong>Python:</strong> <span id="platform-python">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.os">OS:</strong> <span id="platform-system">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.release">Release:</strong> <span id="platform-release">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.machine">Machine:</strong> <span id="platform-machine">-</span></p>
+                                    <p class="mb-0"><strong data-i18n="metrics.python">Python:</strong> <span id="platform-python">-</span></p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.system_status">System Status</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">System Status</h5>
-                                    <p class="mb-1"><strong>Uptime:</strong> <span id="system-uptime">-</span></p>
-                                    <p class="mb-1"><strong>Processes:</strong> <span id="process-count">-</span></p>
-                                    <p class="mb-1"><strong>Network Sent:</strong> <span id="network-sent">-</span></p>
-                                    <p class="mb-0"><strong>Network Received:</strong> <span id="network-recv">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.uptime">Uptime:</strong> <span id="system-uptime">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.processes">Processes:</strong> <span id="process-count">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.network_sent">Network Sent:</strong> <span id="network-sent">-</span></p>
+                                    <p class="mb-0"><strong data-i18n="metrics.network_received">Network Received:</strong> <span id="network-recv">-</span></p>
                                 </div>
                             </div>
                         </div>
@@ -1100,33 +1103,34 @@
 
                 <!-- Environment & Container Detection -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3>🌐 Environment</h3>
-                    <div class="card bg-card-container border-0">
+                    <h3>🌐 <span data-i18n="metrics.environment">Environment</span></h3>
+                    <div class="card h-100">
+                        <div class="card-header" data-i18n="metrics.container">Container</div>
                         <div class="card-body">
-                            <p class="mb-1"><strong>Container/VM:</strong> <span id="container-status">-</span> <span id="container-badge" class="badge" style="display:none;"></span></p>
-                            <p class="mb-0"><strong>Container Type:</strong> <span id="container-type">Not running in container</span></p>
+                            <p class="mb-1"><strong data-i18n="metrics.container_vm">Container/VM:</strong> <span id="container-status">-</span> <span id="container-badge" class="badge" style="display:none;"></span></p>
+                            <p class="mb-0"><strong data-i18n="metrics.container_type">Container Type:</strong> <span id="container-type" data-i18n="metrics.not_in_container">Not running in container</span></p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Process Details -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3>⚙️ Current Process</h3>
+                    <h3>⚙️ <span data-i18n="metrics.current_process">Current Process</span></h3>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.process_info">Process Info</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">Process Info</h5>
-                                    <p class="mb-1"><strong>PID:</strong> <span id="process-pid">-</span></p>
-                                    <p class="mb-1"><strong>Name:</strong> <span id="process-name">-</span></p>
-                                    <p class="mb-0"><strong>Status:</strong> <span id="process-status">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.pid">PID:</strong> <span id="process-pid">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.name">Name:</strong> <span id="process-name">-</span></p>
+                                    <p class="mb-0"><strong data-i18n="metrics.status">Status:</strong> <span id="process-status">-</span></p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.memory_usage">Memory Usage</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">Memory Usage</h5>
                                     <div class="progress" style="height: 25px; margin-bottom: 8px;">
                                         <div id="process-memory-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
                                     </div>
@@ -1137,17 +1141,17 @@
                     </div>
                     <div class="row g-3 mt-0">
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.cpu_time">CPU Time</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">CPU Time</h5>
                                     <div class="mb-3">
-                                        <small class="d-block mb-2"><strong>User Time:</strong> <span id="process-cpu-user">-</span></small>
+                                        <small class="d-block mb-2"><strong data-i18n="metrics.user_time">User Time:</strong> <span id="process-cpu-user">-</span></small>
                                         <div class="progress" style="height: 20px;">
                                             <div id="process-cpu-user-bar" class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
                                     </div>
                                     <div class="mb-0">
-                                        <small class="d-block mb-2"><strong>System Time:</strong> <span id="process-cpu-system">-</span></small>
+                                        <small class="d-block mb-2"><strong data-i18n="metrics.system_time">System Time:</strong> <span id="process-cpu-system">-</span></small>
                                         <div class="progress" style="height: 20px;">
                                             <div id="process-cpu-system-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
@@ -1156,13 +1160,13 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="card bg-card-container border-0">
+                            <div class="card h-100">
+                                <div class="card-header" data-i18n="metrics.resources">Resources</div>
                                 <div class="card-body">
-                                    <h5 class="card-title">Resources</h5>
-                                    <p class="mb-1"><strong>Threads:</strong> <span id="process-threads">-</span></p>
-                                    <p class="mb-1"><strong>File Descriptors:</strong> <span id="process-fds">-</span></p>
-                                    <p class="mb-1"><strong>Virtual Memory:</strong> <span id="process-memory-vms">-</span></p>
-                                    <p class="mb-0"><strong>Resident Memory:</strong> <span id="process-memory-rss">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.threads">Threads:</strong> <span id="process-threads">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.file_descriptors">File Descriptors:</strong> <span id="process-fds">-</span></p>
+                                    <p class="mb-1"><strong data-i18n="metrics.virtual_memory">Virtual Memory:</strong> <span id="process-memory-vms">-</span></p>
+                                    <p class="mb-0"><strong data-i18n="metrics.resident_memory">Resident Memory:</strong> <span id="process-memory-rss">-</span></p>
                                 </div>
                             </div>
                         </div>
@@ -1180,14 +1184,23 @@
     <footer class="site-footer border-footer">
         <div class="footer-inner">
             <div class="footer-section footer-brand">
-                <span class="text-light">MyAstroBoard - Astronomy Observation Planning Dashboard&nbsp;|&nbsp;<span id="version" class="text-light"></span></span>
+                <span class="text-light"><span data-i18n="common.title_html">MyAstroBoard - Astronomy Observation Planning Dashboard</span>&nbsp;|&nbsp;<span id="version" class="text-light"></span></span>
             </div>
             <div class="footer-section footer-update">
                 <span id="update-notification" class="text-light" style="display: none;">🎆 A new version is available! <a id="update-link" href="#" class="link-light link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover"></a></span>
             </div>
             <div class="footer-section footer-actions">
+                <div class="footer-language">
+                    <label class="language-label" for="language-select-footer" data-i18n="common.language">Language</label>
+                    <select id="language-select-footer" class="form-select form-select-sm language-select" aria-label="Language">
+                        <option value="en">English</option>
+                        <option value="fr">Français</option>
+                        <option value="es">Español</option>
+                        <option value="de">Deutsch</option>
+                    </select>
+                </div>
                 <div class="footer-theme">
-                    <label class="theme-label" for="theme-select-footer">Theme</label>
+                    <label class="theme-label" for="theme-select-footer" data-i18n="common.theme">Theme</label>
                     <select id="theme-select-footer" class="form-select form-select-sm theme-select theme-select-footer" data-theme-picker aria-label="Theme">
                         <option value="auto">Auto</option>
                         <option value="light">Light</option>
@@ -1215,7 +1228,7 @@
                 </div>
                 <div class="modal-body" id="modal_sm_close_body">...</div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal" data-i18n="common.close">Close</button>
                 </div>
             </div>
         </div>
@@ -1231,7 +1244,7 @@
                 </div>
                 <div class="modal-body" id="modal_lg_close_body">...</div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal" data-i18n="common.close">Close</button>
                 </div>
             </div>
         </div>
@@ -1247,7 +1260,7 @@
                 </div>
                 <div class="modal-body" id="modal_xl_close_body">...</div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal" data-i18n="common.close">Close</button>
                 </div>
             </div>
         </div>
@@ -1271,6 +1284,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <script src="/static/js/domUtils.js?v={{ version }}"></script>
+    <script src="/static/js/i18n.js?v={{ version }}"></script>
+    <script src="/static/js/language-selector.js?v={{ version }}"></script>
     <script src="/static/js/auth.js?v={{ version }}"></script>
     <script src="/static/js/apiHelper.js?v={{ version }}"></script>
     <script src="/static/js/events_alerts.js?v={{ version }}"></script>

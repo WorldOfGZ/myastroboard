@@ -145,7 +145,7 @@ async function loadConfiguration() {
         
     } catch (error) {
         console.error('Error loading configuration:', error);
-        showMessage('error', 'Failed to load configuration');
+        showMessage('error', i18n.t('settings.failed_to_load_config'));
     }
 }
 
@@ -157,7 +157,7 @@ async function saveConfiguration() {
     const uniqueCatalogues = Array.from(new Set(selectedCatalogues));
     
     if (uniqueCatalogues.length === 0) {
-        showMessage('error', 'At least one catalogue must be selected');
+        showMessage('error', i18n.t('settings.at_least_one_catalogue'));
         return;
     }
     
@@ -176,7 +176,7 @@ async function saveConfiguration() {
         try {
             customTargets = parseCustomTargetsYAML(customTargetsText);
         } catch (e) {
-            showMessage('error', 'Invalid custom targets format');
+            showMessage('error', i18n.t('settings.invalid_custom_targets_format'));
             return;
         }
     }
@@ -192,7 +192,7 @@ async function saveConfiguration() {
                 horizon = null;
             }
         } catch (e) {
-            showMessage('error', 'Invalid horizon format');
+            showMessage('error', i18n.t('settings.invalid_horizon_format'));
             return;
         }
     }
@@ -247,16 +247,16 @@ async function saveConfiguration() {
         });
         
         if (result.status === 'success') {
-            showMessage('success', '✅ Configuration saved successfully!');
+            showMessage('success', `✅ ${i18n.t('settings.config_saved')}`);
             currentConfig = config;
             // Reload catalogues to reflect the saved selection
             loadCatalogues();
         } else {
-            showMessage('error', `❌ ${result.message || 'Failed to save configuration'}`);
+            showMessage('error', `❌ ${result.message || i18n.t('settings.failed_to_save_config')}`);
         }
     } catch (error) {
         console.error('Error saving configuration:', error);
-        showMessage('error', '❌ Failed to save configuration');
+        showMessage('error', `❌ ${i18n.t('settings.failed_to_save_config')}`);
     }
 }
 
@@ -311,7 +311,7 @@ async function convertCoordinate(type) {
     
     // Check if it's already decimal
     if (!isNaN(value)) {
-        convertedEl.textContent = `✓ Decimal: ${parseFloat(value).toFixed(6)}`;
+        convertedEl.textContent = `✓ ${i18n.t('settings.decimal')}${parseFloat(value).toFixed(6)}`;
         input.classList.add('is-valid');
         input.classList.remove('is-invalid');
         return;
@@ -326,7 +326,7 @@ async function convertCoordinate(type) {
         });
         
         if (data.status === 'success') {
-            convertedEl.textContent = `✓ Decimal: ${data.decimal}`;
+            convertedEl.textContent = `✓ ${i18n.t('settings.decimal')}${data.decimal}`;
             input.value = data.decimal;
             input.classList.add('is-valid');
             input.classList.remove('is-invalid');
@@ -336,7 +336,7 @@ async function convertCoordinate(type) {
             input.classList.remove('is-valid');
         }
     } catch (error) {
-        errorEl.textContent = '✗ Invalid format';
+        errorEl.textContent = `✗ ${i18n.t('settings.invalid_format')}`;
         input.classList.add('is-invalid');
         input.classList.remove('is-valid');
     }
@@ -361,16 +361,16 @@ async function viewConfiguration() {
             const titleElement = document.getElementById('modal_lg_close_title');
             if (!titleElement) {
                 console.error('Modal title element not found');
-                showMessage('error', 'Configuration modal not properly initialized');
+                showMessage('error', i18n.t('common.modal_not_initialized'));
                 return;
             }
-            titleElement.textContent = '📄 UpTonight Configurations';
+            titleElement.textContent = `📄 ${i18n.t('settings.uptonight_configurations')}`;
             
             //Prepare modal content
             const contentElement = document.getElementById('modal_lg_close_body');
             if (!contentElement) {
                 console.error('Modal body element not found');
-                showMessage('error', 'Configuration modal not properly initialized');
+                showMessage('error', i18n.t('common.modal_not_initialized'));
                 return;
             }
             DOMUtils.clear(contentElement);
@@ -381,7 +381,7 @@ async function viewConfiguration() {
             const selectorLabel = document.createElement('label');
             selectorLabel.className = 'visually-hidden';
             selectorLabel.setAttribute('for', 'config-selector');
-            selectorLabel.textContent = 'Select configuration';
+            selectorLabel.textContent = i18n.t('settings.select_uptonight_config');
             const selectorElement = document.createElement('select');
             selectorElement.className = 'form-select';
             selectorElement.id = 'config-selector';
@@ -396,7 +396,7 @@ async function viewConfiguration() {
             const exportButton = document.createElement('button');
             exportButton.id = 'export-config-from-modal';
             exportButton.className = 'btn btn-primary';
-            exportButton.textContent = '⬇️ Export this config as YAML';
+            exportButton.textContent = `⬇️ ${i18n.t('settings.export_config_as_yaml')}`;
 
             contentElement.appendChild(selectorRow);
             contentElement.appendChild(configDisplay);
@@ -405,7 +405,7 @@ async function viewConfiguration() {
             const selector = document.getElementById('config-selector');
             if (!selector) {
                 console.error('Config selector element not found');
-                showMessage('error', 'Configuration selector not properly initialized');
+                showMessage('error', i18n.t('settings.config_selector_not_initialized'));
                 return;
             }
             DOMUtils.clear(selector); // clear previous options
@@ -486,11 +486,11 @@ async function viewConfiguration() {
 
 
         } else {
-            showMessage('error', 'Failed to load configuration view');
+            showMessage('error', i18n.t('settings.failed_load_config_view'));
         }
     } catch (error) {
         console.error('Error viewing configuration:', error);
-        showMessage('error', 'Failed to view configuration');
+        showMessage('error', i18n.t('settings.failed_load_config_view'));
     }
 }
 
@@ -513,7 +513,7 @@ async function exportConfiguration() {
         showMessage('success', 'Configuration exported');
     } catch (error) {
         console.error('Error exporting configuration:', error);
-        showMessage('error', 'Failed to export configuration');
+        showMessage('error', i18n.t('settings.failed_export_config'));
     }
 }
 
@@ -678,14 +678,14 @@ function validateYAML(textarea, container, statusElement) {
             // Check if indentation is consistent (multiples of 2)
             if (leadingSpaces % 2 !== 0) {
                 isValid = false;
-                errorMessage = `Line ${i + 1}: Indentation should be multiple of 2 spaces`;
+                errorMessage = i18n.t('yaml_editor.error_multiple_spaces', { line_nb: i + 1 });
                 break;
             }
             
             // Check for tabs (should use spaces)
             if (line.includes('\t')) {
                 isValid = false;
-                errorMessage = `Line ${i + 1}: Use spaces instead of tabs`;
+                errorMessage = i18n.t('yaml_editor.error_tabs', { line_nb: i + 1 });
                 break;
             }
             
@@ -704,7 +704,7 @@ function validateYAML(textarea, container, statusElement) {
                 // Check if value after colon has proper spacing
                 if (line[colonIndex + 1] && line[colonIndex + 1] !== ' ' && line[colonIndex + 1] !== '\n') {
                     isValid = false;
-                    errorMessage = `Line ${i + 1}: Add space after colon`;
+                    errorMessage = i18n.t('yaml_editor.error_space_after_colon', { line_nb: i + 1 });
                     break;
                 }
                 
@@ -718,7 +718,7 @@ function validateYAML(textarea, container, statusElement) {
             statusElement.classList.remove('invalid');
             statusElement.classList.add('valid');
             statusElement.querySelector('.icon').textContent = '✓';
-            statusElement.querySelector('.yaml-validation-message').textContent = 'Valid YAML syntax';
+            statusElement.querySelector('.yaml-validation-message').textContent = i18n.t('yaml_editor.valid_yaml');
         } else {
             container.classList.remove('valid');
             container.classList.add('invalid');
@@ -733,6 +733,6 @@ function validateYAML(textarea, container, statusElement) {
         statusElement.classList.remove('valid');
         statusElement.classList.add('invalid');
         statusElement.querySelector('.icon').textContent = '✗';
-        statusElement.querySelector('.yaml-validation-message').textContent = 'Invalid YAML syntax';
+        statusElement.querySelector('.yaml-validation-message').textContent = i18n.t('yaml_editor.invalid_yaml');
     }
 }

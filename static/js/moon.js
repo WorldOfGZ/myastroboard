@@ -23,6 +23,16 @@ async function loadMoon() {
             "Last Quarter": "🌗",
             "Waning Crescent": "🌘"
         };
+        const phaseTextMap = {
+            "New Moon": i18n.t('moon.new_moon'),
+            "Waxing Crescent": i18n.t('moon.waxing_crescent'),
+            "First Quarter": i18n.t('moon.first_quarter'),
+            "Waxing Gibbous": i18n.t('moon.waxing_gibbous'),
+            "Full Moon": i18n.t('moon.full_moon'),
+            "Waning Gibbous": i18n.t('moon.waning_gibbous'),
+            "Last Quarter": i18n.t('moon.last_quarter'),
+            "Waning Crescent": i18n.t('moon.waning_crescent')
+        };
 
         let moonEmoji = phaseEmojiMap[moon.phase_name] || '🌑';
         DOMUtils.clear(container);
@@ -36,9 +46,9 @@ async function loadMoon() {
         titleWrap.className = 'p-2';
         const phaseTitle = document.createElement('div');
         phaseTitle.className = 'fw-bold fs-4';
-        phaseTitle.textContent = moon.phase_name;
+        phaseTitle.textContent = phaseTextMap[moon.phase_name] || moon.phase_name;
         const illum = document.createElement('div');
-        illum.textContent = `${moon.illumination_percent.toFixed(0)}% illuminated`;
+        illum.textContent = i18n.t('moon.illumination_prc', { illumination: moon.illumination_percent.toFixed(0) });
         titleWrap.appendChild(phaseTitle);
         titleWrap.appendChild(illum);
         header.appendChild(icon);
@@ -75,19 +85,19 @@ async function loadMoon() {
             return col;
         };
 
-        row.appendChild(createCard('🌑 Moon', [
-            { label: '🌅 Rise:', value: formatTimeThenDate(moon.next_moonrise) },
-            { label: '🌇 Set:', value: formatTimeThenDate(moon.next_moonset) }
+        row.appendChild(createCard(`🌑 ${i18n.t('common.moon')}`, [
+            { label: `🌅 ${i18n.t('moon.rise')}`, value: formatTimeThenDate(moon.next_moonrise) },
+            { label: `🌇 ${i18n.t('moon.set')}`, value: formatTimeThenDate(moon.next_moonset) }
         ]));
-        row.appendChild(createCard('📐 Position', [
-            { label: '📏 Distance:', value: moon.distance_km ? `${Math.round(moon.distance_km).toLocaleString()} km` : 'N/A' },
-            { label: '📐 Altitude:', value: moon.altitude_deg ? `${moon.altitude_deg.toFixed(2)}°` : 'N/A' },
-            { label: '🧭 Azimuth:', value: moon.azimuth_deg ? `${moon.azimuth_deg.toFixed(2)}°` : 'N/A' }
+        row.appendChild(createCard(`📐 ${i18n.t('moon.position')}`, [
+            { label: `📏 ${i18n.t('moon.distance')}`, value: moon.distance_km ? `${Math.round(moon.distance_km).toLocaleString()} ${i18n.t('units.km')}` : i18n.t('units.na') },
+            { label: `📐 ${i18n.t('moon.altitude')}`, value: moon.altitude_deg ? `${moon.altitude_deg.toFixed(2)}${i18n.t('units.degrees')}` : i18n.t('units.na') },
+            { label: `🧭 ${i18n.t('moon.azimuth')}`, value: moon.azimuth_deg ? `${moon.azimuth_deg.toFixed(2)}${i18n.t('units.degrees')}` : i18n.t('units.na') }
         ]));
-        row.appendChild(createCard('🌕 Next Events', [
-            { label: '🌕 Next Full Moon:', value: formatTimeThenDate(moon.next_full_moon) },
-            { label: '🌑 Next New Moon:', value: formatTimeThenDate(moon.next_new_moon) },
-            { label: '🌌 Next Dark Night:', value: formatTimeThenDate(moon.next_dark_night_start) }
+        row.appendChild(createCard(`🌕 ${i18n.t('moon.next_events')}`, [
+            { label: `🌕 ${i18n.t('moon.next_full_moon')}`, value: formatTimeThenDate(moon.next_full_moon) },
+            { label: `🌑 ${i18n.t('moon.next_new_moon')}`, value: formatTimeThenDate(moon.next_new_moon) },
+            { label: `🌌 ${i18n.t('moon.next_dark_night')}`, value: formatTimeThenDate(moon.next_dark_night_start) }
         ]));
 
         container.appendChild(header);
@@ -99,7 +109,7 @@ async function loadMoon() {
 async function loadNextMoonPhases() {
     const container = document.getElementById('moon-planner-display');
     const data = await fetchJSONWithUI('/api/moon/next-7-nights', container, 'Loading Moon planner data...', {
-        pendingMessage: 'Cache not ready. Retrying...'
+        pendingMessage: i18n.t('cache.cache_not_ready_retrying'),
     });
     if (!data) return;
 
@@ -130,19 +140,19 @@ async function loadNextMoonPhases() {
                 let quality = '';
                 let qualityClass = '';
                 if (astrophoto_score >= 90) {
-                    quality = `Excellent - ${astrophoto_score}%`;
+                    quality = `${i18n.t('common.quality_scale.excellent')} - ${astrophoto_score}%`;
                     qualityClass = 'quality-excellent';
                 } else if (astrophoto_score >= 70) {
-                    quality = `Good - ${astrophoto_score}%`;
+                    quality = `${i18n.t('common.quality_scale.good')} - ${astrophoto_score}%`;
                     qualityClass = 'quality-good';
                 } else if (astrophoto_score >= 50) {
-                    quality = `Fair - ${astrophoto_score}%`;
+                    quality = `${i18n.t('common.quality_scale.fair')} - ${astrophoto_score}%`;
                     qualityClass = 'quality-fair';
                 } else if (astrophoto_score > 30) {
-                    quality = `Poor - ${astrophoto_score}%`;
+                    quality = `${i18n.t('common.quality_scale.poor')} - ${astrophoto_score}%`;
                     qualityClass = 'quality-poor';
                 } else {
-                    quality = `Bad - ${astrophoto_score}%`;
+                    quality = `${i18n.t('common.quality_scale.bad')} - ${astrophoto_score}%`;
                     qualityClass = 'quality-bad';
                 }
 
@@ -176,12 +186,12 @@ async function loadNextMoonPhases() {
                     list.appendChild(li);
                 };
 
-                addItem('🌗 Illumination:', `${illumination_percent}%`);
-                addItem('📐 Max Altitude:', `${max_altitude}°`);
-                addItem('🌌 Dark-time:');
-                addItem(' > Strict:', `${dark_hours_strict} h`);
-                addItem(' > Practical:', `${dark_hours_practical} h`);
-                addItem(' > Illumination:', `${dark_hours_illumination} h`);
+                addItem(`🌗 ${i18n.t('moon.illumination')}`, `${illumination_percent}${i18n.t('units.percent')}`);
+                addItem(`📐 ${i18n.t('moon.max_altitude')}`, `${max_altitude}${i18n.t('units.degrees')}`);
+                addItem(`🌌 ${i18n.t('moon.dark_time')}`);
+                addItem(` > ${i18n.t('best_window.strict')}`, `${dark_hours_strict} ${i18n.t('units.hour')}`);
+                addItem(` > ${i18n.t('best_window.practical')}`, `${dark_hours_practical} ${i18n.t('units.hour')}`);
+                addItem(` > ${i18n.t('best_window.illumination')}`, `${dark_hours_illumination} ${i18n.t('units.hour')}`);
 
                 cardBody.appendChild(title);
                 cardBody.appendChild(list);
@@ -222,7 +232,7 @@ async function loadBestDarkWindow() {
         // Clear container and reset loader at the very beginning
         DOMUtils.clear(container);
         containerLoader.className = 'alert alert-info';
-        containerLoader.textContent = 'Loading best dark window data...';
+        containerLoader.textContent = i18n.t('best_window.loading_best_window');
         containerLoader.style.display = 'block';
 
         const retryOptions = {
@@ -234,10 +244,10 @@ async function loadBestDarkWindow() {
             onRetry: ({ reason, attempt, maxAttempts, waitMs, data }) => {
                 const seconds = Math.max(1, Math.round(waitMs / 1000));
                 if (reason === 'data' && data && data.message) {
-                    containerLoader.textContent = `${data.message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
+                    containerLoader.textContent = `${data.message} ${i18n.t('common.retrying_in', { seconds, attempt, maxAttempts })}`;
                     return;
                 }
-                containerLoader.textContent = `Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
+                containerLoader.textContent = i18n.t('common.retrying_in', { seconds, attempt, maxAttempts });
             }
         };
 
@@ -264,7 +274,7 @@ async function loadBestDarkWindow() {
             DOMUtils.clear(container);
             const errorBox = document.createElement('div');
             errorBox.className = 'error-box';
-            errorBox.textContent = 'No dark window data available';
+            errorBox.textContent = i18n.t('best_window.no_dark_window_data');
             container.appendChild(errorBox);
             containerLoader.style.display = 'none';
             return;
@@ -280,7 +290,7 @@ async function loadBestDarkWindow() {
         card.className = 'card h-100';
         const header = document.createElement('div');
         header.className = 'card-header';
-        header.textContent = '🌌 Next Dark Window';
+        header.textContent = `🌌 ${i18n.t('best_window.next_window')}`;
         const list = document.createElement('ul');
         list.className = 'list-group list-group-flush';
         const addTiming = (labelText, valueText) => {
@@ -294,8 +304,8 @@ async function loadBestDarkWindow() {
             li.appendChild(value);
             list.appendChild(li);
         };
-        addTiming('🌆 Start:', formatTimeThenDate(start));
-        addTiming('🌅 End:', formatTimeThenDate(end));
+        addTiming(`🌆 ${i18n.t('best_window.start')}`, formatTimeThenDate(start));
+        addTiming(`🌅 ${i18n.t('best_window.end')}`, formatTimeThenDate(end));
         card.appendChild(header);
         card.appendChild(list);
         item.appendChild(card);
@@ -321,8 +331,8 @@ async function loadBestDarkWindow() {
                 const errorItem = document.createElement("div");
                 errorItem.className = "col mb-3";
                 const message = modeData && modeData.status === 'pending'
-                    ? modeData.message || 'Cache pending'
-                    : 'No dark window';
+                    ? modeData.message || i18n.t('cache.cache_updating')
+                    : i18n.t('best_window.no_dark_window');
                 const errorCard = document.createElement('div');
                 errorCard.className = 'card h-100';
                 const errorHeader = document.createElement('div');
@@ -345,18 +355,38 @@ async function loadBestDarkWindow() {
             let end_txt = "";
 
             if(modeData.best_window.start == 'Not found') {
-                start_txt = 'Not found';
+                start_txt = i18n.t('best_window.not_found');
             } else {
                 const start = new Date(modeData.best_window.start);
                 start_txt = `${formatTimeThenDate(start)}`;
                 
             }
             if(modeData.best_window.end == 'Not found') {
-                end_txt = 'Not found';
+                end_txt = i18n.t('best_window.not_found');
             } else {
                 const end = new Date(modeData.best_window.end);
                 end_txt = `${formatTimeThenDate(end)}`;
                 
+            }
+
+            // Mode Translate            
+            let modeTranslated = "";
+            switch (mode.toLowerCase()) {
+                case 'strict': 
+                    modeTranslated = i18n.t('best_window.strict');
+                    break;
+                case 'practical':
+                    modeTranslated = i18n.t('best_window.practical');
+                    break;
+                case 'illumination':
+                    modeTranslated = i18n.t('best_window.illumination');
+                    break;
+                case 'unfavorable':
+                    modeTranslated = i18n.t('best_window.unfavorable');
+                    break;
+                default:
+                    modeTranslated = mode;
+                    break;
             }
 
             // Bloc normal
@@ -366,7 +396,7 @@ async function loadBestDarkWindow() {
             modeCard.className = 'card h-100';
             const modeHeader = document.createElement('div');
             modeHeader.className = 'card-header';
-            modeHeader.textContent = mode.toUpperCase();
+            modeHeader.textContent = modeTranslated.toUpperCase();
             const modeList = document.createElement('ul');
             modeList.className = 'list-group list-group-flush';
             const addModeItem = (labelText, valueText) => {
@@ -378,10 +408,28 @@ async function loadBestDarkWindow() {
                 li.appendChild(span);
                 modeList.appendChild(li);
             };
-            addModeItem('💯 Score:', String(modeData.best_window.score));
-            addModeItem('🌚 Moon condition:', capitalizeWords(modeData.best_window.moon_condition));
-            addModeItem('🌗 Start:', start_txt);
-            addModeItem('🌗 End:', end_txt);
+            let moonConditionText = "";
+            switch (modeData.best_window.moon_condition.toLowerCase()) {
+                case 'strict': 
+                    moonConditionText = i18n.t('best_window.strict');
+                    break;
+                case 'practical':
+                    moonConditionText = i18n.t('best_window.practical');
+                    break;
+                case 'illumination':
+                    moonConditionText = i18n.t('best_window.illumination');
+                    break;
+                case 'unfavorable':
+                    moonConditionText = i18n.t('best_window.unfavorable');
+                    break;
+                default:
+                    moonConditionText = modeData.best_window.moon_condition;
+                    break;
+            }
+            addModeItem(`💯 ${i18n.t('best_window.score')}`, String(modeData.best_window.score));
+            addModeItem(`🌚 ${i18n.t('best_window.moon_condition')}`, moonConditionText);
+            addModeItem(`🌗 ${i18n.t('best_window.start')}`, start_txt);
+            addModeItem(`🌗 ${i18n.t('best_window.end')}`, end_txt);
             modeCard.appendChild(modeHeader);
             modeCard.appendChild(modeList);
             item.appendChild(modeCard);
@@ -396,7 +444,7 @@ async function loadBestDarkWindow() {
             console.error('Error loading dark window data:', error);
             DOMUtils.clear(container);
             containerLoader.className = 'alert alert-danger';
-            containerLoader.textContent = 'Failed to load dark window data';
+            containerLoader.textContent = i18n.t('best_window.failed_to_load_dark_window_data');
             containerLoader.style.display = 'block';
         }
     } finally {

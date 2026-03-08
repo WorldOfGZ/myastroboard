@@ -4,6 +4,57 @@ const successMessage = document.getElementById('success-message');
 const loginBtn = document.getElementById('login-btn');
 const btnText = loginBtn.querySelector('.btn-text');
 
+function applyLoginTranslations() {
+    if (typeof i18n === 'undefined') {
+        return;
+    }
+
+    const elements = document.querySelectorAll('[data-i18n], [data-i18n-placeholder], [data-i18n-title]');
+    elements.forEach((element) => {
+        const textKey = element.getAttribute('data-i18n');
+        const placeholderKey = element.getAttribute('data-i18n-placeholder');
+        const titleKey = element.getAttribute('data-i18n-title');
+
+        if (textKey) {
+            element.textContent = i18n.t(textKey);
+        }
+
+        if (placeholderKey && 'placeholder' in element) {
+            element.placeholder = i18n.t(placeholderKey);
+        }
+
+        if (titleKey) {
+            element.setAttribute('title', i18n.t(titleKey));
+        }
+    });
+
+    document.title = i18n.t('auth.login_page_title');
+
+    if (!loginBtn.classList.contains('loading')) {
+        btnText.textContent = i18n.t('auth.sign_in');
+    }
+}
+
+async function initializeLoginI18n() {
+    if (typeof i18n === 'undefined') {
+        return;
+    }
+
+    // Ensure selected language resources are available before applying translations.
+    await i18n.loadLanguage(i18n.getCurrentLanguage(), { activate: false, persistSelection: false });
+    applyLoginTranslations();
+
+    // Translate labels username and password after translations are loaded
+    const usernameLabel = document.getElementById('username-label');
+    const passwordLabel = document.getElementById('password-label');
+    if (usernameLabel) {
+        usernameLabel.textContent = `👤 ${i18n.t('users.username')}`;
+    }
+    if (passwordLabel) {
+        passwordLabel.textContent = `🔐 ${i18n.t('users.password')}`;
+    }
+}
+
 function showMessage(element, message, duration = 0) {
     element.textContent = message;
     element.classList.add('show');
@@ -24,11 +75,39 @@ function setLoading(isLoading) {
     loginBtn.disabled = isLoading;
     if (isLoading) {
         loginBtn.classList.add('loading');
-        btnText.textContent = '🔄 Signing In...';
+        btnText.textContent = i18n.t('auth.signing_in');
     } else {
         loginBtn.classList.remove('loading');
-        btnText.textContent = '🚀 Sign In';
+        btnText.textContent = i18n.t('auth.sign_in');
     }
+}
+
+function translateLoginErrorMessage(apiError, statusCode) {
+    const normalizedError = (apiError || '').toString().trim().toLowerCase();
+    const messageMap = {
+        'invalid credentials': 'auth.invalid_credentials',
+        'username and password required': 'auth.enter_username_password',
+        'internal server error': 'auth.internal_server_error'
+    };
+
+    const mappedKey = messageMap[normalizedError];
+    if (mappedKey) {
+        return i18n.t(mappedKey);
+    }
+
+    if (statusCode === 401) {
+        return i18n.t('auth.invalid_credentials');
+    }
+
+    if (statusCode === 400) {
+        return i18n.t('auth.enter_username_password');
+    }
+
+    if (statusCode >= 500) {
+        return i18n.t('auth.internal_server_error');
+    }
+
+    return apiError || i18n.t('auth.login_failed_generic');
 }
 
 loginForm.addEventListener('submit', async (e) => {
@@ -40,7 +119,7 @@ loginForm.addEventListener('submit', async (e) => {
     const rememberMe = rememberMeCheckbox ? rememberMeCheckbox.checked : false;
     
     if (!username || !password) {
-        showMessage(errorMessage, 'Please enter both username and password');
+        showMessage(errorMessage, i18n.t('auth.enter_username_password'));
         return;
     }
     
@@ -60,26 +139,32 @@ loginForm.addEventListener('submit', async (e) => {
         const data = await response.json();
         
         if (response.ok) {
-            showMessage(successMessage, 'Login successful! Redirecting...', 2000);
+            showMessage(successMessage, i18n.t('auth.login_success_redirecting'), 2000);
             setTimeout(() => {
                 window.location.href = '/';
             }, 1000);
         } else {
             setLoading(false);
-            showMessage(errorMessage, data.error || 'Login failed');
+            showMessage(errorMessage, translateLoginErrorMessage(data?.error, response.status));
             
             // Focus password field for retry
             document.getElementById('password').select();
         }
     } catch (error) {
         setLoading(false);
-        showMessage(errorMessage, 'Network error. Please check your connection and try again.');
+        showMessage(errorMessage, i18n.t('auth.network_error_retry'));
         console.error('Login error:', error);
     }
 });
 
 // Auto-hide error messages after 5 seconds
 document.addEventListener('DOMContentLoaded', () => {
+    initializeLoginI18n();
+
+    window.addEventListener('i18nLanguageChanged', () => {
+        applyLoginTranslations();
+    });
+
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             if (mutation.type === 'attributes' && mutation.attributeName === 'class') {

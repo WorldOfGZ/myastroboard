@@ -151,19 +151,19 @@ h3 {
   overflow-x: auto;
 }*/
 
-.theme-label {
+.theme-label, .language-label {
     color: var(--text-light);
     font-weight: var(--font-medium);
 }
 
-.theme-select {
+.theme-select, .language-select {
     background-color: var(--surface-2);
     color: var(--text-color);
     border: 1px solid var(--surface-border-strong);
     box-shadow: none;
 }
 
-.theme-select:focus {
+.theme-select:focus, .language-select:focus {
     border-color: var(--border-violet);
     box-shadow: 0 0 0 0.2rem var(--accent-soft);
 }
@@ -218,10 +218,20 @@ h3 {
     gap: 0.5rem;
 }
 
+.footer-language {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .footer-github {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
+}
+
+.language-select {
+    min-width: 160px;
 }
 
 .theme-select-footer {
@@ -253,6 +263,10 @@ h3 {
     }
 
     .footer-theme {
+        justify-content: center;
+    }
+
+    .footer-language {
         justify-content: center;
     }
 }

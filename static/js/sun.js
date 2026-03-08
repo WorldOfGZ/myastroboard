@@ -6,7 +6,7 @@
 async function loadSun() {
     const container = document.getElementById('sun-display');
     const data = await fetchJSONWithUI('/api/sun/today', container, 'Loading Sun data...', {
-        pendingMessage: 'Cache not ready. Retrying...'
+        pendingMessage: i18n.t('cache.cache_not_ready_retrying')
     });
     if (!data) return;
 
@@ -25,9 +25,9 @@ async function loadSun() {
         titleWrap.className = 'p-2';
         const title = document.createElement('div');
         title.className = 'fw-bold fs-4';
-        title.textContent = 'Sun & Twilight Times';
+        title.textContent = i18n.t('sun.sun_and_twilight');
         const subtitle = document.createElement('div');
-        subtitle.textContent = 'For astronomical observation planning';
+        subtitle.textContent = i18n.t('sun.for_astronomical_observation_planning');
         titleWrap.appendChild(title);
         titleWrap.appendChild(subtitle);
         header.appendChild(icon);
@@ -70,31 +70,31 @@ async function loadSun() {
         };
 
         cardsRow.appendChild(createTimeCard(
-            '☀️ Sun',
-            '🌇 Set:',
+            `☀️ ${i18n.t('common.sun')}`,
+            `🌇 ${i18n.t('sun.sunset')}`,
             formatTimeThenDate(new Date(data.sun.sunset)),
-            '🌅 Rise:',
+            `🌅 ${i18n.t('sun.sunrise')}`,
             formatTimeThenDate(new Date(data.sun.sunrise))
         ));
         cardsRow.appendChild(createTimeCard(
-            '🌆 Civil Twilight',
-            'Dusk:',
+            `🌆 ${i18n.t('sun.civil_twilight')}`,
+            `${i18n.t('sun.dusk')}`,
             formatTimeThenDate(new Date(data.sun.civil_dusk)),
-            'Dawn:',
+            `${i18n.t('sun.dawn')}`,
             formatTimeThenDate(new Date(data.sun.civil_dawn))
         ));
         cardsRow.appendChild(createTimeCard(
-            '⚓ Nautical Twilight',
-            'Dusk:',
+            `⚓ ${i18n.t('sun.nautical_twilight')}`,
+            `${i18n.t('sun.dusk')}`,
             formatTimeThenDate(new Date(data.sun.nautical_dusk)),
-            'Dawn:',
+            `${i18n.t('sun.dawn')}`,
             formatTimeThenDate(new Date(data.sun.nautical_dawn))
         ));
         cardsRow.appendChild(createTimeCard(
-            '🌌 Astronomical Twilight',
-            'Dusk:',
+            `🌌 ${i18n.t('sun.astronomical_twilight')}`,
+            `${i18n.t('sun.dusk')}`,
             formatTimeThenDate(new Date(data.sun.astronomical_dusk)),
-            'Dawn:',
+            `${i18n.t('sun.dawn')}`,
             formatTimeThenDate(new Date(data.sun.astronomical_dawn))
         ));
 

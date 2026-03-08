@@ -37,6 +37,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from weather_openmeteo import get_hourly_forecast
 from uptonight_parser import get_catalogue_reports
 from events_aggregator import EventsAggregator
+from i18n_utils import I18nManager
 from txtconf_loader import get_repo_version
 from repo_config import load_config, save_config
 from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, OUTPUT_DIR, CONFIG_DIR, CACHE_TTL, UPTONIGHT_CATALOGUES
@@ -1128,12 +1129,17 @@ def get_astro_weather_analysis_api():
     """Get comprehensive astrophotography weather analysis"""
     try:
         from weather_astro import get_astro_weather_analysis
+
+        requested_language = request.args.get("lang") or request.headers.get("Accept-Language", "en")
+        requested_language = requested_language.split(",")[0].split("-")[0].lower()
+        supported_languages = I18nManager.get_supported_languages()
+        language = requested_language if requested_language in supported_languages else "en"
         
         # Get optional hours parameter (default 24)
         hours = request.args.get('hours', 24, type=int)
         hours = min(max(hours, 1), 72)  # Limit between 1-72 hours
         
-        analysis = get_astro_weather_analysis(hours)
+        analysis = get_astro_weather_analysis(hours, language=language)
         if analysis is None:
             return jsonify({"error": "Failed to fetch astrophotography weather analysis"}), 500
         
@@ -1166,8 +1172,13 @@ def get_weather_alerts_api():
     """Get weather alerts for astrophotography"""
     try:
         from weather_astro import get_astro_weather_analysis
+
+        requested_language = request.args.get("lang") or request.headers.get("Accept-Language", "en")
+        requested_language = requested_language.split(",")[0].split("-")[0].lower()
+        supported_languages = I18nManager.get_supported_languages()
+        language = requested_language if requested_language in supported_languages else "en"
         
-        analysis = get_astro_weather_analysis(6)  # Next 6 hours for alerts
+        analysis = get_astro_weather_analysis(6, language=language)  # Next 6 hours for alerts
         if analysis is None:
             return jsonify({"error": "Failed to fetch weather alerts"}), 500
         
@@ -1432,6 +1443,11 @@ def get_upcoming_events_api():
         longitude = location.get("longitude", 0)
         user_timezone = location.get("timezone", "UTC")
 
+        requested_language = request.args.get("lang") or request.headers.get("Accept-Language", "en")
+        requested_language = requested_language.split(",")[0].split("-")[0].lower()
+        supported_languages = I18nManager.get_supported_languages()
+        language = requested_language if requested_language in supported_languages else "en"
+
         # Get cached event data
         solar_eclipse_data = None
         lunar_eclipse_data = None
@@ -1499,7 +1515,7 @@ def get_upcoming_events_api():
                 solar_system_events_data = cache_store._solar_system_events_cache.get("data")
 
         # Aggregate events
-        aggregator = EventsAggregator(latitude, longitude, user_timezone)
+        aggregator = EventsAggregator(latitude, longitude, user_timezone, language=language)
         events = aggregator.aggregate_all_events(
             solar_eclipse_data=solar_eclipse_data,
             lunar_eclipse_data=lunar_eclipse_data,

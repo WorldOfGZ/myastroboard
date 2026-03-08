@@ -3,6 +3,7 @@
 
 
 # 🌙 MyAstroBoard
+![GitHub Release](https://img.shields.io/github/v/release/worldofgz/myastroboard)
 [![astropy](http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat)](http://www.astropy.org/)
 
 Fully integrated web dashboard interface easy to set-up with Docker.
@@ -22,9 +23,12 @@ Automated UpTonight execution, based on the [mawinkler/uptonight](https://github
 - **Observation Conditions**: Usefull graph trend for astro observation
 - **Moon & Sun informations**: Informations on moon & sun, with local calculation
 - **Lunar & Solar Eclipse**: Informations for next lunar and solar eclipse
+- **Aurora prediction**: forecast potential aurora
+- **ISS passes**: Iss Pass scheduler
 - **Easy configuration**: Interface to configurate easily UpTonight settings (location, catalogues, targets, ...)
 - **Multiple catalogues calculation**: Browse celestial objects from UpTonight's catalogues (Messier, Herschel400, OpenNGC, LBN, LDN, etc.)
-- **Dynamic Environment settings** : Pressure, Temperature, Relative Humidity based on Open Meteo
+- **Dynamic Environment settings**: Pressure, Temperature, Relative Humidity based on Open Meteo
+- **Multilanguage**: based on i18n, currently English, and French implemented as human translation, Spanish & Deutch as G-translate.
 
 ### Modern UI/UX
 - **Tabbed Interface**: Organized sections for Weather, UpTonight, Astrodex, Configuration
@@ -102,6 +106,10 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## 📄 License
 
 This project is open source and available under the AGPL-3.0 License.
+Copyright (C) 2025-2026 WorldOfGZ and contributors.
+
+In accordance with AGPL-3.0 requirements for network use, the corresponding source code for deployed versions is available in this repository:
+https://github.com/WorldOfGZ/myastroboard
 
 ## 🙏 Acknowledgments
 

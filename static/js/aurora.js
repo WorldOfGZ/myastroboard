@@ -7,7 +7,7 @@
  */
 async function loadAurora() {
     const container = document.getElementById('aurora-display');
-    const data = await fetchJSONWithUI('/api/aurora/predictions', container, 'Loading Aurora Borealis predictions...');
+    const data = await fetchJSONWithUI('/api/aurora/predictions', container, i18n.t('aurora.loading_predictions'));
     if (!data) return;
 
     //console.log("Aurora data received:", data);
@@ -28,8 +28,40 @@ async function loadAurora() {
             "Severe Storm": "⚡"
         };
 
-        const emoji = visibilityEmojiMap[current.visibility_level] || '🌌';
+        const visibilityTextMap = {
+            "None": i18n.t('aurora.visibility.none'),
+            "Very Low": i18n.t('aurora.visibility.very_low'),
+            "Low": i18n.t('aurora.visibility.low'),
+            "Moderate": i18n.t('aurora.visibility.moderate'),
+            "Good": i18n.t('aurora.visibility.good'),
+            "Excellent": i18n.t('aurora.visibility.excellent'),
+            "Severe Storm": i18n.t('aurora.visibility.severe_storm')
+        };
 
+        const probabilityLevelMap = {
+            "Very Low": i18n.t('aurora.probability.very_low'),
+            "Low": i18n.t('aurora.probability.low'),
+            "Moderate": i18n.t('aurora.probability.moderate'),
+            "High": i18n.t('aurora.probability.high'),
+            "Very High": i18n.t('aurora.probability.very_high')
+        };
+
+        const visibilityDescriptionMap = {
+            "None": i18n.t('aurora.description.none'),
+            "Very Low": i18n.t('aurora.description.very_low'),
+            "Low": i18n.t('aurora.description.low'),
+            "Moderate": i18n.t('aurora.description.moderate'),
+            "Good": i18n.t('aurora.description.good'),
+            "Excellent": i18n.t('aurora.description.excellent'),
+            "Severe Storm": i18n.t('aurora.description.severe_storm')
+        };
+
+        const emoji = visibilityEmojiMap[current.visibility_level] || '🌌';
+        current.visibility_description = visibilityDescriptionMap[current.visibility_level] || current.visibility_description || '';
+        current.probability_level = probabilityLevelMap[current.probability_level] || current.probability_level || '';  
+        current.visibility_level = visibilityTextMap[current.visibility_level] || current.visibility_level || '';
+
+        //console.log(current);
         // Determine color for probability bar
         const probability = current.probability || 0;
         const probabilityLevel = current.probability_level || '';
@@ -81,14 +113,14 @@ async function loadAurora() {
             return { col, card };
         };
 
-        const geomagnetic = createCard('⚡ Geomagnetic Activity');
+        const geomagnetic = createCard(`⚡ ${i18n.t('aurora.geomagnetic_activity')}`);
         const geomagneticList = document.createElement('ul');
         geomagneticList.className = 'list-group list-group-flush';
         const geomag1 = document.createElement('li');
         geomag1.className = 'list-group-item d-flex justify-content-between align-items-center';
         geomag1.innerText = '';
         const g1Label = document.createElement('span');
-        g1Label.textContent = '🔴 Kp Index:';
+        g1Label.textContent = `🔴 ${i18n.t('aurora.kp_index')}`;
         const g1Value = document.createElement('span');
         g1Value.className = 'fw-bold';
         g1Value.textContent = `${current.kp_index.toFixed(1)} / ${current.kp_index_max.toFixed(1)}`;
@@ -98,7 +130,7 @@ async function loadAurora() {
         const geomag2 = document.createElement('li');
         geomag2.className = 'list-group-item d-flex justify-content-between align-items-center';
         const g2Label = document.createElement('span');
-        g2Label.textContent = '📊 Aurora Probability:';
+        g2Label.textContent = `📊 ${i18n.t('aurora.aurora_probability')}`;
         const g2Value = document.createElement('span');
         g2Value.className = 'fw-bold';
         g2Value.textContent = `${probability.toFixed(0)}%${probabilityLevel ? ` (${probabilityLevel})` : ''}`;
@@ -126,13 +158,13 @@ async function loadAurora() {
         geomagnetic.card.appendChild(geomagneticList);
         cardsRow.appendChild(geomagnetic.col);
 
-        const windowCard = createCard('🕐 Best Viewing Window');
+        const windowCard = createCard(`🕐 ${i18n.t('aurora.best_viewing_window')}`);
         const windowList = document.createElement('ul');
         windowList.className = 'list-group list-group-flush';
         const w1 = document.createElement('li');
         w1.className = 'list-group-item d-flex justify-content-between align-items-center';
         const w1Label = document.createElement('span');
-        w1Label.textContent = '⏰ Local Time:';
+        w1Label.textContent = `⏰ ${i18n.t('aurora.local_time')}`;
         const w1Value = document.createElement('span');
         w1Value.className = 'fw-bold';
         w1Value.textContent = `${current.best_viewing_window.start_hour}:00 - ${current.best_viewing_window.end_hour}:00`;
@@ -143,7 +175,7 @@ async function loadAurora() {
         const small = document.createElement('small');
         small.className = 'text-muted';
         const strong = document.createElement('strong');
-        strong.textContent = '📍 Location:';
+        strong.textContent = `📍 ${i18n.t('aurora.location')}`;
         small.appendChild(strong);
         small.append(` ${location.latitude.toFixed(2)}°, ${location.longitude.toFixed(2)}°`);
         w2.appendChild(small);
@@ -152,14 +184,14 @@ async function loadAurora() {
         windowCard.card.appendChild(windowList);
         cardsRow.appendChild(windowCard.col);
 
-        const colorsCard = createCard('🎨 Expected Colors');
+        const colorsCard = createCard(`🎨 ${i18n.t('aurora.expected_colors')}`);
         const colorsList = document.createElement('ul');
         colorsList.className = 'list-group list-group-flush';
-        Object.entries(current.color_description || {}).forEach(([, colorDescription]) => {
+        Object.entries(current.color_description || {}).forEach(([index, colorDescription]) => {
             const li = document.createElement('li');
             li.className = 'list-group-item';
             const smallText = document.createElement('small');
-            smallText.textContent = colorDescription;
+            smallText.textContent = i18n.t(`aurora.colors.${index}`) || colorDescription;
             li.appendChild(smallText);
             colorsList.appendChild(li);
         });
@@ -175,7 +207,7 @@ async function loadAurora() {
         guideCard.className = 'card h-100';
         const guideHeader = document.createElement('div');
         guideHeader.className = 'card-header fw-bold';
-        guideHeader.textContent = '📈 Aurora Scale Guide';
+        guideHeader.textContent = `📈 ${i18n.t('aurora.scale_guide')}`;
         const guideBody = document.createElement('div');
         guideBody.className = 'card-body';
         const guideBodyRow = document.createElement('div');
@@ -196,14 +228,14 @@ async function loadAurora() {
             return col;
         };
         guideBodyRow.appendChild(makeGuideCol([
-            { left: '0-2:', right: 'No aurora' },
-            { left: '3:', right: 'Very High latitudes' },
-            { left: '4:', right: 'High latitudes possible' }
+            { left: '0-2:', right: i18n.t('aurora.guide.0') },
+            { left: '3:', right: i18n.t('aurora.guide.3') },
+            { left: '4:', right: i18n.t('aurora.guide.4') }
         ]));
         guideBodyRow.appendChild(makeGuideCol([
-            { left: '5:', right: 'Northern regions likely' },
-            { left: '6:', right: 'Wider view possible' },
-            { left: '7+:', right: 'Low latitude possible' }
+            { left: '5:', right: i18n.t('aurora.guide.5') },
+            { left: '6:', right: i18n.t('aurora.guide.6') },
+            { left: '7+:', right: i18n.t('aurora.guide.7') }
         ]));
         guideBody.appendChild(guideBodyRow);
         guideCard.appendChild(guideHeader);
@@ -221,15 +253,15 @@ async function loadAurora() {
             forecastCard.className = 'card h-100';
             const forecastHeader = document.createElement('div');
             forecastHeader.className = 'card-header fw-bold';
-            forecastHeader.textContent = '📅 Forecast';
+            forecastHeader.textContent = `📅 ${i18n.t('aurora.forecast')}`;
             const forecastBody = document.createElement('div');
             forecastBody.className = 'card-body';
             const forecastAlert = document.createElement('div');
             forecastAlert.className = 'alert alert-info';
             forecastAlert.setAttribute('role', 'alert');
-            forecastAlert.append("The Kp index values are provided by NOAA. Sudden changes between 'Now' and forecasted values may indicate predicted geomagnetic events or storms.");
+            forecastAlert.append(i18n.t('aurora.alert_1'));
             forecastAlert.appendChild(document.createElement('br'));
-            forecastAlert.append("These forecasts are subject to change and reflect NOAA's latest predictions.");
+            forecastAlert.append(i18n.t('aurora.alert_2'));
             forecastBody.appendChild(forecastAlert);
 
             const bubblesRow = document.createElement('div');
@@ -278,16 +310,16 @@ async function loadAurora() {
         tipsAlert.className = 'alert alert-info';
         tipsAlert.setAttribute('role', 'alert');
         const tipsTitle = document.createElement('strong');
-        tipsTitle.textContent = '📌 Tips for Aurora Hunting:';
+        tipsTitle.textContent = `📌 ${i18n.t('aurora.tips_for_aurora_hunting')}`;
         const tipsList = document.createElement('ul');
         tipsList.className = 'mb-0 mt-2';
         [
-            'Travel away from light pollution (cities) for best viewing',
-            'Look towards the northern horizon during the recommended window',
-            'Dress warmly - aurora hunting can require waiting outside in cold',
-            'Higher Kp index means aurora could be visible further south',
-            'Green aurora is most common, red is from high altitude oxygen',
-            'Better visibility on clear, moonless nights'
+            i18n.t('aurora.tips.1'),
+            i18n.t('aurora.tips.2'),
+            i18n.t('aurora.tips.3'),
+            i18n.t('aurora.tips.4'),
+            i18n.t('aurora.tips.5'),
+            i18n.t('aurora.tips.6')
         ].forEach((tip) => {
             const li = document.createElement('li');
             li.textContent = tip;
@@ -303,7 +335,7 @@ async function loadAurora() {
         const errorBlock = document.createElement('div');
         errorBlock.className = 'alert alert-warning';
         errorBlock.setAttribute('role', 'alert');
-        errorBlock.textContent = 'Failed to load aurora predictions. Please try again later.';
+        errorBlock.textContent = i18n.t('aurora.failed_to_load_predictions');
         container.appendChild(errorBlock);
     }
 }

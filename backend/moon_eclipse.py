@@ -301,12 +301,14 @@ class LunarEclipseService:
         """
         
         if not visible:
-            return 0.0, "Not visible from location"
+            return 0.0, "not_visible"
+
+        eclipse_type_normalized = eclipse_type.strip().lower()
 
         # Base score from type
-        if eclipse_type == "Total":
+        if eclipse_type_normalized == "total":
             base_score = 10.0
-        elif eclipse_type == "Partial":
+        elif eclipse_type_normalized == "partial":
             base_score = 7.0
         else:  # Penumbral
             base_score = 3.0
@@ -337,15 +339,15 @@ class LunarEclipseService:
 
         # Classification
         if final_score >= 9.0:
-            classification = "Excellent - Exceptional opportunity"
+            classification = "excellent"
         elif final_score >= 7.5:
-            classification = "Very good - Highly recommended"
+            classification = "very_good"
         elif final_score >= 6.0:
-            classification = "Good - Worth observing"
+            classification = "good"
         elif final_score >= 4.0:
-            classification = "Moderate interest - Observable"
+            classification = "moderate"
         else:
-            classification = "Low interest - Barely visible"
+            classification = "low"
 
         return final_score, classification
 

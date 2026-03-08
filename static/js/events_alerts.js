@@ -44,7 +44,10 @@ async function loadAndDisplayEvents() {
             return;
         }
 
-        const response = await fetch(API_ENDPOINT_EVENTS);
+        const currentLang = (typeof i18n !== 'undefined' && typeof i18n.getCurrentLanguage === 'function')
+            ? i18n.getCurrentLanguage()
+            : 'en';
+        const response = await fetch(`${API_ENDPOINT_EVENTS}?lang=${encodeURIComponent(currentLang)}`);
         
         if (!response.ok) {
             console.warn(`Failed to fetch events: ${response.status}`);
@@ -99,7 +102,7 @@ function displayEvents(eventsData) {
     if (!nextEvent || eventsIn30Days.length === 0) {
         const noEventsMsg = document.createElement('div');
         noEventsMsg.className = 'alert alert-info';
-        noEventsMsg.textContent = 'No significant astronomical events in the next 30 days.';
+        noEventsMsg.textContent = i18n.t('calendar.no_significant_events');
         timelineContainer.appendChild(noEventsMsg);
 
     // Events to display in timeline 
@@ -196,10 +199,10 @@ function createEventAlertCard(event) {
     const learnMoreButton = document.createElement('a');
     learnMoreButton.className = 'btn btn-sm sub-tab-btn active';
     learnMoreButton.href = '#';
-    learnMoreButton.textContent = '📖 Details';
+    learnMoreButton.textContent = `📖 ${i18n.t('calendar.details')}`;
     learnMoreButton.addEventListener('click', (e) => {
         e.preventDefault();
-        scrollToEventDetails(event.event_type);
+        scrollToEventDetails(event.event_type, event.structure_key);
     });
     actionsDiv.appendChild(learnMoreButton);
 
@@ -231,11 +234,11 @@ function createEventTimeline(events) {
         if (event.visibility) {
             iconSpan.classList.add('bg-success');
             visibilityBadge.classList.add('bg-success');
-            visibilityBadge.textContent = 'Visible';
+            visibilityBadge.textContent = i18n.t('calendar.visible');
         } else {
             iconSpan.classList.add('bg-danger');
             visibilityBadge.classList.add('bg-danger');
-            visibilityBadge.textContent = 'Invisible';
+            visibilityBadge.textContent = i18n.t('calendar.invisible');
         }
         // Add opacity to bg
         iconSpan.classList.add('bg-opacity-75');
@@ -273,11 +276,11 @@ function createEventTimeline(events) {
  * Get human-readable text for days until event
  */
 function getDaysUntilText(daysUntil) {
-    if (daysUntil < 0) return 'Happening now!';
-    if (daysUntil === 0) return 'Today!';
-    if (daysUntil === 1) return 'Tomorrow!';
-    if (daysUntil <= 7) return `In ${daysUntil} days`;
-    return `In ${daysUntil} days`;
+    if (daysUntil < 0) return i18n.t('calendar.happening_now');
+    if (daysUntil === 0) return i18n.t('calendar.today');
+    if (daysUntil === 1) return i18n.t('calendar.tomorrow');
+    if (daysUntil <= 7) return i18n.t('calendar.in_days', { days: daysUntil });
+    return i18n.t('calendar.in_days', { days: daysUntil });
 }
 
 /**
@@ -286,40 +289,51 @@ function getDaysUntilText(daysUntil) {
 /**
  * Scroll to event details section
  */
-function scrollToEventDetails(eventType) {
+function scrollToEventDetails(eventType, structureKey = null) {
     let subTabName = '';
+
+    if (structureKey) {
+        const structureMap = {
+            moon: 'moon',
+            sun: 'sun',
+            aurora: 'aurora',
+            iss: 'iss',
+            calendar: 'calendar'
+        };
+        subTabName = structureMap[structureKey] || '';
+    }
     
     // Map event types to corresponding tabs
-    if (eventType.includes('Eclipse')) {
+    if (!subTabName && eventType.includes('Eclipse')) {
         subTabName = eventType.includes('Solar') ? 'sun' : 'moon';
-    } else if (eventType === 'Aurora') {
+    } else if (!subTabName && eventType === 'Aurora') {
         subTabName = 'aurora';
-    } else if (eventType === 'ISS Pass') {
+    } else if (!subTabName && eventType === 'ISS Pass') {
         subTabName = 'iss';
-    } else if (eventType === 'Moon Phase') {
+    } else if (!subTabName && eventType === 'Moon Phase') {
         subTabName = 'moon';
-    } else if (eventType.includes('Planetary') || 
+    } else if (!subTabName && (eventType.includes('Planetary') || 
                eventType.includes('Conjunction') || 
                eventType.includes('Opposition') || 
                eventType.includes('Elongation') || 
-               eventType.includes('Retrograde')) {
+               eventType.includes('Retrograde'))) {
         // Navigate to calendar for planetary events overview
         subTabName = 'calendar';
-    } else if (eventType.includes('Equinox') || 
+    } else if (!subTabName && (eventType.includes('Equinox') || 
                eventType.includes('Solstice') || 
                eventType.includes('Zodiacal Light') || 
-               eventType.includes('Milky Way')) {
+               eventType.includes('Milky Way'))) {
         // Navigate to calendar for special phenomena overview
         subTabName = 'calendar';
-    } else if (eventType.includes('Meteor Shower') || 
+    } else if (!subTabName && (eventType.includes('Meteor Shower') || 
                eventType.includes('Comet') || 
-               eventType.includes('Asteroid Occultation')) {
+               eventType.includes('Asteroid Occultation'))) {
         // Navigate to calendar for solar system events overview
         subTabName = 'calendar';
-    } else if (eventType.includes('Sidereal')) {
+    } else if (!subTabName && eventType.includes('Sidereal')) {
         // Navigate to calendar for sidereal time info
         subTabName = 'calendar';
-    } else {
+    } else if (!subTabName) {
         // Default to calendar for any unknown event types
         subTabName = 'calendar';
     }
@@ -345,3 +359,8 @@ function scrollToEventDetails(eventType) {
 
 // Initialize when document is ready
 document.addEventListener('DOMContentLoaded', initializeEventsSystem);
+
+window.addEventListener('i18nLanguageChanged', () => {
+    clearEventsCache();
+    loadAndDisplayEvents();
+});

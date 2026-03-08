@@ -21,6 +21,7 @@ from repo_config import load_config
 from constants import URL_OPENMETEO, DATA_DIR, WIND_TRACKING_THRESHOLD
 from logging_config import get_logger
 from weather_utils import create_weather_client
+from i18n_utils import create_translated_alert
 
 # Create logger with centralized configuration
 logger = get_logger(__name__)
@@ -35,9 +36,10 @@ JET_STREAM_ALTITUDE = 9000  # meters (typical jet stream altitude)
 class AstroWeatherAnalyzer:
     """Advanced weather analysis for astrophotography"""
     
-    def __init__(self):
+    def __init__(self, language: str = "en"):
         self.config = load_config()
         self.location = self.config.get("location", {})
+        self.language = language
         
     def fetch_extended_weather_data(self, forecast_hours: int = 24) -> Optional[Dict]:
         """
@@ -590,52 +592,60 @@ class AstroWeatherAnalyzer:
         # Dew alerts
         critical_dew = next_6h[next_6h["dew_risk_level"] == "CRITICAL"]
         if len(critical_dew) > 0:
-            alerts.append({
-                "type": "DEW_WARNING",
-                "severity": "HIGH",
-                "message": f"Critical dew risk starting at {critical_dew.iloc[0]['datetime'].strftime('%H:%M')}",
-                "time": critical_dew.iloc[0]["datetime"].isoformat()
-            })
+            alerts.append(
+                create_translated_alert(
+                    alert_type="DEW_WARNING",
+                    severity="HIGH",
+                    time=critical_dew.iloc[0]["datetime"].isoformat(),
+                    language=self.language,
+                )
+            )
         
         # High wind alerts
         critical_wind = next_6h[next_6h["wind_tracking_impact"] == "CRITICAL"]
         if len(critical_wind) > 0:
-            alerts.append({
-                "type": "WIND_WARNING", 
-                "severity": "HIGH",
-                "message": f"Critical wind conditions for tracking starting at {critical_wind.iloc[0]['datetime'].strftime('%H:%M')}",
-                "time": critical_wind.iloc[0]["datetime"].isoformat()
-            })
+            alerts.append(
+                create_translated_alert(
+                    alert_type="WIND_WARNING",
+                    severity="HIGH",
+                    time=critical_wind.iloc[0]["datetime"].isoformat(),
+                    language=self.language,
+                )
+            )
         
         # Poor seeing alerts
         poor_seeing = next_6h[next_6h["seeing_pickering"] <= 3]
         if len(poor_seeing) > 0:
-            alerts.append({
-                "type": "SEEING_WARNING",
-                "severity": "MEDIUM", 
-                "message": f"Poor seeing conditions (≤3) starting at {poor_seeing.iloc[0]['datetime'].strftime('%H:%M')}",
-                "time": poor_seeing.iloc[0]["datetime"].isoformat()
-            })
+            alerts.append(
+                create_translated_alert(
+                    alert_type="SEEING_WARNING",
+                    severity="MEDIUM",
+                    time=poor_seeing.iloc[0]["datetime"].isoformat(),
+                    language=self.language,
+                )
+            )
         
         # Low transparency alerts
         poor_transparency = next_6h[next_6h["transparency_score"] <= 30]
         if len(poor_transparency) > 0:
-            alerts.append({
-                "type": "TRANSPARENCY_WARNING",
-                "severity": "MEDIUM",
-                "message": f"Poor transparency conditions starting at {poor_transparency.iloc[0]['datetime'].strftime('%H:%M')}",
-                "time": poor_transparency.iloc[0]["datetime"].isoformat()
-            })
+            alerts.append(
+                create_translated_alert(
+                    alert_type="TRANSPARENCY_WARNING",
+                    severity="MEDIUM",
+                    time=poor_transparency.iloc[0]["datetime"].isoformat(),
+                    language=self.language,
+                )
+            )
         
         return alerts
 
 
-def get_astro_weather_analysis(hours: int = 24) -> Optional[Dict]:
+def get_astro_weather_analysis(hours: int = 24, language: str = "en") -> Optional[Dict]:
     """
     Main function to get comprehensive astrophotography weather analysis
     """
     try:
-        analyzer = AstroWeatherAnalyzer()
+        analyzer = AstroWeatherAnalyzer(language=language)
         return analyzer.generate_comprehensive_analysis(hours)
     except Exception as e:
         logger.exception("Failed to get astro weather analysis")

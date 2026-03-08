@@ -87,17 +87,18 @@ function switchMainTab(tabName) {
 function setupSubTabs() {
     // Use event delegation for dynamically added sub-tabs
     document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('sub-tab-btn')) {
-            // if element clicked has no id, we exit to prevent errors when clicking on elements that are not sub-tab buttons
-            const subtabId = e.target.getAttribute('data-subtab');
-            if (!subtabId) return;
+        // Use closest() to handle clicks on children elements (e.g., <span> inside <a>)
+        const btn = e.target.closest('.sub-tab-btn');
+        if (!btn) return;
 
-            // prevent default link behavior
-            e.preventDefault();
-            const subtabName = e.target.getAttribute('data-subtab');
-            const parentTab = e.target.closest('.main-tab-content').id.replace('-tab', '');
-            switchSubTab(parentTab, subtabName);
-        }
+        const subtabName = btn.getAttribute('data-subtab');
+        if (!subtabName) return;
+
+        // prevent default link behavior
+        e.preventDefault();
+        
+        const parentTab = btn.closest('.main-tab-content').id.replace('-tab', '');
+        switchSubTab(parentTab, subtabName);
     });
 }
 

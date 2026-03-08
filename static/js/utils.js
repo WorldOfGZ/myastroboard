@@ -73,9 +73,14 @@ async function checkCacheStatus() {
                 const stepName = data.step_name || '';
                 
                 if (totalSteps > 0) {
-                    bannerText.textContent = `Updating astronomical data (${currentStep}/${totalSteps}) ${progress}%${stepName ? ' - ' + stepName : ''}...`;
+                    bannerText.textContent = i18n.t('cache.updating_data_details', {
+                        currentStep,
+                        totalSteps,
+                        progress,
+                        stepName
+                    });
                 } else {
-                    bannerText.textContent = 'Updating astronomical data, please wait...';
+                    bannerText.textContent = i18n.t('cache.updating_data');
                 }
             }
             // Check more frequently during initialization (every 10 seconds)
@@ -132,6 +137,7 @@ function escapeForJs(text) {
 // =======================
 
 // Helper function to format ISO date to local time string
+// Example output: "9:30 PM (6/30)" in US locale, "21:30 (30/06)" in many European locales
 function formatTimeThenDate(isoString, locale = navigator.language) {
     if (!isoString) return 'N/A';
     const date = new Date(isoString);
@@ -151,6 +157,8 @@ function formatTimeThenDate(isoString, locale = navigator.language) {
     return `${timeFormatter.format(date)} (${dateFormatter.format(date)})`;
 }
 
+// Format time, then date with seconds
+// Example output: "9:30:45 PM (6/30)" in US locale, "21:30:45 (30/06)" in many European locales
 function formatTimeThenDateWithSeconds(isoString, locale = navigator.language) {
     if (!isoString) return 'N/A';
     const date = new Date(isoString);
@@ -185,6 +193,35 @@ function formatDateFull(isoString, locale = navigator.language) {
     return dateFormatter.format(date);
 }
 
+// Helper function to format ISO datetime to localized date string
+// Example output: "6/30/2024, 9:30 PM" in US locale, "30/06/2024, 21:30" in many European locales
+function formatDateTime(isoString, locale = navigator.language) {
+    if (!isoString) return 'N/A';
+    const date = new Date(isoString);
+    
+    const dateTimeFormatter = new Intl.DateTimeFormat(locale, {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    return dateTimeFormatter.format(date);
+}
+
+// Helper function to format ISO date to localized date string HH:MM
+// Example output: "21:30" in many locales
+function formatTimeOnly(isoString, locale = navigator.language) {
+    if (!isoString) return 'N/A';
+    const date = new Date(isoString);
+    const timeFormatter = new Intl.DateTimeFormat(locale, {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    return timeFormatter.format(date);
+}
+
 
 // Helper function to format date from YYYY-MM-DD to DD/MM/YYYY
 function formatStringToDate(dateInput, locale = navigator.language) {
@@ -214,12 +251,16 @@ function getCardinalDirection(azimuth) {
     const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 
                        'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
     const index = Math.round((azimuth % 360) / 22.5);
-    return directions[index % 16];
+    const direction = directions[index % 16];
+    return i18n.t(`cardinal_directions.${direction}`);
 }
 
 function formatAltAz(altitudeDeg, azimuthCardinal, azimuthDeg) {
-    const safeAlt = Number.isFinite(Number(altitudeDeg)) ? `${Number(altitudeDeg).toFixed(1)}°` : 'N/A';
-    const safeCardinal = escapeHtml(azimuthCardinal || 'N/A');
-    const safeAz = Number.isFinite(Number(azimuthDeg)) ? `${Number(azimuthDeg).toFixed(1)}°` : 'N/A';
+    const safeAlt = Number.isFinite(Number(altitudeDeg)) ? `${Number(altitudeDeg).toFixed(1)}${i18n.t('units.degrees')}` : i18n.t('units.na');
+    const cardinalKey = azimuthCardinal ? `cardinal_directions.${azimuthCardinal}` : null;
+    const safeCardinal = (cardinalKey && i18n.has(cardinalKey))
+        ? escapeHtml(i18n.t(cardinalKey))
+        : i18n.t('units.na');
+    const safeAz = Number.isFinite(Number(azimuthDeg)) ? `${Number(azimuthDeg).toFixed(1)}${i18n.t('units.degrees')}` : i18n.t('units.na');
     return `${safeAlt} / ${safeCardinal} (${safeAz})`;
 }
