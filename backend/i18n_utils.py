@@ -26,9 +26,24 @@ logger = get_logger(__name__)
 # Supported languages
 SUPPORTED_LANGUAGES = ['en', 'fr']
 DEFAULT_LANGUAGE = 'en'
+_TRANSLATION_FILENAMES = {
+    'en': 'en.json',
+    'fr': 'fr.json',
+}
 
 # Cache for loaded translations
 _translation_cache: Dict[str, Dict] = {}
+
+
+def _is_safe_path(base_dir: str, candidate_path: str) -> bool:
+    """Return True only if candidate_path resolves inside base_dir."""
+    base_real = os.path.realpath(base_dir)
+    candidate_real = os.path.realpath(candidate_path)
+    try:
+        return os.path.commonpath([base_real, candidate_real]) == base_real
+    except ValueError:
+        # Different drives on Windows or invalid path combination.
+        return False
 
 
 def _load_translation_file(language: str) -> Dict:
@@ -41,21 +56,29 @@ def _load_translation_file(language: str) -> Dict:
     Returns:
         Dictionary of translations or empty dict if not found
     """
+    # Force language to a known-safe value before building file paths.
+    if language not in SUPPORTED_LANGUAGES:
+        logger.warning(f"Unsupported language '{language}', using default '{DEFAULT_LANGUAGE}'")
+        language = DEFAULT_LANGUAGE
+
     if language in _translation_cache:
         return _translation_cache[language]
+
+    language_file = _TRANSLATION_FILENAMES[language]
     
     # Try to find the translation file
     translation_path = None
     
     # Check multiple possible locations (for both Docker and development)
-    possible_paths = [
-        os.path.join(os.path.dirname(__file__), '..', 'static', 'i18n', f'{language}.json'),
-        os.path.join(os.getcwd(), 'static', 'i18n', f'{language}.json'),
-        os.path.join('/app', 'static', 'i18n', f'{language}.json'),
+    possible_base_dirs = [
+        os.path.join(os.path.dirname(__file__), '..', 'static', 'i18n'),
+        os.path.join(os.getcwd(), 'static', 'i18n'),
+        os.path.join('/app', 'static', 'i18n'),
     ]
     
-    for path in possible_paths:
-        if os.path.exists(path):
+    for base_dir in possible_base_dirs:
+        path = os.path.join(base_dir, language_file)
+        if _is_safe_path(base_dir, path) and os.path.exists(path):
             translation_path = path
             break
     
