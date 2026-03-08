@@ -51,13 +51,6 @@ This document describes features that could potentially be integrated into MyAst
 - Automated backup scheduling
 - Configuration & Astrodex
 
-### Multilanguage
-**Add multiple language**
-- Use of I18n
-- First implement english as it is, then french
-- Automatic switch based on local browser settings
-- IA translation possible ?
-
 ## Upgrade Features
 
 ### Enhanced Uptonight Execution
