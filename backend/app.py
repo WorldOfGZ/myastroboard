@@ -172,6 +172,26 @@ def login_page():
     return render_template('login.html', version=version)
 
 
+@app.route('/manifest.webmanifest')
+def web_manifest():
+    """Serve PWA web manifest"""
+    return send_from_directory(app.static_folder, 'manifest.webmanifest', mimetype='application/manifest+json')
+
+
+@app.route('/sw.js')
+def service_worker():
+    """Serve service worker from root scope for full-app coverage"""
+    response = send_from_directory(app.static_folder, 'sw.js', mimetype='application/javascript')
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
+
+
+@app.route('/offline.html')
+def offline_page():
+    """Serve offline fallback page used by service worker"""
+    return send_from_directory(app.static_folder, 'offline.html')
+
+
 # ============================================================
 # Authentication API
 # ============================================================

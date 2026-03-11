@@ -52,26 +52,30 @@ def _fake_alias_entry(catalogue: str, object_name: str) -> dict:
 
 def test_switch_catalogue_name_api(client, monkeypatch):
     """Test switching displayed name via API endpoint."""
-    monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', _fake_alias_entry)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        monkeypatch.setenv('DATA_DIR', tmpdir)
+        astrodex.ASTRODEX_DIR = os.path.join(tmpdir, 'astrodex')
+        astrodex.ASTRODEX_IMAGES_DIR = os.path.join(astrodex.ASTRODEX_DIR, 'images')
+        monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', _fake_alias_entry)
 
-    user = user_manager.get_user_by_username('admin')
-    item = astrodex.create_astrodex_item(
-        user.user_id,
-        {'name': 'M81', 'type': 'Galaxy', 'catalogue': 'GaryImm'},
-        username=user.username
-    )
-    assert item is not None
+        user = user_manager.get_user_by_username('admin')
+        item = astrodex.create_astrodex_item(
+            user.user_id,
+            {'name': 'M81', 'type': 'Galaxy', 'catalogue': 'GaryImm'},
+            username=user.username
+        )
+        assert item is not None
 
-    response = client.post(
-        f"/api/astrodex/items/{item['id']}/catalogue-name",
-        json={'catalogue': 'OpenNGC'}
-    )
+        response = client.post(
+            f"/api/astrodex/items/{item['id']}/catalogue-name",
+            json={'catalogue': 'OpenNGC'}
+        )
 
-    assert response.status_code == 200
-    payload = response.get_json()
-    assert payload['status'] == 'success'
-    assert payload['item']['name'] == 'NGC 3031'
-    assert payload['item']['catalogue'] == 'OpenNGC'
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert payload['status'] == 'success'
+        assert payload['item']['name'] == 'NGC 3031'
+        assert payload['item']['catalogue'] == 'OpenNGC'
 
 
 def test_switch_catalogue_name_api_missing_catalogue(client):
@@ -199,7 +203,11 @@ def test_get_astrodex_image_private_mode_blocks_other_user_images(client, monkey
             file_obj.write(b'img')
 
         own_response = client.get('/api/astrodex/images/own.jpg')
+        own_response.get_data()
+        own_response.close()
         assert own_response.status_code == 200
 
         other_response = client.get('/api/astrodex/images/other.jpg')
+        other_response.get_data()
+        other_response.close()
         assert other_response.status_code == 403

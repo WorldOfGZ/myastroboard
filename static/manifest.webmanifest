@@ -1,0 +1,70 @@
+{
+  "name": "MyAstroBoard",
+  "short_name": "AstroBoard",
+  "description": "Astronomy observation planning dashboard with forecasts, events, and target management.",
+  "lang": "en",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "categories": [
+    "productivity",
+    "utilities",
+    "science"
+  ],
+  "icons": [
+    {
+      "src": "/static/ico/android/launchericon-48x48.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/ico/android/launchericon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/ico/android/launchericon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/ico/android/launchericon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/ico/android/launchericon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/ico/android/launchericon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/static/img/pwa-screenshot-wide.png",
+      "sizes": "1556x760",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "MyAstroBoard dashboard on desktop"
+    },
+    {
+      "src": "/static/img/pwa-screenshot-mobile.png",
+      "sizes": "1554x756",
+      "type": "image/png",
+      "label": "MyAstroBoard weather view"
+    }
+  ]
+}

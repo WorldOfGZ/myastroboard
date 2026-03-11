@@ -2,6 +2,46 @@
 // Moon 
 // ======================
 
+let moonSvgTemplatePromise = null;
+
+function getMoonSvgTemplate() {
+    if (!moonSvgTemplatePromise) {
+        moonSvgTemplatePromise = fetch('/static/img/moon.svg')
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`Unable to load moon.svg (${response.status})`);
+                }
+                return response.text();
+            })
+            .then((svgText) => {
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+                const svg = svgDoc.querySelector('svg');
+                if (!svg) {
+                    throw new Error('moon.svg does not contain a root <svg> element');
+                }
+                return svg;
+            });
+    }
+    return moonSvgTemplatePromise;
+}
+
+async function createMoonPhaseSvg(illumination, waxing) {
+    const svgTemplate = await getMoonSvgTemplate();
+    const moonSvg = svgTemplate.cloneNode(true);
+    const terminator = moonSvg.querySelector('#terminator');
+    if (terminator) {
+        const clampedIllumination = Math.max(0, Math.min(1, Number.isFinite(illumination) ? illumination : 0));
+        // In direct shadow-mask mode: larger ellipse means larger shadow area.
+        const rx = 44 * (1 - clampedIllumination);
+        terminator.setAttribute('rx', rx);
+        // Waxing is lit on the right, so shadow sits on the left.
+        terminator.setAttribute('cx', waxing ? 50 - rx : 50 + rx);
+    }
+    moonSvg.setAttribute('width', '80');
+    return moonSvg;
+}
+
 //Load moon data
 async function loadMoon() {
     const container = document.getElementById('moon-display');
@@ -12,17 +52,10 @@ async function loadMoon() {
     if (data.moon) {
         const moon = data.moon;
         
-        // Determine moon emoji based on illumination and phase
-        const phaseEmojiMap = {
-            "New Moon": "🌑",
-            "Waxing Crescent": "🌒",
-            "First Quarter": "🌓",
-            "Waxing Gibbous": "🌔",
-            "Full Moon": "🌕",
-            "Waning Gibbous": "🌖",
-            "Last Quarter": "🌗",
-            "Waning Crescent": "🌘"
-        };
+        const waxingPhases = new Set(["New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous"]);
+        const waxing = waxingPhases.has(moon.phase_name);
+        const illumination = moon.illumination_percent / 100;
+
         const phaseTextMap = {
             "New Moon": i18n.t('moon.new_moon'),
             "Waxing Crescent": i18n.t('moon.waxing_crescent'),
@@ -34,14 +67,18 @@ async function loadMoon() {
             "Waning Crescent": i18n.t('moon.waning_crescent')
         };
 
-        let moonEmoji = phaseEmojiMap[moon.phase_name] || '🌑';
         DOMUtils.clear(container);
 
         const header = document.createElement('div');
         header.className = 'd-flex flex-row align-items-center mb-3';
         const icon = document.createElement('div');
-        icon.className = 'p-2 icon-weather-lg';
-        icon.textContent = moonEmoji;
+        icon.className = 'p-2';
+        const moonVisual = document.createElement('div');
+        moonVisual.setAttribute('role', 'img');
+        moonVisual.setAttribute('aria-label', phaseTextMap[moon.phase_name] || moon.phase_name);
+        const moonSvg = await createMoonPhaseSvg(illumination, waxing);
+        moonVisual.appendChild(moonSvg);
+        icon.appendChild(moonVisual);
         const titleWrap = document.createElement('div');
         titleWrap.className = 'p-2';
         const phaseTitle = document.createElement('div');
@@ -64,14 +101,14 @@ async function loadMoon() {
             card.className = 'card h-100';
             const cardHeader = document.createElement('div');
             cardHeader.className = 'card-header fw-bold';
-            cardHeader.textContent = titleText;
+            cardHeader.innerHTML = titleText;
             const list = document.createElement('ul');
             list.className = 'list-group list-group-flush';
             lines.forEach(({ label, value }) => {
                 const li = document.createElement('li');
                 li.className = 'list-group-item d-flex justify-content-between align-items-center';
                 const left = document.createElement('span');
-                left.textContent = label;
+                left.innerHTML = label;
                 const right = document.createElement('span');
                 right.className = 'fw-bold';
                 right.textContent = value;
@@ -85,19 +122,19 @@ async function loadMoon() {
             return col;
         };
 
-        row.appendChild(createCard(`🌑 ${i18n.t('common.moon')}`, [
-            { label: `🌅 ${i18n.t('moon.rise')}`, value: formatTimeThenDate(moon.next_moonrise) },
-            { label: `🌇 ${i18n.t('moon.set')}`, value: formatTimeThenDate(moon.next_moonset) }
+        row.appendChild(createCard(`<i class="bi bi-moon-stars icon-inline" aria-hidden="true"></i>${i18n.t('common.moon')}`, [
+            { label: `<i class="bi bi-sunrise icon-inline" aria-hidden="true"></i>${i18n.t('moon.rise')}`, value: formatTimeThenDate(moon.next_moonrise) },
+            { label: `<i class="bi bi-sunset icon-inline" aria-hidden="true"></i>${i18n.t('moon.set')}`, value: formatTimeThenDate(moon.next_moonset) }
         ]));
-        row.appendChild(createCard(`📐 ${i18n.t('moon.position')}`, [
-            { label: `📏 ${i18n.t('moon.distance')}`, value: moon.distance_km ? `${Math.round(moon.distance_km).toLocaleString()} ${i18n.t('units.km')}` : i18n.t('units.na') },
-            { label: `📐 ${i18n.t('moon.altitude')}`, value: moon.altitude_deg ? `${moon.altitude_deg.toFixed(2)}${i18n.t('units.degrees')}` : i18n.t('units.na') },
-            { label: `🧭 ${i18n.t('moon.azimuth')}`, value: moon.azimuth_deg ? `${moon.azimuth_deg.toFixed(2)}${i18n.t('units.degrees')}` : i18n.t('units.na') }
+        row.appendChild(createCard(`<i class="bi bi-compass icon-inline" aria-hidden="true"></i>${i18n.t('moon.position')}`, [
+            { label: `<i class="bi bi-rulers icon-inline" aria-hidden="true"></i>${i18n.t('moon.distance')}`, value: moon.distance_km ? `${Math.round(moon.distance_km).toLocaleString()} ${i18n.t('units.km')}` : i18n.t('units.na') },
+            { label: `<i class="bi bi-arrows-angle-expand icon-inline" aria-hidden="true"></i>${i18n.t('moon.altitude')}`, value: moon.altitude_deg ? `${moon.altitude_deg.toFixed(2)}${i18n.t('units.degrees')}` : i18n.t('units.na') },
+            { label: `<i class="bi bi-compass icon-inline" aria-hidden="true"></i>${i18n.t('moon.azimuth')}`, value: moon.azimuth_deg ? `${moon.azimuth_deg.toFixed(2)}${i18n.t('units.degrees')}` : i18n.t('units.na') }
         ]));
-        row.appendChild(createCard(`🌕 ${i18n.t('moon.next_events')}`, [
-            { label: `🌕 ${i18n.t('moon.next_full_moon')}`, value: formatTimeThenDate(moon.next_full_moon) },
-            { label: `🌑 ${i18n.t('moon.next_new_moon')}`, value: formatTimeThenDate(moon.next_new_moon) },
-            { label: `🌌 ${i18n.t('moon.next_dark_night')}`, value: formatTimeThenDate(moon.next_dark_night_start) }
+        row.appendChild(createCard(`<i class="bi bi-calendar-event text-danger icon-inline" aria-hidden="true"></i>${i18n.t('moon.next_events')}`, [
+            { label: `<i class="bi bi-moon-stars-fill icon-inline" aria-hidden="true"></i>${i18n.t('moon.next_full_moon')}`, value: formatTimeThenDate(moon.next_full_moon) },
+            { label: `<i class="bi bi-moon-fill icon-inline" aria-hidden="true"></i>${i18n.t('moon.next_new_moon')}`, value: formatTimeThenDate(moon.next_new_moon) },
+            { label: `<i class="bi bi-stars icon-inline" aria-hidden="true"></i>${i18n.t('moon.next_dark_night')}`, value: formatTimeThenDate(moon.next_dark_night_start) }
         ]));
 
         container.appendChild(header);
@@ -177,7 +214,9 @@ async function loadNextMoonPhases() {
                 const addItem = (label, value = null) => {
                     const li = document.createElement('li');
                     li.className = 'list-group-item d-flex justify-content-between align-items-center';
-                    li.append(label);
+                    const labelSpan = document.createElement('span');
+                    labelSpan.innerHTML = label;
+                    li.appendChild(labelSpan);
                     if (value !== null) {
                         const span = document.createElement('span');
                         span.textContent = value;
@@ -186,9 +225,9 @@ async function loadNextMoonPhases() {
                     list.appendChild(li);
                 };
 
-                addItem(`🌗 ${i18n.t('moon.illumination')}`, `${illumination_percent}${i18n.t('units.percent')}`);
-                addItem(`📐 ${i18n.t('moon.max_altitude')}`, `${max_altitude}${i18n.t('units.degrees')}`);
-                addItem(`🌌 ${i18n.t('moon.dark_time')}`);
+                addItem(`<i class="bi bi-moon text-warning icon-inline" aria-hidden="true"></i>${i18n.t('moon.illumination')}`, `${illumination_percent}${i18n.t('units.percent')}`);
+                addItem(`<i class="bi bi-arrows-angle-expand icon-inline" aria-hidden="true"></i>${i18n.t('moon.max_altitude')}`, `${max_altitude}${i18n.t('units.degrees')}`);
+                addItem(`<i class="bi bi-stars icon-inline" aria-hidden="true"></i>${i18n.t('moon.dark_time')}`);
                 addItem(` > ${i18n.t('best_window.strict')}`, `${dark_hours_strict} ${i18n.t('units.hour')}`);
                 addItem(` > ${i18n.t('best_window.practical')}`, `${dark_hours_practical} ${i18n.t('units.hour')}`);
                 addItem(` > ${i18n.t('best_window.illumination')}`, `${dark_hours_illumination} ${i18n.t('units.hour')}`);
@@ -290,22 +329,22 @@ async function loadBestDarkWindow() {
         card.className = 'card h-100';
         const header = document.createElement('div');
         header.className = 'card-header';
-        header.textContent = `🌌 ${i18n.t('best_window.next_window')}`;
+        header.innerHTML = `<i class="bi bi-stars icon-inline" aria-hidden="true"></i>${i18n.t('best_window.next_window')}`;
         const list = document.createElement('ul');
         list.className = 'list-group list-group-flush';
         const addTiming = (labelText, valueText) => {
             const li = document.createElement('li');
             li.className = 'list-group-item d-flex justify-content-between align-items-center';
             const label = document.createElement('span');
-            label.textContent = labelText;
+            label.innerHTML = labelText;
             const value = document.createElement('span');
             value.textContent = valueText;
             li.appendChild(label);
             li.appendChild(value);
             list.appendChild(li);
         };
-        addTiming(`🌆 ${i18n.t('best_window.start')}`, formatTimeThenDate(start));
-        addTiming(`🌅 ${i18n.t('best_window.end')}`, formatTimeThenDate(end));
+        addTiming(`<i class="bi bi-sunset icon-inline" aria-hidden="true"></i>${i18n.t('best_window.start')}`, formatTimeThenDate(start));
+        addTiming(`<i class="bi bi-sunrise icon-inline" aria-hidden="true"></i>${i18n.t('best_window.end')}`, formatTimeThenDate(end));
         card.appendChild(header);
         card.appendChild(list);
         item.appendChild(card);
@@ -402,7 +441,9 @@ async function loadBestDarkWindow() {
             const addModeItem = (labelText, valueText) => {
                 const li = document.createElement('li');
                 li.className = 'list-group-item d-flex justify-content-between align-items-center';
-                li.append(labelText);
+                const label = document.createElement('span');
+                label.innerHTML = labelText;
+                li.appendChild(label);
                 const span = document.createElement('span');
                 span.textContent = valueText;
                 li.appendChild(span);
@@ -426,10 +467,10 @@ async function loadBestDarkWindow() {
                     moonConditionText = modeData.best_window.moon_condition;
                     break;
             }
-            addModeItem(`💯 ${i18n.t('best_window.score')}`, String(modeData.best_window.score));
-            addModeItem(`🌚 ${i18n.t('best_window.moon_condition')}`, moonConditionText);
-            addModeItem(`🌗 ${i18n.t('best_window.start')}`, start_txt);
-            addModeItem(`🌗 ${i18n.t('best_window.end')}`, end_txt);
+            addModeItem(`<i class="bi bi-activity icon-inline" aria-hidden="true"></i>${i18n.t('best_window.score')}`, String(modeData.best_window.score));
+            addModeItem(`<i class="bi bi-moon-stars icon-inline" aria-hidden="true"></i>${i18n.t('best_window.moon_condition')}`, moonConditionText);
+            addModeItem(`<i class="bi bi-sunset icon-inline" aria-hidden="true"></i>${i18n.t('best_window.start')}`, start_txt);
+            addModeItem(`<i class="bi bi-sunrise icon-inline" aria-hidden="true"></i>${i18n.t('best_window.end')}`, end_txt);
             modeCard.appendChild(modeHeader);
             modeCard.appendChild(modeList);
             item.appendChild(modeCard);

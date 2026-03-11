@@ -56,6 +56,10 @@ body {
     margin: 0;
 }
 
+.icon-inline {
+    margin-right: 0.35rem;
+}
+
 /*Pimp bootstrap*/
 h3 {
     color: var(--text-light) !important;
@@ -228,6 +232,15 @@ h3 {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
+}
+
+.pwa-install-btn {
+    white-space: nowrap;
+}
+
+.pwa-install-status {
+    font-size: 0.8rem;
+    opacity: 0.9;
 }
 
 .language-select {

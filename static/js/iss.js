@@ -80,7 +80,7 @@ async function loadIss() {
         card.className = 'card h-100 border-success';
         const cardHeader = document.createElement('div');
         cardHeader.className = 'card-header fw-bold';
-        cardHeader.textContent = `✅ ${i18n.t('iss.next_visible_passage')}`;
+        cardHeader.innerHTML = `<i class="bi bi-check-circle-fill text-success icon-inline" aria-hidden="true"></i>${i18n.t('iss.next_visible_passage')}`;
         const cardBody = document.createElement('div');
         cardBody.className = 'card-body';
         const bodyRow = document.createElement('div');
@@ -92,8 +92,9 @@ async function loadIss() {
             items.forEach(({ label, value }) => {
                 const line = document.createElement('div');
                 const strong = document.createElement('strong');
-                strong.textContent = `${label} `;
+                strong.innerHTML = label;
                 line.appendChild(strong);
+                line.append(' ');
                 line.append(value);
                 infoCol.appendChild(line);
             });
@@ -101,15 +102,15 @@ async function loadIss() {
         };
 
         bodyRow.appendChild(createInfoColumn([
-            { label: `🕐 ${i18n.t('iss.start')}`, value: formatTimeThenDateWithSeconds(nextVisible.start_time) },
-            { label: `⏱️ ${i18n.t('iss.culmination')}`, value: formatTimeThenDateWithSeconds(nextVisible.peak_time) },
-            { label: `🕔 ${i18n.t('iss.end')}`, value: formatTimeThenDateWithSeconds(nextVisible.end_time) }
+            { label: `<i class="bi bi-clock icon-inline" aria-hidden="true"></i>${i18n.t('iss.start')}`, value: formatTimeThenDateWithSeconds(nextVisible.start_time) },
+            { label: `<i class="bi bi-stopwatch icon-inline" aria-hidden="true"></i>${i18n.t('iss.culmination')}`, value: formatTimeThenDateWithSeconds(nextVisible.peak_time) },
+            { label: `<i class="bi bi-clock-history icon-inline" aria-hidden="true"></i>${i18n.t('iss.end')}`, value: formatTimeThenDateWithSeconds(nextVisible.end_time) }
         ]));
 
         bodyRow.appendChild(createInfoColumn([
-            { label: `📐 ${i18n.t('iss.start_alt_az')}`, value: formatAltAz(nextVisible.start_altitude_deg, nextVisible.start_azimuth_cardinal, nextVisible.start_azimuth_deg) },
-            { label: `📐 ${i18n.t('iss.peak_alt_az')}`, value: formatAltAz(nextVisible.peak_altitude_deg, nextVisible.peak_azimuth_cardinal, nextVisible.peak_azimuth_deg) },
-            { label: `📐 ${i18n.t('iss.end_alt_az')}`, value: formatAltAz(nextVisible.end_altitude_deg, nextVisible.end_azimuth_cardinal, nextVisible.end_azimuth_deg) }
+            { label: `<i class="bi bi-compass icon-inline" aria-hidden="true"></i>${i18n.t('iss.start_alt_az')}`, value: formatAltAz(nextVisible.start_altitude_deg, nextVisible.start_azimuth_cardinal, nextVisible.start_azimuth_deg) },
+            { label: `<i class="bi bi-compass icon-inline" aria-hidden="true"></i>${i18n.t('iss.peak_alt_az')}`, value: formatAltAz(nextVisible.peak_altitude_deg, nextVisible.peak_azimuth_cardinal, nextVisible.peak_azimuth_deg) },
+            { label: `<i class="bi bi-compass icon-inline" aria-hidden="true"></i>${i18n.t('iss.end_alt_az')}`, value: formatAltAz(nextVisible.end_altitude_deg, nextVisible.end_azimuth_cardinal, nextVisible.end_azimuth_deg) }
         ]));
 
         cardBody.appendChild(bodyRow);
@@ -134,7 +135,7 @@ async function loadIss() {
     tableCard.className = 'card h-100';
     const tableHeader = document.createElement('div');
     tableHeader.className = 'card-header fw-bold';
-    tableHeader.textContent = `📅 ${i18n.t('iss.upcoming_passages')}`;
+    tableHeader.innerHTML = `<i class="bi bi-calendar-event text-danger icon-inline" aria-hidden="true"></i>${i18n.t('iss.upcoming_passages')}`;
     const tableResponsive = document.createElement('div');
     tableResponsive.className = 'table-responsive';
     const table = document.createElement('table');

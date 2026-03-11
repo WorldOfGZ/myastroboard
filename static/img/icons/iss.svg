@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+fill="none" stroke="white" stroke-linecap="round"
+stroke-linejoin="round" stroke-width="1.6">
+
+<!-- central body -->
+<circle cx="12" cy="12" r="1.6" fill="white" stroke="none"/>
+
+<!-- structure -->
+<line x1="12" y1="3" x2="12" y2="21"/>
+
+<!-- arm -->
+<line x1="6" y1="9" x2="18" y2="9"/>
+<line x1="6" y1="15" x2="18" y2="15"/>
+
+<!-- solar panels -->
+<rect x="2" y="7.6" width="4" height="2.8" fill="white" stroke="none"/>
+<rect x="18" y="7.6" width="4" height="2.8" fill="white" stroke="none"/>
+
+<rect x="2" y="13.6" width="4" height="2.8" fill="white" stroke="none"/>
+<rect x="18" y="13.6" width="4" height="2.8" fill="white" stroke="none"/>
+
+</svg>

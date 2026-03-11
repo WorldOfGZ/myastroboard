@@ -5,6 +5,7 @@ Tests the server-side cache management system with TTL-based expiration
 import pytest
 import time
 import os
+import cache_store
 from constants import CACHE_TTL, WEATHER_CACHE_TTL, DATA_DIR_CACHE
 
 # Import cache variables and functions to test
@@ -105,34 +106,39 @@ class TestCacheStructures:
 
 class TestCacheInitialValues:
     """Test initial cache values"""
+
+    @pytest.fixture(autouse=True)
+    def _reset_caches_before_test(self):
+        """Ensure assertions run against a clean cache state."""
+        reset_all_caches()
     
     def test_moon_report_cache_initial_values(self):
         """Test _moon_report_cache initial values"""
         # Initial timestamp should be 0
-        assert _moon_report_cache['timestamp'] == 0
+        assert cache_store._moon_report_cache['timestamp'] == 0
         # Initial data should be None
-        assert _moon_report_cache['data'] is None
+        assert cache_store._moon_report_cache['data'] is None
     
     def test_sun_report_cache_initial_values(self):
         """Test _sun_report_cache initial values"""
-        assert _sun_report_cache['timestamp'] == 0
-        assert _sun_report_cache['data'] is None
+        assert cache_store._sun_report_cache['timestamp'] == 0
+        assert cache_store._sun_report_cache['data'] is None
     
     def test_best_window_cache_initial_values(self):
         """Test _best_window_cache initial values"""
         for key in ['strict', 'practical', 'illumination']:
-            assert _best_window_cache[key]['timestamp'] == 0
-            assert _best_window_cache[key]['data'] is None
+            assert cache_store._best_window_cache[key]['timestamp'] == 0
+            assert cache_store._best_window_cache[key]['data'] is None
     
     def test_moon_planner_report_cache_initial_values(self):
         """Test _moon_planner_report_cache initial values"""
-        assert _moon_planner_report_cache['timestamp'] == 0
-        assert _moon_planner_report_cache['data'] is None
+        assert cache_store._moon_planner_report_cache['timestamp'] == 0
+        assert cache_store._moon_planner_report_cache['data'] is None
     
     def test_dark_window_report_cache_initial_values(self):
         """Test _dark_window_report_cache initial values"""
-        assert _dark_window_report_cache['timestamp'] == 0
-        assert _dark_window_report_cache['data'] is None
+        assert cache_store._dark_window_report_cache['timestamp'] == 0
+        assert cache_store._dark_window_report_cache['data'] is None
     
     def test_location_config_initial_values(self):
         """Test _last_known_location_config initial values (None)"""
@@ -378,11 +384,11 @@ class TestCacheInitStatus:
         assert "best_window_illumination" in status
         assert "moon_planner" in status
         assert "dark_window" in status
-            assert "all_ready" in status
-            assert "planetary_events" in status
-            assert "special_phenomena" in status
-            assert "solar_system_events" in status
-            assert "sidereal_time" in status
+        assert "all_ready" in status
+        assert "planetary_events" in status
+        assert "special_phenomena" in status
+        assert "solar_system_events" in status
+        assert "sidereal_time" in status
         assert "in_progress" in status
         
         # Should be booleans

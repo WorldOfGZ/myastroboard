@@ -17,7 +17,7 @@ function createAstroChartShell(title, canvasId, legendItems = [], footerText = '
     header.className = 'card-header';
     const h5 = document.createElement('h5');
     h5.className = 'mb-0';
-    h5.textContent = title;
+    h5.innerHTML = title;
     header.appendChild(h5);
 
     const body = document.createElement('div');
@@ -70,7 +70,7 @@ function createAstroConditionCard({ title, value, valueClass = 'text-primary', b
 
     const cardTitle = document.createElement('div');
     cardTitle.className = 'card-body';
-    cardTitle.textContent = title;
+    cardTitle.innerHTML = title;
 
     const body = document.createElement('div');
     body.className = 'card-body text-center';
@@ -168,7 +168,7 @@ async function loadAstroWeather() {
             body.className = 'card-body';
             const title = document.createElement('h5');
             title.className = 'card-title';
-            title.textContent = `☁️ ${i18n.t('common.error')}`;
+            title.replaceChildren(DOMUtils.createIcon('bi bi-clouds', 'icon-inline'), document.createTextNode(` ${i18n.t('common.error')}`));
             const text = document.createElement('p');
             text.className = 'card-text';
             text.textContent = `${i18n.t('common.failed_to_load_element')}${error.message}`;
@@ -198,35 +198,35 @@ function renderCurrentAstroConditions(conditions) {
     DOMUtils.clear(container);
     const cards = [
         createAstroConditionCard({
-            title: `👁️ ${i18n.t('astro_weather.seeing')}`,
+            title: `<i class="bi bi-eye icon-inline" aria-hidden="true"></i>${i18n.t('astro_weather.seeing')}`,
             value: `${conditions.seeing_pickering}/10`,
             badgeClass: `astro-quality-text quality-box ${seeingQuality.class}`,
             badgeText: seeingQuality.text,
             note: i18n.t('astro_weather.pickering_scale')
         }),
         createAstroConditionCard({
-            title: `✨ ${i18n.t('astro_weather.transparency')}`,
+            title: `<i class="bi bi-stars text-warning icon-inline" aria-hidden="true"></i>${i18n.t('astro_weather.transparency')}`,
             value: `${conditions.limiting_magnitude}m`,
             badgeClass: `astro-quality-text quality-box ${transparencyQuality.class}`,
             badgeText: transparencyQuality.text,
             note: i18n.t('astro_weather.limiting_magnitude')
         }),
         createAstroConditionCard({
-            title: `☁️ ${i18n.t('astro_weather.cloud_layers')}`,
+            title: `<i class="bi bi-clouds icon-inline" aria-hidden="true"></i>${i18n.t('astro_weather.cloud_layers')}`,
             value: `${Math.round(conditions.cloud_discrimination)}%`,
             badgeClass: `astro-quality-text quality-box ${cloudQuality.class}`,
             badgeText: cloudQuality.text,
             note: i18n.t('astro_weather.discrimination_score')
         }),
         createAstroConditionCard({
-            title: `💧 ${i18n.t('astro_weather.dew_risk')}`,
+            title: `<i class="bi bi-droplet text-primary icon-inline" aria-hidden="true"></i>${i18n.t('astro_weather.dew_risk')}`,
             value: `${Math.round(conditions.dew_point_spread * 10) / 10}${i18n.t('units.temperature_celsius')}`,
             badgeClass: `astro-quality-text dew-box ${dewRiskColor.class}`,
             badgeText: `${dewRiskColor.text}`,
             note: i18n.t('astro_weather.temperature_spread')
         }),
         createAstroConditionCard({
-            title: `🎯 ${i18n.t('astro_weather.tracking')}`,
+            title: `<i class="bi bi-crosshair2 icon-inline" aria-hidden="true"></i>${i18n.t('astro_weather.tracking')}`,
             value: `${conditions.tracking_stability_score}%`,
             badgeClass: `astro-quality-text quality-box ${trackingQuality.class}`,
             badgeText: trackingQuality.text,
@@ -267,8 +267,8 @@ function renderBestObservationPeriods(periods) {
     if (!periods || periods.length === 0) {
         DOMUtils.clear(container);
         const icon = document.createElement('h1');
+        icon.replaceChildren(DOMUtils.createIcon('bi bi-emoji-frown'));
         icon.className = 'astro-icon text-center';
-        icon.textContent = '😔';
         const text = document.createElement('div');
         text.className = 'text-center';
         text.textContent = i18n.t('astro_weather.no_observation_periods');
@@ -369,7 +369,7 @@ function renderSeeingTransparencyChart(labels, data) {
     const transparencyData = data.map(item => item.transparency_score);
     
     DOMUtils.clear(container);
-    container.appendChild(createAstroChartShell(`👁️ ${i18n.t('astro_weather.chart_seeing_title')}` , 'astro-seeing-chart', [
+    container.appendChild(createAstroChartShell(`<i class="bi bi-eye icon-inline" aria-hidden="true"></i>${i18n.t('astro_weather.chart_seeing_title')}` , 'astro-seeing-chart', [
         { label: i18n.t('astro_weather.seeing_label'), color: '#3b82f6' },
         { label: i18n.t('astro_weather.transparency_label'), color: '#a855f7' }
     ], i18n.t('astro_weather.quality_score_label')));
@@ -466,7 +466,7 @@ function renderCloudLayersChart(labels, data) {
     const lowCloudImpact = data.map(item => item.low_cloud_impact);
     
     DOMUtils.clear(container);
-    container.appendChild(createAstroChartShell(`☁️ ${i18n.t('astro_weather.chart_cloud_title')}`, 'astro-clouds-chart', [
+    container.appendChild(createAstroChartShell(`<i class="bi bi-clouds icon-inline" aria-hidden="true"></i>${i18n.t('astro_weather.chart_cloud_title')}`, 'astro-clouds-chart', [
         { label: i18n.t('astro_weather.high_cloud_impact'), color: '#22c55e' },
         { label: i18n.t('astro_weather.mid_cloud_impact'), color: '#fbbf24' },
         { label: i18n.t('astro_weather.low_cloud_impact'), color: '#ef4444' }
@@ -570,7 +570,7 @@ function renderDewTrackingChart(labels, data) {
     const trackingScore = data.map(item => item.tracking_stability_score);
     
     DOMUtils.clear(container);
-    container.appendChild(createAstroChartShell(`💧 ${i18n.t('astro_weather.chart_dew_tracking_title')}`, 'astro-conditions-chart', [
+    container.appendChild(createAstroChartShell(`<i class="bi bi-droplet icon-inline" aria-hidden="true"></i>${i18n.t('astro_weather.chart_dew_tracking_title')}`, 'astro-conditions-chart', [
         { label: i18n.t('astro_weather.dew_label'), color: '#06b6d4' },
         { label: i18n.t('astro_weather.tracking_stability_label'), color: '#f56565' }
     ], i18n.t('astro_weather.score_100_label')));
@@ -663,7 +663,7 @@ function renderWeatherAlerts(alerts) {
         alert.setAttribute('role', 'alert');
         const title = document.createElement('div');
         title.className = 'fw-bold';
-        title.textContent = `✅ ${i18n.t('weather_alerts.no_astro_alerts')}`;
+        title.replaceChildren(DOMUtils.createIcon('bi bi-check-circle-fill text-success', 'icon-inline'), document.createTextNode(` ${i18n.t('weather_alerts.no_astro_alerts')}`));
         alert.appendChild(title);
         container.appendChild(alert);
         return;
@@ -686,7 +686,7 @@ function renderWeatherAlerts(alerts) {
         const title = document.createElement('div');
         title.className = 'fw-bold';
         const time = new Date(alertData.time);
-        title.textContent = `${getSeverityIcon(alertData.severity)} ${getWeatherAlertTypeLabel(alertData.type)} ${formatTimeOnly(time)}`;
+        title.replaceChildren(DOMUtils.createIcon(getSeverityIcon(alertData.severity), 'icon-inline'), document.createTextNode(` ${getWeatherAlertTypeLabel(alertData.type)} ${formatTimeOnly(time)}`));
 
         const message = document.createElement('div');
         message.textContent = alertData.message;
@@ -744,10 +744,10 @@ function getDewRiskColor(riskLevel) {
 
 function getSeverityIcon(severity) {
     switch (severity) {
-        case 'HIGH': return '🔴';
-        case 'MEDIUM': return '🟡';
-        case 'LOW': return '🟢';
-        default: return 'ℹ️';
+        case 'HIGH': return 'bi bi-circle-fill text-danger';
+        case 'MEDIUM': return 'bi bi-circle-fill text-warning';
+        case 'LOW': return 'bi bi-circle-fill text-success';
+        default: return 'bi bi-info-circle';
     }
 }
 

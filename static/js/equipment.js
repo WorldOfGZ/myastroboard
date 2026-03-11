@@ -152,13 +152,13 @@ function createCardFooter(editClass, deleteClass, id) {
     editButton.className = `btn btn-outline-secondary ${editClass}`;
     editButton.setAttribute('data-id', id);
     editButton.setAttribute('title', i18n.t('equipment.edit'));
-    editButton.textContent = '✏️';
+    editButton.appendChild(DOMUtils.createIcon('bi bi-pencil-square'));
 
     const deleteButton = document.createElement('button');
     deleteButton.className = `btn btn-outline-danger ${deleteClass}`;
     deleteButton.setAttribute('data-id', id);
     deleteButton.setAttribute('title', i18n.t('equipment.delete'));
-    deleteButton.textContent = '🗑️';
+    deleteButton.appendChild(DOMUtils.createIcon('bi bi-trash'));
 
     footer.appendChild(placeholder);
     footer.appendChild(editButton);
@@ -200,11 +200,11 @@ function renderCombinationsTab() {
         
         let payloadAlert = '';
         if (isOverCapacity) {
-            payloadAlert = `⚠️ ${i18n.t('equipment.overweight', { totalweight: totalWeight.toFixed(1), mountcapacity: mountCapacity })}`;
+            payloadAlert = i18n.t('equipment.overweight', { totalweight: totalWeight.toFixed(1), mountcapacity: mountCapacity });
         } else if (isOverRecommended) {
-            payloadAlert = `⚠️ ${i18n.t('equipment.recommanded_max_payload', { totalweight: totalWeight.toFixed(1), mountrecommended: mountRecommended })}`;
+            payloadAlert = i18n.t('equipment.recommanded_max_payload', { totalweight: totalWeight.toFixed(1), mountrecommended: mountRecommended });
         } else if (mount) {
-            payloadAlert = `✓ ${i18n.t('equipment.payload', { totalweight: totalWeight.toFixed(1), mountcapacity: mountCapacity })}`;
+            payloadAlert = i18n.t('equipment.payload', { totalweight: totalWeight.toFixed(1), mountcapacity: mountCapacity });
         }
 
         const col = document.createElement('div');
@@ -265,7 +265,7 @@ function renderFOVCalculatorTab() {
     body.className = 'card-body';
     const title = document.createElement('h5');
     title.className = 'card-title';
-    title.textContent = `🔭 ${i18n.t('equipment.fov_calculator')}`;
+    title.innerHTML = `<i class="bi bi-binoculars icon-inline" aria-hidden="true"></i>${i18n.t('equipment.fov_calculator')}`;
     body.appendChild(title);
 
     const row1 = document.createElement('div');
@@ -578,7 +578,7 @@ function renderMountsTab() {
         p.className = 'card-text';
         appendInfoLine(p, i18n.t('equipment.type'), mount.mount_type);
         appendInfoLine(p, i18n.t('equipment.max_payload'), `${mount.payload_capacity_kg}${i18n.t('units.kg')}`);
-        appendInfoLine(p, i18n.t('equipment.guiding'), mount.guiding_supported ? `✅ ${i18n.t('equipment.yes')}` : `❌ ${i18n.t('equipment.no')}`);
+        appendInfoLine(p, i18n.t('equipment.guiding'), mount.guiding_supported ? i18n.t('equipment.yes') : i18n.t('equipment.no'));
         body.appendChild(p);
 
         card.appendChild(body);

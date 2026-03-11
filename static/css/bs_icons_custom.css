@@ -1,0 +1,54 @@
+/* Custom icons that behave like Bootstrap Icons (bi bi-*) */
+
+.bi-iss::before,
+.bi-telescope::before,
+.bi-conjonction::before,
+.bi-galaxy::before,
+.bi-aurora::before,
+.bi-comet::before {
+    content: "";
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.125em;
+    background-color: currentColor;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+}
+
+.bi-iss::before {
+    -webkit-mask-image: url('/static/img/icons/iss.svg');
+    mask-image: url('/static/img/icons/iss.svg');
+}
+
+.bi-telescope::before {
+    -webkit-mask-image: url('/static/img/icons/telescope.svg');
+    mask-image: url('/static/img/icons/telescope.svg');
+}
+
+.bi-conjonction::before {
+    -webkit-mask-image: url('/static/img/icons/conjonction.svg');
+    mask-image: url('/static/img/icons/conjonction.svg');
+}
+
+.bi-galaxy::before {
+    -webkit-mask-image: url('/static/img/icons/galaxy.svg');
+    mask-image: url('/static/img/icons/galaxy.svg');
+}
+
+.bi-aurora::before {
+    -webkit-mask-image: url('/static/img/icons/aurora.svg');
+    mask-image: url('/static/img/icons/aurora.svg');
+}
+
+.bi-comet::before {
+    -webkit-mask-image: url('/static/img/icons/comet.svg');
+    mask-image: url('/static/img/icons/comet.svg');
+}

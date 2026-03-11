@@ -14,6 +14,14 @@ const EVENTS_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const EVENTS_ROTARY_INTERVAL = 5000; // 5 seconds
 let eventsRotaryIntervalId = null;
 
+function resolveEventIconClass(event) {
+    return event?.icon_class || 'bi bi-star-fill';
+}
+
+function resolveEventIconExtraClasses(event, baseClass = '') {
+    return [baseClass, event?.icon_color_class].filter(Boolean).join(' ');
+}
+
 /**
  * Initialize events alert system
  */
@@ -170,7 +178,7 @@ function createEventAlertCard(event) {
     const titleDiv = document.createElement('div');
     const titleHeading = document.createElement('h4');
     titleHeading.className = 'alert-heading';
-    titleHeading.append(document.createTextNode(`${event.emoji || ''} `));
+    titleHeading.appendChild(DOMUtils.createIcon(resolveEventIconClass(event), resolveEventIconExtraClasses(event, 'icon-inline')));
     const strong = document.createElement('strong');
     strong.textContent = event.title || '';
     titleHeading.appendChild(strong);
@@ -188,7 +196,8 @@ function createEventAlertCard(event) {
     if (event.peak_time && event.days_until_event !== undefined) {
         const timingDiv = document.createElement('div');
         timingDiv.className = 'mt-2 small';
-        timingDiv.textContent = `📅 ${formatTimeThenDate(new Date(event.peak_time))} - ${getDaysUntilText(event.days_until_event)}`;
+        timingDiv.appendChild(DOMUtils.createIcon('bi bi-calendar-event text-danger', 'icon-inline'));
+        timingDiv.appendChild(document.createTextNode(`${formatTimeThenDate(new Date(event.peak_time))} - ${getDaysUntilText(event.days_until_event)}`));
         card.appendChild(timingDiv);
     }
 
@@ -199,7 +208,8 @@ function createEventAlertCard(event) {
     const learnMoreButton = document.createElement('a');
     learnMoreButton.className = 'btn btn-sm sub-tab-btn active';
     learnMoreButton.href = '#';
-    learnMoreButton.textContent = `📖 ${i18n.t('calendar.details')}`;
+    learnMoreButton.appendChild(DOMUtils.createIcon('bi bi-journal-text', 'icon-inline'));
+    learnMoreButton.appendChild(document.createTextNode(i18n.t('calendar.details')));
     learnMoreButton.addEventListener('click', (e) => {
         e.preventDefault();
         scrollToEventDetails(event.event_type, event.structure_key);
@@ -221,13 +231,15 @@ function createEventTimeline(events) {
     timelineListUl.className = 'timeline-with-icons ms-3';
 
     events.forEach(event => {
+        //console.log(event);
+
         const item = document.createElement('li');
         item.className = 'timeline-item mb-3 rounded p-2 ps-3';
 
         // Icon
         const iconSpan = document.createElement('span');
         iconSpan.className = 'timeline-icon';
-        iconSpan.textContent = event.emoji ?? '';
+        iconSpan.appendChild(DOMUtils.createIcon(resolveEventIconClass(event), 'text-white'));        
         // Class following the event visibility true/false
         const visibilityBadge = document.createElement('span');
         visibilityBadge.classList.add('badge', 'ms-2', 'bg-opacity-75');
@@ -241,21 +253,30 @@ function createEventTimeline(events) {
             visibilityBadge.textContent = i18n.t('calendar.invisible');
         }
         // Add opacity to bg
-        iconSpan.classList.add('bg-opacity-75');
+        //iconSpan.classList.add('bg-opacity-50');
         item.appendChild(iconSpan);
+        
+        //Second badge after visible for importance level
+        const importanceBadge = document.createElement('span');
+        importanceBadge.classList.add('badge', 'ms-1', 'bg-opacity-75');
+        // inline replace string text-* by bg-* for badge color        
+        importanceBadge.classList.add(event.icon_color_class.replace('text-', 'bg-'));
+        importanceBadge.textContent = i18n.t(`calendar.importance.${event.importance}`);
 
         // Title
         const title = document.createElement('h5');
         title.className = 'fw-bold';
         title.textContent = `${event.title || ''}`;
         title.appendChild(visibilityBadge);
+        title.appendChild(importanceBadge);
         item.appendChild(title);
 
         // Add timing information if available
         if (event.peak_time && event.days_until_event !== undefined) {
             const date = document.createElement('p');
             date.className = 'text-muted fw-bold';
-            date.textContent = `📅 ${formatTimeThenDate(new Date(event.peak_time))} - ${getDaysUntilText(event.days_until_event)}`;
+            date.appendChild(DOMUtils.createIcon('bi bi-calendar-event text-danger', 'icon-inline'));
+            date.appendChild(document.createTextNode(`${formatTimeThenDate(new Date(event.peak_time))} - ${getDaysUntilText(event.days_until_event)}`));
             item.appendChild(date);
         }
 

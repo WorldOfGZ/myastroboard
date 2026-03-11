@@ -6,12 +6,13 @@ function createWeatherMetricItem(label, value) {
     const li = document.createElement('li');
     li.className = 'list-group-item d-flex justify-content-between align-items-center';
 
-    const labelNode = document.createTextNode(label);
+    const labelSpan = document.createElement('span');
+    labelSpan.innerHTML = label;
     const badge = document.createElement('span');
     badge.className = 'badge text-bg-primary rounded-pill';
     badge.textContent = value;
 
-    li.appendChild(labelNode);
+    li.appendChild(labelSpan);
     li.appendChild(badge);
     return li;
 }
@@ -24,7 +25,7 @@ function createChartShell(title, canvasId, legendItems = [], footerText = '') {
     header.className = 'card-header';
     const h5 = document.createElement('h5');
     h5.className = 'mb-0';
-    h5.textContent = title;
+    h5.innerHTML = title;
     header.appendChild(h5);
 
     const body = document.createElement('div');
@@ -186,15 +187,15 @@ async function loadWeather() {
 
             const list = document.createElement('ul');
             list.className = 'list-group list-group-flush';
-            list.appendChild(createWeatherMetricItem(`☁️ ${i18n.t('weather.cloud_cover')}`, `${cloudCover}${i18n.t('units.percent')}`));
+            list.appendChild(createWeatherMetricItem(`<i class="bi bi-clouds icon-inline" aria-hidden="true"></i>${i18n.t('weather.cloud_cover')}`, `${cloudCover}${i18n.t('units.percent')}`));
             list.appendChild(createWeatherMetricItem(` > ${i18n.t('weather.low')}`, `${cloudCoverL}${i18n.t('units.percent')}`));
             list.appendChild(createWeatherMetricItem(` > ${i18n.t('weather.mid')}`, `${cloudCoverM}${i18n.t('units.percent')}`));
             list.appendChild(createWeatherMetricItem(` > ${i18n.t('weather.high')}`, `${cloudCoverH}${i18n.t('units.percent')}`));
-            list.appendChild(createWeatherMetricItem(`💧 ${i18n.t('weather.humidity')}`, `${humidity}${i18n.t('units.percent')}`));
-            list.appendChild(createWeatherMetricItem(`🌡️ ${i18n.t('weather.temperature')}`, `${temp}${i18n.t('units.temperature_celsius')}`));
-            list.appendChild(createWeatherMetricItem(`💎 ${i18n.t('weather.dew_point')}`, `${dewPoint}${i18n.t('units.temperature_celsius')}`));
-            list.appendChild(createWeatherMetricItem(`🔽 ${i18n.t('weather.pressure')}`, `${pressure} ${i18n.t('units.hpa')}`));
-            list.appendChild(createWeatherMetricItem(`💨 ${i18n.t('weather.wind')}`, `${windSpeed} ${i18n.t('units.wind_speed_kmh')}`));
+            list.appendChild(createWeatherMetricItem(`<i class="bi bi-droplet text-primary icon-inline" aria-hidden="true"></i>${i18n.t('weather.humidity')}`, `${humidity}${i18n.t('units.percent')}`));
+            list.appendChild(createWeatherMetricItem(`<i class="bi bi-thermometer-half text-danger icon-inline" aria-hidden="true"></i>${i18n.t('weather.temperature')}`, `${temp}${i18n.t('units.temperature_celsius')}`));
+            list.appendChild(createWeatherMetricItem(`<i class="bi bi-droplet-half text-primary icon-inline" aria-hidden="true"></i>${i18n.t('weather.dew_point')}`, `${dewPoint}${i18n.t('units.temperature_celsius')}`));
+            list.appendChild(createWeatherMetricItem(`<i class="bi bi-speedometer2 icon-inline" aria-hidden="true"></i>${i18n.t('weather.pressure')}`, `${pressure} ${i18n.t('units.hpa')}`));
+            list.appendChild(createWeatherMetricItem(`<i class="bi bi-wind icon-inline" aria-hidden="true"></i>${i18n.t('weather.wind')}`, `${windSpeed} ${i18n.t('units.wind_speed_kmh')}`));
 
             cardBody.appendChild(title);
             cardBody.appendChild(list);
@@ -283,7 +284,7 @@ async function loadAstronomicalCharts() {
         const container1 = document.getElementById('cloudConditionsChartContainer');
         if (container1) {
             DOMUtils.clear(container1);
-            container1.appendChild(createChartShell(`☁️ ${i18n.t('weather.chart_cloud_title')}`, 'cloudConditionsChart', [
+            container1.appendChild(createChartShell(`<i class="bi bi-clouds icon-inline" aria-hidden="true"></i>${i18n.t('weather.chart_cloud_title')}`, 'cloudConditionsChart', [
                 { label: i18n.t('weather.chart_cloudless'), color: '#22c55e' },
                 { label: i18n.t('weather.chart_condition'), color: '#ef4444' },
                 { label: i18n.t('weather.chart_fog'), color: '#808080' }
@@ -443,7 +444,7 @@ async function loadAstronomicalCharts() {
         const container2 = document.getElementById('seeingConditionsChartContainer');
         if (container2) {
             DOMUtils.clear(container2);
-            container2.appendChild(createChartShell(`👁️ ${i18n.t('weather.chart_seeing_title')}`, 'seeingConditionsChart', [
+            container2.appendChild(createChartShell(`<i class="bi bi-eye icon-inline" aria-hidden="true"></i>${i18n.t('weather.chart_seeing_title')}`, 'seeingConditionsChart', [
                 { label: i18n.t('weather.chart_fog'), color: '#808080' },
                 { label: i18n.t('weather.chart_condition'), color: '#ef4444' },
                 { label: i18n.t('weather.chart_seeing'), color: '#f97316' },

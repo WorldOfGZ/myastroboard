@@ -16,6 +16,8 @@ if 'LOG_LEVEL' not in os.environ:
     os.environ['LOG_LEVEL'] = 'ERROR'
 if 'CONSOLE_LOG_LEVEL' not in os.environ:
     os.environ['CONSOLE_LOG_LEVEL'] = 'ERROR'
+if 'SECRET_KEY' not in os.environ:
+    os.environ['SECRET_KEY'] = 'test-secret-key'
 
 import pytest
 import sys
@@ -42,6 +44,7 @@ def setup_test_environment():
     os.environ['CONFIG_DIR'] = test_config_dir
     os.environ['LOG_LEVEL'] = 'ERROR'
     os.environ['CONSOLE_LOG_LEVEL'] = 'ERROR'
+    os.environ['SECRET_KEY'] = 'test-secret-key'
     
     yield {
         'data_dir': test_data_dir,

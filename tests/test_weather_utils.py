@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 
 
 # Import the function to test
-from weather_utils import create_weather_client
+from weather_utils import create_weather_client, create_fresh_weather_client
 
 
 class TestWeatherClientCreation:
@@ -89,3 +89,39 @@ class TestWeatherClientCreation:
         mock_retry.assert_called_once_with(mock_session, retries=5, backoff_factor=0.2)
         mock_client.assert_called_once_with(session=mock_retry_session)
         assert result == mock_client_instance
+
+
+class TestFreshWeatherClientCreation:
+    """Test fresh weather client creation (no cache)"""
+
+    @patch('weather_utils.openmeteo_requests.Client')
+    @patch('weather_utils.retry')
+    @patch('weather_utils.requests.Session')
+    def test_create_fresh_weather_client_returns_client(self, mock_session_cls, mock_retry, mock_client):
+        """Test that create_fresh_weather_client returns a client object"""
+        mock_session = Mock()
+        mock_session_cls.return_value = mock_session
+        mock_retry_session = Mock()
+        mock_retry.return_value = mock_retry_session
+        mock_client_instance = Mock()
+        mock_client.return_value = mock_client_instance
+
+        result = create_fresh_weather_client()
+
+        mock_session_cls.assert_called_once_with()
+        mock_retry.assert_called_once_with(mock_session, retries=5, backoff_factor=0.2)
+        mock_client.assert_called_once_with(session=mock_retry_session)
+        assert result == mock_client_instance
+
+    @patch('weather_utils.requests_cache.CachedSession')
+    @patch('weather_utils.openmeteo_requests.Client')
+    @patch('weather_utils.retry')
+    @patch('weather_utils.requests.Session')
+    def test_create_fresh_weather_client_does_not_use_cache(self, mock_session_cls, mock_retry, mock_client, mock_cached_session):
+        """Test that fresh client path does not create a cached session"""
+        mock_session_cls.return_value = Mock()
+        mock_retry.return_value = Mock()
+
+        create_fresh_weather_client()
+
+        mock_cached_session.assert_not_called()

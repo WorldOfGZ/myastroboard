@@ -10,8 +10,22 @@ const DOMUtils = {
     append,
     createElement,
     clearContainer,
-    setLoading
+    setLoading,
+    createIcon
 };
+
+/**
+ * Create a Bootstrap Icons <i> element.
+ * @param {string} iconClass - Icon classes (e.g. 'bi bi-sun')
+ * @param {string} extraClassName - Optional extra classes
+ * @returns {HTMLElement}
+ */
+function createIcon(iconClass, extraClassName = '') {
+    const icon = document.createElement('i');
+    icon.className = `${iconClass} ${extraClassName}`.trim();
+    icon.setAttribute('aria-hidden', 'true');
+    return icon;
+}
 
 /**
  * Set loading state on a container

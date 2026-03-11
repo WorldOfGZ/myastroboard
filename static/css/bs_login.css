@@ -118,11 +118,6 @@
     transform: translateY(0);
 }
 
-.error-message::before {
-    content: "⚠️ ";
-    margin-right: 0.5rem;
-}
-
 /* Success message (for future use) */
 .success-message {
     background-color: var(--success-50);
@@ -140,11 +135,6 @@
 .success-message.show {
     opacity: 1;
     transform: translateY(0);
-}
-
-.success-message::before {
-    content: "✓ ";
-    margin-right: 0.5rem;
 }
 
 /* Responsive design */

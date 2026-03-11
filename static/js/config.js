@@ -247,16 +247,16 @@ async function saveConfiguration() {
         });
         
         if (result.status === 'success') {
-            showMessage('success', `✅ ${i18n.t('settings.config_saved')}`);
+            showMessage('success', i18n.t('settings.config_saved'));
             currentConfig = config;
             // Reload catalogues to reflect the saved selection
             loadCatalogues();
         } else {
-            showMessage('error', `❌ ${result.message || i18n.t('settings.failed_to_save_config')}`);
+            showMessage('error', result.message || i18n.t('settings.failed_to_save_config'));
         }
     } catch (error) {
         console.error('Error saving configuration:', error);
-        showMessage('error', `❌ ${i18n.t('settings.failed_to_save_config')}`);
+        showMessage('error', i18n.t('settings.failed_to_save_config'));
     }
 }
 
@@ -311,7 +311,7 @@ async function convertCoordinate(type) {
     
     // Check if it's already decimal
     if (!isNaN(value)) {
-        convertedEl.textContent = `✓ ${i18n.t('settings.decimal')}${parseFloat(value).toFixed(6)}`;
+        convertedEl.textContent = `${i18n.t('settings.decimal')}${parseFloat(value).toFixed(6)}`;
         input.classList.add('is-valid');
         input.classList.remove('is-invalid');
         return;
@@ -326,17 +326,17 @@ async function convertCoordinate(type) {
         });
         
         if (data.status === 'success') {
-            convertedEl.textContent = `✓ ${i18n.t('settings.decimal')}${data.decimal}`;
+            convertedEl.textContent = `${i18n.t('settings.decimal')}${data.decimal}`;
             input.value = data.decimal;
             input.classList.add('is-valid');
             input.classList.remove('is-invalid');
         } else {
-            errorEl.textContent = `✗ ${data.message}`;
+            errorEl.textContent = data.message;
             input.classList.add('is-invalid');
             input.classList.remove('is-valid');
         }
     } catch (error) {
-        errorEl.textContent = `✗ ${i18n.t('settings.invalid_format')}`;
+        errorEl.textContent = i18n.t('settings.invalid_format');
         input.classList.add('is-invalid');
         input.classList.remove('is-valid');
     }
@@ -364,7 +364,7 @@ async function viewConfiguration() {
                 showMessage('error', i18n.t('common.modal_not_initialized'));
                 return;
             }
-            titleElement.textContent = `📄 ${i18n.t('settings.uptonight_configurations')}`;
+            titleElement.innerHTML = `<i class="bi bi-file-earmark-text icon-inline" aria-hidden="true"></i>${i18n.t('settings.uptonight_configurations')}`;
             
             //Prepare modal content
             const contentElement = document.getElementById('modal_lg_close_body');
@@ -396,7 +396,7 @@ async function viewConfiguration() {
             const exportButton = document.createElement('button');
             exportButton.id = 'export-config-from-modal';
             exportButton.className = 'btn btn-primary';
-            exportButton.textContent = `⬇️ ${i18n.t('settings.export_config_as_yaml')}`;
+            exportButton.innerHTML = `<i class="bi bi-download icon-inline" aria-hidden="true"></i>${i18n.t('settings.export_config_as_yaml')}`;
 
             contentElement.appendChild(selectorRow);
             contentElement.appendChild(configDisplay);
@@ -717,14 +717,14 @@ function validateYAML(textarea, container, statusElement) {
             container.classList.add('valid');
             statusElement.classList.remove('invalid');
             statusElement.classList.add('valid');
-            statusElement.querySelector('.icon').textContent = '✓';
+            statusElement.querySelector('.icon').textContent = 'OK';
             statusElement.querySelector('.yaml-validation-message').textContent = i18n.t('yaml_editor.valid_yaml');
         } else {
             container.classList.remove('valid');
             container.classList.add('invalid');
             statusElement.classList.remove('valid');
             statusElement.classList.add('invalid');
-            statusElement.querySelector('.icon').textContent = '✗';
+            statusElement.querySelector('.icon').textContent = 'ERR';
             statusElement.querySelector('.yaml-validation-message').textContent = errorMessage;
         }
     } catch (error) {
@@ -732,7 +732,7 @@ function validateYAML(textarea, container, statusElement) {
         container.classList.add('invalid');
         statusElement.classList.remove('valid');
         statusElement.classList.add('invalid');
-        statusElement.querySelector('.icon').textContent = '✗';
+        statusElement.querySelector('.icon').textContent = 'ERR';
         statusElement.querySelector('.yaml-validation-message').textContent = i18n.t('yaml_editor.invalid_yaml');
     }
 }

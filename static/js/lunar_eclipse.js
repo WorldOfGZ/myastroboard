@@ -21,7 +21,7 @@ async function loadLunarEclipse() {
             const alert = document.createElement('div');
             alert.className = 'alert alert-info';
             alert.setAttribute('role', 'alert');
-            alert.textContent = `ℹ️ ${data.message || i18n.t('moon.no_lunar_eclipse_data')}`;
+            alert.textContent = data.message || i18n.t('moon.no_lunar_eclipse_data');
             container.appendChild(alert);
             return;
         }
@@ -53,7 +53,7 @@ async function loadLunarEclipse() {
             card.className = 'card h-100';
             const header = document.createElement('div');
             header.className = 'card-header fw-bold';
-            header.textContent = titleText;
+            header.innerHTML = titleText;
             card.appendChild(header);
             col.appendChild(card);
             return { col, card };
@@ -85,7 +85,7 @@ async function loadLunarEclipse() {
             'penumbral': i18n.t('moon.eclipse_type.penumbral')
         };
 
-        const overview = createCardCol(`📊 ${i18n.t('moon.overview')}`);
+        const overview = createCardCol(`<i class="bi bi-bar-chart-line icon-inline" aria-hidden="true"></i>${i18n.t('moon.overview')}`);
         const overviewList = createList();
         overviewList.appendChild(createListItem(`${i18n.t('moon.type')}`, typeEclipseType[eclipse.type.toLowerCase()] || eclipse.type));
         const visibilityItem = document.createElement('li');
@@ -111,7 +111,7 @@ async function loadLunarEclipse() {
         overview.card.appendChild(overviewList);
         row.appendChild(overview.col);
 
-        const timing = createCardCol(`⏱️ ${i18n.t('moon.timing')}`);
+        const timing = createCardCol(`<i class="bi bi-stopwatch icon-inline" aria-hidden="true"></i>${i18n.t('moon.timing')}`);
         const timingList = createList();
         timingList.appendChild(createListItem(`${i18n.t('moon.partial_begin')}`, formatTimeThenDate(eclipse.partial_begin)));
         if (eclipse.total_begin) {
@@ -122,7 +122,7 @@ async function loadLunarEclipse() {
         timing.card.appendChild(timingList);
         row.appendChild(timing.col);
 
-        const position = createCardCol(`📍 ${i18n.t('moon.position_at_peak')}`);
+        const position = createCardCol(`<i class="bi bi-geo-alt text-danger icon-inline" aria-hidden="true"></i>${i18n.t('moon.position_at_peak')}`);
         const positionList = createList();
         positionList.appendChild(createListItem(`${i18n.t('moon.peak_time')}`, formatTimeThenDate(eclipse.peak_time)));
         positionList.appendChild(createListItem(`${i18n.t('moon.altitude')}`, `${eclipse.peak_altitude_deg.toFixed(2)}${i18n.t('units.degrees')}`));
@@ -136,7 +136,7 @@ async function loadLunarEclipse() {
             ? i18n.t(classificationKey)
             : i18n.t('moon.not_visible');
 
-        const score = createCardCol(`⭐ ${i18n.t('moon.astrophoto_score')}`);
+        const score = createCardCol(`<i class="bi bi-star-fill text-warning icon-inline" aria-hidden="true"></i>${i18n.t('moon.astrophoto_score')}`);
         const scoreBody = document.createElement('div');
         scoreBody.className = 'p-3';
         scoreBody.style.textAlign = 'center';
@@ -196,7 +196,7 @@ function renderLunarEclipseAltitudeChart(altitudeData) {
     cardHeader.className = 'card-header';
     const title = document.createElement('h5');
     title.className = 'mb-0';
-    title.textContent = `📈 ${i18n.t('moon.eclipse_chart_title')}`;
+    title.innerHTML = `<i class="bi bi-graph-up icon-inline" aria-hidden="true"></i>${i18n.t('moon.eclipse_chart_title')}`;
     cardHeader.appendChild(title);
 
     const cardBody = document.createElement('div');

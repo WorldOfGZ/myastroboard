@@ -8,6 +8,18 @@
     background: var(--weather-alert-high-bg);
 }
 
+.weather-alert-indicator-medium-priority {
+    border: var(--weather-alert-normal-border) solid 1px;
+    border-radius: var(--border-radius);
+    background: var(--weather-alert-normal-bg);
+}
+
+.weather-alert-indicator-low-priority {
+    border: var(--weather-alert-low-border) solid 1px;
+    border-radius: var(--border-radius);
+    background: var(--weather-alert-low-bg);
+}
+
 .weather-alert-indicator-normal {
     border: var(--weather-alert-normal-border) solid 1px;
     border-radius: var(--border-radius);
@@ -249,3 +261,4 @@
     font-size: 48px;
     margin-bottom: 0.5rem;
 }
+
