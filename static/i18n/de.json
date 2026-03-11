@@ -345,7 +345,13 @@
     "happening_now": "Passiert jetzt!",
     "today": "Heute!",
     "tomorrow": "Morgen!",
-    "in_days": "In {days} Tagen"
+    "in_days": "In {days} Tagen",
+    "importance": {
+      "low": "Zu wissen",
+      "medium": "Zu berücksichtigen",
+      "high": "Sehr empfohlen",
+      "critical": "Unbedingt zu sehen"
+    }
   },
   "settings": {
     "customize": "Anpassen",
@@ -543,7 +549,8 @@
     "captured_by": "Aufgenommen von {owner}",
     "device_telescope": "Geräte/Teleskope",
     "photos": "Fotos",
-    "astrodex_empty": "Ihr Astrodex ist leer"
+    "astrodex_empty": "Ihr Astrodex ist leer",
+    "notes": "Notizen"
   },
   "uptonight": {
     "info_1": "Der UpTonight-Planer berechnet die besten Beobachtungsziele für die Nacht basierend auf Ihrem Standort, der Wettervorhersage und den Zielkatalogen. Auf der Registerkarte „Parameter“ können Sie Parameter und Funktionen konfigurieren.",

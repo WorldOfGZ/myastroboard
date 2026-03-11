@@ -355,7 +355,13 @@
     "happening_now": "En cours !",
     "today": "Aujourd'hui !",
     "tomorrow": "Demain !",
-    "in_days": "Dans {days} jours"
+    "in_days": "Dans {days} jours",
+    "importance": {
+      "low": "À savoir",
+      "medium": "À considérer",
+      "high": "Fortement recommandé",
+      "critical": "Événements incontournables"
+    }
   },
 
   "settings": {
@@ -555,7 +561,8 @@
     "captured_by": "Capturé par {owner}",
     "device_telescope": "Appareils/Télescopes",
     "photos": "Photos",
-    "astrodex_empty": "Votre Astrodex est vide"
+    "astrodex_empty": "Votre Astrodex est vide",
+    "notes": "Notes"
   },
 
   "uptonight": {

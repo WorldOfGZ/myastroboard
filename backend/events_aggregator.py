@@ -17,7 +17,6 @@ Example output:
         {
             "id": "solar_eclipse_20260812",
             "event_type": "Solar Eclipse",
-            "emoji": "☀️",
             "title": "Partial Solar Eclipse",
             "description": "Partial eclipse visible from your location",
             "start_time": "2026-08-12T13:05:00",
@@ -81,7 +80,8 @@ class AstronomicalEvent:
     """Standardized astronomical event data"""
     id: str                                    # Unique identifier
     event_type: str                           # Type of event
-    emoji: str                                # Display emoji
+    icon_class: str                           # Bootstrap icon class (e.g. "bi bi-sun")
+    icon_color_class: str                     # Optional color class (e.g. "text-warning")
     title: str                                # Short title
     description: str                          # Description
     start_time: Optional[str]                 # Start time (ISO format)
@@ -171,6 +171,53 @@ class EventsAggregator:
         if not key_suffix:
             return period_label
         return self._t(f"events_api.iss_periods.{key_suffix}", period_label)
+
+    def _importance_icon_color_class(self, importance: str) -> str:
+        """Map event importance to a Bootstrap text color class."""
+        color_map = {
+            EventImportance.CRITICAL.value: "text-danger",
+            EventImportance.HIGH.value: "text-warning",
+            EventImportance.MEDIUM.value: "text-info",
+            EventImportance.LOW.value: "text-secondary",
+        }
+        return color_map.get(importance, "text-info")
+
+    def _phase_icon_class(self, phase_type: str) -> str:
+        """Map moon phase label to a Bootstrap icon class."""
+        phase_map = {
+            "New Moon": "bi bi-moon-fill",
+            "First Quarter": "bi bi-moon",
+            "Full Moon": "bi bi-moon-stars-fill",
+            "Last Quarter": "bi bi-moon",
+            "Waxing Crescent": "bi bi-moon",
+            "Waxing Gibbous": "bi bi-moon-stars",
+            "Waning Gibbous": "bi bi-moon-stars",
+            "Waning Crescent": "bi bi-moon",
+        }
+        return phase_map.get(phase_type, "bi bi-moon-stars")
+
+    def _infer_icon_class(self, event_type: str, fallback: str = "bi bi-star-fill") -> str:
+        """Infer icon class for externally provided events that do not provide one."""
+        mapping = {
+            EventType.SOLAR_ECLIPSE.value: "bi bi-sun",
+            EventType.LUNAR_ECLIPSE.value: "bi bi-moon-stars",
+            EventType.AURORA.value: "bi bi-stars",
+            EventType.ISS_PASS.value: "bi bi-iss",
+            EventType.MOON_PHASE.value: "bi bi-moon-stars",
+            EventType.PLANETARY_CONJUNCTION.value: "bi bi-conjonction",
+            EventType.PLANETARY_OPPOSITION.value: "bi bi-bullseye",
+            EventType.PLANETARY_ELONGATION.value: "bi bi-arrows-angle-expand",
+            EventType.PLANETARY_RETROGRADE.value: "bi bi-arrow-counterclockwise",
+            EventType.EQUINOX.value: "bi bi-sunrise",
+            EventType.SOLSTICE.value: "bi bi-sunset",
+            EventType.ZODIACAL_LIGHT.value: "bi bi-stars",
+            EventType.MILKY_WAY.value: "bi bi-stars",
+            EventType.METEOR_SHOWER.value: "bi bi-comet",
+            EventType.COMET_APPEARANCE.value: "bi bi-comet",
+            EventType.ASTEROID_OCCULTATION.value: "bi bi-circle",
+            EventType.CUSTOM.value: "bi bi-star-fill",
+        }
+        return mapping.get(event_type, fallback)
 
     def _localize_planetary_text(self, event_data: Dict[str, Any]) -> tuple[str, str]:
         """Localize planetary event title and description using raw_data."""
@@ -375,7 +422,8 @@ class EventsAggregator:
         event = AstronomicalEvent(
             id=f"solar_eclipse_{peak_time_str.split('T')[0]}",
             event_type=EventType.SOLAR_ECLIPSE.value,
-            emoji="☀️",
+            icon_class="bi bi-sun",
+            icon_color_class=self._importance_icon_color_class(importance),
             title=(
                 f"{self._translate_eclipse_type(eclipse_type, 'sun')} "
                 f"{self._t('sun.solar_eclipse', 'Solar Eclipse')}"
@@ -433,7 +481,8 @@ class EventsAggregator:
         event = AstronomicalEvent(
             id=f"lunar_eclipse_{peak_time_str.split('T')[0]}",
             event_type=EventType.LUNAR_ECLIPSE.value,
-            emoji="🌙",
+            icon_class="bi bi-moon-stars",
+            icon_color_class=self._importance_icon_color_class(importance),
             title=(
                 f"{self._translate_eclipse_type(eclipse_type, 'moon')} "
                 f"{self._t('moon.lunar_eclipse', 'Lunar Eclipse')}"
@@ -504,7 +553,8 @@ class EventsAggregator:
             event = AstronomicalEvent(
                 id=f"aurora_{timestamp}",
                 event_type=EventType.AURORA.value,
-                emoji="🌌",
+                icon_class="bi bi-stars",
+                icon_color_class=self._importance_icon_color_class(importance),
                 title=self._t("navbar.aurora", "Aurora Borealis"),
                 description=(
                     self._t(
@@ -544,17 +594,18 @@ class EventsAggregator:
                 phase_date = datetime.datetime.fromisoformat(phase_date_str).replace(tzinfo=self.timezone)
                 days_until = (phase_date.date() - self.local_now.date()).days
                 phase_info = {
-                    "New Moon": {"emoji": "🌑", "importance": EventImportance.MEDIUM.value},
-                    "First Quarter": {"emoji": "🌓", "importance": EventImportance.LOW.value},
-                    "Full Moon": {"emoji": "🌕", "importance": EventImportance.MEDIUM.value},
-                    "Last Quarter": {"emoji": "🌗", "importance": EventImportance.LOW.value},
+                    "New Moon": {"importance": EventImportance.MEDIUM.value},
+                    "First Quarter": {"importance": EventImportance.LOW.value},
+                    "Full Moon": {"importance": EventImportance.MEDIUM.value},
+                    "Last Quarter": {"importance": EventImportance.LOW.value},
                 }
-                phase_details = phase_info.get(phase_type, {"emoji": "🌙", "importance": EventImportance.LOW.value})
+                phase_details = phase_info.get(phase_type, {"importance": EventImportance.LOW.value})
                 localized_phase_type = self._get_moon_phase_translation(phase_type)
                 event = AstronomicalEvent(
                     id=f"moon_phase_{phase_date_str}_{phase_type.lower().replace(' ', '_')}",
                     event_type=EventType.MOON_PHASE.value,
-                    emoji=phase_details["emoji"],
+                    icon_class=self._phase_icon_class(phase_type),
+                    icon_color_class=self._importance_icon_color_class(phase_details["importance"]),
                     title=localized_phase_type,
                     description=self._t(
                         "events_api.moon_phase_description",
@@ -586,11 +637,9 @@ class EventsAggregator:
             # Heuristic: Full Moon >98%, New Moon <2%, else ignore
             if illumination >= 98:
                 phase_type = "Full Moon"
-                emoji = "🌕"
                 importance = EventImportance.MEDIUM.value
             elif illumination <= 2:
                 phase_type = "New Moon"
-                emoji = "🌑"
                 importance = EventImportance.MEDIUM.value
             else:
                 continue  # Ignore other phases for now
@@ -599,7 +648,8 @@ class EventsAggregator:
             event = AstronomicalEvent(
                 id=f"moon_phase_{date_str}_{phase_type.lower().replace(' ', '_')}",
                 event_type=EventType.MOON_PHASE.value,
-                emoji=emoji,
+                icon_class=self._phase_icon_class(phase_type),
+                icon_color_class=self._importance_icon_color_class(importance),
                 title=self._get_moon_phase_translation(phase_type),
                 description=self._t(
                     "events_api.moon_phase_description",
@@ -657,7 +707,8 @@ class EventsAggregator:
             event = AstronomicalEvent(
                 id=f"iss_pass_{peak_time_str.replace(':', '').replace('-', '')}",
                 event_type=EventType.ISS_PASS.value,
-                emoji="🛰️",
+                icon_class="bi bi-iss",
+                icon_color_class=self._importance_icon_color_class(importance),
                 title=(
                     "ISS Visible Passage"
                     if self.i18n.get_language() == "en"
@@ -740,13 +791,15 @@ class EventsAggregator:
                 importance = event_data.get("importance", "medium")
                 
                 event_type = event_data.get("event_type", "Planetary Event")
-                emoji = event_data.get("emoji", "⭐")
                 title, description = self._localize_planetary_text(event_data)
-                
+                icon_class = event_data.get("icon_class") or self._infer_icon_class(event_type)
+                icon_color_class = event_data.get("icon_color_class") or self._importance_icon_color_class(importance)
+
                 event = AstronomicalEvent(
                     id=f"planetary_{peak_time_str.replace(':', '').replace('-', '')}_{event_type.lower().replace(' ', '_')}",
                     event_type=event_type,
-                    emoji=emoji,
+                    icon_class=icon_class,
+                    icon_color_class=icon_color_class,
                     title=title,
                     description=description,
                     start_time=event_data.get("start_time"),
@@ -786,14 +839,16 @@ class EventsAggregator:
                 importance = event_data.get("importance", "medium")
                 
                 event_type = event_data.get("event_type", "Special Phenomenon")
-                emoji = event_data.get("emoji", "✨")
                 title = event_data.get("title", "Special Phenomenon")
                 description = event_data.get("description", "")
-                
+                icon_class = event_data.get("icon_class") or self._infer_icon_class(event_type)
+                icon_color_class = event_data.get("icon_color_class") or self._importance_icon_color_class(importance)
+
                 event = AstronomicalEvent(
                     id=f"phenomena_{peak_time_str.replace(':', '').replace('-', '')}_{event_type.lower().replace(' ', '_')}",
                     event_type=event_type,
-                    emoji=emoji,
+                    icon_class=icon_class,
+                    icon_color_class=icon_color_class,
                     title=title,
                     description=description,
                     start_time=event_data.get("start_time"),
@@ -833,14 +888,16 @@ class EventsAggregator:
                 importance = event_data.get("importance", "medium")
                 
                 event_type = event_data.get("event_type", "Solar System Event")
-                emoji = event_data.get("emoji", "☄️")
                 title = event_data.get("title", "Solar System Event")
                 description = event_data.get("description", "")
-                
+                icon_class = event_data.get("icon_class") or self._infer_icon_class(event_type, "bi bi-meteor")
+                icon_color_class = event_data.get("icon_color_class") or self._importance_icon_color_class(importance)
+
                 event = AstronomicalEvent(
                     id=f"solsys_{peak_time_str.replace(':', '').replace('-', '')}_{event_type.lower().replace(' ', '_')}",
                     event_type=event_type,
-                    emoji=emoji,
+                    icon_class=icon_class,
+                    icon_color_class=icon_color_class,
                     title=title,
                     description=description,
                     start_time=event_data.get("start_time"),

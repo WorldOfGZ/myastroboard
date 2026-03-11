@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <!-- planet 1 (smaller) -->
+  <circle cx="8" cy="8" r="8" fill="white"/>
+  
+  <!-- planet 2 (larger) -->
+  <circle cx="18" cy="18" r="6" fill="white"/>
+</svg>

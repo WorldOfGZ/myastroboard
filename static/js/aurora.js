@@ -17,15 +17,15 @@ async function loadAurora() {
         const current = data.current;
         const location = data.location;
         
-        // Determine aurora emoji based on visibility level
-        const visibilityEmojiMap = {
-            "None": "😴",
-            "Very Low": "🌌",
-            "Low": "🌌",
-            "Moderate": "✨",
-            "Good": "🌌",
-            "Excellent": "🎆",
-            "Severe Storm": "⚡"
+        // Determine icon based on visibility level
+        const visibilityIconMap = {
+            "None": "bi bi-moon",
+            "Very Low": "bi bi-stars",
+            "Low": "bi bi-stars",
+            "Moderate": "bi bi-stars",
+            "Good": "bi bi-stars",
+            "Excellent": "bi bi-brightness-high",
+            "Severe Storm": "bi bi-lightning-charge"
         };
 
         const visibilityTextMap = {
@@ -56,7 +56,7 @@ async function loadAurora() {
             "Severe Storm": i18n.t('aurora.description.severe_storm')
         };
 
-        const emoji = visibilityEmojiMap[current.visibility_level] || '🌌';
+        const visibilityIconClass = visibilityIconMap[current.visibility_level] || 'bi bi-stars';
         current.visibility_description = visibilityDescriptionMap[current.visibility_level] || current.visibility_description || '';
         current.probability_level = probabilityLevelMap[current.probability_level] || current.probability_level || '';  
         current.visibility_level = visibilityTextMap[current.visibility_level] || current.visibility_level || '';
@@ -81,7 +81,7 @@ async function loadAurora() {
         topFlex.className = 'd-flex flex-row align-items-center';
         const emojiDiv = document.createElement('div');
         emojiDiv.className = 'p-2 icon-weather-lg';
-        emojiDiv.textContent = emoji;
+        emojiDiv.appendChild(DOMUtils.createIcon(visibilityIconClass));
         const textWrap = document.createElement('div');
         textWrap.className = 'p-2';
         const level = document.createElement('div');
@@ -107,20 +107,20 @@ async function loadAurora() {
             card.className = 'card h-100';
             const header = document.createElement('div');
             header.className = 'card-header fw-bold';
-            header.textContent = titleText;
+            header.innerHTML = titleText;
             card.appendChild(header);
             col.appendChild(card);
             return { col, card };
         };
 
-        const geomagnetic = createCard(`⚡ ${i18n.t('aurora.geomagnetic_activity')}`);
+        const geomagnetic = createCard(`<i class="bi bi-lightning-charge icon-inline" aria-hidden="true"></i>${i18n.t('aurora.geomagnetic_activity')}`);
         const geomagneticList = document.createElement('ul');
         geomagneticList.className = 'list-group list-group-flush';
         const geomag1 = document.createElement('li');
         geomag1.className = 'list-group-item d-flex justify-content-between align-items-center';
         geomag1.innerText = '';
         const g1Label = document.createElement('span');
-        g1Label.textContent = `🔴 ${i18n.t('aurora.kp_index')}`;
+        g1Label.innerHTML = `<i class="bi bi-circle-fill text-danger icon-inline" aria-hidden="true"></i>${i18n.t('aurora.kp_index')}`;
         const g1Value = document.createElement('span');
         g1Value.className = 'fw-bold';
         g1Value.textContent = `${current.kp_index.toFixed(1)} / ${current.kp_index_max.toFixed(1)}`;
@@ -130,7 +130,7 @@ async function loadAurora() {
         const geomag2 = document.createElement('li');
         geomag2.className = 'list-group-item d-flex justify-content-between align-items-center';
         const g2Label = document.createElement('span');
-        g2Label.textContent = `📊 ${i18n.t('aurora.aurora_probability')}`;
+        g2Label.innerHTML = `<i class="bi bi-bar-chart-line icon-inline" aria-hidden="true"></i>${i18n.t('aurora.aurora_probability')}`;
         const g2Value = document.createElement('span');
         g2Value.className = 'fw-bold';
         g2Value.textContent = `${probability.toFixed(0)}%${probabilityLevel ? ` (${probabilityLevel})` : ''}`;
@@ -158,13 +158,13 @@ async function loadAurora() {
         geomagnetic.card.appendChild(geomagneticList);
         cardsRow.appendChild(geomagnetic.col);
 
-        const windowCard = createCard(`🕐 ${i18n.t('aurora.best_viewing_window')}`);
+        const windowCard = createCard(`<i class="bi bi-clock-history icon-inline" aria-hidden="true"></i>${i18n.t('aurora.best_viewing_window')}`);
         const windowList = document.createElement('ul');
         windowList.className = 'list-group list-group-flush';
         const w1 = document.createElement('li');
         w1.className = 'list-group-item d-flex justify-content-between align-items-center';
         const w1Label = document.createElement('span');
-        w1Label.textContent = `⏰ ${i18n.t('aurora.local_time')}`;
+        w1Label.innerHTML = `<i class="bi bi-clock icon-inline" aria-hidden="true"></i>${i18n.t('aurora.local_time')}`;
         const w1Value = document.createElement('span');
         w1Value.className = 'fw-bold';
         w1Value.textContent = `${current.best_viewing_window.start_hour}:00 - ${current.best_viewing_window.end_hour}:00`;
@@ -175,7 +175,7 @@ async function loadAurora() {
         const small = document.createElement('small');
         small.className = 'text-muted';
         const strong = document.createElement('strong');
-        strong.textContent = `📍 ${i18n.t('aurora.location')}`;
+        strong.innerHTML = `<i class="bi bi-geo-alt text-danger icon-inline" aria-hidden="true"></i>${i18n.t('aurora.location')}`;
         small.appendChild(strong);
         small.append(` ${location.latitude.toFixed(2)}°, ${location.longitude.toFixed(2)}°`);
         w2.appendChild(small);
@@ -184,7 +184,7 @@ async function loadAurora() {
         windowCard.card.appendChild(windowList);
         cardsRow.appendChild(windowCard.col);
 
-        const colorsCard = createCard(`🎨 ${i18n.t('aurora.expected_colors')}`);
+        const colorsCard = createCard(`<i class="bi bi-palette icon-inline" aria-hidden="true"></i>${i18n.t('aurora.expected_colors')}`);
         const colorsList = document.createElement('ul');
         colorsList.className = 'list-group list-group-flush';
         Object.entries(current.color_description || {}).forEach(([index, colorDescription]) => {
@@ -207,7 +207,7 @@ async function loadAurora() {
         guideCard.className = 'card h-100';
         const guideHeader = document.createElement('div');
         guideHeader.className = 'card-header fw-bold';
-        guideHeader.textContent = `📈 ${i18n.t('aurora.scale_guide')}`;
+        guideHeader.innerHTML = `<i class="bi bi-graph-up icon-inline" aria-hidden="true"></i>${i18n.t('aurora.scale_guide')}`;
         const guideBody = document.createElement('div');
         guideBody.className = 'card-body';
         const guideBodyRow = document.createElement('div');
@@ -253,7 +253,7 @@ async function loadAurora() {
             forecastCard.className = 'card h-100';
             const forecastHeader = document.createElement('div');
             forecastHeader.className = 'card-header fw-bold';
-            forecastHeader.textContent = `📅 ${i18n.t('aurora.forecast')}`;
+            forecastHeader.innerHTML = `<i class="bi bi-calendar-event text-danger icon-inline" aria-hidden="true"></i>${i18n.t('aurora.forecast')}`;
             const forecastBody = document.createElement('div');
             forecastBody.className = 'card-body';
             const forecastAlert = document.createElement('div');
@@ -310,7 +310,7 @@ async function loadAurora() {
         tipsAlert.className = 'alert alert-info';
         tipsAlert.setAttribute('role', 'alert');
         const tipsTitle = document.createElement('strong');
-        tipsTitle.textContent = `📌 ${i18n.t('aurora.tips_for_aurora_hunting')}`;
+        tipsTitle.innerHTML = `<i class="bi bi-pin-angle icon-inline" aria-hidden="true"></i>${i18n.t('aurora.tips_for_aurora_hunting')}`;
         const tipsList = document.createElement('ul');
         tipsList.className = 'mb-0 mt-2';
         [

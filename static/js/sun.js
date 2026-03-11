@@ -19,8 +19,14 @@ async function loadSun() {
         header.className = 'd-flex flex-row align-items-center mb-3';
 
         const icon = document.createElement('div');
-        icon.className = 'p-2 icon-weather-lg';
-        icon.textContent = '☀️';
+        icon.className = 'p-2';
+        const sunVisual = document.createElement('img');
+        sunVisual.src = '/static/img/sun.svg';
+        sunVisual.alt = i18n.t('common.sun');
+        sunVisual.width = 80;
+        sunVisual.height = 80;
+        sunVisual.loading = 'lazy';
+        icon.appendChild(sunVisual);
         const titleWrap = document.createElement('div');
         titleWrap.className = 'p-2';
         const title = document.createElement('div');
@@ -43,7 +49,7 @@ async function loadSun() {
             card.className = 'card h-100';
             const cardHeader = document.createElement('div');
             cardHeader.className = 'card-header fw-bold';
-            cardHeader.textContent = cardTitle;
+            cardHeader.innerHTML = cardTitle;
 
             const list = document.createElement('ul');
             list.className = 'list-group list-group-flush';
@@ -52,7 +58,7 @@ async function loadSun() {
                 const li = document.createElement('li');
                 li.className = 'list-group-item d-flex justify-content-between align-items-center';
                 const labelSpan = document.createElement('span');
-                labelSpan.textContent = label;
+                labelSpan.innerHTML = label;
                 const valueSpan = document.createElement('span');
                 valueSpan.className = 'fw-bold';
                 valueSpan.textContent = value;
@@ -70,28 +76,28 @@ async function loadSun() {
         };
 
         cardsRow.appendChild(createTimeCard(
-            `☀️ ${i18n.t('common.sun')}`,
-            `🌇 ${i18n.t('sun.sunset')}`,
+            `<i class="bi bi-sun icon-inline" aria-hidden="true"></i>${i18n.t('common.sun')}`,
+            `<i class="bi bi-sunset icon-inline" aria-hidden="true"></i>${i18n.t('sun.sunset')}`,
             formatTimeThenDate(new Date(data.sun.sunset)),
-            `🌅 ${i18n.t('sun.sunrise')}`,
+            `<i class="bi bi-sunrise icon-inline" aria-hidden="true"></i>${i18n.t('sun.sunrise')}`,
             formatTimeThenDate(new Date(data.sun.sunrise))
         ));
         cardsRow.appendChild(createTimeCard(
-            `🌆 ${i18n.t('sun.civil_twilight')}`,
+            `<i class="bi bi-brightness-low icon-inline" aria-hidden="true"></i>${i18n.t('sun.civil_twilight')}`,
             `${i18n.t('sun.dusk')}`,
             formatTimeThenDate(new Date(data.sun.civil_dusk)),
             `${i18n.t('sun.dawn')}`,
             formatTimeThenDate(new Date(data.sun.civil_dawn))
         ));
         cardsRow.appendChild(createTimeCard(
-            `⚓ ${i18n.t('sun.nautical_twilight')}`,
+            `<i class="bi bi-compass icon-inline" aria-hidden="true"></i>${i18n.t('sun.nautical_twilight')}`,
             `${i18n.t('sun.dusk')}`,
             formatTimeThenDate(new Date(data.sun.nautical_dusk)),
             `${i18n.t('sun.dawn')}`,
             formatTimeThenDate(new Date(data.sun.nautical_dawn))
         ));
         cardsRow.appendChild(createTimeCard(
-            `🌌 ${i18n.t('sun.astronomical_twilight')}`,
+            `<i class="bi bi-stars icon-inline" aria-hidden="true"></i>${i18n.t('sun.astronomical_twilight')}`,
             `${i18n.t('sun.dusk')}`,
             formatTimeThenDate(new Date(data.sun.astronomical_dusk)),
             `${i18n.t('sun.dawn')}`,

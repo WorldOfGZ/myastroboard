@@ -56,6 +56,10 @@ body {
     margin: 0;
 }
 
+.icon-inline {
+    margin-right: 0.35rem;
+}
+
 /*Pimp bootstrap*/
 h3 {
     color: var(--text-light) !important;

@@ -345,7 +345,13 @@
     "happening_now": "¡Está sucediendo ahora!",
     "today": "¡Hoy!",
     "tomorrow": "¡Mañana!",
-    "in_days": "En {days} días"
+    "in_days": "En {days} días",
+    "importance": {
+      "low": "Para saber",
+      "medium": "Vale la pena considerar",
+      "high": "Altamente recomendado",
+      "critical": "Eventos imperdibles"
+    }
   },
   "settings": {
     "customize": "Personalizar",
@@ -543,7 +549,8 @@
     "captured_by": "Capturado por {owner}",
     "device_telescope": "Dispositivos/Telescopios",
     "photos": "Fotos",
-    "astrodex_empty": "Tu Astrodex está vacío"
+    "astrodex_empty": "Tu Astrodex está vacío",
+    "notes": "Notas"
   },
   "uptonight": {
     "info_1": "El programador UpTonight calcula los mejores objetivos de observación para la noche en función de su ubicación, pronóstico del tiempo y catálogos de objetivos. Puede configurar parámetros y funciones en la pestaña Parámetros.",

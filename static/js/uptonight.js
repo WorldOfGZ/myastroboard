@@ -79,7 +79,7 @@ async function loadUptonightResultsTabs() {
                 a.className = 'nav-link sub-tab-btn';
                 a.href = '#';
                 a.setAttribute('data-subtab', `catalogue-${target}`);
-                a.textContent = `📚 ${target}`;
+                a.innerHTML = `<i class="bi bi-journal-bookmark-fill text-success icon-inline" aria-hidden="true"></i>${target}`;
                 li.appendChild(a);
                 subtabsContainer.appendChild(li);
             });
@@ -100,7 +100,7 @@ async function loadUptonightResultsTabs() {
                     const wrapper = document.createElement('div');
                     wrapper.className = 'shadow p-2 mb-3 rounded bg-sub-container';
                     const title = document.createElement('h2');
-                    title.textContent = `📚 ${i18n.t('uptonight.catalogue_results', {catalogue: output.target})}`;
+                    title.innerHTML = `<i class="bi bi-journal-bookmark text-success icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.catalogue_results', {catalogue: output.target})}`;
                     const typeButtons = document.createElement('ul');
                     typeButtons.className = 'nav nav-pills sub-tabs';
                     typeButtons.id = `catalogue-${output.target}-type-buttons`;
@@ -174,7 +174,7 @@ async function loadCatalogueResults(catalogue) {
                 const link = document.createElement('a');
                 link.className = `nav-link catalogue-type-btn${buttonItem.active ? ' active' : ''}`;
                 link.href = '#';
-                link.textContent = buttonItem.label;
+                link.innerHTML = buttonItem.label;
                 link.addEventListener('click', (event) => {
                     event.preventDefault();
                     showCatalogueType(catalogue, buttonItem.type);
@@ -190,19 +190,19 @@ async function loadCatalogueResults(catalogue) {
         // Add buttons in order: Plot, Deep sky objects (Report), Bodies, Comets
         const buttonItems = [];
         if (hasPlot) {
-            buttonItems.push({ type: 'plot', label: `📊 ${i18n.t('uptonight.plot')}`, active: !firstType });
+            buttonItems.push({ type: 'plot', label: `<i class="bi bi-bar-chart-line text-success icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.plot')}`, active: !firstType });
             if (!firstType) firstType = 'plot';
         }
         if (hasReport) {
-            buttonItems.push({ type: 'report', label: `🌌 ${i18n.t('uptonight.deep_sky_objects')}`, active: !firstType });
+            buttonItems.push({ type: 'report', label: `<i class="bi bi-galaxy icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.deep_sky_objects')}`, active: !firstType });
             if (!firstType) firstType = 'report';
         }
         if (hasBodies) {
-            buttonItems.push({ type: 'bodies', label: `🪐 ${i18n.t('uptonight.bodies')}`, active: !firstType });
+            buttonItems.push({ type: 'bodies', label: `<i class="bi bi-globe2 text-warning icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.bodies')}`, active: !firstType });
             if (!firstType) firstType = 'bodies';
         }
         if (hasComets) {
-            buttonItems.push({ type: 'comets', label: `☄️ ${i18n.t('uptonight.comets')}`, active: !firstType });
+            buttonItems.push({ type: 'comets', label: `<i class="bi bi-comet text-warning icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.comets')}`, active: !firstType });
             if (!firstType) firstType = 'comets';
         }
         
@@ -214,10 +214,10 @@ async function loadCatalogueResults(catalogue) {
         ]).then(([logExists, reportsAvailable]) => {
             const enrichedButtons = [...buttonItems.map((button, index) => ({ ...button, active: index === 0 }))];
             if (logExists) {
-                enrichedButtons.push({ type: 'log', label: `📄 ${i18n.t('uptonight.logs')}`, active: false });
+                enrichedButtons.push({ type: 'log', label: `<i class="bi bi-journal-text text-danger icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.logs')}`, active: false });
             }
             if (reportsAvailable && reportsAvailable.has_any) {
-                enrichedButtons.push({ type: 'reports', label: `📑 ${i18n.t('uptonight.reports')}`, active: false });
+                enrichedButtons.push({ type: 'reports', label: `<i class="bi bi-journal-code icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.reports')}`, active: false });
             }
             renderButtons(enrichedButtons);
             
@@ -585,7 +585,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
             if (col.key === 'more') {
                 // Generate More link that opens a popup
                 const popupId = `more-popup-${catalogue}-${type}-${idx}`;
-                html += `<td style="text-align: ${col.align}"><a href="#" onclick="showMorePopup('${popupId}'); return false;" class="link-underline link-underline-opacity-0">📋 ${i18n.t('uptonight.table_more')}</a></td>`;
+                html += `<td style="text-align: ${col.align}"><a href="#" onclick="showMorePopup('${popupId}'); return false;" class="link-underline link-underline-opacity-0"><i class="bi bi-clipboard-data icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.table_more')}</a></td>`;
             } else if (col.key === 'astrodex') {
                 // Generate Astrodex action button
                 const itemName = row['id'] || row['target name'];
@@ -606,9 +606,9 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                 
                 if(displayAstrodex) {
                     if (isInAstrodex) {
-                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><span class="in-astrodex-badge">✓ ${i18n.t('uptonight.captured')}</span></td>`;
+                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><span class="in-astrodex-badge"><i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.captured')}</span></td>`;
                     } else if (itemName) {
-                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><button class="btn btn-sm btn-outline-primary astrodex-add-btn" data-item="${itemDataJson}">➕ ${i18n.t('uptonight.add')}</button></td>`;
+                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><button class="btn btn-sm btn-outline-primary astrodex-add-btn" data-item="${itemDataJson}"><i class="bi bi-plus-circle icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.add')}</button></td>`;
                     } else {
                         html += `<td style="text-align: ${col.align}">-</td>`;
                     }
@@ -1076,7 +1076,7 @@ window.addEventListener('click', function(event) {
 // ======================
 
 /**
- * Update the "✓ Captured" badges in catalogue tables after Astrodex changes
+ * Update the "Captured" badges in catalogue tables after Astrodex changes
  * @param {string} itemName - Name of the item to update
  * @param {boolean} isInAstrodex - Whether the item is now in Astrodex
  */
@@ -1131,7 +1131,7 @@ async function updateCatalogueCapturedBadge(itemDataOrName, isInAstrodex) {
                 DOMUtils.clear(astrodexCell);
                 const badge = document.createElement('span');
                 badge.className = 'in-astrodex-badge';
-                badge.textContent = `✓ ${i18n.t('uptonight.captured')}`;
+                badge.innerHTML = `<i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.captured')}`;
                 astrodexCell.appendChild(badge);
             } else {
                 const itemDataJson = JSON.stringify(rowItemData);
@@ -1139,7 +1139,7 @@ async function updateCatalogueCapturedBadge(itemDataOrName, isInAstrodex) {
                 const addButton = document.createElement('button');
                 addButton.className = 'btn btn-sm btn-outline-primary astrodex-add-btn';
                 addButton.setAttribute('data-item', itemDataJson);
-                addButton.textContent = `➕ ${i18n.t('uptonight.add')}`;
+                addButton.innerHTML = `<i class="bi bi-plus-circle icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.add')}`;
                 astrodexCell.appendChild(addButton);
             }
         });

@@ -107,15 +107,52 @@ class WeatherAlertsSystem {
             indicator.onclick = () => this.showAlertsModal();
             container.appendChild(indicator);
 
-            const highPriorityCount = activeAlerts.filter(a => a.severity === 'HIGH').length;
             const totalCount = activeAlerts.length;
+            const highestSeverity = this.getHighestSeverity(activeAlerts);
+            const indicatorStyle = this.getIndicatorStyleBySeverity(highestSeverity);
             
-            indicator.textContent = `⚠️ ${totalCount}`;
+            indicator.replaceChildren();
+            indicator.appendChild(DOMUtils.createIcon(`bi bi-exclamation-triangle-fill ${indicatorStyle.iconClass}`, 'icon-inline'));
+            indicator.appendChild(document.createTextNode(`${totalCount}`));
             
-            container.className = `nav-item weather-alert-indicator-${highPriorityCount > 0 ? 'high-priority' : 'normal'}`;
+            container.className = `nav-item ${indicatorStyle.containerClass}`;
             indicator.title = `${totalCount} weather alert(s) - Click to view details`;
 
         } 
+    }
+
+    getHighestSeverity(alerts) {
+        const severityOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+        return alerts.reduce((currentMax, alert) => {
+            const maxScore = severityOrder[currentMax] || 0;
+            const alertScore = severityOrder[alert.severity] || 0;
+            return alertScore > maxScore ? alert.severity : currentMax;
+        }, 'LOW');
+    }
+
+    getIndicatorStyleBySeverity(severity) {
+        switch (severity) {
+            case 'HIGH':
+                return {
+                    containerClass: 'weather-alert-indicator-high-priority',
+                    iconClass: 'text-danger'
+                };
+            case 'MEDIUM':
+                return {
+                    containerClass: 'weather-alert-indicator-medium-priority',
+                    iconClass: 'text-warning'
+                };
+            case 'LOW':
+                return {
+                    containerClass: 'weather-alert-indicator-low-priority',
+                    iconClass: 'text-info'
+                };
+            default:
+                return {
+                    containerClass: 'weather-alert-indicator-normal',
+                    iconClass: 'text-warning'
+                };
+        }
     }
     
     showAlertsModal() {
@@ -138,7 +175,7 @@ class WeatherAlertsSystem {
         } else {
             activeAlerts.forEach((alert) => {
                 const alertTime = new Date(alert.time);
-                const icon = this.getAlertTypeIcon(alert.type);
+                const iconClass = this.getAlertTypeIcon(alert.type);
 
                 const card = document.createElement('div');
                 card.className = `alert alert-${alert.severity === 'HIGH' ? 'danger' : 'warning'}`;
@@ -148,7 +185,7 @@ class WeatherAlertsSystem {
                 title.className = 'fw-bold';
 
                 const iconSpan = document.createElement('span');
-                iconSpan.textContent = icon;
+                iconSpan.appendChild(DOMUtils.createIcon(iconClass, 'icon-inline'));
                 const typeSpan = document.createElement('span');
                 typeSpan.textContent = ` ${this.getAlertTypeLabel(alert.type)}`;
                 const timeSpan = document.createElement('span');
@@ -197,13 +234,13 @@ class WeatherAlertsSystem {
     
     getAlertTypeIcon(type) {
         const icons = {
-            'DEW_WARNING': '💧',
-            'WIND_WARNING': '💨',
-            'SEEING_WARNING': '👁️',
-            'TRANSPARENCY_WARNING': '🌫️',
-            'CLOUD_WARNING': '☁️'
+            'DEW_WARNING': 'bi bi-droplet-half',
+            'WIND_WARNING': 'bi bi-wind',
+            'SEEING_WARNING': 'bi bi-eye',
+            'TRANSPARENCY_WARNING': 'bi bi-cloud-fog2',
+            'CLOUD_WARNING': 'bi bi-cloud'
         };
-        return icons[type] || '⚠️';
+        return icons[type] || 'bi bi-exclamation-triangle-fill';
     }
 
     getAlertTypeLabel(type) {

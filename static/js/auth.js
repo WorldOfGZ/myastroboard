@@ -288,7 +288,7 @@ function displayUsers(users) {
             if (role) {
                 button.setAttribute('data-role', role);
             }
-            button.textContent = text;
+            button.innerHTML = text;
             return button;
         };
 
@@ -296,7 +296,7 @@ function displayUsers(users) {
             className: 'btn btn-primary btn-small user-edit-username mb-2 me-2',
             userId: user.user_id,
             username: user.username,
-            text: `✏️ ${i18n.t('users.username')}`
+            text: `<i class="bi bi-pencil-square icon-inline" aria-hidden="true"></i>${i18n.t('users.username')}`
         }));
 
         if (!isCurrentUser) {
@@ -305,7 +305,7 @@ function displayUsers(users) {
                 userId: user.user_id,
                 username: user.username,
                 role: user.role,
-                text: `🔑 ${i18n.t('users.role')}`
+                text: `<i class="bi bi-key icon-inline" aria-hidden="true"></i>${i18n.t('users.role')}`
             }));
         }
 
@@ -313,7 +313,7 @@ function displayUsers(users) {
             className: 'btn btn-secondary btn-small user-change-password mb-2 me-2',
             userId: user.user_id,
             username: user.username,
-            text: `🔒 ${i18n.t('users.password')}`
+            text: `<i class="bi bi-lock icon-inline" aria-hidden="true"></i>${i18n.t('users.password')}`
         }));
 
         if (!isCurrentUser) {
@@ -321,7 +321,7 @@ function displayUsers(users) {
                 className: 'btn btn-danger btn-small user-delete mb-2 me-2',
                 userId: user.user_id,
                 username: user.username,
-                text: `🗑️ ${i18n.t('users.delete')}`
+                text: `<i class="bi bi-trash icon-inline" aria-hidden="true"></i>${i18n.t('users.delete')}`
             }));
         }
 
@@ -416,7 +416,7 @@ function setupCreateUserForm() {
 // Edit username using modal dialog
 function editUsername(userId, currentUsername) {
     const titleElement = document.getElementById('modal_lg_close_title');
-    titleElement.textContent = `✏️ ${i18n.t('users.edit_username')}`;
+    titleElement.innerHTML = `<i class="bi bi-pencil-square icon-inline" aria-hidden="true"></i>${i18n.t('users.edit_username')}`;
     
     const contentElement = document.getElementById('modal_lg_close_body');
     DOMUtils.clear(contentElement);
@@ -539,7 +539,7 @@ function editUsername(userId, currentUsername) {
 // Edit user role using modal dialog
 function editRole(userId, username, currentRole) {
     const titleElement = document.getElementById('modal_lg_close_title');
-    titleElement.textContent = `🔑 ${i18n.t('users.edit_role')}`;
+    titleElement.innerHTML = `<i class="bi bi-key icon-inline" aria-hidden="true"></i>${i18n.t('users.edit_role')}`;
     
     const contentElement = document.getElementById('modal_lg_close_body');
     DOMUtils.clear(contentElement);
@@ -665,7 +665,7 @@ function editRole(userId, username, currentRole) {
 function changePassword(userId, username) {
     //Prepare modal title
     const titleElement = document.getElementById('modal_lg_close_title');
-    titleElement.textContent = `🔒 ${i18n.t('users.change_password')}`;
+    titleElement.innerHTML = `<i class="bi bi-lock icon-inline" aria-hidden="true"></i>${i18n.t('users.change_password')}`;
     
     //Prepare modal content
     const contentElement = document.getElementById('modal_lg_close_body');

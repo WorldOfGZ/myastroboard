@@ -42,13 +42,13 @@ async function loadEquipmentForAstrodex() {
 
 function buildEquipmentCombinationOptions() {
     return astrodexEquipmentCache.combinations
-        .map(combo => `<option value="${escapeHtml(combo.name)}" data-combo-id="${combo.id}">🔭 ${escapeHtml(combo.name)}</option>`)
+        .map(combo => `<option value="${escapeHtml(combo.name)}" data-combo-id="${combo.id}">${escapeHtml(combo.name)}</option>`)
         .join('');
 }
 
 function buildEquipmentFilterOptions() {
     return astrodexEquipmentCache.filters
-        .map(filter => `<option value="${escapeHtml(filter.name)}" data-filter-id="${filter.id}">🎨 ${escapeHtml(filter.name)}</option>`)
+        .map(filter => `<option value="${escapeHtml(filter.name)}" data-filter-id="${filter.id}">${escapeHtml(filter.name)}</option>`)
         .join('');
 }
 
@@ -185,12 +185,12 @@ function updateAstrodexCollectionTitle() {
     if (!title) return;
 
     if (astrodexData.privateMode) {
-        title.textContent = `📚 ${i18n.t('astrodex.my_collection')}`;
+        title.innerHTML = `<i class="bi bi-galaxy text-warning icon-inline" aria-hidden="true"></i>${i18n.t('astrodex.my_collection')}`;
         if (subtitle) {
             subtitle.textContent = i18n.t('astrodex.your_collection');
         }
     } else {
-        title.textContent = `📚 ${i18n.t('astrodex.common_collection')}`;
+        title.innerHTML = `<i class="bi bi-galaxy text-warning icon-inline" aria-hidden="true"></i>${i18n.t('astrodex.common_collection')}`;
         if (subtitle) {
             subtitle.textContent = i18n.t('astrodex.shared_collection');
         }
@@ -312,7 +312,7 @@ function renderAstrodexGrid(items, isAllowedAstrodex) {
             const body = document.createElement('div');
             body.className = 'card-body text-center';
             const title = document.createElement('b');
-            title.textContent = `📚 ${i18n.t('astrodex.astrodex_empty')}`;
+            title.innerHTML = `<i class="bi bi-journal-bookmark icon-inline" aria-hidden="true"></i>${i18n.t('astrodex.astrodex_empty')}`;
             body.appendChild(title);
             body.appendChild(document.createElement('br'));
             body.append(i18n.t('astrodex.start_adding'));
@@ -322,7 +322,7 @@ function renderAstrodexGrid(items, isAllowedAstrodex) {
             const button = document.createElement('button');
             button.className = 'btn btn-outline-primary';
             button.setAttribute('data-action', 'add-astrodex-item');
-            button.textContent = `➕ ${i18n.t('astrodex.add_object')}`;
+            button.innerHTML = `<i class="bi bi-plus-circle icon-inline" aria-hidden="true"></i>${i18n.t('astrodex.add_object')}`;
             footer.appendChild(button);
 
             card.appendChild(body);
@@ -337,7 +337,7 @@ function renderAstrodexGrid(items, isAllowedAstrodex) {
             const body = document.createElement('div');
             body.className = 'card-body text-center';
             const title = document.createElement('b');
-            title.textContent = '📚 Astrodex is empty';
+            title.innerHTML = '<i class="bi bi-journal-bookmark icon-inline" aria-hidden="true"></i>Astrodex is empty';
             body.appendChild(title);
             body.appendChild(document.createElement('br'));
             body.append(i18n.t('astrodex.read_only_user'));
@@ -383,7 +383,7 @@ function renderAstrodexGrid(items, isAllowedAstrodex) {
         if (photoCount > 0) {
             const badge = document.createElement('div');
             badge.className = 'photo-badge';
-            badge.textContent = `${photoCount} 📷`;
+            badge.innerHTML = `${photoCount} <i class="bi bi-camera" aria-hidden="true"></i>`;
             imageWrap.appendChild(badge);
         }
 
@@ -414,14 +414,14 @@ function renderAstrodexGrid(items, isAllowedAstrodex) {
 
             const constellation = document.createElement('div');
             constellation.className = 'astrodex-card-constellation';
-            constellation.textContent = `📍 ${constellationLabel}`;
+            constellation.innerHTML = `<i class="bi bi-geo-alt text-danger icon-inline" aria-hidden="true"></i>${constellationLabel}`;
             body.appendChild(constellation);
         }
 
         if (!isOwnedByCurrentUser) {
             const owner = document.createElement('div');
             owner.className = 'astrodex-card-constellation';
-            owner.textContent = `👤 ${item.owner_username || 'Shared'}`;
+            owner.innerHTML = `<i class="bi bi-person text-primary icon-inline" aria-hidden="true"></i>${item.owner_username || 'Shared'}`;
             body.appendChild(owner);
         }
 
@@ -836,8 +836,8 @@ async function showAstrodexItemDetail(itemId) {
         </form>
 
         <div class="mt-3 mb-3 text-end">
-            <button class="btn btn-sm btn-primary me-3" data-action="add-picture" data-item-id="${escapeHtml(item.id)}">📷 ${i18n.t('astrodex.add_picture')}</button>
-            <button class="btn btn-sm btn-danger" data-action="delete-item" data-item-id="${escapeHtml(item.id)}">🗑️ ${i18n.t('astrodex.remove')}</button>
+            <button class="btn btn-sm btn-primary me-3" data-action="add-picture" data-item-id="${escapeHtml(item.id)}"><i class="bi bi-camera icon-inline" aria-hidden="true"></i>${i18n.t('astrodex.add_picture')}</button>
+            <button class="btn btn-sm btn-danger" data-action="delete-item" data-item-id="${escapeHtml(item.id)}"><i class="bi bi-trash icon-inline" aria-hidden="true"></i>${i18n.t('astrodex.remove')}</button>
         </div>
 
         <h3>${escapeHtml(picturesTitle)}</h3>
@@ -883,7 +883,7 @@ function renderCatalogueAliasesSection(item) {
                         data-catalogue="${escapeForJs(catalogueName)}"
                         ${isCurrent ? 'disabled' : ''}
                         title="${i18n.t('astrodex.use_this_name')}"
-                    >✏️</button>
+                    ><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
                 </div>
             `;
         })
@@ -930,19 +930,19 @@ function renderPicturesGrid(item) {
                 <div class="card h-100">
                     <div class="astrodex-card-image-no-hover rounded">
                         <img src="${escapedImageUrl}" class="card-img-top" alt="Photo" >
-                        ${picture.is_main ? `<div class="main-badge">⭐ ${i18n.t('astrodex.main_picture')}</div>` : ''}
+                        ${picture.is_main ? `<div class="main-badge"><i class="bi bi-star-fill text-warning icon-inline" aria-hidden="true"></i> ${i18n.t('astrodex.main_picture')}</div>` : ''}
                     </div>
                     <div class="card-body">
                         <p class="card-text">
-                            ${picture.date ? `<div>📅 ${escapeHtml(formatStringToDate(picture.date))}</div>` : ''}
-                            ${picture.exposition_time ? `<div>⏱️ ${escapeHtml(picture.exposition_time)}</div>` : ''}
-                            ${picture.device ? `<div>🔭 ${escapeHtml(picture.device)}</div>` : ''}
+                            ${picture.date ? `<div><i class="bi bi-calendar-event text-danger icon-inline" aria-hidden="true"></i>${escapeHtml(formatStringToDate(picture.date))}</div>` : ''}
+                            ${picture.exposition_time ? `<div><i class="bi bi-stopwatch icon-inline" aria-hidden="true"></i>${escapeHtml(picture.exposition_time)}</div>` : ''}
+                            ${picture.device ? `<div><i class="bi bi-binoculars icon-inline" aria-hidden="true"></i>${escapeHtml(picture.device)}</div>` : ''}
                         </p>
                     </div>
                     <div class="card-footer text-center">
-                        ${!picture.is_main ? `<button class="btn btn-outline-light" data-action="set-main-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="${i18n.t('astrodex.set_as_main')}">⭐</button>` : '<span class="btn-icon-placeholder"></span>'}
-                        <button class="btn btn-outline-light" data-action="edit-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="${i18n.t('astrodex.edit')}">✏️</button>
-                        <button class="btn btn-danger" data-action="delete-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="${i18n.t('astrodex.delete')}">🗑️</button>
+                        ${!picture.is_main ? `<button class="btn btn-outline-secondary" data-action="set-main-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="${i18n.t('astrodex.set_as_main')}"><i class="bi bi-star text-warning" aria-hidden="true"></i></button>` : '<span class="btn-icon-placeholder"></span>'}
+                        <button class="btn btn-outline-secondary" data-action="edit-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="${i18n.t('astrodex.edit')}"><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
+                        <button class="btn btn-danger" data-action="delete-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="${i18n.t('astrodex.delete')}"><i class="bi bi-trash" aria-hidden="true"></i></button>
                     </div>
                 </div>
             </div>
@@ -999,7 +999,7 @@ function showAddPictureModal(itemId) {
             <div class="col-md-6">
                 <label for="picture-device" class="form-label">${i18n.t('astrodex.equipment_combinations')}</label>
                 <select class="form-select" id="picture-device-select" onchange="updateDeviceField()">
-                    <option value="">-- ${i18n.t('astrodex.free_text')} --</option>
+                    <option value="">${i18n.t('astrodex.free_text')}</option>
                     ${equipmentComboOptions}
                 </select>
             </div>            
@@ -1013,7 +1013,7 @@ function showAddPictureModal(itemId) {
             <div class="col-md-6">
                 <label for="picture-filters" class="form-label">${i18n.t('astrodex.filters')}</label>
                 <select class="form-select" id="picture-filters-select" onchange="updateFilterField()">
-                    <option value="">-- ${i18n.t('astrodex.free_text')} --</option>
+                    <option value="">${i18n.t('astrodex.free_text')}</option>
                     ${equipmentFilterOptions}
                 </select>
             </div>
@@ -1414,7 +1414,7 @@ function showPictureSlideshow(itemId) {
                 ${picture.date ? `
                     <div class="col-md-6 col-lg-4">
                         <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
-                            <div class="me-3 fs-4">📅</div>
+                            <div class="me-3 fs-4"><i class="bi bi-calendar-event text-danger" aria-hidden="true"></i></div>
                             <div>
                                 <small class="text-muted d-block">${i18n.t('astrodex.observation_date')}</small>
                                 <strong class="text-dark">${escapeHtml(formatStringToDate(picture.date))}</strong>
@@ -1425,7 +1425,7 @@ function showPictureSlideshow(itemId) {
                 ${picture.exposition_time ? `
                     <div class="col-md-6 col-lg-4">
                         <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
-                            <div class="me-3 fs-4">⏱️</div>
+                            <div class="me-3 fs-4"><i class="bi bi-stopwatch" aria-hidden="true"></i></div>
                             <div>
                                 <small class="text-muted d-block">${i18n.t('astrodex.exposition_time')}</small>
                                 <strong class="text-dark">${escapeHtml(picture.exposition_time)}</strong>
@@ -1436,7 +1436,7 @@ function showPictureSlideshow(itemId) {
                 ${picture.device ? `
                     <div class="col-md-6 col-lg-4">
                         <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
-                            <div class="me-3 fs-4">🔭</div>
+                            <div class="me-3 fs-4"><i class="bi bi-binoculars" aria-hidden="true"></i></div>
                             <div>
                                 <small class="text-muted d-block">${i18n.t('astrodex.device_telescope')}</small>
                                 <strong class="text-dark">${escapeHtml(picture.device)}</strong>
@@ -1447,7 +1447,7 @@ function showPictureSlideshow(itemId) {
                 ${picture.filters ? `
                     <div class="col-md-6 col-lg-4">
                         <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
-                            <div class="me-3 fs-4">🎨</div>
+                            <div class="me-3 fs-4"><i class="bi bi-palette" aria-hidden="true"></i></div>
                             <div>
                                 <small class="text-muted d-block">${i18n.t('astrodex.filters')}</small>
                                 <strong class="text-dark">${escapeHtml(picture.filters)}</strong>
@@ -1458,7 +1458,7 @@ function showPictureSlideshow(itemId) {
                 ${picture.iso ? `
                     <div class="col-md-6 col-lg-4">
                         <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
-                            <div class="me-3 fs-4">📷</div>
+                            <div class="me-3 fs-4"><i class="bi bi-camera" aria-hidden="true"></i></div>
                             <div>
                                 <small class="text-muted d-block">${i18n.t('astrodex.iso')}</small>
                                 <strong class="text-dark">${escapeHtml(picture.iso)}</strong>
@@ -1469,7 +1469,7 @@ function showPictureSlideshow(itemId) {
                 ${picture.frames ? `
                     <div class="col-md-6 col-lg-4">
                         <div class="d-flex align-items-center p-2 rounded shadow-sm bg-light">
-                            <div class="me-3 fs-4">🎞️</div>
+                            <div class="me-3 fs-4"><i class="bi bi-film" aria-hidden="true"></i></div>
                             <div>
                                 <small class="text-muted d-block">${i18n.t('astrodex.number_of_frames')}</small>
                                 <strong class="text-dark">${escapeHtml(picture.frames)}</strong>
@@ -1482,7 +1482,7 @@ function showPictureSlideshow(itemId) {
                 <div class="row mt-3">
                     <div class="col">
                         <div class="d-flex align-items-start p-2 rounded shadow-sm bg-light">
-                            <div class="me-3 fs-4">📝</div>
+                            <div class="me-3 fs-4"><i class="bi bi-journal-text" aria-hidden="true"></i></div>
                             <div>
                                 <small class="text-muted d-block">${i18n.t('astrodex.notes')}</small>
                                 <p class="mb-0" style="white-space: pre-wrap;">${escapeHtml(picture.notes)}</p>
@@ -1500,10 +1500,7 @@ function showPictureSlideshow(itemId) {
                     d-flex align-items-center justify-content-center" 
                 aria-label="Previous photo" 
                 style="z-index: 10; opacity: 0.7; border-radius: 50%; width: 50px; height: 50px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-chevron-double-left" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M8.354 1.646a.5.5 0 0 1 0 .708L2.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
-                    <path fill-rule="evenodd" d="M12.354 1.646a.5.5 0 0 1 0 .708L6.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
-                </svg>
+                <i class="bi bi-chevron-double-left" aria-hidden="true"></i>
             </button>
         ` : '';
         
@@ -1513,10 +1510,7 @@ function showPictureSlideshow(itemId) {
                     d-flex align-items-center justify-content-center"
                 aria-label="Next photo"
                 style="z-index: 10; opacity: 0.7; border-radius: 50%; width: 50px; height: 50px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-chevron-double-right" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M3.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L9.293 8 3.646 2.354a.5.5 0 0 1 0-.708"/>
-                    <path fill-rule="evenodd" d="M7.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L13.293 8 7.646 2.354a.5.5 0 0 1 0-.708"/>
-                </svg>
+                <i class="bi bi-chevron-double-right" aria-hidden="true"></i>
             </button>
         ` : '';
         
@@ -1654,10 +1648,10 @@ async function toggleAstrodexSortOrder() {
     const button = document.getElementById('astrodex-sort-order');
     if (astrodexFilters.sortOrder === 'asc') {
         astrodexFilters.sortOrder = 'desc';
-        button.textContent = `⬇️ ${i18n.t('astrodex.sort_order_descending')}`;
+        button.innerHTML = `<i class="bi bi-sort-down-alt icon-inline" aria-hidden="true"></i>${i18n.t('astrodex.sort_order_descending')}`;
     } else {
         astrodexFilters.sortOrder = 'asc';
-        button.textContent = `⬆️ ${i18n.t('astrodex.sort_order_ascending')}`;
+        button.innerHTML = `<i class="bi bi-sort-up-alt icon-inline" aria-hidden="true"></i>${i18n.t('astrodex.sort_order_ascending')}`;
     }
     renderAstrodexView(isAllowedAstrodex);
 }
@@ -1733,9 +1727,9 @@ async function initializeAstrodexEventListeners() {
 
     //Init buttons
     const buttonSort = document.getElementById('astrodex-sort-order');
-    buttonSort.textContent = `⬆️ ${i18n.t('astrodex.sort_order_ascending')}`;
+    buttonSort.innerHTML = `<i class="bi bi-sort-up-alt icon-inline" aria-hidden="true"></i>${i18n.t('astrodex.sort_order_ascending')}`;
     const buttonAddItem = document.getElementById('add-astrodex-item');
-    buttonAddItem.textContent = `➕ ${i18n.t('astrodex.add_object')}`;
+    buttonAddItem.innerHTML = `<i class="bi bi-plus-circle icon-inline" aria-hidden="true"></i>${i18n.t('astrodex.add_object')}`;
     
     // ============================================
     // Event delegation on document.body for modals and dynamic content

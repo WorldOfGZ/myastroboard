@@ -4,6 +4,18 @@ const successMessage = document.getElementById('success-message');
 const loginBtn = document.getElementById('login-btn');
 const btnText = loginBtn.querySelector('.btn-text');
 
+function setIconLabel(element, iconClass, text) {
+    if (!element) {
+        return;
+    }
+    element.replaceChildren();
+    const icon = document.createElement('i');
+    icon.className = `${iconClass} icon-inline`;
+    icon.setAttribute('aria-hidden', 'true');
+    element.appendChild(icon);
+    element.appendChild(document.createTextNode(text));
+}
+
 function applyLoginTranslations() {
     if (typeof i18n === 'undefined') {
         return;
@@ -31,7 +43,7 @@ function applyLoginTranslations() {
     document.title = i18n.t('auth.login_page_title');
 
     if (!loginBtn.classList.contains('loading')) {
-        btnText.textContent = i18n.t('auth.sign_in');
+        setIconLabel(btnText, 'bi bi-rocket-takeoff', i18n.t('auth.sign_in'));
     }
 }
 
@@ -47,16 +59,26 @@ async function initializeLoginI18n() {
     // Translate labels username and password after translations are loaded
     const usernameLabel = document.getElementById('username-label');
     const passwordLabel = document.getElementById('password-label');
-    if (usernameLabel) {
-        usernameLabel.textContent = `👤 ${i18n.t('users.username')}`;
-    }
-    if (passwordLabel) {
-        passwordLabel.textContent = `🔐 ${i18n.t('users.password')}`;
-    }
+    setIconLabel(usernameLabel, 'bi bi-person-circle', i18n.t('users.username'));
+    setIconLabel(passwordLabel, 'bi bi-shield-lock', i18n.t('users.password'));
 }
 
 function showMessage(element, message, duration = 0) {
-    element.textContent = message;
+    element.replaceChildren();
+
+    if (element === errorMessage) {
+        const icon = document.createElement('i');
+        icon.className = 'bi bi-exclamation-triangle-fill text-warning icon-inline';
+        icon.setAttribute('aria-hidden', 'true');
+        element.appendChild(icon);
+    } else if (element === successMessage) {
+        const icon = document.createElement('i');
+        icon.className = 'bi bi-check-circle-fill text-success icon-inline';
+        icon.setAttribute('aria-hidden', 'true');
+        element.appendChild(icon);
+    }
+
+    element.appendChild(document.createTextNode(message));
     element.classList.add('show');
     
     if (duration > 0) {
@@ -78,7 +100,7 @@ function setLoading(isLoading) {
         btnText.textContent = i18n.t('auth.signing_in');
     } else {
         loginBtn.classList.remove('loading');
-        btnText.textContent = i18n.t('auth.sign_in');
+        setIconLabel(btnText, 'bi bi-rocket-takeoff', i18n.t('auth.sign_in'));
     }
 }
 

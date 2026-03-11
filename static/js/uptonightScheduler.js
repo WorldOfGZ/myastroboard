@@ -101,7 +101,7 @@ const UptonightScheduler = (() => {
     function finish() {
         stopPolling();
 
-        els.progress().textContent = `✅ ${i18n.t('scheduler.complete')}`;
+        els.progress().innerHTML = `<i class="bi bi-check-circle-fill text-success icon-inline" aria-hidden="true"></i>${i18n.t('scheduler.complete')}`;
         els.detail().textContent =
             i18n.t('scheduler.success');
 
@@ -149,14 +149,14 @@ const UptonightScheduler = (() => {
         const btn = els.button();
         if (!btn) return;
         btn.disabled = true;
-        btn.textContent = `⏳ ${i18n.t('scheduler.status_running')}`;
+        btn.innerHTML = `<i class="bi bi-hourglass-split icon-inline" aria-hidden="true"></i>${i18n.t('scheduler.status_running')}`;
     }
 
     function resetButton() {
         const btn = els.button();
         if (!btn) return;
         btn.disabled = false;
-        btn.textContent = `▶️ ${i18n.t('scheduler.run_now')}`;
+        btn.innerHTML = `<i class="bi bi-play-fill icon-inline" aria-hidden="true"></i>${i18n.t('scheduler.run_now')}`;
     }
 
     function resetUI() {
@@ -177,7 +177,7 @@ const UptonightScheduler = (() => {
             wrapper.className = 'shadow p-2 mb-3 rounded bg-sub-container';
 
             const title = document.createElement('h2');
-            title.textContent = `📚 ${i18n.t('scheduler.results_title', { catalogue })}`;
+            title.innerHTML = `<i class="bi bi-journal-bookmark icon-inline" aria-hidden="true"></i>${i18n.t('scheduler.results_title', { catalogue })}`;
 
             const tabs = document.createElement('ul');
             tabs.className = 'nav nav-pills sub-tabs';
