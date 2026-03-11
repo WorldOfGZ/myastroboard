@@ -12,7 +12,7 @@ skyfield==1.54
 sgp4==2.25
 
 # Data processing
-numpy==2.4.2
+numpy==2.4.3
 matplotlib==3.10.8
 pandas==3.0.1
 
