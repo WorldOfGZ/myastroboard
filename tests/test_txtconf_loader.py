@@ -10,7 +10,10 @@ from io import StringIO
 # Add backend directory to the Python path to import backend modules
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'backend'))
 
-from txtconf_loader import get_repo_version
+from txtconf_loader import get_repo_version, get_available_catalogues_TODELETE
+
+
+DEFAULT_CATALOGUES = ['GaryImm', 'Herschel400', 'LBN', 'LDN', 'Messier', 'OpenIC', 'OpenNGC']
 
 
 class TestRepoVersionLoader(unittest.TestCase):
@@ -60,6 +63,43 @@ class TestRepoVersionLoader(unittest.TestCase):
                            f"Expected mocked content '4.2.0', but got '{version}'")
             
             print(f"✅ Mocked version read correctly: {version}")
+
+
+class TestCatalogueListLoader(unittest.TestCase):
+    """Test catalogue list loading functionality"""
+
+    def test_get_available_catalogues_file_exists(self):
+        """Should load catalogues from JSON payload when file exists"""
+        payload = '{"catalogues": ["Messier", "OpenNGC"]}'
+
+        with patch('txtconf_loader.os.path.exists', return_value=True), \
+             patch('builtins.open', mock_open(read_data=payload)):
+            catalogues = get_available_catalogues_TODELETE()
+
+        self.assertEqual(catalogues, ["Messier", "OpenNGC"])
+
+    def test_get_available_catalogues_file_missing_uses_defaults(self):
+        """Should use default catalogue list when config file is absent"""
+        with patch('txtconf_loader.os.path.exists', return_value=False):
+            catalogues = get_available_catalogues_TODELETE()
+
+        self.assertEqual(catalogues, DEFAULT_CATALOGUES)
+
+    def test_get_available_catalogues_non_dict_payload_returns_empty(self):
+        """Should return empty list when payload is not a dictionary"""
+        with patch('txtconf_loader.os.path.exists', return_value=True), \
+             patch('builtins.open', mock_open(read_data='["Messier"]')):
+            catalogues = get_available_catalogues_TODELETE()
+
+        self.assertEqual(catalogues, [])
+
+    def test_get_available_catalogues_exception_uses_defaults(self):
+        """Should fall back to defaults when JSON loading fails"""
+        with patch('txtconf_loader.os.path.exists', return_value=True), \
+             patch('builtins.open', side_effect=OSError("boom")):
+            catalogues = get_available_catalogues_TODELETE()
+
+        self.assertEqual(catalogues, DEFAULT_CATALOGUES)
 
 
 if __name__ == '__main__':

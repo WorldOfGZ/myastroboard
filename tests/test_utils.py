@@ -5,11 +5,13 @@ import pytest
 import os
 import json
 import tempfile
+import yaml
 from pathlib import Path
 
 
 # Import the functions to test
 from utils import (
+    IndentDumper,
     ensure_directory_exists,
     safe_file_exists,
     load_json_file,
@@ -113,6 +115,24 @@ class TestJsonFileOperations:
         loaded = load_json_file(file_path)
         assert loaded["name"] == "Café"
         assert loaded["emoji"] == "🌙"
+
+    def test_save_json_file_unserializable_data(self, temp_dir):
+        """Test that unserializable data is handled gracefully"""
+        file_path = os.path.join(temp_dir, "bad.json")
+        data = {"invalid": {1, 2, 3}}
+        result = save_json_file(file_path, data)
+        assert result is False
+
+
+class TestYamlHelpers:
+    """Test YAML utility helpers"""
+
+    def test_indent_dumper_is_usable(self):
+        """Test that custom dumper can serialize nested lists"""
+        payload = {"items": [{"name": "M31"}, {"name": "M42"}]}
+        dumped = yaml.dump(payload, Dumper=IndentDumper, sort_keys=False)
+        assert "items:" in dumped
+        assert "- name: M31" in dumped
 
 
 class TestCoordinateConversion:
