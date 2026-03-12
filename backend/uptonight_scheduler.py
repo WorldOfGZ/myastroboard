@@ -3,6 +3,7 @@ Uptonight Scheduler - Manages periodic execution of uptonight Docker container
 Runs uptonight for each selected target with 10-minute delays between runs
 """
 import os
+import shutil
 import subprocess
 import threading
 import time
@@ -58,6 +59,35 @@ class UptonightScheduler:
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         os.makedirs(CONFIG_DIR, exist_ok=True)
         os.makedirs(DATA_DIR_CACHE, exist_ok=True)
+        self._sanitize_config_directory()
+
+    def _sanitize_config_directory(self):
+        """Ensure YAML config entries are files, not directories."""
+        try:
+            for name in os.listdir(CONFIG_DIR):
+                if not name.endswith(('.yaml', '.yml')):
+                    continue
+
+                path = os.path.join(CONFIG_DIR, name)
+                if os.path.isdir(path):
+                    logger.warning(f"Invalid config entry (directory instead of file), removing: {path}")
+                    shutil.rmtree(path, ignore_errors=False)
+        except Exception as e:
+            logger.error(f"Failed to sanitize config directory {CONFIG_DIR}: {e}")
+
+    def _ensure_config_file_placeholders(self, selected_catalogues):
+        """Create placeholder config files to avoid Docker creating directories for missing sources."""
+        for catalogue in selected_catalogues:
+            safe_name = catalogue.replace(' ', '_').replace('/', '_')
+            config_path = os.path.join(CONFIG_DIR, f"config_{safe_name}.yaml")
+
+            if os.path.isdir(config_path):
+                logger.warning(f"Placeholder path is a directory, removing it: {config_path}")
+                shutil.rmtree(config_path, ignore_errors=False)
+
+            if not os.path.exists(config_path):
+                with open(config_path, 'w', encoding='utf-8'):
+                    pass
 
     def start(self):
         """Start the scheduler"""
@@ -111,6 +141,7 @@ class UptonightScheduler:
                 self.last_run = datetime.now()
                 self.is_executing = True
                 self._write_status()  # Update status file immediately
+                self._sanitize_config_directory()
 
                 config = self.config_loader()
                 selected_catalogues = config.get('selected_catalogues', [])
@@ -124,6 +155,9 @@ class UptonightScheduler:
                 self._cleanup_old_uptonight_images(UPTONIGHT_VERSION)
 
                 logger.info(f"Executing uptonight for {len(selected_catalogues)} catalogues")
+
+                # Pre-create all config files so bind-mount sources always exist as files.
+                self._ensure_config_file_placeholders(selected_catalogues)
 
                 weather_conditions = self._get_weather_for_config(config)
                 logger.info(f"Retrieved weather conditions: "
@@ -165,6 +199,11 @@ class UptonightScheduler:
         config_path = os.path.join(CONFIG_DIR, f"config_{safe_name}.yaml")
         output_dir = os.path.join(OUTPUT_DIR, safe_name)
         os.makedirs(output_dir, exist_ok=True)
+
+        # Recover from stale directory left at config file path.
+        if os.path.isdir(config_path):
+            logger.warning(f"Config path is a directory, removing it: {config_path}")
+            shutil.rmtree(config_path, ignore_errors=False)
 
         # Remove old files
         for root, dirs, files in os.walk(output_dir, topdown=False):
@@ -210,6 +249,10 @@ class UptonightScheduler:
                 '-v', f'{host_output_path}:/app/out',
                 UPTONIGHT_IMAGE
             ]
+
+            # Avoid Docker auto-creating a directory when source file is missing.
+            if not os.path.isfile(config_path):
+                raise FileNotFoundError(f"Config file missing before docker run: {config_path}")
 
             logger.debug(f"Running uptonight for catalogue {catalogue}...")
 

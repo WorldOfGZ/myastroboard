@@ -79,9 +79,12 @@ import equipment_profiles
 # Initialize logger for this module
 logger = get_logger(__name__)
 
+STATIC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static'))
+TEMPLATE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates'))
+
 app = Flask(__name__, 
-            template_folder='../templates',
-            static_folder='../static')
+            template_folder=TEMPLATE_DIR,
+            static_folder=STATIC_DIR)
 
 # Configure reverse proxy support (e.g., NGINX Proxy Manager with HTTPS termination)
 # When TRUST_PROXY_HEADERS=true, Flask will trust X-Forwarded-* headers from the proxy
@@ -175,13 +178,13 @@ def login_page():
 @app.route('/manifest.webmanifest')
 def web_manifest():
     """Serve PWA web manifest"""
-    return send_from_directory(app.static_folder, 'manifest.webmanifest', mimetype='application/manifest+json')
+    return send_from_directory(STATIC_DIR, 'manifest.webmanifest', mimetype='application/manifest+json')
 
 
 @app.route('/sw.js')
 def service_worker():
     """Serve service worker from root scope for full-app coverage"""
-    response = send_from_directory(app.static_folder, 'sw.js', mimetype='application/javascript')
+    response = send_from_directory(STATIC_DIR, 'sw.js', mimetype='application/javascript')
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return response
 
@@ -189,7 +192,7 @@ def service_worker():
 @app.route('/offline.html')
 def offline_page():
     """Serve offline fallback page used by service worker"""
-    return send_from_directory(app.static_folder, 'offline.html')
+    return send_from_directory(STATIC_DIR, 'offline.html')
 
 
 # ============================================================
@@ -413,7 +416,11 @@ def update_config_api():
         config_file = os.path.join(CONFIG_DIR, f'config_{catalogue}.yaml')
         if os.path.exists(config_file):
             try:
-                os.remove(config_file)
+                if os.path.isdir(config_file):
+                    logger.warning(f"Removing invalid config directory: {config_file}")
+                    shutil.rmtree(config_file)
+                else:
+                    os.remove(config_file)
             except Exception as e:
                 logger.error(f"Error removing config file {config_file}: {e}")
         # Remove output directory
@@ -492,7 +499,14 @@ def view_configs_api():
         # Yaml configs in folder
         for filename in os.listdir(CONFIG_DIR):
             if filename.endswith(('.yml', '.yaml')):
+                # debug log to check filename and path
+                logger.debug(f"Found config file: {filename} in {CONFIG_DIR}")
+                
                 path = os.path.join(CONFIG_DIR, filename)
+                if not os.path.isfile(path):
+                    logger.warning(f"Skipping non-file YAML entry: {path}")
+                    continue
+
                 with open(path, 'r', encoding='utf-8') as f:
                     yaml_content = f.read()
                     json_content = yaml.safe_load(yaml_content)

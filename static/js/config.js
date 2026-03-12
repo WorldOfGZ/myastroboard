@@ -353,9 +353,18 @@ async function viewConfiguration() {
         //throw new Error('Simulated error for testing'); // Simulate an error to test error handling
 
         const data = await fetchJSON('/api/config/view');
-        
+        //console.log('Received configs data:', data); // Debug log to check API response
+
         if (data.status === 'success') {
-            configsData = data.configs;
+            configsData = (data.configs || []).filter(cfg => {
+                if (!cfg || typeof cfg.yaml !== 'string') return false;
+                return cfg.yaml.trim().length > 0;
+            });
+
+            if (configsData.length === 0) {
+                showMessage('error', 'No generated UpTonight configuration available yet.');
+                return;
+            }
 
             //Prepare modal title
             const titleElement = document.getElementById('modal_lg_close_title');
