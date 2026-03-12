@@ -1232,14 +1232,14 @@
     "install_ready": "Installez MyAstroBoard pour un lancement plus rapide et un accès hors ligne.",
     "install_success": "MyAstroBoard a été installé avec succès.",
     "running_installed": "MyAstroBoard fonctionne en tant qu'application installée.",
-    "ios_add_to_home": "Sur iOS, utilisez Partager -> Sur l'ecran d'accueil pour installer l'application.",
-    "offline_support_unavailable": "Le support hors ligne en arriere-plan est indisponible pour le moment.",
+    "ios_add_to_home": "Sur iOS, utilisez Partager -> Sur l'écran d'accueil pour installer l'application.",
+    "offline_support_unavailable": "Le support hors ligne en arrière-plan est indisponible pour le moment.",
     "offline_page_title": "Hors ligne - MyAstroBoard",
-    "offline_title": "Vous etes hors ligne",
-    "offline_message": "MyAstroBoard ne peut pas joindre le serveur pour le moment. Vous pouvez continuer a consulter les pages en cache et reessayer lorsque la connexion revient.",
-    "retry_connection": "Reessayer la connexion",
-    "checking_connection": "Verification de la connexion...",
-    "still_offline": "Toujours hors ligne. Verifiez votre connexion puis reessayez.",
+    "offline_title": "Vous êtes hors ligne",
+    "offline_message": "MyAstroBoard ne peut pas joindre le serveur pour le moment. Vous pouvez continuer à consulter les pages en cache et réessayer lorsque la connexion revient.",
+    "retry_connection": "Réessayer la connexion",
+    "checking_connection": "Vérification de la connexion...",
+    "still_offline": "Toujours hors ligne. Vérifiez votre connexion puis réessayez.",
     "auto_retry_in": "Nouvelle tentative automatique dans {seconds}s"
   }
 }
