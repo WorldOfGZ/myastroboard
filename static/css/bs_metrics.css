@@ -23,6 +23,189 @@
     padding-bottom: 0.5rem;
 }
 
+#metrics-subtab .disk-usage-item {
+    padding: 0.1rem 0;
+}
+
+#metrics-subtab .disk-usage-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.4rem;
+}
+
+#metrics-subtab .disk-usage-path {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+#metrics-subtab .disk-usage-values {
+    font-size: 0.82rem;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+#metrics-subtab .disk-usage-progress {
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+#metrics-subtab .disk-usage-progress .progress-bar {
+    font-size: 0;
+    line-height: 0;
+}
+
+#metrics-subtab .disk-usage-meta {
+    margin-top: 0.3rem;
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    font-variant-numeric: tabular-nums;
+}
+
+#metrics-subtab .processes-panel {
+    background: var(--surface-1);
+    border: 1px solid var(--surface-border);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+#metrics-subtab .processes-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+#metrics-subtab .processes-panel-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+#metrics-subtab .processes-panel-title-wrap h3 {
+    margin: 0;
+    padding: 0;
+    border: none;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+#metrics-subtab .processes-show-all {
+    margin-bottom: 0;
+}
+
+#metrics-subtab .processes-table-wrap {
+    border: 1px solid var(--surface-border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#metrics-subtab .processes-table {
+    margin-bottom: 0;
+}
+
+#metrics-subtab .processes-table thead th {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--surface-card);
+    border-bottom-color: var(--surface-border);
+    cursor: pointer;
+}
+
+#metrics-subtab .processes-table tbody td {
+    font-size: 0.82rem;
+    vertical-align: middle;
+    border-bottom-color: var(--surface-border);
+}
+
+#metrics-subtab .processes-table tbody tr:hover {
+    background: var(--surface-hover);
+}
+
+#metrics-subtab .processes-table tbody tr.process-row-container td {
+    background: linear-gradient(90deg, var(--accent-soft), transparent);
+}
+
+#metrics-subtab .processes-table tbody tr.process-row-container td:first-child {
+    border-left: 3px solid var(--accent-1);
+}
+
+#metrics-subtab .processes-table tbody tr.process-row-container:hover td {
+    background: linear-gradient(90deg, var(--accent-soft-strong), var(--surface-hover));
+}
+
+#metrics-subtab .process-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+#metrics-subtab .process-main-name {
+    font-weight: 600;
+    color: var(--text-color);
+    line-height: 1.2;
+}
+
+#metrics-subtab .process-container-chip {
+    margin-left: 0.35rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--accent-1);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-soft-strong);
+}
+
+#metrics-subtab .process-sub {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+#metrics-subtab .process-cpu-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 95px;
+}
+
+#metrics-subtab .process-cpu-bar-bg {
+    width: 48px;
+    height: 6px;
+    background: var(--surface-card);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+#metrics-subtab .process-cpu-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #0ea5e9, #3b82f6);
+    transition: width 0.6s ease;
+}
+
+#metrics-subtab .process-num {
+    font-variant-numeric: tabular-nums;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 #metrics-subtab .progress {
     background-color: var(--surface-card);
     border: 1px solid var(--surface-border);

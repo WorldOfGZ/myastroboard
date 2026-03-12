@@ -116,6 +116,7 @@ h3 {
     padding-left: 1rem !important;
     padding-right: 1rem !important;
     white-space: normal;
+    border-radius: 999px;
 
     display: flex;
     align-items: center;
@@ -366,7 +367,7 @@ h3 {
 
 .sub-tabs li {
     border: 1px solid var(--surface-border-strong);
-    border-radius: var(--border-radius);
+    border-radius: 999px;
     margin-right: 0.5rem;
     background-color: var(--surface-1) !important;
     margin-top: 0.25rem;
@@ -511,11 +512,12 @@ h3 {
     color: var(--text-grey) !important;
     font-weight: var(--font-medium) !important;
     border: 1px solid var(--surface-border-strong) !important;
-    border-radius: var(--border-radius) !important;
+    /*border-radius: var(--border-radius) !important;*/
     padding: 0.55rem 1rem !important;
     transition: all var(--transition-smooth);
     position: relative;
     overflow: hidden;
+    border-radius: 999px !important;
 }
 
 .sub-tab-btn::before {
@@ -554,7 +556,7 @@ h3 {
     color: var(--text-grey) !important;
     font-weight: var(--font-medium) !important;
     border: 1px solid var(--surface-border-strong) !important;
-    border-radius: var(--border-radius) !important;
+    border-radius: 999px !important;
     padding: 0.5rem 1rem !important;
     transition: all var(--transition-normal);
     position: relative;

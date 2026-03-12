@@ -262,3 +262,58 @@
     margin-bottom: 0.5rem;
 }
 
+/* Best observation periods */
+#best-observation-periods-main .alert {
+    border: 1px solid var(--border-color);
+    background: var(--bg-sub-container);
+    color: var(--text-muted);
+}
+
+#best-observation-periods-main #astro-best-periods {
+    background: var(--bg-sub-container);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 0.75rem;
+}
+
+#best-observation-periods-main .best-period-empty-icon {
+    margin-bottom: 0.25rem;
+}
+
+#best-observation-periods-main .best-period-empty-text {
+    color: var(--text-muted);
+}
+
+#best-observation-periods-main .best-period-card {
+    background: var(--bg-sub-container);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+#best-observation-periods-main .best-period-card .card-header {
+    background: var(--bg-sub-container);
+    border-bottom: 1px solid var(--border-color);
+}
+
+#best-observation-periods-main .best-period-card .card-title {
+    color: var(--text-color);
+    font-size: 0.98rem;
+}
+
+#best-observation-periods-main .best-period-card .card-subtitle {
+    font-size: 0.8rem;
+}
+
+#best-observation-periods-main .best-period-card .list-group-item {
+    background: var(--bg-sub-container);
+    color: var(--text-color);
+    border-color: var(--border-color);
+    padding: 0.55rem 0.75rem;
+    font-size: 0.9rem;
+}
+
+#best-observation-periods-main .best-period-card .fw-bold {
+    color: var(--primary-color);
+}
+

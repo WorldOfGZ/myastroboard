@@ -477,7 +477,7 @@ def get_system_metrics():
     - Container/VM detection with environment info
     - CPU, memory, swap, and disk information
     - Detailed disk space per folder with gauges
-    - Current process details (memory, threads, file descriptors)
+    - Environment process list with CPU/memory/uptime insights
     - Network statistics
     - Platform information
     """

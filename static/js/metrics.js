@@ -1,6 +1,8 @@
 // System Metrics Functions
 
 let metricsUpdateInterval = null;
+let processSortState = { key: 'cpu_percent', direction: 'desc' };
+let processShowAll = false;
 
 // ======================
 // System Metrics
@@ -54,7 +56,7 @@ async function loadSystemMetrics() {
         
         // Update folder disk usage (from disk.details, not disk.root.details)
         if (data.disk && data.disk.details && data.disk.details.folders) {
-            updateFolderMetrics(data.disk.details.folders);
+            updateFolderMetrics(data.disk.details.folders, data?.disk?.root?.total);
         }
         
         // Update System info
@@ -78,11 +80,11 @@ async function loadSystemMetrics() {
         }
         
         // Update Process details
-        if (data.process && data.process.current_process) {
-            console.debug('Current process data:', data.process.current_process);
-            updateProcessMetrics(data.process.current_process);
+        if (data.process && Array.isArray(data.process.processes)) {
+            updateProcessesTable(data.process);
         } else {
-            console.warn('No current_process data available');
+            console.warn('No process list data available');
+            updateProcessesTable({ processes: [] });
         }
         
     } catch (error) {
@@ -90,7 +92,7 @@ async function loadSystemMetrics() {
     }
 }
 
-function updateFolderMetrics(folders) {
+function updateFolderMetrics(folders, rootTotalBytes = null) {
     const folderMap = {
         'data': 'data',
         'data/cache': 'cache',
@@ -105,16 +107,46 @@ function updateFolderMetrics(folders) {
         if (folderData) {
             const barId = `folder-${folderKey}-bar`;
             const sizeId = `folder-${folderKey}-size`;
+            const totalId = `folder-${folderKey}-total`;
+            const percentId = `folder-${folderKey}-percent`;
             
             const bar = document.getElementById(barId);
             const sizeElement = document.getElementById(sizeId);
+            const totalElement = document.getElementById(totalId);
+            const percentElement = document.getElementById(percentId);
             
             if (bar && sizeElement) {
                 const percent = folderData.percent_of_root || 0;
-                updateProgressBar(barId, percent);
+                updateCompactProgressBar(barId, percent);
                 sizeElement.textContent = formatBytes(folderData.bytes || 0);
+                if (percentElement) {
+                    percentElement.textContent = `${Math.round(percent)}${i18n.t('units.percent')}`;
+                }
+                if (totalElement) {
+                    totalElement.textContent = rootTotalBytes ? formatBytes(rootTotalBytes) : '-';
+                }
             }
         }
+    }
+}
+
+function updateCompactProgressBar(elementId, percent) {
+    const bar = document.getElementById(elementId);
+    if (!bar) return;
+
+    const safePercent = Number.isFinite(percent) ? Math.max(0, Math.min(percent, 100)) : 0;
+    const roundedPercent = Math.round(safePercent * 10) / 10;
+    bar.style.width = `${roundedPercent}${i18n.t('units.percent')}`;
+    bar.setAttribute('aria-valuenow', roundedPercent);
+    bar.textContent = '';
+
+    bar.className = 'progress-bar';
+    if (safePercent >= 90) {
+        bar.classList.add('bg-danger');
+    } else if (safePercent >= 75) {
+        bar.classList.add('bg-warning');
+    } else {
+        bar.classList.add('bg-success');
     }
 }
 
@@ -136,68 +168,105 @@ function updateEnvironmentMetrics(environment) {
     }
 }
 
-function updateProcessMetrics(processData) {
-    if (!processData) {
-        console.warn('No process data provided to updateProcessMetrics');
+function updateProcessesTable(processData) {
+    const tableBody = document.getElementById('processes-table-body');
+    const countBadge = document.getElementById('process-count-badge');
+    const dindBadge = document.getElementById('dind-badge');
+    if (!tableBody || !countBadge || !dindBadge) return;
+
+    const processes = Array.isArray(processData.processes) ? [...processData.processes] : [];
+    const visibleCount = processData.visible_count ?? processes.length;
+    countBadge.textContent = String(visibleCount);
+
+    if (processData?.docker_in_docker?.enabled) {
+        dindBadge.style.display = 'inline-flex';
+    } else {
+        dindBadge.style.display = 'none';
+    }
+
+    const showLimit = processShowAll ? Number.POSITIVE_INFINITY : 10;
+    const sorted = sortProcesses(processes, processSortState);
+    const rows = sorted.slice(0, showLimit);
+
+    if (!rows.length) {
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-muted">${escapeHtml(i18n.t('metrics.no_process_data'))}</td></tr>`;
         return;
     }
-    
-    console.debug('Updating process metrics with data:', processData);
-    
-    // Process Info
-    document.getElementById('process-pid').textContent = processData.pid || '-';
-    document.getElementById('process-name').textContent = processData.name || '-';
-    document.getElementById('process-status').textContent = processData.status || '-';
-    
-    // Memory - Show usage bar and details
-    const memoryRss = processData.memory?.rss;
-    const memoryVms = processData.memory?.vms;
-    const memoryPercent = processData.memory?.percent;
-    
-    if (memoryPercent !== undefined && memoryPercent !== null) {
-        updateProgressBar('process-memory-bar', memoryPercent);
-        document.getElementById('process-memory-info').textContent = 
-            `${memoryPercent.toFixed(2)}% (${formatBytes(memoryRss)} / ${formatBytes(memoryVms)})`;
-    } else {
-        document.getElementById('process-memory-bar').style.width = '0%';
-        document.getElementById('process-memory-info').textContent = '-';
-    }
-    
-    // Memory details
-    document.getElementById('process-memory-vms').textContent = 
-        memoryVms ? formatBytes(memoryVms) : '-';
-    document.getElementById('process-memory-rss').textContent = 
-        memoryRss ? formatBytes(memoryRss) : '-';
-    
-    // CPU Time - Show with visualization
-    const cpuUser = processData.cpu?.user_time;
-    const cpuSystem = processData.cpu?.system_time;
-    
-    console.debug('CPU times - user:', cpuUser, 'system:', cpuSystem);
-    
-    // Handle undefined/null values for CPU times
-    const cpuUserValue = (cpuUser !== undefined && cpuUser !== null) ? cpuUser : 0;
-    const cpuSystemValue = (cpuSystem !== undefined && cpuSystem !== null) ? cpuSystem : 0;
-    const totalCpuTime = cpuUserValue + cpuSystemValue;
-    
-    // For visualization, show the relative proportion (cap at 100 seconds for reasonable visualization)
-    const cpuDisplayMax = 100;
-    const userPercent = Math.min(cpuUserValue / cpuDisplayMax * 100, 100);
-    const systemPercent = Math.min(cpuSystemValue / cpuDisplayMax * 100, 100);
-    
-    // Display actual values or "-" if truly undefined from backend
-    document.getElementById('process-cpu-user').textContent = 
-        (cpuUser !== undefined && cpuUser !== null) ? `${cpuUser.toFixed(2)}${i18n.t('units.second')}` : '-';
-    document.getElementById('process-cpu-system').textContent = 
-        (cpuSystem !== undefined && cpuSystem !== null) ? `${cpuSystem.toFixed(2)}${i18n.t('units.second')}` : '-';
-    
-    // Update CPU time bars
-    updateProgressBar('process-cpu-user-bar', userPercent);
-    updateProgressBar('process-cpu-system-bar', systemPercent);
-    
-    // Threads and File Descriptors
-    document.getElementById('process-threads').textContent = processData.threads || '-';
-    document.getElementById('process-fds').textContent = processData.file_descriptors || '-';
+
+    tableBody.innerHTML = rows.map((proc) => {
+        const cpuPercent = Number(proc.cpu_percent || 0);
+        const cpuBar = Math.max(0, Math.min(100, cpuPercent));
+        const statusClass = getStatusBadgeClass(proc.status || 'unknown');
+        const isContainerProc = Boolean(proc.is_container_related);
+        const rowClass = isContainerProc ? 'process-row-container' : '';
+        const processName = escapeHtml(proc.name || 'unknown');
+        const status = escapeHtml(proc.status || 'unknown');
+        const pid = Number(proc.pid || 0);
+        const pidLabel = escapeHtml(i18n.t('metrics.pid'));
+        const containerLabel = escapeHtml(i18n.t('metrics.container'));
+        const memory = formatBytes(proc.memory_rss || 0);
+        const uptime = formatUptime(proc.uptime_seconds || 0);
+
+        return `
+            <tr class="${rowClass}">
+                <td>
+                    <div class="process-name-cell">
+                        <i class="bi ${isContainerProc ? 'bi-boxes text-info' : 'bi-terminal text-muted'}" aria-hidden="true"></i>
+                        <div>
+                            <div class="process-main-name">${processName}${isContainerProc ? ` <span class="process-container-chip">${containerLabel}</span>` : ''}</div>
+                            <div class="process-sub">${pidLabel}${pid}</div>
+                        </div>
+                    </div>
+                </td>
+                <td><span class="badge ${statusClass}">${status}</span></td>
+                <td>
+                    <div class="process-cpu-cell">
+                        <div class="process-cpu-bar-bg"><div class="process-cpu-bar" style="width:${cpuBar}%;"></div></div>
+                        <span>${cpuPercent.toFixed(1)}${i18n.t('units.percent')}</span>
+                    </div>
+                </td>
+                <td><span class="process-num">${memory}</span></td>
+                <td><span class="process-num">${uptime}</span></td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function sortProcesses(processes, sortState) {
+    const { key, direction } = sortState;
+    const multiplier = direction === 'asc' ? 1 : -1;
+
+    return processes.sort((a, b) => {
+        const av = a?.[key];
+        const bv = b?.[key];
+
+        if (typeof av === 'number' && typeof bv === 'number') {
+            return (av - bv) * multiplier;
+        }
+
+        const as = String(av ?? '').toLowerCase();
+        const bs = String(bv ?? '').toLowerCase();
+        if (as < bs) return -1 * multiplier;
+        if (as > bs) return 1 * multiplier;
+        return 0;
+    });
+}
+
+function getStatusBadgeClass(status) {
+    const value = String(status || '').toLowerCase();
+    if (value === 'running') return 'bg-success-subtle text-success-emphasis';
+    if (value === 'sleeping' || value === 'idle') return 'bg-warning-subtle text-warning-emphasis';
+    if (value === 'zombie' || value === 'dead' || value === 'stopped') return 'bg-danger-subtle text-danger-emphasis';
+    return 'bg-secondary-subtle text-secondary-emphasis';
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 function updateProgressBar(elementId, percent) {
@@ -243,6 +312,8 @@ function formatUptime(seconds) {
 }
 
 function startMetricsAutoRefresh() {
+    initializeProcessTableControls();
+
     // Clear any existing interval
     if (metricsUpdateInterval) {
         clearInterval(metricsUpdateInterval);
@@ -259,5 +330,35 @@ function stopMetricsAutoRefresh() {
     if (metricsUpdateInterval) {
         clearInterval(metricsUpdateInterval);
         metricsUpdateInterval = null;
+    }
+}
+
+function initializeProcessTableControls() {
+    const showAllToggle = document.getElementById('process-show-all');
+    if (showAllToggle && !showAllToggle.dataset.bound) {
+        showAllToggle.dataset.bound = '1';
+        showAllToggle.addEventListener('change', () => {
+            processShowAll = Boolean(showAllToggle.checked);
+            loadSystemMetrics();
+        });
+    }
+
+    const table = document.getElementById('processes-table');
+    if (table && !table.dataset.bound) {
+        table.dataset.bound = '1';
+        table.querySelectorAll('th.sortable').forEach((th) => {
+            th.addEventListener('click', () => {
+                const key = th.dataset.sortKey;
+                if (!key) return;
+
+                if (processSortState.key === key) {
+                    processSortState.direction = processSortState.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    processSortState = { key, direction: 'desc' };
+                }
+
+                loadSystemMetrics();
+            });
+        });
     }
 }

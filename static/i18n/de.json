@@ -75,7 +75,7 @@
     "loading_details": "Astrofotografie-Wetteranalyse wird geladen...",
     "horizon_title": "Horizont",
     "best_periods_title": "Beste Beobachtungszeiträume",
-    "best_periods_description": "Optimale Zeiträume für Astrofotografie in den nächsten 24 Stunden",
+    "best_periods_description": "Optimale Zeiträume für Astrofotografie",
     "alerts_title": "Wetterwarnungen",
     "advanced_analysis_title": "Erweiterte Wetteranalyse",
     "seeing_label": "Seeing (Pickering)",
@@ -727,7 +727,7 @@
     "swap_usage": "Nutzung tauschen",
     "disk_storage": "Festplattenspeicher",
     "root_filesystem": "Root-Dateisystem",
-    "folder_usage": "Ordnerverwendung",
+    "folder_usage": "Data Ordner",
     "config_outputs": "UpTonight Ordner",
     "system_info": "Systeminformationen",
     "platform": "Plattform:",
@@ -759,11 +759,17 @@
     "file_descriptors": "Dateibeschreibungen:",
     "virtual_memory": "Virtueller Speicher:",
     "resident_memory": "Residenter Speicher:",
+    "of_root": "vom Root-Dateisystem",
     "unknown": "Unbekannt",
     "unknown_container": "Unbekannter Container erkannt",
     "yes": "Ja",
     "no": "NEIN",
     "no_running_in_container": "Läuft nicht im Container (Bare Metal oder VM)"
+    ,"processes_overview": "Prozessinformationen"
+    ,"show_all_processes": "Alle Prozesse anzeigen"
+    ,"process_name": "Prozess"
+    ,"docker_in_docker": "Docker in Docker"
+    ,"no_process_data": "Keine Prozessdaten verfügbar"
   },
   "equipment": {
     "combinations": "Kombinationen",

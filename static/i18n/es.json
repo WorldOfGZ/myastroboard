@@ -75,7 +75,7 @@
     "loading_details": "Cargando análisis meteorológico de astrofotografía...",
     "horizon_title": "Horizonte",
     "best_periods_title": "Mejores períodos de observación",
-    "best_periods_description": "Períodos óptimos para la astrofotografía en las próximas 24 horas",
+    "best_periods_description": "Períodos óptimos para la astrofotografía",
     "alerts_title": "Alertas meteorológicas",
     "advanced_analysis_title": "Análisis meteorológico avanzado",
     "seeing_label": "Seeing (Pickering)",
@@ -727,7 +727,7 @@
     "swap_usage": "Uso de intercambio",
     "disk_storage": "Almacenamiento en disco",
     "root_filesystem": "Sistema de archivos raíz",
-    "folder_usage": "Uso de carpetas",
+    "folder_usage": "Data carpetas",
     "config_outputs": "UpTonight carpetas",
     "system_info": "Información del sistema",
     "platform": "Plataforma:",
@@ -759,11 +759,17 @@
     "file_descriptors": "Descriptores de archivos:",
     "virtual_memory": "Memoria virtual:",
     "resident_memory": "Memoria residente:",
+    "of_root": "del disco raíz",
     "unknown": "Desconocido",
     "unknown_container": "Contenedor desconocido detectado",
     "yes": "Sí",
     "no": "No",
     "no_running_in_container": "No se ejecuta en un contenedor (bare metal o VM)"
+    ,"processes_overview": "Información de procesos"
+    ,"show_all_processes": "Mostrar todos los procesos"
+    ,"process_name": "Proceso"
+    ,"docker_in_docker": "Docker in Docker"
+    ,"no_process_data": "No hay datos de procesos disponibles"
   },
   "equipment": {
     "combinations": "Combinaciones",

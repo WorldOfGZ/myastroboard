@@ -11,6 +11,17 @@ from constants import DATA_DIR, OUTPUT_DIR, CONFIG_DIR
 
 logger = get_logger(__name__)
 
+CONTAINER_PROCESS_HINTS = {
+    'dockerd',
+    'docker',
+    'docker-proxy',
+    'containerd',
+    'containerd-shim',
+    'runc',
+    'buildkitd',
+    'podman',
+}
+
 
 def is_running_in_container():
     """
@@ -131,74 +142,85 @@ def get_disk_space_details():
         }
 
 
-def get_process_details():
+def get_environment_processes():
     """
-    Get detailed information about the current process.
-    Returns memory, file descriptor, and thread information.
+    Collect all visible processes with useful details for diagnostics.
+    Returns a list sorted by CPU usage, then memory usage.
     """
-    try:
-        current_process = psutil.Process(os.getpid())
-        
-        # Memory info
-        mem_info = current_process.memory_info()
-        mem_percent = current_process.memory_percent()
-        
-        # File descriptors (Linux only)
-        num_fds = None
+    processes = []
+    now_ts = datetime.now().timestamp()
+    cpu_count = psutil.cpu_count(logical=True) or 1
+
+    for proc in psutil.process_iter([
+        'pid', 'name', 'status', 'username', 'create_time', 'memory_info', 'memory_percent', 'cpu_times', 'cmdline'
+    ]):
         try:
-            num_fds_method = getattr(current_process, 'num_fds', None)
-            if num_fds_method and callable(num_fds_method):
-                num_fds = num_fds_method()
-        except (AttributeError, psutil.NoSuchProcess):
-            pass
-        
-        # Threads
-        num_threads = current_process.num_threads()
-        
-        # CPU times
-        cpu_times = current_process.cpu_times()
-        
-        # Process status
-        status = current_process.status()
-        
-        return {
-            'pid': os.getpid(),
-            'name': current_process.name(),
-            'status': status,
-            'memory': {
-                'rss': mem_info.rss,  # Resident Set Size
-                'vms': mem_info.vms,  # Virtual Memory Size
-                'percent': mem_percent
-            },
-            'cpu': {
-                'user_time': cpu_times.user,
-                'system_time': cpu_times.system
-            },
-            'threads': num_threads,
-            'file_descriptors': num_fds,
-            'created_at': datetime.fromtimestamp(current_process.create_time()).isoformat()
-        }
-    except Exception as e:
-        logger.error(f"Error getting process details: {e}")
-        # Return structure with default values to avoid frontend errors
-        return {
-            'pid': os.getpid(),
-            'name': 'unknown',
-            'status': 'unknown',
-            'memory': {
-                'rss': 0,
-                'vms': 0,
-                'percent': 0
-            },
-            'cpu': {
-                'user_time': 0,
-                'system_time': 0
-            },
-            'threads': 0,
-            'file_descriptors': 0,
-            'created_at': datetime.now().isoformat(),
-            'error': str(e)
-        }
+            info = proc.info
+            pid = info.get('pid')
+            name = info.get('name') or 'unknown'
+            status = info.get('status') or 'unknown'
+            created_at = info.get('create_time')
+            uptime_seconds = max(0, now_ts - created_at) if created_at else 0
+
+            cpu_times = info.get('cpu_times')
+            cpu_total = 0.0
+            if cpu_times:
+                cpu_total = float(getattr(cpu_times, 'user', 0.0) + getattr(cpu_times, 'system', 0.0))
+            cpu_percent = 0.0
+            if uptime_seconds > 0:
+                cpu_percent = min(100.0, max(0.0, (cpu_total / uptime_seconds) * (100.0 / cpu_count)))
+
+            mem_info = info.get('memory_info')
+            memory_rss = int(getattr(mem_info, 'rss', 0) or 0)
+            memory_percent = float(info.get('memory_percent') or 0.0)
+
+            cmdline = ' '.join(info.get('cmdline') or [])
+            lower_name = name.lower()
+            is_container_related = any(hint in lower_name for hint in CONTAINER_PROCESS_HINTS)
+
+            processes.append({
+                'pid': pid,
+                'name': name,
+                'status': status,
+                'username': info.get('username') or 'unknown',
+                'cpu_percent': round(cpu_percent, 2),
+                'memory_rss': memory_rss,
+                'memory_percent': round(memory_percent, 2),
+                'uptime_seconds': int(uptime_seconds),
+                'created_at': datetime.fromtimestamp(created_at).isoformat() if created_at else None,
+                'cmdline': cmdline,
+                'is_container_related': is_container_related,
+            })
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            continue
+        except Exception as e:
+            logger.debug(f"Unable to read process info for PID {getattr(proc, 'pid', 'unknown')}: {e}")
+
+    processes.sort(key=lambda p: (p['cpu_percent'], p['memory_rss']), reverse=True)
+    return processes
+
+
+def detect_docker_in_docker(processes):
+    """
+    Best-effort Docker-in-Docker detection using process and socket hints.
+    """
+    indicators = []
+    if os.path.exists('/var/run/docker.sock'):
+        indicators.append('docker_socket')
+
+    if os.environ.get('DOCKER_HOST'):
+        indicators.append('docker_host_env')
+
+    container_related = [p for p in processes if p.get('is_container_related')]
+    if container_related:
+        indicators.append('container_runtime_processes')
+
+    enabled = len(indicators) > 0
+    return {
+        'enabled': enabled,
+        'indicators': indicators,
+        'container_related_count': len(container_related),
+    }
 
 
 def collect_metrics():
@@ -225,7 +247,8 @@ def collect_metrics():
         
         # Process Information
         process_count = len(psutil.pids())
-        current_process = get_process_details()
+        processes = get_environment_processes()
+        dind = detect_docker_in_docker(processes)
         
         # Main process info
         boot_time = psutil.boot_time()
@@ -286,7 +309,9 @@ def collect_metrics():
             },
             'process': {
                 'system_count': process_count,
-                'current_process': current_process
+                'visible_count': len(processes),
+                'docker_in_docker': dind,
+                'processes': processes
             },
             'uptime': {
                 'seconds': uptime_seconds,

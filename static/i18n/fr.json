@@ -79,7 +79,7 @@
     "loading_details": "Chargement de l'analyse météo astrophotographique...",
     "horizon_title": "Horizon",
     "best_periods_title": "Meilleures Périodes d'Observation",
-    "best_periods_description": "Périodes optimales pour l'astrophotographie au cours des 24 prochaines heures",
+    "best_periods_description": "Périodes optimales pour l'astrophotographie",
     "alerts_title": "Alertes Météo",
     "advanced_analysis_title": "Analyse Météo Avancée",
     "seeing_label": "Visibilité (Pickering)",
@@ -742,7 +742,7 @@
     "swap_usage": "Utilisation du swap",
     "disk_storage": "Stockage disque",
     "root_filesystem": "Système de fichiers racine",
-    "folder_usage": "Utilisation des dossiers",
+    "folder_usage": "Dossiers Data",
     "config_outputs": "Dossiers UpTonight",
     "system_info": "Informations système",
     "platform": "Plateforme : ",
@@ -774,11 +774,17 @@
     "file_descriptors": "Descripteurs de fichiers : ",
     "virtual_memory": "Mémoire virtuelle : ",
     "resident_memory": "Mémoire résidente : ",
+    "of_root": "du disque racine",
     "unknown": "Inconnu",
     "unknown_container": "Conteneur inconnu détecté",
     "yes": "Oui",
     "no": "Non",
     "no_running_in_container": "Non exécuté dans un conteneur (bare metal ou VM)"
+    ,"processes_overview": "Informations sur les processus"
+    ,"show_all_processes": "Afficher tous les processus"
+    ,"process_name": "Processus"
+    ,"docker_in_docker": "Docker in Docker"
+    ,"no_process_data": "Aucune donnée de processus disponible"
   },
 
   "equipment": {

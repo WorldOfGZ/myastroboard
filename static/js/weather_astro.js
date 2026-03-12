@@ -266,36 +266,55 @@ function renderBestObservationPeriods(periods) {
     
     if (!periods || periods.length === 0) {
         DOMUtils.clear(container);
+        const row = document.createElement('div');
+        row.className = 'row row-cols-1';
+        const col = document.createElement('div');
+        col.className = 'col';
+        const card = document.createElement('div');
+        card.className = 'card h-100';
+        const header = document.createElement('div');
+        header.className = 'card-header';
+        const headerTitle = document.createElement('h5');
+        headerTitle.className = 'mb-0';
+        headerTitle.textContent = i18n.t('astro_weather.best_periods_description');
+        header.appendChild(headerTitle);
+        const contentBody = document.createElement('div');
+        contentBody.className = 'card-body text-center';
         const icon = document.createElement('h1');
         icon.replaceChildren(DOMUtils.createIcon('bi bi-emoji-frown'));
-        icon.className = 'astro-icon text-center';
+        icon.className = 'astro-icon text-center best-period-empty-icon text-warning';
         const text = document.createElement('div');
-        text.className = 'text-center';
+        text.className = 'text-center best-period-empty-text fw-light fst-italic';
         text.textContent = i18n.t('astro_weather.no_observation_periods');
-        container.appendChild(icon);
-        container.appendChild(text);
+        contentBody.appendChild(icon);
+        contentBody.appendChild(text);
+        card.appendChild(header);
+        card.appendChild(contentBody);
+        col.appendChild(card);
+        row.appendChild(col);
+        container.appendChild(row);
         return;
     }
 
     DOMUtils.clear(container);
     const row = document.createElement('div');
-    row.className = 'row row-cols-2 row-cols-sm-2 row-cols-lg-4 row-cols-xl-6 p-2';
+    row.className = 'row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-3';
 
     periods.forEach((period) => {
         const startTime = new Date(period.start);
         const endTime = new Date(period.end);
 
         const col = document.createElement('div');
-        col.className = 'col mb-3';
+        col.className = 'col';
         const card = document.createElement('div');
-        card.className = 'card h-100';
+        card.className = 'card h-100 best-period-card';
         const header = document.createElement('div');
-        header.className = 'card-header';
+        header.className = 'card-header fw-bold';
         const h5 = document.createElement('h5');
-        h5.className = 'card-title';
+        h5.className = 'card-title mb-0';
         h5.textContent = `${startTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} - ${endTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}`;
         const h6 = document.createElement('h6');
-        h6.className = 'card-subtitle mb-2 text-body-secondary';
+        h6.className = 'card-subtitle mt-1 mb-0 text-muted';
         const startDate = startTime.toLocaleDateString([], {month: 'short', day: 'numeric'});
         const endDate = endTime.toLocaleDateString([], {month: 'short', day: 'numeric'});
         h6.textContent = startTime.toDateString() !== endTime.toDateString() ? `${startDate} - ${endDate}` : startDate;
@@ -307,17 +326,21 @@ function renderBestObservationPeriods(periods) {
 
         const durationItem = document.createElement('li');
         durationItem.className = 'list-group-item d-flex justify-content-between align-items-center';
-        durationItem.textContent = i18n.t('common.duration');
+        const durationLabel = document.createElement('span');
+        durationLabel.innerHTML = `<i class="bi bi-clock-history icon-inline" aria-hidden="true"></i>${i18n.t('common.duration')}`;
+        durationItem.appendChild(durationLabel);
         const durationBadge = document.createElement('span');
-        durationBadge.className = 'badge text-bg-primary rounded-pill';
+        durationBadge.className = 'fw-bold';
         durationBadge.textContent = `${period.duration_hours.toFixed(1)}h`;
         durationItem.appendChild(durationBadge);
 
         const qualityItem = document.createElement('li');
         qualityItem.className = 'list-group-item d-flex justify-content-between align-items-center';
-        qualityItem.textContent = i18n.t('common.quality');
+        const qualityLabel = document.createElement('span');
+        qualityLabel.innerHTML = `<i class="bi bi-stars icon-inline" aria-hidden="true"></i>${i18n.t('common.quality')}`;
+        qualityItem.appendChild(qualityLabel);
         const qualityBadge = document.createElement('span');
-        qualityBadge.className = 'badge text-bg-primary rounded-pill';
+        qualityBadge.className = 'fw-bold';
         qualityBadge.textContent = `${period.average_quality.toFixed(1)}%`;
         qualityItem.appendChild(qualityBadge);
 

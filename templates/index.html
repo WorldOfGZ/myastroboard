@@ -185,7 +185,7 @@
                     <h2><i class="bi bi-hourglass-split icon-inline" aria-hidden="true"></i><span data-i18n="astro_weather.best_periods_title">Best Observation Periods</span></h2>
                     
                     <!-- Best Observation Periods -->
-                    <div data-i18n="astro_weather.best_periods_description">Optimal periods for astrophotography in the next 24 hours</div>
+                    <!-- <div class="alert alert-info mb-2" role="alert" data-i18n="astro_weather.best_periods_description">Optimal periods for astrophotography in the next 24 hours</div>-->
                     <div id="astro-best-periods"></div>
                 </div>
 
@@ -659,7 +659,7 @@
 
                     <div id="catalogues-list"></div>
 
-                    <div class="mt-2 mb-3"><small class="info-msg"><i class="bi bi-stars icon-inline" aria-hidden="true"></i> <span data-i18n="settings.target_catalogues_warning">At least one catalogue must be selected. Messier is selected by default.</span></small></div>
+                    <div class="alert alert-info" role="alert"><i class="bi bi-info-circle icon-inline" aria-hidden="true"></i> <span data-i18n="settings.target_catalogues_warning">At least one catalogue must be selected. Messier is selected by default.</span></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
@@ -946,15 +946,14 @@
                     <div class="alert alert-info" role="alert" data-i18n="metrics.info_title">
                         System performance and resource monitoring. Data refreshes automatically every 5 seconds.
                     </div>
-                </div>
-
-                <!-- CPU Metrics -->
-                <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3><i class="bi bi-cpu text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="metrics.cpu">CPU</span></h3>
+                    
                     <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-6 col-lg-3">
                             <div class="card h-100">
-                                <div class="card-header" data-i18n="metrics.cpu_usage">CPU Usage</div>
+                                <div class="card-header">
+                                    <i class="bi bi-cpu text-warning icon-inline" aria-hidden="true"></i>
+                                    <span data-i18n="metrics.cpu_usage">CPU Usage</span>
+                                </div>
                                 <div class="card-body">
                                     <div class="progress" style="height: 30px;">
                                         <div id="cpu-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
@@ -965,26 +964,12 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-6 col-lg-3">
                             <div class="card h-100">
-                                <div class="card-header" data-i18n="metrics.cpu_info">CPU Info</div>
-                                <div class="card-body">
-                                    <p class="mb-1"><strong data-i18n="metrics.logical_cores">Logical Cores:</strong> <span id="cpu-logical">-</span></p>
-                                    <p class="mb-1"><strong data-i18n="metrics.physical_cores">Physical Cores:</strong> <span id="cpu-physical">-</span></p>
-                                    <p class="mb-0"><strong data-i18n="metrics.frequency">Frequency:</strong> <span id="cpu-frequency">-</span></p>
+                                <div class="card-header">
+                                    <i class="bi bi-memory text-primary icon-inline" aria-hidden="true"></i>
+                                    <span data-i18n="metrics.ram_usage">RAM Usage</span>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Memory Metrics -->
-                <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3><i class="bi bi-memory text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="metrics.memory">Memory</span></h3>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="card h-100">
-                                <div class="card-header" data-i18n="metrics.ram_usage">RAM Usage</div>
                                 <div class="card-body">
                                     <div class="progress" style="height: 30px;">
                                         <div id="memory-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
@@ -995,9 +980,12 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-6 col-lg-3">
                             <div class="card h-100">
-                                <div class="card-header" data-i18n="metrics.swap_usage">Swap Usage</div>
+                                <div class="card-header">
+                                    <i class="bi bi-arrow-left-right text-info icon-inline" aria-hidden="true"></i>
+                                    <span data-i18n="metrics.swap_usage">Swap Usage</span>
+                                </div>
                                 <div class="card-body">
                                     <div class="progress" style="height: 30px;">
                                         <div id="swap-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
@@ -1008,57 +996,109 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="col-6 col-lg-3">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <i class="bi bi-hdd text-secondary icon-inline" aria-hidden="true"></i>
+                                    <span data-i18n="metrics.root_filesystem">Root Filesystem</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="progress" style="height: 30px;">
+                                        <div id="disk-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small><span id="disk-used">-</span> / <span id="disk-total">-</span> (<span id="disk-free">-</span> free)</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Disk Metrics -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h3><i class="bi bi-hdd text-secondary icon-inline" aria-hidden="true"></i> <span data-i18n="metrics.disk_storage">Disk Storage</span></h3>
-                    <div class="card  h-100">
-                        <div class="card-header" data-i18n="metrics.root_filesystem">Root Filesystem</div>
-                        <div class="card-body">
-                            <div class="progress" style="height: 30px;">
-                                <div id="disk-usage-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
-                            </div>
-                            <div class="mt-2">
-                                <small><span id="disk-used">-</span> / <span id="disk-total">-</span> (<span id="disk-free">-</span> free)</small>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <!-- Disk Folder Breakdown -->
-                    <div class="row g-3 mt-3">
+                    <div class="row g-3">
                         <div class="col-md-6">
                             <div class="card h-100">
                                 <div class="card-header" data-i18n="metrics.folder_usage">Folder Usage</div>
                                 <div class="card-body">
-                                    <div class="mb-3">
-                                        <small class="d-block mb-1"><strong>data/</strong></small>
-                                        <div class="progress" style="height: 20px;">
-                                            <div id="folder-data-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    <div class="disk-usage-item mb-3">
+                                        <div class="disk-usage-head">
+                                            <div class="disk-usage-path">
+                                                <i class="bi bi-hdd-stack text-muted" aria-hidden="true"></i>
+                                                <span class="font-monospace">data/</span>
+                                            </div>
+                                            <div class="disk-usage-values font-monospace">
+                                                <span id="folder-data-size" class="fw-semibold">-</span>
+                                                <span class="text-muted"> / <span id="folder-data-total">-</span></span>
+                                            </div>
                                         </div>
-                                        <small id="folder-data-size" class="text-muted">-</small>
+                                        <div class="progress disk-usage-progress">
+                                            <div id="folder-data-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <div class="disk-usage-meta font-monospace">
+                                            <span id="folder-data-percent">0%</span>
+                                            <span data-i18n="metrics.of_root">of root</span>
+                                        </div>
                                     </div>
-                                    <div class="mb-3">
-                                        <small class="d-block mb-1"><strong>data/cache/</strong></small>
-                                        <div class="progress" style="height: 20px;">
-                                            <div id="folder-cache-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    <div class="disk-usage-item mb-3">
+                                        <div class="disk-usage-head">
+                                            <div class="disk-usage-path">
+                                                <i class="bi bi-hdd-stack text-muted" aria-hidden="true"></i>
+                                                <span class="font-monospace">data/cache/</span>
+                                            </div>
+                                            <div class="disk-usage-values font-monospace">
+                                                <span id="folder-cache-size" class="fw-semibold">-</span>
+                                                <span class="text-muted"> / <span id="folder-cache-total">-</span></span>
+                                            </div>
                                         </div>
-                                        <small id="folder-cache-size" class="text-muted">-</small>
+                                        <div class="progress disk-usage-progress">
+                                            <div id="folder-cache-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <div class="disk-usage-meta font-monospace">
+                                            <span id="folder-cache-percent">0%</span>
+                                            <span data-i18n="metrics.of_root">of root</span>
+                                        </div>
                                     </div>
-                                    <div class="mb-3">
-                                        <small class="d-block mb-1"><strong>data/astrodex/</strong></small>
-                                        <div class="progress" style="height: 20px;">
-                                            <div id="folder-astrodex-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    <div class="disk-usage-item mb-3">
+                                        <div class="disk-usage-head">
+                                            <div class="disk-usage-path">
+                                                <i class="bi bi-hdd-stack text-muted" aria-hidden="true"></i>
+                                                <span class="font-monospace">data/astrodex/</span>
+                                            </div>
+                                            <div class="disk-usage-values font-monospace">
+                                                <span id="folder-astrodex-size" class="fw-semibold">-</span>
+                                                <span class="text-muted"> / <span id="folder-astrodex-total">-</span></span>
+                                            </div>
                                         </div>
-                                        <small id="folder-astrodex-size" class="text-muted">-</small>
+                                        <div class="progress disk-usage-progress">
+                                            <div id="folder-astrodex-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <div class="disk-usage-meta font-monospace">
+                                            <span id="folder-astrodex-percent">0%</span>
+                                            <span data-i18n="metrics.of_root">of root</span>
+                                        </div>
                                     </div>
-                                    <div class="mb-0">
-                                        <small class="d-block mb-1"><strong>data/equipments/</strong></small>
-                                        <div class="progress" style="height: 20px;">
-                                            <div id="folder-equipments-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    <div class="disk-usage-item mb-0">
+                                        <div class="disk-usage-head">
+                                            <div class="disk-usage-path">
+                                                <i class="bi bi-hdd-stack text-muted" aria-hidden="true"></i>
+                                                <span class="font-monospace">data/equipments/</span>
+                                            </div>
+                                            <div class="disk-usage-values font-monospace">
+                                                <span id="folder-equipments-size" class="fw-semibold">-</span>
+                                                <span class="text-muted"> / <span id="folder-equipments-total">-</span></span>
+                                            </div>
                                         </div>
-                                        <small id="folder-equipments-size" class="text-muted">-</small>
+                                        <div class="progress disk-usage-progress">
+                                            <div id="folder-equipments-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <div class="disk-usage-meta font-monospace">
+                                            <span id="folder-equipments-percent">0%</span>
+                                            <span data-i18n="metrics.of_root">of root</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1067,19 +1107,43 @@
                             <div class="card h-100">
                                 <div class="card-header" data-i18n="metrics.config_outputs">Config & Outputs</div>
                                 <div class="card-body">
-                                    <div class="mb-3">
-                                        <small class="d-block mb-1"><strong>uptonight/configs/</strong></small>
-                                        <div class="progress" style="height: 20px;">
-                                            <div id="folder-configs-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    <div class="disk-usage-item mb-3">
+                                        <div class="disk-usage-head">
+                                            <div class="disk-usage-path">
+                                                <i class="bi bi-hdd-stack text-muted" aria-hidden="true"></i>
+                                                <span class="font-monospace">uptonight/configs/</span>
+                                            </div>
+                                            <div class="disk-usage-values font-monospace">
+                                                <span id="folder-configs-size" class="fw-semibold">-</span>
+                                                <span class="text-muted"> / <span id="folder-configs-total">-</span></span>
+                                            </div>
                                         </div>
-                                        <small id="folder-configs-size" class="text-muted">-</small>
+                                        <div class="progress disk-usage-progress">
+                                            <div id="folder-configs-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <div class="disk-usage-meta font-monospace">
+                                            <span id="folder-configs-percent">0%</span>
+                                            <span data-i18n="metrics.of_root">of root</span>
+                                        </div>
                                     </div>
-                                    <div class="mb-0">
-                                        <small class="d-block mb-1"><strong>uptonight/outputs/</strong></small>
-                                        <div class="progress" style="height: 20px;">
-                                            <div id="folder-outputs-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    <div class="disk-usage-item mb-0">
+                                        <div class="disk-usage-head">
+                                            <div class="disk-usage-path">
+                                                <i class="bi bi-hdd-stack text-muted" aria-hidden="true"></i>
+                                                <span class="font-monospace">uptonight/outputs/</span>
+                                            </div>
+                                            <div class="disk-usage-values font-monospace">
+                                                <span id="folder-outputs-size" class="fw-semibold">-</span>
+                                                <span class="text-muted"> / <span id="folder-outputs-total">-</span></span>
+                                            </div>
                                         </div>
-                                        <small id="folder-outputs-size" class="text-muted">-</small>
+                                        <div class="progress disk-usage-progress">
+                                            <div id="folder-outputs-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <div class="disk-usage-meta font-monospace">
+                                            <span id="folder-outputs-percent">0%</span>
+                                            <span data-i18n="metrics.of_root">of root</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1093,97 +1157,121 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <div class="card h-100">
-                                <div class="card-header" data-i18n="metrics.platform">Platform</div>
-                                <div class="card-body">
-                                    <p class="mb-1"><strong data-i18n="metrics.os">OS:</strong> <span id="platform-system">-</span></p>
-                                    <p class="mb-1"><strong data-i18n="metrics.release">Release:</strong> <span id="platform-release">-</span></p>
-                                    <p class="mb-1"><strong data-i18n="metrics.machine">Machine:</strong> <span id="platform-machine">-</span></p>
-                                    <p class="mb-0"><strong data-i18n="metrics.python">Python:</strong> <span id="platform-python">-</span></p>
-                                </div>
+                                <div class="card-header fw-bold"><i class="bi bi-pc-display-horizontal icon-inline" aria-hidden="true"></i> <span data-i18n="metrics.platform">Platform</span></div>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span><i class="bi bi-hdd-network icon-inline" aria-hidden="true"></i><span data-i18n="metrics.os">OS:</span></span>
+                                        <span id="platform-system" class="fw-bold">-</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span><i class="bi bi-tag icon-inline" aria-hidden="true"></i><span data-i18n="metrics.release">Release:</span></span>
+                                        <span id="platform-release" class="fw-bold">-</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span><i class="bi bi-cpu icon-inline" aria-hidden="true"></i><span data-i18n="metrics.machine">Machine:</span></span>
+                                        <span id="platform-machine" class="fw-bold">-</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span><i class="bi bi-filetype-py icon-inline" aria-hidden="true"></i><span data-i18n="metrics.python">Python:</span></span>
+                                        <span id="platform-python" class="fw-bold">-</span>
+                                    </li>
+                                </ul>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="card h-100">
-                                <div class="card-header" data-i18n="metrics.system_status">System Status</div>
-                                <div class="card-body">
-                                    <p class="mb-1"><strong data-i18n="metrics.uptime">Uptime:</strong> <span id="system-uptime">-</span></p>
-                                    <p class="mb-1"><strong data-i18n="metrics.processes">Processes:</strong> <span id="process-count">-</span></p>
-                                    <p class="mb-1"><strong data-i18n="metrics.network_sent">Network Sent:</strong> <span id="network-sent">-</span></p>
-                                    <p class="mb-0"><strong data-i18n="metrics.network_received">Network Received:</strong> <span id="network-recv">-</span></p>
-                                </div>
+                                <div class="card-header fw-bold"><i class="bi bi-activity icon-inline" aria-hidden="true"></i> <span data-i18n="metrics.system_status">System Status</span></div>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span><i class="bi bi-clock-history icon-inline" aria-hidden="true"></i><span data-i18n="metrics.uptime">Uptime:</span></span>
+                                        <span id="system-uptime" class="fw-bold">-</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span><i class="bi bi-diagram-3 icon-inline" aria-hidden="true"></i><span data-i18n="metrics.processes">Processes:</span></span>
+                                        <span id="process-count" class="fw-bold">-</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span><i class="bi bi-upload icon-inline" aria-hidden="true"></i><span data-i18n="metrics.network_sent">Network Sent:</span></span>
+                                        <span id="network-sent" class="fw-bold">-</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span><i class="bi bi-download icon-inline" aria-hidden="true"></i><span data-i18n="metrics.network_received">Network Received:</span></span>
+                                        <span id="network-recv" class="fw-bold">-</span>
+                                    </li>
+                                </ul>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Environment & Container Detection -->
-                <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3><i class="bi bi-cloud-fill text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="metrics.environment">Environment</span></h3>
-                    <div class="card h-100">
-                        <div class="card-header" data-i18n="metrics.container">Container</div>
-                        <div class="card-body">
-                            <p class="mb-1"><strong data-i18n="metrics.container_vm">Container/VM:</strong> <span id="container-status">-</span> <span id="container-badge" class="badge" style="display:none;"></span></p>
-                            <p class="mb-0"><strong data-i18n="metrics.container_type">Container Type:</strong> <span id="container-type" data-i18n="metrics.not_in_container">Not running in container</span></p>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header fw-bold"><i class="bi bi-cpu-fill icon-inline" aria-hidden="true"></i> <span data-i18n="metrics.cpu_info">CPU Info</span></div>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span><i class="bi bi-grid-3x3-gap icon-inline" aria-hidden="true"></i><span data-i18n="metrics.logical_cores">Logical Cores:</span></span>
+                                        <span id="cpu-logical" class="fw-bold">-</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span><i class="bi bi-grid-fill icon-inline" aria-hidden="true"></i><span data-i18n="metrics.physical_cores">Physical Cores:</span></span>
+                                        <span id="cpu-physical" class="fw-bold">-</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span><i class="bi bi-speedometer icon-inline" aria-hidden="true"></i><span data-i18n="metrics.frequency">Frequency:</span></span>
+                                        <span id="cpu-frequency" class="fw-bold">-</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header fw-bold"><i class="bi bi-box-seam icon-inline" aria-hidden="true"></i> <span data-i18n="metrics.container">Container</span></div>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span><i class="bi bi-cloud icon-inline" aria-hidden="true"></i><span data-i18n="metrics.container_vm">Container/VM:</span></span>
+                                        <span class="fw-bold">
+                                            <span id="container-status">-</span>
+                                            <span id="container-badge" class="badge" style="display:none;"></span>
+                                        </span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span><i class="bi bi-box icon-inline" aria-hidden="true"></i><span data-i18n="metrics.container_type">Container Type:</span></span>
+                                        <span id="container-type" class="fw-bold" data-i18n="metrics.not_in_container">Not running in container</span>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Process Details -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3><i class="bi bi-cpu-fill icon-inline" aria-hidden="true"></i> <span data-i18n="metrics.current_process">Current Process</span></h3>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="card h-100">
-                                <div class="card-header" data-i18n="metrics.process_info">Process Info</div>
-                                <div class="card-body">
-                                    <p class="mb-1"><strong data-i18n="metrics.pid">PID:</strong> <span id="process-pid">-</span></p>
-                                    <p class="mb-1"><strong data-i18n="metrics.name">Name:</strong> <span id="process-name">-</span></p>
-                                    <p class="mb-0"><strong data-i18n="metrics.status">Status:</strong> <span id="process-status">-</span></p>
-                                </div>
+                    <div class="processes-panel">
+                        <div class="processes-panel-head">
+                            <div class="processes-panel-title-wrap">
+                                <h3><i class="bi bi-terminal icon-inline" aria-hidden="true"></i> <span data-i18n="metrics.processes_overview">Process Information</span></h3>
+                                <span id="process-count-badge" class="badge rounded-pill bg-secondary">0</span>
+                                <span id="dind-badge" class="badge rounded-pill bg-info" style="display:none;" data-i18n="metrics.docker_in_docker">Docker in Docker</span>
+                            </div>
+                            <div class="form-check form-switch processes-show-all">
+                                <input class="form-check-input" type="checkbox" id="process-show-all" />
+                                <label class="form-check-label" for="process-show-all" data-i18n="metrics.show_all_processes">Show all processes</label>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="card h-100">
-                                <div class="card-header" data-i18n="metrics.memory_usage">Memory Usage</div>
-                                <div class="card-body">
-                                    <div class="progress" style="height: 25px; margin-bottom: 8px;">
-                                        <div id="process-memory-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
-                                    </div>
-                                    <small id="process-memory-info">-</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row g-3 mt-0">
-                        <div class="col-md-6">
-                            <div class="card h-100">
-                                <div class="card-header" data-i18n="metrics.cpu_time">CPU Time</div>
-                                <div class="card-body">
-                                    <div class="mb-3">
-                                        <small class="d-block mb-2"><strong data-i18n="metrics.user_time">User Time:</strong> <span id="process-cpu-user">-</span></small>
-                                        <div class="progress" style="height: 20px;">
-                                            <div id="process-cpu-user-bar" class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                                        </div>
-                                    </div>
-                                    <div class="mb-0">
-                                        <small class="d-block mb-2"><strong data-i18n="metrics.system_time">System Time:</strong> <span id="process-cpu-system">-</span></small>
-                                        <div class="progress" style="height: 20px;">
-                                            <div id="process-cpu-system-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card h-100">
-                                <div class="card-header" data-i18n="metrics.resources">Resources</div>
-                                <div class="card-body">
-                                    <p class="mb-1"><strong data-i18n="metrics.threads">Threads:</strong> <span id="process-threads">-</span></p>
-                                    <p class="mb-1"><strong data-i18n="metrics.file_descriptors">File Descriptors:</strong> <span id="process-fds">-</span></p>
-                                    <p class="mb-1"><strong data-i18n="metrics.virtual_memory">Virtual Memory:</strong> <span id="process-memory-vms">-</span></p>
-                                    <p class="mb-0"><strong data-i18n="metrics.resident_memory">Resident Memory:</strong> <span id="process-memory-rss">-</span></p>
-                                </div>
-                            </div>
+                        <div class="table-responsive processes-table-wrap">
+                            <table class="table table-sm align-middle mb-0 processes-table" id="processes-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col" data-sort-key="name" class="sortable"><span data-i18n="metrics.process_name">Process</span></th>
+                                        <th scope="col" data-sort-key="status" class="sortable"><span data-i18n="metrics.status">Status</span></th>
+                                        <th scope="col" data-sort-key="cpu_percent" class="sortable"><span data-i18n="metrics.cpu">CPU</span></th>
+                                        <th scope="col" data-sort-key="memory_rss" class="sortable"><span data-i18n="metrics.memory">Memory</span></th>
+                                        <th scope="col" data-sort-key="uptime_seconds" class="sortable"><span data-i18n="metrics.uptime">Uptime</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="processes-table-body">
+                                    <tr>
+                                        <td colspan="5" class="text-muted" data-i18n="metrics.no_process_data">No process data available</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
