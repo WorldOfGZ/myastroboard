@@ -11,8 +11,7 @@ services:
 
     volumes:
       - ./data:/app/data
-      - ./uptonight_outputs:/app/uptonight_outputs
-      - ./uptonight_configs:/app/uptonight_configs
+      - ./uptonight:/app/uptonight
       - /var/run/docker.sock:/var/run/docker.sock  # Docker-from-Docker (controled)
 
     environment:
@@ -46,12 +45,10 @@ services:
 
       # App
       - DATA_DIR=/app/data
-      - OUTPUT_DIR=/app/uptonight_outputs
-      - CONFIG_DIR=/app/uptonight_configs
+      - UPTONIGHT_DIR=/app/uptonight
 
       # Docker-in-Docker paths
-      - HOST_OUTPUT_DIR=${PWD}/uptonight_outputs
-      - HOST_CONFIG_DIR=${PWD}/uptonight_configs
+      - HOST_UPTONIGHT_DIR=${PWD}/uptonight
 
     restart: unless-stopped
 

@@ -10,7 +10,7 @@ import yaml
 import json
 from datetime import datetime, timedelta
 from weather_openmeteo import get_uptonight_conditions
-from constants import DATA_DIR, DATA_DIR_CACHE, OUTPUT_DIR, CONFIG_DIR, SCHEDULE_INTERVAL, UPTONIGHT_IMAGE, UPTONIGHT_VERSION
+from constants import DATA_DIR, DATA_DIR_CACHE, HOST_UPTONIGHT_DIR, OUTPUT_DIR, CONFIG_DIR, SCHEDULE_INTERVAL, UPTONIGHT_IMAGE, UPTONIGHT_VERSION
 from logging_config import get_logger
 from utils import IndentDumper
 
@@ -22,8 +22,8 @@ os.makedirs(DATA_DIR_CACHE, exist_ok=True)
 logger = get_logger(__name__)
 
 # Host paths for Docker-in-Docker volume mounts
-HOST_OUTPUT_DIR = os.environ.get('HOST_OUTPUT_DIR', OUTPUT_DIR)
-HOST_CONFIG_DIR = os.environ.get('HOST_CONFIG_DIR', CONFIG_DIR)
+HOST_OUTPUT_DIR = os.path.join(HOST_UPTONIGHT_DIR, 'outputs')
+HOST_CONFIG_DIR = os.path.join(HOST_UPTONIGHT_DIR, 'configs')
 if HOST_OUTPUT_DIR == OUTPUT_DIR and os.path.exists('/.dockerenv'):
     logger.warning("HOST_OUTPUT_DIR not set in Docker environment - Docker-in-Docker may not work correctly")
 if HOST_CONFIG_DIR == CONFIG_DIR and os.path.exists('/.dockerenv'):
@@ -200,6 +200,10 @@ class UptonightScheduler:
             host_config_path = os.path.join(HOST_CONFIG_DIR, config_rel_path).replace('\\', '/')
             host_output_path = os.path.join(HOST_OUTPUT_DIR, output_rel_path).replace('\\', '/')
 
+            # debug config path and output path
+            logger.debug(f"Host config path: {host_config_path}")
+            logger.debug(f"Host output path: {host_output_path}")
+            
             docker_cmd = [
                 'docker', 'run', '--rm',
                 '-v', f'{host_config_path}:/app/config.yaml:ro',

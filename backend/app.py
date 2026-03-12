@@ -403,8 +403,8 @@ def update_config_api():
         old_location.get('timezone') != new_location.get('timezone')
     )
     
-    # Compare selected catalogues to previous catalogues (on folder uptonight_outputs)
-    # to remove uptonight_configs & uptonight_outputs of not used catalogues
+    # Compare selected catalogues to previous catalogues (on folder uptonight/outputs)
+    # to remove uptonight/configs & uptonight/outputs of not used catalogues
     old_catalogues = set(old_config.get('selected_catalogues', [])) 
     new_catalogues = set(selected_catalogues)
     removed_catalogues = old_catalogues - new_catalogues

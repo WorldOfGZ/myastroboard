@@ -26,8 +26,7 @@ data/
 *.sqlite
 
 # Uptonight outputs
-uptonight_outputs/
-uptonight_configs/
+uptonight/
 
 # IDE
 .vscode/
