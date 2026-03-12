@@ -151,12 +151,12 @@ jobs:
             "$REGISTRY/$IMAGE_NAME:linux-amd64-build" \
             "$REGISTRY/$IMAGE_NAME:linux-arm64-build"
 
-      #- name: Scan image for vulnerabilities
-      #  uses: aquasecurity/trivy-action@0.34.1 # Curent issue in this version, wait for fix
-      #  with:
-      #    image-ref: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ steps.version.outputs.VERSION }}
-      #    format: table
-      #    exit-code: 0
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ steps.version.outputs.VERSION }}
+          format: table
+          exit-code: 0
 
       - name: Generate Release Notes
         if: startsWith(github.ref, 'refs/tags/')
