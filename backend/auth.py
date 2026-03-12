@@ -6,6 +6,7 @@ import json
 import os
 import uuid
 import re
+import shutil
 from datetime import datetime
 from functools import wraps
 from flask import session, jsonify, request
@@ -129,22 +130,104 @@ class UserManager:
             logger.warning(f"Failed to check users file freshness: {e}")
     
     def save_users(self):
-        """Save users to file"""
+        """Save users to file using atomic write and JSON validation."""
+        temp_path = USERS_FILE + '.tmp'
+        backup_path = USERS_FILE + '.backup'
+        backup_created = False
+
         try:
             # Ensure data directory exists
             os.makedirs(os.path.dirname(USERS_FILE), exist_ok=True)
-            
+
             data = {
                 user_id: user.to_dict()
                 for user_id, user in self.users.items()
             }
-            with open(USERS_FILE, 'w') as f:
-                json.dump(data, f, indent=2)
+
+            # Keep a backup of current file before replacing it.
+            if os.path.exists(USERS_FILE):
+                shutil.copy2(USERS_FILE, backup_path)
+                backup_created = True
+
+            # Write to a temporary file first.
+            with open(temp_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+
+            # Validate temporary JSON structure before replacing the live users file.
+            is_valid, error_msg = self.validate_users_json_file(temp_path)
+            if not is_valid:
+                raise ValueError(f"users.json validation failed: {error_msg}")
+
+            os.replace(temp_path, USERS_FILE)
             self._users_mtime = os.path.getmtime(USERS_FILE)
+
+            if backup_created and os.path.exists(backup_path):
+                os.remove(backup_path)
+
             logger.debug(f"Saved {len(self.users)} users to {USERS_FILE}")
         except Exception as e:
             logger.error(f"Error saving users: {e}")
+
+            # Restore previous users file when possible.
+            if backup_created and os.path.exists(backup_path):
+                try:
+                    os.replace(backup_path, USERS_FILE)
+                    self._users_mtime = os.path.getmtime(USERS_FILE)
+                except Exception as restore_error:
+                    logger.error(f"Failed to restore users backup: {restore_error}")
+
+            if os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except Exception as cleanup_error:
+                    logger.warning(f"Failed to remove users temp file: {cleanup_error}")
+
+            if backup_created and os.path.exists(backup_path):
+                try:
+                    os.remove(backup_path)
+                except Exception as cleanup_error:
+                    logger.warning(f"Failed to remove users backup file: {cleanup_error}")
+
             raise
+
+    @staticmethod
+    def validate_users_json_data(data):
+        """Validate in-memory users JSON structure."""
+        if not isinstance(data, dict):
+            return False, "JSON root must be a dictionary"
+
+        for user_id, user_data in data.items():
+            if not isinstance(user_id, str) or not user_id:
+                return False, "Each user id key must be a non-empty string"
+
+            if not isinstance(user_data, dict):
+                return False, f"User {user_id} data must be a dictionary"
+
+            required_fields = ['user_id', 'username', 'password_hash', 'role', 'created_at']
+            missing_fields = [field for field in required_fields if field not in user_data]
+            if missing_fields:
+                return False, f"User {user_id} missing fields: {', '.join(missing_fields)}"
+
+            if user_data.get('user_id') != user_id:
+                return False, f"User {user_id} contains mismatched user_id"
+
+            role = user_data.get('role')
+            if role not in [ROLE_ADMIN, ROLE_USER, ROLE_READ_ONLY]:
+                return False, f"User {user_id} has invalid role: {role}"
+
+        return True, ""
+
+    @classmethod
+    def validate_users_json_file(cls, file_path):
+        """Validate users JSON file content and structure."""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            return cls.validate_users_json_data(data)
+        except json.JSONDecodeError as e:
+            return False, f"Invalid JSON: {e}"
+        except Exception as e:
+            return False, f"Validation error: {e}"
     
     def ensure_default_admin(self):
         """Ensure default admin user exists"""
@@ -219,6 +302,28 @@ class UserManager:
         
         self.save_users()
         logger.info(f"Updated user {user.username} (ID: {user_id})")
+        return user
+
+    def change_own_password(self, user_id, current_password, new_password):
+        """Change password for the authenticated user after verifying current password."""
+        self._reload_users_if_changed()
+
+        user = self.get_user_by_id(user_id)
+        if not user:
+            raise ValueError("User not found")
+
+        if not user.check_password(current_password):
+            raise ValueError("Current password is incorrect")
+
+        if len(new_password) < 6:
+            raise ValueError("New password must be at least 6 characters")
+
+        if user.check_password(new_password):
+            raise ValueError("New password must be different from current password")
+
+        user.password_hash = generate_password_hash(new_password)
+        self.save_users()
+        logger.info(f"Password changed for user {user.username} (ID: {user_id})")
         return user
     
     def delete_user(self, user_id, current_user_id=None):

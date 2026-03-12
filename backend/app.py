@@ -274,6 +274,33 @@ def auth_status():
     return jsonify({'authenticated': False})
 
 
+@app.route('/api/auth/change-password', methods=['POST'])
+@login_required
+def change_own_password():
+    """Change password for currently authenticated user only."""
+    try:
+        data = request.json or {}
+        current_password = data.get('current_password')
+        new_password = data.get('new_password')
+
+        if not current_password or not new_password:
+            return jsonify({'error': 'Current password and new password are required'}), 400
+
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'error': 'Authentication required'}), 401
+
+        user_manager.change_own_password(current_user.user_id, current_password, new_password)
+
+        return jsonify({'status': 'success'})
+    except ValueError as e:
+        logger.warning(f"Password change rejected for user {session.get('username')}: {e}")
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error changing password for user {session.get('username')}: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
 # ============================================================
 # User Management API (Admin only)
 # ============================================================

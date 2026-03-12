@@ -142,6 +142,101 @@ function updateUserInterface() {
     if (currentUser.role === 'admin' && usersTabBtn) {
         usersTabBtn.style.display = 'inline-block';
     }*/
+
+    populateSecurityUsername();
+}
+
+function populateSecurityUsername() {
+    const usernameInput = document.getElementById('security-username');
+    if (!usernameInput || !currentUser?.username) {
+        return;
+    }
+    usernameInput.value = currentUser.username;
+}
+
+function setSecurityPasswordMessage(type, message) {
+    const messageDiv = document.getElementById('security-password-message');
+    if (!messageDiv) return;
+
+    messageDiv.className = 'alert';
+    if (type === 'success') {
+        messageDiv.classList.add('alert-success');
+    } else if (type === 'error') {
+        messageDiv.classList.add('alert-danger');
+    } else {
+        messageDiv.style.display = 'none';
+        messageDiv.textContent = '';
+        return;
+    }
+
+    messageDiv.textContent = message;
+    messageDiv.style.display = 'block';
+}
+
+function setupSecurityPasswordForm() {
+    const form = document.getElementById('security-change-password-form');
+    if (!form) return;
+
+    populateSecurityUsername();
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const currentPassword = document.getElementById('security-current-password')?.value || '';
+        const newPassword = document.getElementById('security-new-password')?.value || '';
+        const confirmPassword = document.getElementById('security-confirm-password')?.value || '';
+
+        if (newPassword !== confirmPassword) {
+            setSecurityPasswordMessage('error', i18n.t('users.passwords_do_not_match'));
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            setSecurityPasswordMessage('error', i18n.t('users.password_too_short'));
+            return;
+        }
+
+        if (currentPassword === newPassword) {
+            setSecurityPasswordMessage('error', i18n.t('users.password_must_be_different'));
+            return;
+        }
+
+        try {
+            const response = await fetchWithRetry('/api/auth/change-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    current_password: currentPassword,
+                    new_password: newPassword
+                })
+            }, {
+                maxAttempts: 1,
+                timeoutMs: 15000
+            });
+
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                setSecurityPasswordMessage('error', data.error || i18n.t('users.error_update_password'));
+                return;
+            }
+
+            form.reset();
+            populateSecurityUsername();
+            setSecurityPasswordMessage('success', i18n.t('users.password_updated'));
+
+            // Hide default-password warning once password changed successfully.
+            const warningBanner = document.getElementById('default-password-warning');
+            if (warningBanner) {
+                warningBanner.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error updating own password:', error);
+            setSecurityPasswordMessage('error', i18n.t('users.error_update_password'));
+        }
+    });
 }
 
 // Show default password warning
@@ -934,11 +1029,13 @@ if (document.readyState === 'loading') {
         checkAuthStatus();
         setupLogoutButton();
         setupCreateUserForm();
+        setupSecurityPasswordForm();
         setupGlobalErrorHandler();
     });
 } else {
     checkAuthStatus();
     setupLogoutButton();
     setupCreateUserForm();
+    setupSecurityPasswordForm();
     setupGlobalErrorHandler();
 }
