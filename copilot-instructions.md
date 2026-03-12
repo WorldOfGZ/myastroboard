@@ -124,8 +124,9 @@ myastroboard/
 │   ├── test_uptonight_parser.py
 │   ├── test_utils.py
 │   └── test_weather_utils.py
-├── uptonight_configs/          # Generated configs (Docker volume)
-├── uptonight_outputs/          # Generated outputs (Docker volume)
+├── uptonight/
+│   ├── configs/                # Generated configs (Docker volume)
+│   └── outputs/                # Generated outputs (Docker volume)
 ├── docker-compose-dev.yml      # Development deployment (local image)
 ├── docker-compose.debug.yml    # Additional docker-compose for debugging (launch with docker-compose-dev.yml)
 ├── docker-compose.yml          # Production deployment (published image)
@@ -390,7 +391,7 @@ echo "2.6" > UPTONIGHT_VERSION
 Key environment variables (set in docker-compose.yml or .env):
 - **SCHEDULE_INTERVAL**: Uptonight execution interval in seconds (default: 21600)
 - **DATA_DIR**: Configuration storage (default: `/app/data`)
-- **UPTONIGHT_OUTPUT_DIR**: Results storage (default: `/app/uptonight_outputs`)
+- **UPTONIGHT_DIR**: Results storage (default: `/app/uptonight`)
 - **LOG_LEVEL**: File logging level - DEBUG, INFO, WARNING, ERROR, CRITICAL (default: INFO)
 - **CONSOLE_LOG_LEVEL**: Console logging level - DEBUG, INFO, WARNING, ERROR, CRITICAL (default: WARNING)
 
@@ -442,7 +443,7 @@ For each target, uptonight generates:
 - **uptonight-plot.png**: Altitude plot visualization
 - **uptonight-moon.png**: Moon position/phase plot
 
-All files are stored in: `uptonight_outputs/{target_name}/`
+All files are stored in: `uptonight/outputs/{target_name}/`
 
 ## Common Tasks
 

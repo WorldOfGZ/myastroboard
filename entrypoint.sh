@@ -2,7 +2,7 @@
 set -e
 
 echo "[INFO] Fixing permissions on mounted volumes..."
-chown -R appuser:appuser /app/data /app/uptonight_outputs /app/uptonight_configs || true
+chown -R appuser:appuser /app/data /app/uptonight || true
 
 echo "[INFO] Cleaning temporary files in /app/data..."
 # Old cache storage and lock files
@@ -13,8 +13,8 @@ find /app/data -type f \( \
   -name "scheduler_status.json" \
 \) -delete || true
 rm -rf /app/data/cache/* || true # Clear cache directory
-rm -rf /app/uptonight_outputs/* || true # Clear outputs directory
-rm -rf /app/uptonight_configs/* || true # Clear configs directory
+rm -rf /app/uptonight/outputs/* || true # Clear outputs directory
+rm -rf /app/uptonight/configs/* || true # Clear configs directory
 
 
 # ---- Docker socket permissions fix ----
