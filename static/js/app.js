@@ -3,6 +3,47 @@
 
 let currentConfig = {};
 
+function getStartupPreferenceValues() {
+    const prefs = window.myastroboardUserPreferences || {};
+    return {
+        startupMainTab: prefs.startup_main_tab || 'forecast-astro',
+        startupSubtab: prefs.startup_subtab || 'astro-weather'
+    };
+}
+
+function getFallbackSubtabForMainTab(mainTab) {
+    const parentElement = document.getElementById(`${mainTab}-tab`);
+    if (!parentElement) {
+        return null;
+    }
+    const firstSubTabButton = parentElement.querySelector('.sub-tab-btn');
+    return firstSubTabButton ? firstSubTabButton.getAttribute('data-subtab') : null;
+}
+
+function applyUserStartupPreferences(force = false) {
+    if (window.__myastroboardStartupApplied && !force) {
+        return;
+    }
+
+    const { startupMainTab, startupSubtab } = getStartupPreferenceValues();
+    const targetMainButton = document.querySelector(`.main-tab-btn[data-tab="${startupMainTab}"]`);
+    const effectiveMainTab = targetMainButton ? startupMainTab : 'forecast-astro';
+
+    switchMainTab(effectiveMainTab);
+
+    const requestedSubtabExists = !!document.querySelector(
+        `#${effectiveMainTab}-tab .sub-tab-btn[data-subtab="${startupSubtab}"]`
+    );
+    const fallbackSubtab = getFallbackSubtabForMainTab(effectiveMainTab);
+    const effectiveSubtab = requestedSubtabExists ? startupSubtab : fallbackSubtab;
+
+    if (effectiveSubtab) {
+        switchSubTab(effectiveMainTab, effectiveSubtab);
+    }
+
+    window.__myastroboardStartupApplied = true;
+}
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
@@ -25,9 +66,9 @@ async function initializeApp() {
     UptonightScheduler.init();
 
     checkCacheStatus();
-    
-    // Load initial page
-    switchSubTab("forecast-astro", "astro-weather"); 
+
+    // Load initial page from user preferences (or fallback defaults)
+    applyUserStartupPreferences();
 }
 
 function setupMainTabs() {
@@ -72,7 +113,19 @@ function switchMainTab(tabName) {
     document.querySelectorAll('.main-tab-content').forEach(content => {
         content.classList.remove('active');
     });
-    document.getElementById(`${tabName}-tab`).classList.add('active');
+    const parentElement = document.getElementById(`${tabName}-tab`);
+    if (!parentElement) return;
+    parentElement.classList.add('active');
+
+    // Ensure a visible sub-tab content exists when this main tab has sub-tabs.
+    const subTabButtons = parentElement.querySelectorAll('.sub-tab-btn');
+    if (subTabButtons.length > 0) {
+        const activeSubTabButton = parentElement.querySelector('.sub-tab-btn.active') || subTabButtons[0];
+        const activeSubTabName = activeSubTabButton?.getAttribute('data-subtab');
+        if (activeSubTabName) {
+            switchSubTab(tabName, activeSubTabName);
+        }
+    }
     
     // Load tab-specific content
     if (tabName === 'uptonight') {
@@ -319,3 +372,5 @@ function showUpdateNotification(releaseUrl, version) {
         if (!link) console.warn('Missing element: update-link');
     }
 }
+
+window.applyUserStartupPreferences = applyUserStartupPreferences;

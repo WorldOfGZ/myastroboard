@@ -78,3 +78,32 @@ def test_validate_users_json_data_rejects_mismatched_user_id():
 
     assert not is_valid
     assert "mismatched user_id" in error_msg
+
+
+def test_update_user_preferences_updates_only_target_user(isolated_user_manager):
+    manager = isolated_user_manager
+    alice = manager.create_user("alice", "alice-secret", "user")
+    bob = manager.create_user("bob", "bob-secret", "user")
+
+    manager.update_user_preferences(alice.user_id, {
+        "time_format": "24h",
+        "density": "compact"
+    })
+
+    alice_prefs = manager.get_user_preferences(alice.user_id)
+    bob_prefs = manager.get_user_preferences(bob.user_id)
+
+    assert alice_prefs["time_format"] == "24h"
+    assert alice_prefs["density"] == "compact"
+    assert bob_prefs["time_format"] == "auto"
+    assert bob_prefs["density"] == "comfortable"
+
+
+def test_update_user_preferences_rejects_invalid_values(isolated_user_manager):
+    manager = isolated_user_manager
+    user = manager.create_user("alice", "alice-secret", "user")
+
+    with pytest.raises(ValueError, match="Invalid time_format"):
+        manager.update_user_preferences(user.user_id, {
+            "time_format": "invalid-format"
+        })

@@ -27,115 +27,141 @@ MyAstroBoard is a web-based astronomy observation planning system that integrate
 ```
 myastroboard/
 ├── backend/
-│   ├── app.py                  # Main Flask application with modern API
-│   ├── astrodex.py              # Astrodex collection management
-│   ├── aurora_predictions.py    # Aurora borealis predictions
-│   ├── auth.py                 # Authentication and user management
-│   ├── cache_scheduler.py      # Cyclic cache for scheduler data
-│   ├── cache_store.py          # Variable cache storage
-│   ├── cache_updater.py        # Functions to update cache
-│   ├── catalogue_aliases.json   # Generated catalogue alias table
-│   ├── catalogue_aliases.py     # Alias lookup helpers
-│   ├── config_defaults.py      # Default config for UpTonight
-│   ├── constants.py            # Centralization of constants
-│   ├── equipment_profiles.py    # Equipment profiles management
-│   ├── events_aggregator.py     # Aggregated events for dashboard
-│   ├── horizon_graph.py         # Horizon plot generation
-│   ├── logging_config.py       # Centralization of logging
-│   ├── metrics_collector.py     # Collects system metrics (CPU, memory, disk, process, container detection)
-│   ├── moon_astrotonight.py    # Computes the best astrophotography imaging window tonight
-│   ├── moon_eclipse.py          # Lunar eclipse calculations
-│   ├── moon_phases.py          # Computes locally the moon phases
-│   ├── moon_planner.py         # Computes locally the moon phase for a range of dates
-│   ├── repo_config.py          # Manages repository configuration file
-│   ├── sun_eclipse.py           # Solar eclipse calculations
-│   ├── sun_phases.py           # Computes locally the sun phases
-│   ├── txtconf_loader.py       # Loads flat txtconf files
-│   ├── uptonight_parser.py     # Parses uptonight JSON reports
-│   ├── uptonight_scheduler.py  # Manages periodic uptonight execution
-│   ├── utils.py                # Utils functions
-│   ├── version_checker.py      # Checks for updates from GitHub (with caching)
-│   ├── weather_astro.py         # Astro weather analysis
-│   ├── weather_openmeteo.py    # Parses weather data from Open-Meteo API
-│   └── weather_utils.py         # Weather helper utilities
-├── docs/                       # Comprehensive documentation
-├── data/                       # User configuration (Docker volume, persists)
-│   ├── astrodex/               # Astrodex data and images
-│   ├── cache/                  # Cached astronomy data
-│   ├── equipments/             # Equipment profile storage
-│   ├── config.json             # Main configuration file
-│   ├── users.json              # User accounts and credentials (hashed passwords)
-│   └── myastroboard.log        # Application logs
-├── scripts/                    # Repository maintenance scripts
-│   └── analyse_catalogues.py   # Update catalogues.json and aliases table
+│   ├── __pycache__/                 # Python bytecode cache
+│   ├── app.py                       # Main Flask API entry point
+│   ├── astrodex.py                  # Astrodex business logic and storage
+│   ├── aurora_predictions.py        # Aurora forecast logic
+│   ├── auth.py                      # Authentication and user management
+│   ├── cache_scheduler.py           # Periodic cache scheduler
+│   ├── cache_store.py               # Shared cache persistence
+│   ├── cache_updater.py             # Cache refresh orchestration
+│   ├── catalogue_aliases.json       # Generated catalogue alias table
+│   ├── catalogue_aliases.py         # Catalogue alias helpers
+│   ├── config_defaults.py           # Default config values
+│   ├── constants.py                 # Shared constants
+│   ├── equipment_profiles.py        # Equipment profiles API helpers
+│   ├── events_aggregator.py         # Unified upcoming events data
+│   ├── horizon_graph.py             # Horizon graph generation
+│   ├── i18n_utils.py                # Translation backend helpers
+│   ├── iss_passes.py                # ISS passes integration
+│   ├── logging_config.py            # Centralized logger setup
+│   ├── metrics_collector.py         # Metrics collection service
+│   ├── moon_astrotonight.py         # Best astrophotography window calculations
+│   ├── moon_eclipse.py              # Lunar eclipse calculations
+│   ├── moon_phases.py               # Moon phase calculations
+│   ├── moon_planner.py              # Moon planner over date ranges
+│   ├── planetary_events.py          # Planetary events cache service
+│   ├── repo_config.py               # Config file load/save helpers
+│   ├── sidereal_time.py             # Sidereal time service
+│   ├── solar_system_events.py       # Solar system events cache service
+│   ├── special_phenomena.py         # Special phenomena cache service
+│   ├── sun_eclipse.py               # Solar eclipse calculations
+│   ├── sun_phases.py                # Sun phase calculations
+│   ├── txtconf_loader.py            # txtconf loader
+│   ├── uptonight_parser.py          # UpTonight JSON parser
+│   ├── uptonight_scheduler.py       # UpTonight scheduler
+│   ├── version_checker.py           # GitHub release checks
+│   ├── utils.py                     # Common backend utility functions
+│   ├── weather_astro.py             # Astro weather analysis
+│   ├── weather_openmeteo.py         # Open-Meteo adapter
+│   └── weather_utils.py             # Weather utility helpers
+├── data/                            # Runtime persisted data (volume-mounted)
+│   ├── astrodex/                    # Astrodex JSON + images
+│   ├── cache/                       # Runtime cache payloads
+│   ├── config.json                  # Main app config
+│   ├── equipments/                  # Equipment profile JSON files
+│   ├── myastroboard.log             # Application log file
+│   ├── projects/                    # User project data
+│   └── users.json                   # User accounts + preferences
+├── docs/                            # Project documentation
+│   ├── img/                         # Documentation images
+│   ├── 1.INSTALLATION.md            # Installation guide
+│   ├── 2.QUICKSTART.md              # Quick start guide
+│   ├── 3.UPDATE.md                  # Update guide
+│   ├── 4.RELEASE.md                 # Release process guide
+│   ├── 5.ORGANIZATION.md            # Repository organization guide
+│   ├── 6.REVERSE_PROXY.md           # Reverse proxy and HTTPS guide
+│   ├── 7.TRANSLATIONS.md            # Translation contribution guide
+│   ├── API_ENDPOINTS.md             # API endpoint inventory
+│   ├── CACHE_SYSTEM.md              # Cache architecture documentation
+│   ├── README.md                    # Documentation index
+│   └── VISUAL_TOUR.md               # Visual tour of the application
+├── scripts/
+│   ├── analyse_catalogues.py        # Catalogue analysis and maintenance helper
+│   ├── translate_checker.py         # Translation consistency checker
+│   ├── translate_i18n_values.py     # i18n value translation helper
+│   └── translate_uptonight_types.py # UpTonight type translation helper
 ├── static/
-│   ├── css/
-│   │   ├── bs_astrodex.css     # Astrodex-specific styles
-│   │   ├── bs_equipment.css    # Equipment-specific styles
-│   │   ├── bs_events.css       # Events-specific styles
-│   │   ├── bs_login.css        # Login page styles
-│   │   ├── bs_logs.css         # Logs-specific styles
-│   │   ├── bs_main.css         # Common styles for all pages
-│   │   ├── bs_metrics.css      # Metrics-specific styles
-│   │   ├── bs_timeline.css     # Timeline-specific styles
-│   │   ├── bs_uptonight.css    # Uptonight-specific styles
-│   │   ├── bs_variables.css    # Common variables for all pages
-│   │   ├── bs_weather.css      # Weather-specific styles
-│   │   └── bs_yaml.css         # YAML-specific styles
-│   ├── img/
-│   ├── js/
-│   │   ├── apiHelper.js            # Api helpers function
-│   │   ├── app.js                  # Main app initialization and navigation
-│   │   ├── astrodex.js             # Functions for Astrodex
-│   │   ├── aurora.js               # Functions for Aurora prediction
-│   │   ├── config.js               # Configuration management (load/save/validate)
-│   │   ├── domUtils.js             # Functions for Dom manipulation
-│   │   ├── equipment.js            # Functions for Equipment management
-│   │   ├── events_alerts.js        # Functions for Events
-│   │   ├── horizon_graph.js        # Functions for Horizon graph
-│   │   ├── logs.js                 # Application log management
-│   │   ├── lunar_eclipse.js        # Functions for Lunar eclipse
-│   │   ├── metrics.js              # System metrics monitoring
-│   │   ├── moon.js                 # Functions for Moon planner
-│   │   ├── solar_eclipse.js        # Functions for Solar Eclipse
-│   │   ├── scheduler.js            # Functions for Scheduler
-│   │   ├── sun.js                  # Functions for Sun planner
-│   │   ├── theme.js                # Functions for Themes switch
-│   │   ├── uptonight.js            # UpTonight results display and interaction
-│   │   ├── uptonightScheduler.js   # Functions for Uptonight scheduler
-│   │   ├── utils.js                # Functions for Utils
-│   │   ├── weather_alerts.js       # Functions for Weather alerts
-│   │   ├── weather_astro.js        # Functions for Weather astro
-│   │   └── weather.js              # Functions for Weather
-│   └── favicon.svg
-├── targets/                    # UpTonight catalogues (*.yaml)
+│   ├── css/                         # Stylesheets
+│   ├── i18n/                        # Frontend translation dictionaries
+│   ├── ico/                         # Platform-specific app icons
+│   ├── img/                         # UI images and illustrations
+│   ├── js/                          # Frontend JavaScript modules
+│   ├── favicon.ico                  # Browser favicon (ICO)
+│   ├── favicon.svg                  # Browser favicon (SVG)
+│   ├── manifest.webmanifest         # PWA manifest
+│   ├── offline.html                 # Offline fallback page
+│   └── sw.js                        # Service worker
+├── targets/
+│   ├── GaryImm.yaml                 # Gary Imm target catalogue
+│   ├── Herschel400.yaml             # Herschel 400 target catalogue
+│   ├── LBN.yaml                     # LBN target catalogue
+│   ├── LDN.yaml                     # LDN target catalogue
+│   ├── Messier.yaml                 # Messier target catalogue
+│   ├── OpenIC.yaml                  # OpenIC target catalogue
+│   ├── OpenNGC.yaml                 # OpenNGC target catalogue
+│   ├── Pensack500.yaml              # Pensack 500 target catalogue
+│   └── README.md                    # Target catalogue notes
 ├── templates/
-│   ├── index.html              # Modern tabbed dashboard
-│   └── login.html              # User login page
-├── tests/                      # Unit tests
-│   ├── test_astrodex.py
-│   ├── test_astrodex_api.py
-│   ├── test_auth.py
-│   ├── test_cache_store.py
-│   ├── test_config.py
-│   ├── test_constants.py
-│   ├── test_equipment_profiles.py
-│   ├── test_txtconf_loader.py
-│   ├── test_uptonight_parser.py
-│   ├── test_utils.py
-│   └── test_weather_utils.py
+│   ├── index.html                   # Main dashboard page
+│   └── login.html                   # Login page
+├── tests/
+│   ├── __pycache__/                 # Python bytecode cache for tests
+│   ├── __init__.py                  # Tests package marker
+│   ├── conftest.py                  # Shared pytest fixtures
+│   ├── README.md                    # Testing notes
+│   ├── test_astrodex.py             # Astrodex unit tests
+│   ├── test_astrodex_api.py         # Astrodex API tests
+│   ├── test_astronomical.py         # Astronomical services tests
+│   ├── test_auth.py                 # Authentication and users tests
+│   ├── test_cache_scheduler.py      # Cache scheduler tests
+│   ├── test_cache_store.py          # Cache storage tests
+│   ├── test_catalogue_aliases.py    # Catalogue aliases tests
+│   ├── test_config.py               # Configuration management tests
+│   ├── test_constants.py            # Constants module tests
+│   ├── test_equipment_profiles.py   # Equipment profiles tests
+│   ├── test_horizon_graph.py        # Horizon graph tests
+│   ├── test_i18n_utils.py           # i18n utility tests
+│   ├── test_iss_passes.py           # ISS passes tests
+│   ├── test_logging_config.py       # Logging configuration tests
+│   ├── test_moon_eclipse.py         # Moon eclipse tests
+│   ├── test_new_event_services.py   # New event services tests
+│   ├── test_txtconf_loader.py       # txtconf loader tests
+│   ├── test_uptonight_parser.py     # UpTonight parser tests
+│   ├── test_utils.py                # Shared utility tests
+│   ├── test_version_checker.py      # Version checker tests
+│   └── test_weather_utils.py        # Weather utility tests
 ├── uptonight/
-│   ├── configs/                # Generated configs (Docker volume)
-│   └── outputs/                # Generated outputs (Docker volume)
-├── docker-compose-dev.yml      # Development deployment (local image)
-├── docker-compose.debug.yml    # Additional docker-compose for debugging (launch with docker-compose-dev.yml)
-├── docker-compose.yml          # Production deployment (published image)
-├── Dockerfile                  # Production container image
-├── entrypoint.sh               # Production container entrypoint script
-├── README.md                   # Project overview and instructions
-├── requirements-dev.txt        # Development dependencies
-├── requirements.txt            # Python dependencies
-└── VERSION                     # Semantic version number
+│   ├── configs/                     # Generated UpTonight configs
+│   └── outputs/                     # Generated UpTonight outputs
+├── CODEOWNERS                       # Repository ownership rules
+├── CODE_OF_CONDUCT.md               # Community code of conduct
+├── CONTRIBUTING.md                  # Contribution guidelines
+├── copilot-instructions.md          # AI assistant working guidelines
+├── docker-compose-dev.yml           # Development deployment
+├── docker-compose.debug.yml         # Debug compose overlay
+├── docker-compose.yml               # Production deployment
+├── Dockerfile                       # Container build definition
+├── entrypoint.sh                    # Container startup script
+├── feature.md                       # Feature planning notes
+├── LICENSE                          # Project license
+├── pytest.ini                       # Pytest configuration
+├── README.md                        # Main project documentation
+├── requirements-dev.txt             # Development Python dependencies
+├── requirements.txt                 # Runtime Python dependencies
+├── ROADMAP.md                       # Product roadmap
+├── SECURITY.md                      # Security policy
+└── VERSION                          # Application version
 ```
 
 ## Code Style & Conventions
@@ -257,14 +283,35 @@ except Exception as e:
 - **Structure**: Dictionary of users with:
   - `username`: Unique username
   - `password_hash`: Bcrypt hashed password (never stored in plaintext)
-  - `role`: Either `admin` or `read-only`
+  - `role`: One of `admin`, `user`, `read-only`
   - `created_at`: ISO timestamp of user creation
   - `last_login`: ISO timestamp of last successful login
+  - `preferences`: Per-user UI customization settings
 - **Default User**: `admin:admin` created automatically on first run
 - **Persistence**: Stored in Docker volume (`./data:/app/data`), survives container restarts/rebuilds
 - **Security**: Passwords are hashed using Werkzeug's `generate_password_hash` (bcrypt)
 - **Session Management**: Flask session-based authentication with secure cookies
 - **Why**: Persistent user accounts, secure password storage, survives Docker restarts
+
+### 1.2. User Customization Preferences
+- **Pattern**: Per-user preference object persisted in `data/users.json`
+- **Scope**: Preferences are always user-scoped; never shared globally across users
+- **Current Keys**:
+  - `startup_main_tab`: default main tab at login
+  - `startup_subtab`: default sub-tab at login
+  - `time_format`: `auto` | `12h` | `24h`
+  - `density`: `comfortable` | `compact`
+  - `theme_mode`: `auto` | `light` | `dark` | `red`
+- **Backend Rules**:
+  - Validate allowed keys and values before saving
+  - Merge with defaults for missing keys
+  - Persist via atomic + validated users save path (tmp + validate + replace + backup/restore)
+- **Frontend Rules**:
+  - Load preferences after authentication, then apply immediately
+  - Use preferences as startup navigation source
+  - Keep `customize-subtab` strictly user-level (no admin/global settings here)
+  - On language change, re-render dynamic preference labels/options
+- **Why**: Personalized UX without compromising role boundaries or data integrity
 
 ### 2. Uptonight Docker Version Management
 - **Pattern**: Version file configuration for release management
@@ -301,50 +348,14 @@ except Exception as e:
 
 ### 5. API Design
 - **Pattern**: RESTful JSON API with role-based access control
-- **Endpoints**: 
-  - **Authentication (Unprotected)**:
-    - `/api/auth/login` - User login (POST)
-    - `/api/auth/logout` - User logout (POST, requires login)
-    - `/api/auth/status` - Check authentication status (GET)
-  - **User Management (Admin only)**:
-    - `/api/users` - List/Create users (GET/POST, admin only)
-    - `/api/users/<username>` - Update/Delete user (PUT/DELETE, admin only)
-  - **Health & Version (Unprotected)**:
-    - `/api/health` - Health check (GET, unprotected)
-    - `/health` - Simple health check (GET, unprotected)
-  - **Configuration (Read: login required, Write: admin only)**:
-    - `/api/config` - GET (login required), POST (admin only)
-    - `/api/config/view` - View YAML configs (GET, login required)
-    - `/api/config/export` - Export config (GET, admin only)
-  - **Data Endpoints (Login required)**:
-    - `/api/catalogues` - List available catalogues (GET, login required)
-    - `/api/timezones` - List IANA timezones (GET, login required)
-    - `/api/convert-coordinates` - DMS to decimal conversion (POST, login required)
-    - `/api/cache` - Cache status (GET, login required)
-    - `/api/version` - Application version (GET, login required)
-    - `/api/version/check-updates` - Check for updates from GitHub (GET, login required, cached 4h)
-  - **Scheduler (Read: login required, Write: admin only)**:
-    - `/api/scheduler/status` - Get scheduler status (GET, login required)
-    - `/api/scheduler/trigger` - Manually trigger (POST, admin only)
-  - **UpTonight Results (Login required)**:
-    - `/api/uptonight/outputs` - List outputs (GET, login required)
-    - `/api/uptonight/outputs/<target>/<filename>` - Get file (GET, login required)
-    - `/api/uptonight/reports/<catalogue>` - Get reports (GET, login required)
-  - **Weather & Astronomy (Login required)**:
-    - `/api/weather/forecast` - Weather forecast (GET, login required)
-    - `/api/weather/astro-analysis` - Astro weather (GET, login required)
-    - `/api/weather/astro-current` - Current conditions (GET, login required)
-    - `/api/weather/alerts` - Weather alerts (GET, login required)
-    - `/api/moon/report` - Moon report (GET, login required)
-    - `/api/moon/dark-window` - Dark window (GET, login required)
-    - `/api/moon/next-7-nights` - Moon phases (GET, login required)
-    - `/api/sun/today` - Sun phases (GET, login required)
-    - `/api/tonight/best-window` - Best observation window (GET, login required)
-  - **Logs (Read: login required, Write: admin only)**:
-    - `/api/logs` - Get logs (GET, login required)
-    - `/api/logs/clear` - Clear logs (POST, admin only)
-  - **System Metrics (Admin only)**:
-    - `/api/metrics` - Get system metrics (GET, admin only) - includes CPU, memory, disk, disk folder breakdown, process details, container type detection
+- **Endpoint Coverage**:
+  - Routes are defined in `backend/app.py` and grouped by domain: auth, users, config, logs/metrics, scheduler, uptonight, weather, astronomy, events, astrodex, and equipment.
+  - The current endpoint inventory is maintained in `docs/API_ENDPOINTS.md` and should be updated whenever a route is added, removed, or renamed.
+  - Key security constraints:
+    - Most `/api/*` routes require login (`@login_required`).
+    - Admin-only routes use `@admin_required` (users CRUD, config write/export, logs clear, metrics, scheduler trigger).
+    - User update/delete route is `/api/users/<user_id>` (not `<username>`).
+    - Self-service endpoints include `/api/auth/change-password` and `/api/auth/preferences`.
 - **Error Handling**: Return appropriate HTTP status codes with JSON error objects
   - 401 Unauthorized - Not authenticated
   - 403 Forbidden - Insufficient permissions (not admin)

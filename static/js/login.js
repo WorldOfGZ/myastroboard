@@ -104,7 +104,11 @@ function setLoading(isLoading) {
     }
 }
 
-function translateLoginErrorMessage(apiError, statusCode) {
+function translateLoginErrorMessage(apiError, statusCode, errorKey = null) {
+    if (errorKey) {
+        return i18n.t(errorKey);
+    }
+
     const normalizedError = (apiError || '').toString().trim().toLowerCase();
     const messageMap = {
         'invalid credentials': 'auth.invalid_credentials',
@@ -167,7 +171,7 @@ loginForm.addEventListener('submit', async (e) => {
             }, 1000);
         } else {
             setLoading(false);
-            showMessage(errorMessage, translateLoginErrorMessage(data?.error, response.status));
+            showMessage(errorMessage, translateLoginErrorMessage(data?.error, response.status, data?.error_key));
             
             // Focus password field for retry
             document.getElementById('password').select();

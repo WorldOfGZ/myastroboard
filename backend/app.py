@@ -210,7 +210,7 @@ def login():
         
         if not username or not password:
             logger.warning(f"Login attempt with missing credentials")
-            return jsonify({'error': 'Username and password required'}), 400
+            return jsonify({'error': 'Username and password required', 'error_key': 'auth.enter_username_password'}), 400
         
         user = user_manager.authenticate(username, password)
         if user:
@@ -238,10 +238,10 @@ def login():
             })
         else:
             logger.warning(f"Failed login attempt for username: {username}")
-            return jsonify({'error': 'Invalid credentials'}), 401
+            return jsonify({'error': 'Invalid credentials', 'error_key': 'auth.invalid_credentials'}), 401
     except Exception as e:
         logger.error(f"Login error: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
+        return jsonify({'error': 'Internal server error', 'error_key': 'auth.internal_server_error'}), 500
 
 
 @app.route('/api/auth/logout', methods=['POST'])
@@ -284,20 +284,90 @@ def change_own_password():
         new_password = data.get('new_password')
 
         if not current_password or not new_password:
-            return jsonify({'error': 'Current password and new password are required'}), 400
+            return jsonify({
+                'error': 'Current password and new password are required',
+                'error_key': 'users.password_change_missing_fields'
+            }), 400
 
         current_user = get_current_user()
         if not current_user:
-            return jsonify({'error': 'Authentication required'}), 401
+            return jsonify({'error': 'Authentication required', 'error_key': 'auth.authentication_required'}), 401
 
         user_manager.change_own_password(current_user.user_id, current_password, new_password)
 
         return jsonify({'status': 'success'})
     except ValueError as e:
+        error_text = str(e)
+        error_key = 'users.error_update_password'
+
+        if error_text == 'Current password is incorrect':
+            error_key = 'users.current_password_incorrect'
+        elif error_text == 'New password must be at least 6 characters':
+            error_key = 'users.password_too_short'
+        elif error_text == 'New password must be different from current password':
+            error_key = 'users.password_must_be_different'
+
         logger.warning(f"Password change rejected for user {session.get('username')}: {e}")
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'error': error_text, 'error_key': error_key}), 400
     except Exception as e:
         logger.error(f"Error changing password for user {session.get('username')}: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/auth/preferences', methods=['GET'])
+@login_required
+def get_own_preferences():
+    """Get UI customization preferences for the currently authenticated user."""
+    try:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'error': 'Authentication required', 'error_key': 'auth.authentication_required'}), 401
+
+        preferences = user_manager.get_user_preferences(current_user.user_id)
+        return jsonify({'preferences': preferences})
+    except ValueError as e:
+        logger.warning(f"Preference fetch rejected for user {session.get('username')}: {e}")
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error reading preferences for user {session.get('username')}: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/auth/preferences', methods=['PUT'])
+@login_required
+def update_own_preferences():
+    """Update UI customization preferences for the currently authenticated user."""
+    try:
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'error': 'Authentication required', 'error_key': 'auth.authentication_required'}), 401
+
+        data = request.json or {}
+        preferences = data.get('preferences')
+        if preferences is None:
+            return jsonify({'error': 'Preferences are required', 'error_key': 'settings.pref_save_error'}), 400
+
+        updated = user_manager.update_user_preferences(current_user.user_id, preferences)
+        return jsonify({'status': 'success', 'preferences': updated})
+    except ValueError as e:
+        error_text = str(e)
+        error_key = 'settings.pref_save_error'
+
+        if error_text.startswith('Invalid startup_main_tab'):
+            error_key = 'settings.pref_invalid_startup_main_tab'
+        elif error_text.startswith('Invalid startup_subtab'):
+            error_key = 'settings.pref_invalid_startup_subtab'
+        elif error_text.startswith('Invalid time_format'):
+            error_key = 'settings.pref_invalid_time_format'
+        elif error_text.startswith('Invalid density'):
+            error_key = 'settings.pref_invalid_density'
+        elif error_text.startswith('Invalid theme_mode'):
+            error_key = 'settings.pref_invalid_theme'
+
+        logger.warning(f"Preference update rejected for user {session.get('username')}: {e}")
+        return jsonify({'error': error_text, 'error_key': error_key}), 400
+    except Exception as e:
+        logger.error(f"Error updating preferences for user {session.get('username')}: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
 
@@ -324,7 +394,10 @@ def create_user():
         role = data.get('role')
         
         if not username or not password or not role:
-            return jsonify({'error': 'Username, password, and role required'}), 400
+            return jsonify({
+                'error': 'Username, password, and role required',
+                'error_key': 'users.required_username_password_role'
+            }), 400
         
         user = user_manager.create_user(username, password, role)
         return jsonify({
@@ -336,8 +409,16 @@ def create_user():
             }
         })
     except ValueError as e:
+        error_text = str(e)
+        error_key = 'users.invalid_input'
+
+        if error_text.startswith('User ') and error_text.endswith('already exists'):
+            error_key = 'users.username_already_exists'
+        elif error_text.startswith('Invalid role'):
+            error_key = 'users.invalid_role'
+
         logger.warning(f"User creation failed: {e}")
-        return jsonify({'error': 'Invalid input'}), 400
+        return jsonify({'error': error_text, 'error_key': error_key}), 400
     except Exception as e:
         logger.error(f"Error creating user: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -354,7 +435,10 @@ def update_user(user_id):
         role = data.get('role')
         
         if not username and not password and not role:
-            return jsonify({'error': 'Username, password or role required'}), 400
+            return jsonify({
+                'error': 'Username, password or role required',
+                'error_key': 'users.required_update_payload'
+            }), 400
         
         logger.info(f"Updating user {user_id}, available users: {list(user_manager.users.keys())}")
         user = user_manager.update_user(user_id, username, password, role)
@@ -367,8 +451,18 @@ def update_user(user_id):
             }
         })
     except ValueError as e:
+        error_text = str(e)
+        error_key = 'users.invalid_input'
+
+        if error_text.startswith('User with ID ') and error_text.endswith(' not found'):
+            error_key = 'users.user_not_found'
+        elif error_text.startswith('Username ') and error_text.endswith(' already taken'):
+            error_key = 'users.username_already_taken'
+        elif error_text.startswith('Invalid role'):
+            error_key = 'users.invalid_role'
+
         logger.warning(f"User update failed for user_id {user_id}: {e}")
-        return jsonify({'error': 'Invalid input'}), 400
+        return jsonify({'error': error_text, 'error_key': error_key}), 400
     except Exception as e:
         logger.error(f"Error updating user: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -383,8 +477,16 @@ def delete_user(user_id):
         user_manager.delete_user(user_id, current_user_id)
         return jsonify({'status': 'success'})
     except ValueError as e:
+        error_text = str(e)
+        error_key = 'users.invalid_input'
+
+        if error_text.startswith('User with ID ') and error_text.endswith(' not found'):
+            error_key = 'users.user_not_found'
+        elif error_text == 'Cannot delete your own account':
+            error_key = 'users.cannot_delete_own_account'
+
         logger.warning(f"User deletion failed for user_id {user_id}: {e}")
-        return jsonify({'error': 'Invalid input'}), 400
+        return jsonify({'error': error_text, 'error_key': error_key}), 400
     except Exception as e:
         logger.error(f"Error deleting user: {e}")
         return jsonify({'error': 'Internal server error'}), 500

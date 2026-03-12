@@ -136,6 +136,25 @@ function escapeForJs(text) {
 // Helpers date formating
 // =======================
 
+function getUserTimeFormatPreference() {
+    const prefs = window.myastroboardUserPreferences;
+    if (prefs && typeof prefs.time_format === 'string') {
+        return prefs.time_format;
+    }
+    return localStorage.getItem('myastroboard_time_format') || 'auto';
+}
+
+function getHour12Option() {
+    const formatPreference = getUserTimeFormatPreference();
+    if (formatPreference === '12h') {
+        return true;
+    }
+    if (formatPreference === '24h') {
+        return false;
+    }
+    return undefined;
+}
+
 // Helper function to format ISO date to local time string
 // Example output: "9:30 PM (6/30)" in US locale, "21:30 (30/06)" in many European locales
 function formatTimeThenDate(isoString, locale = navigator.language) {
@@ -145,7 +164,8 @@ function formatTimeThenDate(isoString, locale = navigator.language) {
     // Format the time
     const timeFormatter = new Intl.DateTimeFormat(locale, {
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        hour12: getHour12Option()
     });
 
     // Format the date (month/day)
@@ -166,7 +186,8 @@ function formatTimeThenDateWithSeconds(isoString, locale = navigator.language) {
     const timeFormatter = new Intl.DateTimeFormat(locale, {
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit'
+        second: '2-digit',
+        hour12: getHour12Option()
     });
 
     const dateFormatter = new Intl.DateTimeFormat(locale, {
@@ -204,7 +225,8 @@ function formatDateTime(isoString, locale = navigator.language) {
         month: 'numeric',
         day: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        hour12: getHour12Option()
     });
 
     return dateTimeFormatter.format(date);
@@ -217,7 +239,8 @@ function formatTimeOnly(isoString, locale = navigator.language) {
     const date = new Date(isoString);
     const timeFormatter = new Intl.DateTimeFormat(locale, {
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        hour12: getHour12Option()
     });
     return timeFormatter.format(date);
 }

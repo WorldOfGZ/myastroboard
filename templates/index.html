@@ -568,8 +568,69 @@
             <div id="customize-subtab" class="sub-tab-content active">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h2><i class="bi bi-palette text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="settings.customize">Customize</span></h2>
-                    
-                    <div class="alert alert-info" role="alert" data-i18n="common.comming_soon">This is currently a placeholder for customization settings.</div>
+
+                    <div class="alert alert-info" role="alert" data-i18n="settings.customize_info">Personalize your dashboard defaults and display preferences. These settings apply only to your account.</div>
+
+                    <div id="customize-message" class="alert" role="alert" style="display: none;"></div>
+
+                    <form id="customize-preferences-form" novalidate>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="pref-startup-main-tab" class="form-label" data-i18n="settings.pref_startup_main_tab">Startup main tab</label>
+                                <select id="pref-startup-main-tab" class="form-select">
+                                    <option value="forecast-astro" data-i18n="navbar.astrophotography">Astrophotography</option>
+                                    <option value="forecast-weather" data-i18n="navbar.weather">Weather</option>
+                                    <option value="uptonight" data-i18n="navbar.uptonight">UpTonight</option>
+                                    <option value="astrodex" data-i18n="navbar.astrodex">Astrodex</option>
+                                    <option value="equipment" data-i18n="navbar.equipment">Equipment</option>
+                                    <option value="my-settings" data-i18n="navbar.my_settings">My settings</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="pref-startup-subtab" class="form-label" data-i18n="settings.pref_startup_subtab">Startup sub-tab</label>
+                                <select id="pref-startup-subtab" class="form-select"></select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="pref-time-format" class="form-label" data-i18n="settings.pref_time_format">Time format</label>
+                                <select id="pref-time-format" class="form-select">
+                                    <option value="auto" data-i18n="settings.pref_time_format_auto">Automatic (locale)</option>
+                                    <option value="24h" data-i18n="settings.pref_time_format_24h">24-hour</option>
+                                    <option value="12h" data-i18n="settings.pref_time_format_12h">12-hour</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="pref-density" class="form-label" data-i18n="settings.pref_density">Display density</label>
+                                <select id="pref-density" class="form-select">
+                                    <option value="comfortable" data-i18n="settings.pref_density_comfortable">Comfortable</option>
+                                    <option value="compact" data-i18n="settings.pref_density_compact">Compact</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="pref-theme-mode" class="form-label" data-i18n="settings.pref_theme">Theme</label>
+                                <select id="pref-theme-mode" class="form-select">
+                                    <option value="auto" data-i18n="settings.pref_theme_auto">Auto</option>
+                                    <option value="light" data-i18n="settings.pref_theme_light">Light</option>
+                                    <option value="dark" data-i18n="settings.pref_theme_dark">Dark</option>
+                                    <option value="red" data-i18n="settings.pref_theme_red">Red Light</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save icon-inline" aria-hidden="true"></i>
+                                <span data-i18n="settings.save_customize">Save Preferences</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="customize-reset-defaults-btn">
+                                <i class="bi bi-arrow-counterclockwise icon-inline" aria-hidden="true"></i>
+                                <span data-i18n="settings.reset_customize_defaults">Reset Defaults</span>
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
 

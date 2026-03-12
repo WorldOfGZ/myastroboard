@@ -1,7 +1,31 @@
 // Authentication and User Management
 
 let currentUser = null;
+let currentUserPreferences = null;
 let offlineRedirectInProgress = false;
+
+function localizeApiError(data, fallbackKey) {
+    const localized = data?.error_key ? i18n.t(data.error_key) : null;
+    return localized || data?.error || i18n.t(fallbackKey);
+}
+
+const DEFAULT_USER_PREFERENCES = {
+    startup_main_tab: 'forecast-astro',
+    startup_subtab: 'astro-weather',
+    time_format: 'auto',
+    density: 'comfortable',
+    theme_mode: 'auto'
+};
+
+const startupSubtabsByMain = {
+    'forecast-astro': ['astro-weather', 'window', 'moon', 'sun', 'aurora', 'iss', 'calendar'],
+    'forecast-weather': ['weather', 'trend'],
+    'uptonight': [],
+    'astrodex': ['astrodex'],
+    'equipment': ['combinations', 'fov', 'telescopes', 'cameras', 'mounts', 'filters', 'accessories'],
+    'my-settings': ['customize', 'security'],
+    'parameters': ['configuration', 'advanced', 'logs', 'users', 'metrics']
+};
 
 function getAuthStatusRetryOptions() {
     // Keep auth probing fast to avoid long hangs before offline fallback.
@@ -46,6 +70,12 @@ async function checkAuthStatus() {
         if (data.authenticated) {
             currentUser = data;
             updateUserInterface();
+            await loadUserPreferences();
+            applyUserPreferences();
+            populateCustomizeFormFromPreferences();
+            if (typeof window.applyUserStartupPreferences === 'function') {
+                window.applyUserStartupPreferences(true);
+            }
             
             // Show warning if using default password
             if (data.using_default_password) {
@@ -144,6 +174,259 @@ function updateUserInterface() {
     }*/
 
     populateSecurityUsername();
+    updateCustomizeMainTabOptions();
+}
+
+function normalizePreferences(preferences) {
+    const merged = { ...DEFAULT_USER_PREFERENCES, ...(preferences || {}) };
+    if (!startupSubtabsByMain[merged.startup_main_tab]) {
+        merged.startup_main_tab = DEFAULT_USER_PREFERENCES.startup_main_tab;
+    }
+    if (!Object.values(startupSubtabsByMain).flat().includes(merged.startup_subtab)) {
+        merged.startup_subtab = DEFAULT_USER_PREFERENCES.startup_subtab;
+    }
+    return merged;
+}
+
+async function loadUserPreferences() {
+    try {
+        const data = await fetchJSONWithRetry('/api/auth/preferences', {
+            credentials: 'include'
+        }, {
+            maxAttempts: 2,
+            timeoutMs: 10000
+        });
+        currentUserPreferences = normalizePreferences(data.preferences || {});
+    } catch (error) {
+        console.error('Error loading user preferences:', error);
+        currentUserPreferences = { ...DEFAULT_USER_PREFERENCES };
+    }
+}
+
+function applyDensityPreference(density) {
+    if (!document.body) return;
+    document.body.classList.remove('density-compact');
+    if (density === 'compact') {
+        document.body.classList.add('density-compact');
+    }
+}
+
+function applyUserPreferences() {
+    const prefs = normalizePreferences(currentUserPreferences);
+    currentUserPreferences = prefs;
+    window.myastroboardUserPreferences = { ...prefs };
+    localStorage.setItem('myastroboard_time_format', prefs.time_format);
+
+    applyDensityPreference(prefs.density);
+
+    if (window.MyAstroBoardTheme && typeof window.MyAstroBoardTheme.setTheme === 'function') {
+        window.MyAstroBoardTheme.setTheme(prefs.theme_mode);
+    }
+}
+
+function setCustomizeMessage(type, message) {
+    const messageDiv = document.getElementById('customize-message');
+    if (!messageDiv) return;
+
+    messageDiv.className = 'alert';
+    if (type === 'success') {
+        messageDiv.classList.add('alert-success');
+    } else if (type === 'error') {
+        messageDiv.classList.add('alert-danger');
+    } else {
+        messageDiv.style.display = 'none';
+        messageDiv.textContent = '';
+        return;
+    }
+
+    messageDiv.textContent = message;
+    messageDiv.style.display = 'block';
+}
+
+function getSubtabLabelKey(subtabName) {
+    const map = {
+        'astro-weather': 'navbar.astro_weather',
+        'window': 'navbar.best_window',
+        'moon': 'navbar.moon',
+        'sun': 'navbar.sun',
+        'aurora': 'navbar.aurora',
+        'iss': 'navbar.iss',
+        'calendar': 'navbar.calendar',
+        'weather': 'navbar.weather',
+        'trend': 'weather.observation_conditions',
+        'combinations': 'equipment.combinations',
+        'fov': 'equipment.fov_calculator',
+        'telescopes': 'equipment.telescopes',
+        'cameras': 'equipment.cameras',
+        'mounts': 'equipment.mounts',
+        'filters': 'equipment.filters',
+        'accessories': 'equipment.accessories',
+        'customize': 'settings.customize',
+        'security': 'settings.security',
+        'configuration': 'settings.configuration',
+        'advanced': 'settings.advanced',
+        'logs': 'settings.logs',
+        'users': 'settings.users',
+        'metrics': 'settings.metrics'
+    };
+    return map[subtabName] || null;
+}
+
+function updateCustomizeSubtabOptions() {
+    const mainSelect = document.getElementById('pref-startup-main-tab');
+    const subSelect = document.getElementById('pref-startup-subtab');
+    if (!mainSelect || !subSelect) return;
+
+    const selectedMain = mainSelect.value;
+    const subtabs = startupSubtabsByMain[selectedMain] || [];
+
+    DOMUtils.clear(subSelect);
+    if (subtabs.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = i18n.t('settings.pref_startup_subtab_none');
+        subSelect.appendChild(option);
+        subSelect.disabled = true;
+        return;
+    }
+
+    subSelect.disabled = false;
+    subtabs.forEach((subtabName) => {
+        const option = document.createElement('option');
+        option.value = subtabName;
+        const key = getSubtabLabelKey(subtabName);
+        option.textContent = key ? i18n.t(key) : subtabName;
+        subSelect.appendChild(option);
+    });
+}
+
+function updateCustomizeMainTabOptions() {
+    const mainSelect = document.getElementById('pref-startup-main-tab');
+    if (!mainSelect) return;
+
+    Array.from(mainSelect.options).forEach((option) => {
+        const tabButton = document.querySelector(`.main-tab-btn[data-tab="${option.value}"]`);
+        option.disabled = !tabButton;
+    });
+}
+
+function populateCustomizeFormFromPreferences() {
+    const form = document.getElementById('customize-preferences-form');
+    if (!form) return;
+
+    const prefs = normalizePreferences(currentUserPreferences);
+    currentUserPreferences = prefs;
+
+    updateCustomizeMainTabOptions();
+
+    const startupMain = document.getElementById('pref-startup-main-tab');
+    const startupSub = document.getElementById('pref-startup-subtab');
+    const timeFormat = document.getElementById('pref-time-format');
+    const density = document.getElementById('pref-density');
+    const theme = document.getElementById('pref-theme-mode');
+
+    if (startupMain) {
+        if (startupMain.querySelector(`option[value="${prefs.startup_main_tab}"]`)?.disabled) {
+            prefs.startup_main_tab = DEFAULT_USER_PREFERENCES.startup_main_tab;
+        }
+        startupMain.value = prefs.startup_main_tab;
+    }
+
+    updateCustomizeSubtabOptions();
+
+    if (startupSub) {
+        const requested = prefs.startup_subtab;
+        if (requested && startupSub.querySelector(`option[value="${requested}"]`)) {
+            startupSub.value = requested;
+        } else if (startupSub.options.length > 0) {
+            startupSub.value = startupSub.options[0].value;
+        }
+    }
+
+    if (timeFormat) timeFormat.value = prefs.time_format;
+    if (density) density.value = prefs.density;
+    if (theme) theme.value = prefs.theme_mode;
+}
+
+async function saveUserPreferences(preferences) {
+    const response = await fetchWithRetry('/api/auth/preferences', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ preferences })
+    }, {
+        maxAttempts: 1,
+        timeoutMs: 15000
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        const localizedMessage = data.error_key ? i18n.t(data.error_key) : null;
+        throw new Error(localizedMessage || data.error || i18n.t('settings.pref_save_error'));
+    }
+    return normalizePreferences(data.preferences || preferences);
+}
+
+function setupCustomizeForm() {
+    const form = document.getElementById('customize-preferences-form');
+    if (!form) return;
+
+    const startupMain = document.getElementById('pref-startup-main-tab');
+    const startupSub = document.getElementById('pref-startup-subtab');
+    const resetButton = document.getElementById('customize-reset-defaults-btn');
+
+    startupMain?.addEventListener('change', () => {
+        updateCustomizeSubtabOptions();
+        if (startupSub && startupSub.options.length > 0) {
+            startupSub.value = startupSub.options[0].value;
+        }
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const preferences = {
+            startup_main_tab: document.getElementById('pref-startup-main-tab')?.value || DEFAULT_USER_PREFERENCES.startup_main_tab,
+            startup_subtab: document.getElementById('pref-startup-subtab')?.value || DEFAULT_USER_PREFERENCES.startup_subtab,
+            time_format: document.getElementById('pref-time-format')?.value || DEFAULT_USER_PREFERENCES.time_format,
+            density: document.getElementById('pref-density')?.value || DEFAULT_USER_PREFERENCES.density,
+            theme_mode: document.getElementById('pref-theme-mode')?.value || DEFAULT_USER_PREFERENCES.theme_mode
+        };
+
+        try {
+            currentUserPreferences = await saveUserPreferences(preferences);
+            applyUserPreferences();
+            if (typeof window.applyUserStartupPreferences === 'function') {
+                window.applyUserStartupPreferences(true);
+            }
+            setCustomizeMessage('success', i18n.t('settings.pref_save_success'));
+        } catch (error) {
+            console.error('Error saving preferences:', error);
+            setCustomizeMessage('error', error.message || i18n.t('settings.pref_save_error'));
+        }
+    });
+
+    resetButton?.addEventListener('click', async () => {
+        try {
+            currentUserPreferences = await saveUserPreferences({ ...DEFAULT_USER_PREFERENCES });
+            applyUserPreferences();
+            populateCustomizeFormFromPreferences();
+            if (typeof window.applyUserStartupPreferences === 'function') {
+                window.applyUserStartupPreferences(true);
+            }
+            setCustomizeMessage('success', i18n.t('settings.pref_reset_success'));
+        } catch (error) {
+            console.error('Error resetting preferences:', error);
+            setCustomizeMessage('error', error.message || i18n.t('settings.pref_save_error'));
+        }
+    });
+
+    window.addEventListener('i18nLanguageChanged', () => {
+        updateCustomizeSubtabOptions();
+        populateCustomizeFormFromPreferences();
+    });
 }
 
 function populateSecurityUsername() {
@@ -219,7 +502,8 @@ function setupSecurityPasswordForm() {
 
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
-                setSecurityPasswordMessage('error', data.error || i18n.t('users.error_update_password'));
+                const localizedMessage = data.error_key ? i18n.t(data.error_key) : null;
+                setSecurityPasswordMessage('error', localizedMessage || data.error || i18n.t('users.error_update_password'));
                 return;
             }
 
@@ -296,7 +580,7 @@ async function loadUsers() {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || i18n.t('users.failed_to_load_users') || 'Failed to load users');
+            throw new Error(localizeApiError(errorData, 'users.failed_to_load_users'));
         }
 
         const users = await response.json();
@@ -499,7 +783,7 @@ function setupCreateUserForm() {
                 form.reset();
                 loadUsers();
             } else {
-                showMessage('error', data.error || i18n.t('users.error_create'));
+                showMessage('error', localizeApiError(data, 'users.error_create'));
             }
         } catch (error) {
             console.error('Error creating user:', error);
@@ -620,7 +904,7 @@ function editUsername(userId, currentUsername) {
                 loadUsers();
                 bs_modal.hide();
             } else {
-                errorDiv.textContent = data.error || i18n.t('users.error_update_username');
+                errorDiv.textContent = localizeApiError(data, 'users.error_update_username');
                 errorDiv.style.display = 'block';
             }
         } catch (error) {
@@ -745,7 +1029,7 @@ function editRole(userId, username, currentRole) {
                 loadUsers();
                 bs_modal.hide();
             } else {
-                errorDiv.textContent = data.error || i18n.t('users.error_update_role');
+                errorDiv.textContent = localizeApiError(data, 'users.error_update_role');
                 errorDiv.style.display = 'block';
             }
         } catch (error) {
@@ -934,7 +1218,7 @@ function setupPasswordChangeModal(bs_modal, userId) {
                     bs_modal.hide();
 
                 } else {
-                    errorDiv.textContent = data.error || i18n.t('users.error_update_password');
+                    errorDiv.textContent = localizeApiError(data, 'users.error_update_password');
                     errorDiv.style.display = 'block';
                 }
             } catch (error) {
@@ -967,7 +1251,7 @@ async function deleteUser(userId, username) {
             showMessage('success', i18n.t('users.user_deleted_successfully'));
             loadUsers();
         } else {
-            showMessage('error', data.error || i18n.t('users.error_delete_user'));
+            showMessage('error', localizeApiError(data, 'users.error_delete_user'));
         }
     } catch (error) {
         console.error('Error deleting user:', error);
@@ -1029,6 +1313,7 @@ if (document.readyState === 'loading') {
         checkAuthStatus();
         setupLogoutButton();
         setupCreateUserForm();
+        setupCustomizeForm();
         setupSecurityPasswordForm();
         setupGlobalErrorHandler();
     });
@@ -1036,6 +1321,7 @@ if (document.readyState === 'loading') {
     checkAuthStatus();
     setupLogoutButton();
     setupCreateUserForm();
+    setupCustomizeForm();
     setupSecurityPasswordForm();
     setupGlobalErrorHandler();
 }

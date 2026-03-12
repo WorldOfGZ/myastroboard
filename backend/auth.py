@@ -24,19 +24,50 @@ ROLE_READ_ONLY = 'read-only'
 DEFAULT_ADMIN_USERNAME = 'admin'
 DEFAULT_ADMIN_PASSWORD = 'admin'
 
+# User customization defaults and allowed values
+ALLOWED_STARTUP_MAIN_TABS = {
+    'forecast-astro',
+    'forecast-weather',
+    'uptonight',
+    'astrodex',
+    'equipment',
+    'my-settings',
+    'parameters'
+}
+ALLOWED_STARTUP_SUBTABS = {
+    'astro-weather', 'window', 'moon', 'sun', 'aurora', 'iss', 'calendar',
+    'weather', 'trend',
+    'astrodex',
+    'combinations', 'fov', 'telescopes', 'cameras', 'mounts', 'filters', 'accessories',
+    'customize', 'security',
+    'configuration', 'advanced', 'logs', 'users', 'metrics'
+}
+ALLOWED_TIME_FORMATS = {'auto', '12h', '24h'}
+ALLOWED_DENSITY_MODES = {'comfortable', 'compact'}
+ALLOWED_THEME_MODES = {'auto', 'light', 'dark', 'red'}
+
+DEFAULT_USER_PREFERENCES = {
+    'startup_main_tab': 'forecast-astro',
+    'startup_subtab': 'astro-weather',
+    'time_format': 'auto',
+    'density': 'comfortable',
+    'theme_mode': 'auto'
+}
+
 # Users storage file
 USERS_FILE = os.path.join(os.environ.get('DATA_DIR', '/app/data'), 'users.json')
 
 
 class User:
     """User model"""
-    def __init__(self, username, password_hash, role, user_id=None, created_at=None, last_login=None):
+    def __init__(self, username, password_hash, role, user_id=None, created_at=None, last_login=None, preferences=None):
         self.user_id = user_id or str(uuid.uuid4())
         self.username = username
         self.password_hash = password_hash
         self.role = role
         self.created_at = created_at or datetime.now().isoformat()
         self.last_login = last_login
+        self.preferences = preferences.copy() if isinstance(preferences, dict) else DEFAULT_USER_PREFERENCES.copy()
         
     def to_dict(self):
         """Convert user to dictionary"""
@@ -46,7 +77,8 @@ class User:
             'password_hash': self.password_hash,
             'role': self.role,
             'created_at': self.created_at,
-            'last_login': self.last_login
+            'last_login': self.last_login,
+            'preferences': self.preferences
         }
     
     @staticmethod
@@ -58,7 +90,8 @@ class User:
             password_hash=data['password_hash'],
             role=data['role'],
             created_at=data.get('created_at'),
-            last_login=data.get('last_login')
+            last_login=data.get('last_login'),
+            preferences=data.get('preferences')
         )
     
     def check_password(self, password):
@@ -99,6 +132,9 @@ class UserManager:
             try:
                 with open(USERS_FILE, 'r') as f:
                     data = json.load(f)
+                    is_valid, error_msg = self.validate_users_json_data(data)
+                    if not is_valid:
+                        raise ValueError(f"Invalid users data: {error_msg}")
                     self.users = {
                         key: User.from_dict(user_data)
                         for key, user_data in data.items()
@@ -215,6 +251,14 @@ class UserManager:
             if role not in [ROLE_ADMIN, ROLE_USER, ROLE_READ_ONLY]:
                 return False, f"User {user_id} has invalid role: {role}"
 
+            preferences = user_data.get('preferences')
+            if preferences is not None:
+                if not isinstance(preferences, dict):
+                    return False, f"User {user_id} preferences must be a dictionary"
+                is_valid_prefs, prefs_error = UserManager.validate_user_preferences(preferences)
+                if not is_valid_prefs:
+                    return False, f"User {user_id} invalid preferences: {prefs_error}"
+
         return True, ""
 
     @classmethod
@@ -228,6 +272,48 @@ class UserManager:
             return False, f"Invalid JSON: {e}"
         except Exception as e:
             return False, f"Validation error: {e}"
+
+    @staticmethod
+    def validate_user_preferences(preferences):
+        """Validate user preference payload for allowed keys and values."""
+        if not isinstance(preferences, dict):
+            return False, "Preferences must be a dictionary"
+
+        for key in preferences.keys():
+            if key not in DEFAULT_USER_PREFERENCES:
+                return False, f"Unknown preference key: {key}"
+
+        startup_main_tab = preferences.get('startup_main_tab')
+        if startup_main_tab is not None and startup_main_tab not in ALLOWED_STARTUP_MAIN_TABS:
+            return False, f"Invalid startup_main_tab: {startup_main_tab}"
+
+        startup_subtab = preferences.get('startup_subtab')
+        if startup_subtab is not None and startup_subtab not in ALLOWED_STARTUP_SUBTABS:
+            return False, f"Invalid startup_subtab: {startup_subtab}"
+
+        time_format = preferences.get('time_format')
+        if time_format is not None and time_format not in ALLOWED_TIME_FORMATS:
+            return False, f"Invalid time_format: {time_format}"
+
+        density = preferences.get('density')
+        if density is not None and density not in ALLOWED_DENSITY_MODES:
+            return False, f"Invalid density: {density}"
+
+        theme_mode = preferences.get('theme_mode')
+        if theme_mode is not None and theme_mode not in ALLOWED_THEME_MODES:
+            return False, f"Invalid theme_mode: {theme_mode}"
+
+        return True, ""
+
+    @staticmethod
+    def sanitize_user_preferences(preferences):
+        """Merge a partial preferences payload into defaults."""
+        merged = DEFAULT_USER_PREFERENCES.copy()
+        if isinstance(preferences, dict):
+            for key, value in preferences.items():
+                if key in merged:
+                    merged[key] = value
+        return merged
     
     def ensure_default_admin(self):
         """Ensure default admin user exists"""
@@ -325,6 +411,48 @@ class UserManager:
         self.save_users()
         logger.info(f"Password changed for user {user.username} (ID: {user_id})")
         return user
+
+    def get_user_preferences(self, user_id):
+        """Return effective preferences for a given user."""
+        self._reload_users_if_changed()
+        user = self.get_user_by_id(user_id)
+        if not user:
+            raise ValueError("User not found")
+
+        effective = self.sanitize_user_preferences(user.preferences)
+        if effective != user.preferences:
+            user.preferences = effective
+            self.save_users()
+
+        return effective.copy()
+
+    def update_user_preferences(self, user_id, preferences):
+        """Update preferences for a given user with validation."""
+        self._reload_users_if_changed()
+        user = self.get_user_by_id(user_id)
+        if not user:
+            raise ValueError("User not found")
+
+        if not isinstance(preferences, dict):
+            raise ValueError("Preferences payload must be a dictionary")
+
+        is_valid, error_msg = self.validate_user_preferences(preferences)
+        if not is_valid:
+            raise ValueError(error_msg)
+
+        current_preferences = self.sanitize_user_preferences(user.preferences)
+        current_preferences.update(preferences)
+
+        # Validate merged preferences as well.
+        is_valid_merged, merged_error = self.validate_user_preferences(current_preferences)
+        if not is_valid_merged:
+            raise ValueError(merged_error)
+
+        user.preferences = current_preferences
+        self.save_users()
+
+        logger.info(f"Updated preferences for user {user.username} (ID: {user_id})")
+        return user.preferences.copy()
     
     def delete_user(self, user_id, current_user_id=None):
         """Delete a user and safely clean related astrodex data"""
