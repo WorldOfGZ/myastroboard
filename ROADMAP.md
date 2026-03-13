@@ -23,15 +23,6 @@ This document describes features that could potentially be integrated into MyAst
 - Switch to select location on main page with persistant selection between main-tabs (astro, weather, uptonight)
 - Add location field to astrodex
 - User can order as he want location on it's profile
-  
-### Multi-Night Project Manager
-**Project Tracking**
-- Create imaging projects with target integration time goals
-- Track progress: hours captured vs. target hours
-- Session history and statistics
-- Seasonal availability calendar
-- Priority queue for incomplete projects
-- Export PDF / CSV
 
 ### PWA application
 **Objective: Real PWA application for mobile**

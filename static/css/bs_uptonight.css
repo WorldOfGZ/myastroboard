@@ -14,7 +14,11 @@
 }
 
 .in-astrodex-badge {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    vertical-align: middle;
+    line-height: 1;
     color: var(--bs-success);
     padding: 2px 8px;
     border-radius: var(--border-radius);

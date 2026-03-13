@@ -17,6 +17,7 @@ import io
 import sys
 from datetime import datetime, timedelta
 from dataclasses import asdict
+from typing import Optional
 from zoneinfo import ZoneInfo, available_timezones
 
 import sys
@@ -72,6 +73,8 @@ from auth import (
 
 # Astrodex
 import astrodex
+import plan_my_night
+import catalogue_aliases
 
 # Equipment Profiles
 import equipment_profiles
@@ -1031,7 +1034,7 @@ def get_catalogue_reports_api(catalogue):
     try:
         user = get_current_user()
         user_id = user.user_id if user else None
-        if not user_id:
+        if not user_id or not user:
             return jsonify({'error': 'User not authenticated'}), 401
 
         if not re.match(r'^[a-zA-Z0-9_-]+$', catalogue):
@@ -1045,6 +1048,8 @@ def get_catalogue_reports_api(catalogue):
             return jsonify({'error': 'Invalid path'}), 400
 
         reports = get_catalogue_reports(catalogue_dir)
+        plan_payload = plan_my_night.get_plan_with_timeline(user_id, user.username)
+        plan_state = plan_payload.get('state', 'none')
         
         # Transform data into format expected by frontend
         result = {}
@@ -1062,8 +1067,16 @@ def get_catalogue_reports_api(catalogue):
             item_name = item.get('id', '')
             if item_name:
                 item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name, catalogue)
+                item['in_plan_my_night'] = plan_my_night.is_target_in_current_plan(user_id, user.username, catalogue, item_name)
+                group_id, aliases = _get_catalogue_alias_payload(catalogue, item_name)
+                item['catalogue_group_id'] = group_id
+                item['catalogue_aliases'] = aliases
             else:
                 item['in_astrodex'] = False
+                item['in_plan_my_night'] = False
+                item['catalogue_group_id'] = ''
+                item['catalogue_aliases'] = {}
+            item['plan_state'] = plan_state
         
         # Add other report types (bodies, comets) if they exist
         bodies_data = reports.get('bodies', {})
@@ -1074,8 +1087,16 @@ def get_catalogue_reports_api(catalogue):
                 item_name = item.get('target name', '')
                 if item_name:
                     item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name, catalogue)
+                    item['in_plan_my_night'] = plan_my_night.is_target_in_current_plan(user_id, user.username, catalogue, item_name)
+                    group_id, aliases = _get_catalogue_alias_payload(catalogue, item_name)
+                    item['catalogue_group_id'] = group_id
+                    item['catalogue_aliases'] = aliases
                 else:
                     item['in_astrodex'] = False
+                    item['in_plan_my_night'] = False
+                    item['catalogue_group_id'] = ''
+                    item['catalogue_aliases'] = {}
+                item['plan_state'] = plan_state
         
         comets_data = reports.get('comets', {})
         if comets_data.get('comets'):
@@ -1085,8 +1106,16 @@ def get_catalogue_reports_api(catalogue):
                 item_name = item.get('target name', '')
                 if item_name:
                     item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name, catalogue)
+                    item['in_plan_my_night'] = plan_my_night.is_target_in_current_plan(user_id, user.username, catalogue, item_name)
+                    group_id, aliases = _get_catalogue_alias_payload(catalogue, item_name)
+                    item['catalogue_group_id'] = group_id
+                    item['catalogue_aliases'] = aliases
                 else:
                     item['in_astrodex'] = False
+                    item['in_plan_my_night'] = False
+                    item['catalogue_group_id'] = ''
+                    item['catalogue_aliases'] = {}
+                item['plan_state'] = plan_state
         
         return jsonify(result)
     except Exception as e:
@@ -1894,6 +1923,473 @@ def best_window_api():
 # ============================================================
 # Astrodex API
 # ============================================================
+
+
+def _resolve_dark_window_for_plan() -> Optional[dict]:
+    """Return dark window payload to anchor the active plan timeline."""
+    try:
+        if cache_store.is_cache_valid(cache_store._dark_window_report_cache, CACHE_TTL):
+            return cache_store._dark_window_report_cache.get('data')
+
+        if cache_store.sync_cache_from_shared('dark_window', cache_store._dark_window_report_cache):
+            if cache_store.is_cache_valid(cache_store._dark_window_report_cache, CACHE_TTL):
+                return cache_store._dark_window_report_cache.get('data')
+
+        update_dark_window_cache()
+        if cache_store.is_cache_valid(cache_store._dark_window_report_cache, CACHE_TTL):
+            return cache_store._dark_window_report_cache.get('data')
+    except Exception as error:
+        logger.error(f'Error resolving dark window for plan: {error}')
+
+    return None
+
+
+def _get_catalogue_alias_payload(catalogue: str, item_name: str) -> tuple[str, dict]:
+    """Return alias group metadata for a catalogue item."""
+    if not catalogue or not item_name:
+        return '', {}
+
+    entry = catalogue_aliases.get_alias_entry(catalogue, item_name)
+    if not isinstance(entry, dict):
+        return '', {}
+
+    group_id = str(entry.get('group_id', '') or '')
+    aliases = entry.get('aliases', {})
+    if not isinstance(aliases, dict):
+        aliases = {}
+
+    return group_id, aliases
+
+
+def _enrich_plan_entries_with_astrodex_status(plan_payload: dict, user_id: str) -> dict:
+    """Attach Astrodex presence flag to each plan entry for UI actions."""
+    if not isinstance(plan_payload, dict):
+        return plan_payload
+
+    plan = plan_payload.get('plan')
+    if not isinstance(plan, dict):
+        return plan_payload
+
+    entries = plan.get('entries', [])
+    if not isinstance(entries, list):
+        return plan_payload
+
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+
+        item_name = str(entry.get('name') or entry.get('target_name') or '').strip()
+        catalogue = str(entry.get('catalogue') or '').strip()
+        if item_name:
+            entry['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name, catalogue)
+        else:
+            entry['in_astrodex'] = False
+
+    return plan_payload
+
+
+def _parse_duration_minutes(value: object) -> int:
+    text = str(value or '').strip()
+    if not text:
+        return 0
+
+    parts = text.split(':')
+    if len(parts) != 2:
+        return 0
+
+    try:
+        hours = int(parts[0])
+        minutes = int(parts[1])
+    except ValueError:
+        return 0
+
+    if hours < 0 or minutes < 0 or minutes > 59:
+        return 0
+
+    return (hours * 60) + minutes
+
+
+def _format_minutes_hhmm(minutes: int) -> str:
+    safe = max(0, int(minutes))
+    return f"{safe // 60}h{safe % 60:02d}"
+
+
+def _compute_plan_fill_metrics(plan: dict) -> dict:
+    entries = plan.get('entries', []) if isinstance(plan, dict) else []
+    if not isinstance(entries, list):
+        entries = []
+
+    planned_minutes = 0
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        planned_raw = entry.get('planned_minutes')
+        try:
+            planned_minutes += max(0, int(str(planned_raw)))
+            continue
+        except (TypeError, ValueError):
+            pass
+        planned_minutes += _parse_duration_minutes(entry.get('planned_duration'))
+
+    night_start = plan_my_night._parse_datetime(plan.get('night_start')) if isinstance(plan, dict) else None
+    night_end = plan_my_night._parse_datetime(plan.get('night_end')) if isinstance(plan, dict) else None
+    night_minutes = 0
+    if night_start and night_end and night_end > night_start:
+        night_minutes = int((night_end - night_start).total_seconds() // 60)
+
+    fill_percent = (planned_minutes / night_minutes) * 100.0 if night_minutes > 0 else 0.0
+    overflow_minutes = max(0, planned_minutes - night_minutes)
+
+    return {
+        'planned_minutes': planned_minutes,
+        'night_minutes': night_minutes,
+        'fill_percent': fill_percent,
+        'overflow_minutes': overflow_minutes,
+    }
+
+
+def _resolve_requested_language() -> str:
+    requested_language = request.args.get('lang') or request.headers.get('Accept-Language', 'en')
+    requested_language = str(requested_language).split(',')[0].split('-')[0].lower()
+    supported_languages = I18nManager.get_supported_languages()
+    return requested_language if requested_language in supported_languages else 'en'
+
+
+@app.route('/api/plan-my-night', methods=['GET'])
+@login_required
+def get_plan_my_night():
+    """Get the current user's Plan My Night payload."""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        plan_payload = plan_my_night.get_plan_with_timeline(user.user_id, user.username)
+        plan_payload = _enrich_plan_entries_with_astrodex_status(plan_payload, user.user_id)
+        return jsonify({
+            'role': user.role,
+            'can_edit': user.is_admin() or user.is_user(),
+            **plan_payload,
+        })
+    except Exception as error:
+        logger.error(f'Error loading Plan My Night: {error}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/plan-my-night/targets', methods=['POST'])
+@user_required
+def add_target_to_plan_my_night():
+    """Add a target to Plan My Night, creating the plan on first add."""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        data = request.json or {}
+        item_raw = data.get('item')
+        item = dict(item_raw) if isinstance(item_raw, dict) else {}
+        catalogue = str(data.get('catalogue') or item.get('catalogue') or '').strip()
+        if not catalogue:
+            return jsonify({'error': 'Catalogue is required'}), 400
+
+        dark_window = _resolve_dark_window_for_plan()
+        next_dark_night = dark_window.get('next_dark_night', {}) if isinstance(dark_window, dict) else {}
+        start_value = next_dark_night.get('start')
+        end_value = next_dark_night.get('end')
+        duration_hours = next_dark_night.get('duration_hours', 0.0)
+
+        if not start_value or not end_value:
+            return jsonify({'error': 'Night window unavailable'}), 409
+
+        success, reason, payload, entry = plan_my_night.create_or_add_target(
+            user_id=user.user_id,
+            username=user.username,
+            item_data=item,
+            catalogue=catalogue,
+            night_start=start_value,
+            night_end=end_value,
+            duration_hours=duration_hours,
+        )
+
+        if not success:
+            if reason == 'previous_plan_locked':
+                return jsonify({'error': 'Plan belongs to previous night'}), 409
+            if reason == 'invalid_night_window':
+                return jsonify({'error': 'Invalid night window'}), 409
+            return jsonify({'error': 'Failed to add target'}), 500
+
+        return jsonify({
+            'status': 'success',
+            'reason': reason,
+            'entry': entry,
+            'plan': plan_my_night.get_plan_with_timeline(user.user_id, user.username),
+        })
+    except Exception as error:
+        logger.error(f'Error adding target to Plan My Night: {error}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/plan-my-night/targets/<entry_id>', methods=['PUT'])
+@user_required
+def update_plan_my_night_target(entry_id):
+    """Update target planned duration or done status."""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        updates = request.json or {}
+        updated = plan_my_night.update_target(user.user_id, user.username, entry_id, updates)
+        if not updated:
+            return jsonify({'error': 'Target not found or plan locked'}), 404
+
+        return jsonify({
+            'status': 'success',
+            'entry': updated,
+            'plan': plan_my_night.get_plan_with_timeline(user.user_id, user.username),
+        })
+    except Exception as error:
+        logger.error(f'Error updating Plan My Night target {entry_id}: {error}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/plan-my-night/targets/<entry_id>/reorder', methods=['POST'])
+@user_required
+def reorder_plan_my_night_target(entry_id):
+    """Reorder plan targets within the current night timeline."""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        data = request.json or {}
+        new_index = data.get('new_index')
+        if new_index is None:
+            return jsonify({'error': 'new_index is required'}), 400
+
+        success = plan_my_night.reorder_target(user.user_id, user.username, entry_id, int(new_index))
+        if not success:
+            return jsonify({'error': 'Failed to reorder target'}), 404
+
+        return jsonify({
+            'status': 'success',
+            'plan': plan_my_night.get_plan_with_timeline(user.user_id, user.username),
+        })
+    except Exception as error:
+        logger.error(f'Error reordering Plan My Night target {entry_id}: {error}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/plan-my-night/targets/<entry_id>', methods=['DELETE'])
+@user_required
+def delete_plan_my_night_target(entry_id):
+    """Delete a target from the active plan."""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        success = plan_my_night.remove_target(user.user_id, user.username, entry_id)
+        if not success:
+            return jsonify({'error': 'Target not found or plan locked'}), 404
+
+        return jsonify({
+            'status': 'success',
+            'plan': plan_my_night.get_plan_with_timeline(user.user_id, user.username),
+        })
+    except Exception as error:
+        logger.error(f'Error deleting Plan My Night target {entry_id}: {error}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/plan-my-night/clear', methods=['DELETE'])
+@user_required
+def clear_plan_my_night():
+    """Clear current plan so a new night plan can be created."""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        if not plan_my_night.clear_plan(user.user_id, user.username):
+            return jsonify({'error': 'Failed to clear plan'}), 500
+
+        return jsonify({'status': 'success'})
+    except Exception as error:
+        logger.error(f'Error clearing Plan My Night: {error}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/plan-my-night/targets/<entry_id>/add-to-astrodex', methods=['POST'])
+@user_required
+def add_plan_target_to_astrodex(entry_id):
+    """Add an existing plan target to Astrodex if not already present."""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        plan_payload = plan_my_night.get_plan_with_timeline(user.user_id, user.username)
+        plan = plan_payload.get('plan') or {}
+        entry = next((candidate for candidate in plan.get('entries', []) if candidate.get('id') == entry_id), None)
+        if not entry:
+            return jsonify({'error': 'Target not found'}), 404
+
+        item_name = entry.get('name', '')
+        catalogue = entry.get('catalogue', '')
+        if astrodex.is_item_in_astrodex(user.user_id, item_name, catalogue):
+            return jsonify({'status': 'success', 'reason': 'already_in_astrodex'})
+
+        item_data = {
+            'name': item_name,
+            'type': entry.get('type', 'Unknown'),
+            'catalogue': catalogue,
+            'constellation': entry.get('constellation', ''),
+            'notes': entry.get('notes', ''),
+        }
+
+        created_item = astrodex.create_astrodex_item(user.user_id, item_data, user.username)
+        if not created_item:
+            return jsonify({'error': 'Failed to create Astrodex item'}), 500
+
+        return jsonify({'status': 'success', 'reason': 'created'})
+    except Exception as error:
+        logger.error(f'Error adding plan target to Astrodex {entry_id}: {error}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/plan-my-night/export.csv', methods=['GET'])
+@login_required
+def export_plan_my_night_csv():
+    """Export the current plan as CSV."""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        payload = plan_my_night.get_plan_with_timeline(user.user_id, user.username)
+        language = _resolve_requested_language()
+        i18n = I18nManager(language)
+        csv_labels = {
+            'order': i18n.t('plan_my_night.export_csv_order'),
+            'name': i18n.t('plan_my_night.export_csv_name'),
+            'catalogue': i18n.t('plan_my_night.export_csv_catalogue'),
+            'target_name': i18n.t('plan_my_night.export_csv_target_name'),
+            'source_type': i18n.t('plan_my_night.export_csv_source_type'),
+            'type': i18n.t('plan_my_night.export_csv_type'),
+            'constellation': i18n.t('plan_my_night.export_csv_constellation'),
+            'ra': i18n.t('plan_my_night.export_csv_ra'),
+            'dec': i18n.t('plan_my_night.export_csv_dec'),
+            'mag': i18n.t('plan_my_night.export_csv_mag'),
+            'size': i18n.t('plan_my_night.export_csv_size'),
+            'foto': i18n.t('plan_my_night.export_csv_foto'),
+            'planned_duration': i18n.t('plan_my_night.export_csv_planned_duration'),
+            'planned_minutes': i18n.t('plan_my_night.export_csv_planned_minutes'),
+            'timeline_start': i18n.t('plan_my_night.export_csv_timeline_start'),
+            'timeline_end': i18n.t('plan_my_night.export_csv_timeline_end'),
+            'alttime_file': i18n.t('plan_my_night.export_csv_alttime_file'),
+            'done': i18n.t('plan_my_night.export_csv_done'),
+            'done_yes': i18n.t('plan_my_night.export_csv_done_yes'),
+            'done_no': i18n.t('plan_my_night.export_csv_done_no'),
+        }
+        csv_content = plan_my_night.serialize_plan_csv(payload, csv_labels)
+        buffer = io.BytesIO(csv_content.encode('utf-8'))
+
+        return send_file(
+            buffer,
+            as_attachment=True,
+            mimetype='text/csv',
+            download_name='plan-my-night.csv'
+        )
+    except Exception as error:
+        logger.error(f'Error exporting Plan My Night CSV: {error}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/plan-my-night/export.pdf', methods=['GET'])
+@login_required
+def export_plan_my_night_pdf():
+    """Export the current plan as a simple PDF summary."""
+    try:
+        from matplotlib.backends.backend_pdf import PdfPages
+        import matplotlib.pyplot as plt
+
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        language = _resolve_requested_language()
+        i18n = I18nManager(language)
+        payload = plan_my_night.get_plan_with_timeline(user.user_id, user.username)
+        plan = payload.get('plan')
+
+        buffer = io.BytesIO()
+        with PdfPages(buffer) as pdf:
+            fig = plt.figure(figsize=(8.27, 11.69))
+            ax = fig.add_subplot(111)
+            ax.axis('off')
+
+            lines = [i18n.t('plan_my_night.export_pdf_title'), '']
+            if not plan:
+                lines.append(i18n.t('plan_my_night.export_pdf_no_plan'))
+            else:
+                metrics = _compute_plan_fill_metrics(plan)
+                lines.append(
+                    f"{i18n.t('plan_my_night.export_pdf_night')}: "
+                    f"{plan.get('night_start', 'N/A')} -> {plan.get('night_end', 'N/A')}"
+                )
+                lines.append(f"{i18n.t('plan_my_night.export_pdf_targets')}: {len(plan.get('entries', []))}")
+                lines.append(
+                    f"{i18n.t('plan_my_night.export_pdf_planned_coverage')}: "
+                    f"{metrics['fill_percent']:.1f}% "
+                    f"({_format_minutes_hhmm(metrics['planned_minutes'])}/{_format_minutes_hhmm(metrics['night_minutes'])})"
+                )
+                if metrics['overflow_minutes'] > 0:
+                    lines.append(
+                        f"{i18n.t('plan_my_night.export_pdf_overflow')}: +"
+                        f"{_format_minutes_hhmm(metrics['overflow_minutes'])}"
+                    )
+                lines.append('')
+                for index, entry in enumerate(plan.get('entries', []), start=1):
+                    done_marker = '[x]' if entry.get('done') else '[ ]'
+                    timeline_start = entry.get('timeline_start') or '-'
+                    timeline_end = entry.get('timeline_end') or '-'
+                    lines.append(
+                        f"{index}. {done_marker} {entry.get('name', '')}"
+                        f" ({entry.get('catalogue', '')})"
+                    )
+                    lines.append(
+                        f"   {i18n.t('plan_my_night.export_pdf_slot')}: {timeline_start} -> {timeline_end} | "
+                        f"{i18n.t('plan_my_night.export_pdf_duration')}: {entry.get('planned_duration', '00:00')}"
+                    )
+                    lines.append(
+                        f"   {i18n.t('plan_my_night.export_pdf_type')}: {entry.get('type', '')} | "
+                        f"{i18n.t('plan_my_night.export_pdf_constellation')}: {entry.get('constellation', '')}"
+                    )
+                    lines.append(
+                        f"   {i18n.t('plan_my_night.export_pdf_ra')}: {entry.get('ra', '')} | "
+                        f"{i18n.t('plan_my_night.export_pdf_dec')}: {entry.get('dec', '')} | "
+                        f"{i18n.t('plan_my_night.export_pdf_mag')}: {entry.get('mag', '')} | "
+                        f"{i18n.t('plan_my_night.export_pdf_size')}: {entry.get('size', '')} | "
+                        f"{i18n.t('plan_my_night.export_pdf_foto')}: {entry.get('foto', '')}"
+                    )
+
+            text = '\n'.join(lines)
+            ax.text(0.02, 0.98, text, va='top', ha='left', fontsize=10, family='monospace')
+
+            pdf.savefig(fig)
+            plt.close(fig)
+
+        buffer.seek(0)
+        return send_file(
+            buffer,
+            as_attachment=True,
+            mimetype='application/pdf',
+            download_name='plan-my-night.pdf'
+        )
+    except Exception as error:
+        logger.error(f'Error exporting Plan My Night PDF: {error}')
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/astrodex', methods=['GET'])
 @login_required

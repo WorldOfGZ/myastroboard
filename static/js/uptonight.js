@@ -2,6 +2,28 @@
 
 let catalogueResults = {};
 let currentCatalogueTab = ''; // Track current catalogue for Astrodex integration
+let uptonightDisplayAstrodexCache = null;
+let uptonightDisplayAstrodexPromise = null;
+
+async function getUptonightDisplayAstrodex() {
+    if (uptonightDisplayAstrodexCache !== null) {
+        return uptonightDisplayAstrodexCache;
+    }
+
+    if (uptonightDisplayAstrodexPromise) {
+        return uptonightDisplayAstrodexPromise;
+    }
+
+    uptonightDisplayAstrodexPromise = (async () => {
+        const roleUser = await getUserRole();
+        const canDisplay = roleUser === 'user' || roleUser === 'admin';
+        uptonightDisplayAstrodexCache = canDisplay;
+        uptonightDisplayAstrodexPromise = null;
+        return canDisplay;
+    })();
+
+    return uptonightDisplayAstrodexPromise;
+}
 
 // ======================
 // Catalogue Management
@@ -117,6 +139,9 @@ async function loadUptonightResultsTabs() {
                     uptontightTab.appendChild(div);
                     
                     // Load catalogue data
+                    loadCatalogueResults(output.target);
+                } else {
+                    // Refresh existing tab data to avoid stale badges/state after plan changes.
                     loadCatalogueResults(output.target);
                 }
             });
@@ -253,11 +278,7 @@ async function loadCatalogueResults(catalogue) {
 }
 
 async function showCatalogueType(catalogue, type) {
-           
-    // Get role user
-    const roleUser = await getUserRole();
-    // Display Astrodex if roleUser is user or admin
-    const displayAstrodex = roleUser === 'user' || roleUser === 'admin';
+    const displayAstrodex = await getUptonightDisplayAstrodex();
 
     const reports = window.catalogueReports[catalogue];
     if (!reports) return;
@@ -434,6 +455,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
         { key: 'altitude', label: i18n.t('uptonight.table_altitude'), align: 'center', unit: '°', decimals: 2 },
         { key: 'azimuth', label: i18n.t('uptonight.table_azimuth'), align: 'center', unit: '°', decimals: 2 },
         ...(displayAstrodex ? [{ key: 'astrodex', label: i18n.t('uptonight.table_astrodex'), align: 'center' }] : []),
+        ...(displayAstrodex ? [{ key: 'plan_my_night', label: i18n.t('uptonight.table_plan_my_night'), align: 'center' }] : []),
         { key: 'more', label: i18n.t('uptonight.table_more'), align: 'center' }
     ];
     
@@ -447,6 +469,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
         { key: 'foto', label: i18n.t('uptonight.table_foto'), align: 'center' },
         { key: 'type', label: i18n.t('uptonight.table_type'), align: 'center' },
         ...(displayAstrodex ? [{ key: 'astrodex', label: i18n.t('uptonight.table_astrodex'), align: 'center' }] : []),
+        ...(displayAstrodex ? [{ key: 'plan_my_night', label: i18n.t('uptonight.table_plan_my_night'), align: 'center' }] : []),
         { key: 'more', label: i18n.t('uptonight.table_more'), align: 'center' }
     ];
     
@@ -458,6 +481,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
         { key: 'visual magnitude', label: i18n.t('uptonight.table_visual_magnitude'), align: 'center', decimals: 2 },
         { key: 'distance earth au', label: i18n.t('uptonight.table_distance_earth'), align: 'center', unit: ' au', decimals: 2 },
         ...(displayAstrodex ? [{ key: 'astrodex', label: i18n.t('uptonight.table_astrodex'), align: 'center' }] : []),
+        ...(displayAstrodex ? [{ key: 'plan_my_night', label: i18n.t('uptonight.table_plan_my_night'), align: 'center' }] : []),
         { key: 'more', label: i18n.t('uptonight.table_more'), align: 'center' }
     ];
     
@@ -595,6 +619,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                     'target name': row['target name'],
                     name: itemName,
                     type: row['type'] || row['targettype'],
+                    source_type: type,
                     catalogue: catalogue,
                     ra: row['ra'] || row['right ascension'],
                     dec: row['dec'] || row['declination'],
@@ -609,6 +634,40 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                         html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><span class="in-astrodex-badge"><i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.captured')}</span></td>`;
                     } else if (itemName) {
                         html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><button class="btn btn-sm btn-outline-primary astrodex-add-btn" data-item="${itemDataJson}"><i class="bi bi-plus-circle icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.add')}</button></td>`;
+                    } else {
+                        html += `<td style="text-align: ${col.align}">-</td>`;
+                    }
+                }
+            } else if (col.key === 'plan_my_night') {
+                const itemName = row['id'] || row['target name'];
+                const isInPlanMyNight = row['in_plan_my_night'] || false;
+                const planState = row['plan_state'] || 'none';
+                const itemData = {
+                    id: row['id'],
+                    'target name': row['target name'],
+                    name: itemName,
+                    type: row['type'] || row['targettype'],
+                    source_type: type,
+                    catalogue: catalogue,
+                    ra: row['ra'] || row['right ascension'],
+                    dec: row['dec'] || row['declination'],
+                    constellation: (row['constellation'] || row['const'] || '').toLowerCase(),
+                    mag: row['mag'] || row['visual magnitude'],
+                    size: row['size'],
+                    foto: row['foto'] || row['fraction of time observable'],
+                    alttime_file: row['alttime_file'] || '',
+                    catalogue_group_id: row['catalogue_group_id'] || '',
+                    catalogue_aliases: row['catalogue_aliases'] || {}
+                };
+                const itemDataJson = JSON.stringify(itemData).replace(/"/g, '&quot;');
+
+                if (displayAstrodex) {
+                    if (isInPlanMyNight) {
+                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><span class="in-astrodex-badge in-plan-my-night-badge"><i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.planned')}</span></td>`;
+                    } else if (planState === 'previous') {
+                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><button class="btn btn-sm btn-outline-secondary" disabled title="${i18n.t('uptonight.plan_clear_required')}">${i18n.t('uptonight.add')}</button></td>`;
+                    } else if (itemName) {
+                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><button class="btn btn-sm btn-outline-info plan-my-night-add-btn" data-item="${itemDataJson}" data-catalogue="${escapeHtml(catalogue)}"><i class="bi bi-moon-stars-fill icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.add')}</button></td>`;
                     } else {
                         html += `<td style="text-align: ${col.align}">-</td>`;
                     }
@@ -783,6 +842,51 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                 } catch (error) {
                     console.error('Error adding to astrodex:', error);
                     showMessage('error', i18n.t('uptonight.failed_to_add_astrodex'));
+                }
+            });
+        });
+
+        // Add event listeners for Plan My Night "Add" buttons
+        const addPlanButtons = document.querySelectorAll('.plan-my-night-add-btn');
+        addPlanButtons.forEach(button => {
+            button.addEventListener('click', async function(e) {
+                e.preventDefault();
+                try {
+                    const itemDataJson = this.getAttribute('data-item');
+                    const catalogueName = this.getAttribute('data-catalogue');
+                    const itemData = JSON.parse(itemDataJson);
+
+                    if (!itemData || typeof itemData !== 'object' || !itemData.name) {
+                        throw new Error('Invalid item data');
+                    }
+
+                    const response = await fetchJSON('/api/plan-my-night/targets', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            item: itemData,
+                            catalogue: catalogueName || itemData.catalogue || currentCatalogueTab
+                        })
+                    });
+
+                    if (response && response.status === 'success') {
+                        showMessage('success', i18n.t('plan_my_night.target_added'));
+                        const referenceItem = response.entry || itemData;
+                        updateCataloguePlanMyNightBadge(referenceItem, true);
+                        updateCataloguePlanMyNightData(referenceItem, true);
+
+                        const planTab = document.getElementById('plan-my-night-subtab');
+                        if (planTab && planTab.classList.contains('active')) {
+                            await loadPlanMyNight();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error adding to Plan My Night:', error);
+                    if (error.message && error.message.includes('Plan belongs to previous night')) {
+                        showMessage('warning', i18n.t('uptonight.plan_clear_required'));
+                    } else {
+                        showMessage('error', i18n.t('plan_my_night.failed_to_add_target'));
+                    }
                 }
             });
         });
@@ -1142,6 +1246,132 @@ async function updateCatalogueCapturedBadge(itemDataOrName, isInAstrodex) {
                 addButton.innerHTML = `<i class="bi bi-plus-circle icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.add')}`;
                 astrodexCell.appendChild(addButton);
             }
+        });
+    });
+}
+
+/**
+ * Update the "Planned" badges in catalogue tables after Plan My Night changes
+ * @param {object|string} itemDataOrName - Item payload or item name
+ * @param {boolean} isPlanned - Whether the item is now in Plan My Night
+ */
+function updateCataloguePlanMyNightBadge(itemDataOrName, isPlanned) {
+    if (!itemDataOrName) return;
+
+    const normalize = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+    const targetNames = new Set();
+    if (typeof itemDataOrName === 'string') {
+        targetNames.add(normalize(itemDataOrName));
+    } else {
+        targetNames.add(normalize(itemDataOrName.name || itemDataOrName['target name'] || itemDataOrName.id));
+        const aliases = itemDataOrName.catalogue_aliases;
+        if (aliases && typeof aliases === 'object') {
+            Object.values(aliases).forEach(name => targetNames.add(normalize(name)));
+        }
+    }
+    targetNames.delete('');
+    if (targetNames.size === 0) return;
+
+    const tables = document.querySelectorAll('table[id^="table-"]');
+
+    tables.forEach(table => {
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const planCell = Array.from(row.cells).find(cell => {
+                const badge = cell.querySelector('.in-plan-my-night-badge');
+                const button = cell.querySelector('.plan-my-night-add-btn');
+                return badge || button;
+            });
+
+            if (!planCell) return;
+
+            const rawItem = planCell.getAttribute('data-item');
+            if (!rawItem) return;
+
+            let rowItemData = null;
+            try {
+                rowItemData = JSON.parse(rawItem.replace(/&quot;/g, '"'));
+            } catch (error) {
+                return;
+            }
+
+            const rowItemName = rowItemData.name || rowItemData['target name'] || rowItemData.id;
+            const rowNames = new Set([normalize(rowItemName)]);
+            const rowAliases = rowItemData.catalogue_aliases;
+            if (rowAliases && typeof rowAliases === 'object') {
+                Object.values(rowAliases).forEach(name => rowNames.add(normalize(name)));
+            }
+
+            const hasMatch = Array.from(rowNames).some(name => name && targetNames.has(name));
+            if (!hasMatch) return;
+
+            if (isPlanned) {
+                DOMUtils.clear(planCell);
+                const badge = document.createElement('span');
+                badge.className = 'in-astrodex-badge in-plan-my-night-badge';
+                badge.innerHTML = `<i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.planned')}`;
+                planCell.appendChild(badge);
+            } else {
+                const itemDataJson = JSON.stringify(rowItemData);
+                DOMUtils.clear(planCell);
+                const addButton = document.createElement('button');
+                addButton.className = 'btn btn-sm btn-outline-info plan-my-night-add-btn';
+                addButton.setAttribute('data-item', itemDataJson);
+                addButton.setAttribute('data-catalogue', rowItemData.catalogue || currentCatalogueTab || '');
+                addButton.innerHTML = `<i class="bi bi-moon-stars-fill icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.add')}`;
+                planCell.appendChild(addButton);
+            }
+        });
+    });
+}
+
+/**
+ * Keep cached catalogue reports synchronized after Plan My Night mutations.
+ * This avoids stale "Add" buttons when switching catalogue/type tabs.
+ */
+function updateCataloguePlanMyNightData(itemDataOrName, isPlanned) {
+    if (!window.catalogueReports || !itemDataOrName) return;
+
+    const normalize = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+    const targetNames = new Set();
+    if (typeof itemDataOrName === 'string') {
+        targetNames.add(normalize(itemDataOrName));
+    } else {
+        targetNames.add(normalize(itemDataOrName.name || itemDataOrName['target name'] || itemDataOrName.id));
+        const aliases = itemDataOrName.catalogue_aliases;
+        if (aliases && typeof aliases === 'object') {
+            Object.values(aliases).forEach(name => targetNames.add(normalize(name)));
+        }
+    }
+    targetNames.delete('');
+    if (targetNames.size === 0) return;
+
+    Object.keys(window.catalogueReports).forEach(catalogue => {
+        const reportPayload = window.catalogueReports[catalogue];
+        if (!reportPayload || typeof reportPayload !== 'object') return;
+
+        ['report', 'bodies', 'comets'].forEach(key => {
+            const rows = reportPayload[key];
+            if (!Array.isArray(rows)) return;
+
+            rows.forEach(row => {
+                const rowItemName = row.id || row['target name'] || row.name;
+                const rowNames = new Set([normalize(rowItemName)]);
+                const rowAliases = row.catalogue_aliases;
+                if (rowAliases && typeof rowAliases === 'object') {
+                    Object.values(rowAliases).forEach(name => rowNames.add(normalize(name)));
+                }
+
+                const hasMatch = Array.from(rowNames).some(name => name && targetNames.has(name));
+                if (!hasMatch) return;
+
+                row.in_plan_my_night = isPlanned;
+                if (isPlanned) {
+                    row.plan_state = 'current';
+                }
+            });
         });
     });
 }

@@ -101,6 +101,18 @@ This page lists the HTTP routes currently declared in `backend/app.py`.
 - `GET /api/astrodex/check/<item_name>`
 - `GET /api/astrodex/constellations`
 
+## Plan My Night
+
+- `GET /api/plan-my-night`
+- `POST /api/plan-my-night/targets`
+- `PUT /api/plan-my-night/targets/<entry_id>`
+- `POST /api/plan-my-night/targets/<entry_id>/reorder`
+- `DELETE /api/plan-my-night/targets/<entry_id>`
+- `DELETE /api/plan-my-night/clear`
+- `POST /api/plan-my-night/targets/<entry_id>/add-to-astrodex`
+- `GET /api/plan-my-night/export.csv`
+- `GET /api/plan-my-night/export.pdf`
+
 ## Equipment
 
 - `GET /api/equipment/telescopes`
