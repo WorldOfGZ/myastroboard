@@ -368,7 +368,7 @@ function renderPlanMyNight(payload) {
     }
 
     const timelineList = document.createElement('ul');
-    timelineList.className = 'timeline-with-icons ms-3 plan-my-night-timeline';
+    timelineList.className = 'timeline-with-icons plan-my-night-timeline';
 
     const civilStartItem = document.createElement('li');
     civilStartItem.className = 'timeline-item mb-3 rounded p-2 ps-3 plan-boundary-item';

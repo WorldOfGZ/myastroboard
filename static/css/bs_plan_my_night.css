@@ -9,13 +9,31 @@
 }
 
 #plan-my-night-display .plan-my-night-timeline {
-    border-left-color: var(--bs-info-border-subtle);
+    --plan-axis-x: 1.75rem;
+    --plan-card-gap: 2.25rem;
+    --plan-time-badge-width: 56px;
+    --plan-axis-trim: 8px;
+    position: relative;
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 calc(var(--plan-axis-x) + var(--plan-card-gap));
+    border-left: none;
+}
+
+#plan-my-night-display .plan-my-night-timeline::before {
+    content: "";
+    position: absolute;
+    top: var(--plan-axis-trim);
+    bottom: var(--plan-axis-trim);
+    left: var(--plan-axis-x);
+    width: 1px;
+    background-color: var(--bs-info-border-subtle);
 }
 
 #plan-my-night-display .plan-my-night-timeline .timeline-item {
     background-color: var(--surface-card);
     border: 1px solid var(--border-muted);
-    margin-left: 0.25rem;
+    margin-left: 0;
 }
 
 #plan-my-night-display .plan-my-night-timeline .plan-target-current {
@@ -41,8 +59,10 @@
 }
 
 #plan-my-night-display .plan-my-night-timeline .timeline-icon.plan-time-badge {
-    left: -60px;
-    min-width: 56px;
+    top: 0;
+    left: calc(-1 * var(--plan-card-gap));
+    transform: translateX(-50%);
+    min-width: var(--plan-time-badge-width);
     width: auto;
     height: 30px;
     border-radius: 999px;
@@ -63,6 +83,7 @@
 #plan-my-night-display .plan-my-night-timeline .timeline-icon.plan-time-badge.plan-time-badge-done {
     background-color: var(--bs-secondary);
     color: #fff;
+}
 
 #plan-my-night-display .plan-my-night-timeline .timeline-icon.plan-time-badge.plan-boundary-badge {
     background-color: var(--bs-secondary);
@@ -72,6 +93,12 @@
 #plan-my-night-display .plan-my-night-timeline .plan-boundary-item {
     background-color: color-mix(in srgb, var(--surface-card) 88%, var(--bs-secondary-bg) 12%);
     border-style: dashed;
+}
+
+#plan-my-night-display .plan-my-night-timeline .plan-boundary-item:last-child .timeline-icon.plan-time-badge.plan-boundary-badge {
+    top: auto;
+    bottom: 0;
+    transform: translateX(-50%);
 }
 
 #plan-my-night-display .plan-icon-btn {
@@ -86,4 +113,9 @@
 
 #plan-my-night-display .plan-icon-btn .icon-inline {
     margin: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    line-height: 1;
 }
