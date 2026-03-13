@@ -58,7 +58,8 @@
     "sun": "Soleil",
     "aurora": "Aurore Boréale",
     "iss": "ISS",
-    "calendar": "Calendrier des événements"
+    "calendar": "Calendrier des événements",
+    "plan_my_night": "Planifie ma nuit"
   },
 
   "planets": {

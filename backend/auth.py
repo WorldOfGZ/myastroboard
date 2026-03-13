@@ -37,7 +37,7 @@ ALLOWED_STARTUP_MAIN_TABS = {
 ALLOWED_STARTUP_SUBTABS = {
     'astro-weather', 'window', 'moon', 'sun', 'aurora', 'iss', 'calendar',
     'weather', 'trend',
-    'astrodex',
+    'astrodex', 'plan-my-night',
     'combinations', 'fov', 'telescopes', 'cameras', 'mounts', 'filters', 'accessories',
     'customize', 'security',
     'configuration', 'advanced', 'logs', 'users', 'metrics'

@@ -56,7 +56,8 @@
     "sun": "Sol",
     "aurora": "Aurora boreal",
     "iss": "ISS",
-    "calendar": "Calendario de eventos"
+    "calendar": "Calendario de eventos",
+    "plan_my_night": "Planifica mi noche"
   },
   "planets": {
     "mercury": "Mercurio",

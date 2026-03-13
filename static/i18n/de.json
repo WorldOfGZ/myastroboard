@@ -40,7 +40,7 @@
     "sun": "Sonne",
     "moon": "Mond",
     "modal_not_initialized": "Konfigurationsmodalität nicht ordnungsgemäß initialisiert",
-    "comming_soon": "Diese Funktion befindet sich in Entwicklung und wird bald verfuegbar sein."
+    "comming_soon": "Diese Funktion befindet sich in Entwicklung und wird bald verfügbar sein."
   },
   "navbar": {
     "astrophotography": "Astrofotografie",
@@ -56,7 +56,8 @@
     "sun": "Sonne",
     "aurora": "Nordlicht",
     "iss": "ISS",
-    "calendar": "Veranstaltungskalender"
+    "calendar": "Veranstaltungskalender",
+    "plan_my_night": "Plane meine Nacht"
   },
   "planets": {
     "mercury": "Merkur",

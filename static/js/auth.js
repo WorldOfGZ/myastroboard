@@ -21,7 +21,7 @@ const startupSubtabsByMain = {
     'forecast-astro': ['astro-weather', 'window', 'moon', 'sun', 'aurora', 'iss', 'calendar'],
     'forecast-weather': ['weather', 'trend'],
     'uptonight': [],
-    'astrodex': ['astrodex'],
+    'astrodex': ['astrodex', 'plan-my-night'],
     'equipment': ['combinations', 'fov', 'telescopes', 'cameras', 'mounts', 'filters', 'accessories'],
     'my-settings': ['customize', 'security'],
     'parameters': ['configuration', 'advanced', 'logs', 'users', 'metrics']
@@ -254,6 +254,8 @@ function getSubtabLabelKey(subtabName) {
         'calendar': 'navbar.calendar',
         'weather': 'navbar.weather',
         'trend': 'weather.observation_conditions',
+        'astrodex': 'navbar.astrodex',
+        'plan-my-night': 'navbar.plan_my_night',
         'combinations': 'equipment.combinations',
         'fov': 'equipment.fov_calculator',
         'telescopes': 'equipment.telescopes',
