@@ -1,6 +1,7 @@
 // Plan My Night frontend module
 
 let planMyNightPollTimer = null;
+let planMyNightStructureSnapshot = null;
 
 function isPlanEditRole(role) {
     return role === 'admin' || role === 'user';
@@ -23,37 +24,298 @@ async function refreshAstrodexAfterPlanAction() {
     }
 }
 
-async function loadPlanMyNight() {
+function getPlanMyNightStructureSnapshot(payload) {
+    const plan = payload?.plan;
+    const entries = Array.isArray(plan?.entries) ? plan.entries : [];
+
+    return JSON.stringify({
+        role: payload?.role ?? null,
+        state: payload?.state ?? 'none',
+        nightStart: plan?.night_start ?? null,
+        nightEnd: plan?.night_end ?? null,
+        entries: entries.map(entry => ({
+            id: entry?.id ?? null,
+            name: entry?.name ?? null,
+            targetName: entry?.target_name ?? null,
+            catalogue: entry?.catalogue ?? null,
+            type: entry?.type ?? null,
+            constellation: entry?.constellation ?? null,
+            timelineStart: entry?.timeline_start ?? null,
+            timelineEnd: entry?.timeline_end ?? null,
+            plannedDuration: entry?.planned_duration ?? null,
+            plannedMinutes: entry?.planned_minutes ?? null,
+            done: Boolean(entry?.done),
+            inAstrodex: Boolean(entry?.in_astrodex),
+            ra: entry?.ra ?? null,
+            dec: entry?.dec ?? null,
+            mag: entry?.mag ?? null,
+            size: entry?.size ?? null,
+            foto: entry?.foto ?? null,
+            alttimeFile: entry?.alttime_file ?? null,
+        })),
+    });
+}
+
+function updatePlanCurrentBanner(container, payload, summaryElement) {
+    const timeline = payload?.timeline || {};
+    const bannerText = timeline.is_inside_night && payload?.current_banner
+        ? i18n.t('plan_my_night.current_target_banner', {
+            target: payload.current_banner.name || payload.current_banner.target_name || 'N/A'
+        })
+        : null;
+
+    const existingBanner = document.getElementById('plan-my-night-current-banner');
+    if (!bannerText) {
+        existingBanner?.remove();
+        return true;
+    }
+
+    if (existingBanner) {
+        existingBanner.textContent = bannerText;
+        return true;
+    }
+
+    if (!summaryElement) {
+        return false;
+    }
+
+    const banner = document.createElement('div');
+    banner.id = 'plan-my-night-current-banner';
+    banner.className = 'alert alert-success plan-current-banner';
+    banner.textContent = bannerText;
+    container.insertBefore(banner, summaryElement);
+    return true;
+}
+
+function patchPlanMyNightView(payload) {
+    const container = document.getElementById('plan-my-night-display');
+    if (!container || !isPlanEditRole(payload?.role)) {
+        return false;
+    }
+
+    const state = payload?.state || 'none';
+    const plan = payload?.plan;
+    const timeline = payload?.timeline || {};
+    if (state === 'none' || !plan) {
+        return false;
+    }
+
+    const summaryElement = document.getElementById('plan-my-night-summary');
+    const progressLabel = document.getElementById('plan-my-night-progress-label');
+    const progressBar = document.getElementById('plan-my-night-progress-bar');
+    const timelineList = document.getElementById('plan-my-night-timeline-list');
+    if (!summaryElement || !progressLabel || !progressBar || !timelineList) {
+        return false;
+    }
+
+    if (!updatePlanCurrentBanner(container, payload, summaryElement)) {
+        return false;
+    }
+
+    progressLabel.textContent = i18n.t('plan_my_night.timeline_progress', {
+        progress: (timeline.progress_percent || 0).toFixed(1)
+    });
+    progressBar.style.width = `${Math.max(0, Math.min(100, timeline.progress_percent || 0))}%`;
+    progressBar.setAttribute('aria-valuenow', String(Math.round(timeline.progress_percent || 0)));
+
+    const currentTargetId = timeline.current_target_id ? String(timeline.current_target_id) : null;
+    timelineList.querySelectorAll('.plan-target-item').forEach(item => {
+        const entryId = item.getAttribute('data-plan-entry-id');
+        const isCurrent = Boolean(currentTargetId) && entryId === currentTargetId;
+        item.classList.toggle('plan-target-current', isCurrent);
+
+        const badge = item.querySelector('.plan-time-badge');
+        if (badge) {
+            badge.classList.toggle('plan-time-badge-current', isCurrent);
+        }
+    });
+
+    return true;
+}
+
+async function loadPlanMyNight(options = {}) {
+    const {
+        silent = false,
+        restoreFocus = null,
+        preserveViewport = false,
+        preferPatchOnly = false,
+    } = options;
     clearPlanPollTimer();
 
     const container = document.getElementById('plan-my-night-display');
     if (!container) return;
 
-    DOMUtils.clear(container);
+    const viewportState = preserveViewport
+        ? {
+            scrollX: window.scrollX,
+            scrollY: window.scrollY,
+            minHeight: container.offsetHeight,
+        }
+        : null;
 
-    const loading = document.createElement('div');
-    loading.className = 'alert alert-info';
-    loading.textContent = i18n.t('common.loading');
-    container.appendChild(loading);
+    if (viewportState && viewportState.minHeight > 0) {
+        container.style.minHeight = `${viewportState.minHeight}px`;
+    }
+
+    if (!silent) {
+        DOMUtils.clear(container);
+
+        const loading = document.createElement('div');
+        loading.className = 'alert alert-info';
+        loading.textContent = i18n.t('common.loading');
+        container.appendChild(loading);
+    }
 
     try {
         const payload = await fetchJSON('/api/plan-my-night');
-        renderPlanMyNight(payload);
+        const nextStructureSnapshot = getPlanMyNightStructureSnapshot(payload);
+        const canPatchInPlace = silent && planMyNightStructureSnapshot === nextStructureSnapshot;
+        const patchedInPlace = patchPlanMyNightView(payload);
+        const shouldUsePatchOnly = silent && preferPatchOnly && patchedInPlace;
+
+        if (!(canPatchInPlace && patchedInPlace) && !shouldUsePatchOnly) {
+            renderPlanMyNight(payload);
+        }
+
+        restorePlanMyNightViewport(viewportState, container);
+        restorePlanMyNightFocus(restoreFocus);
+
+        planMyNightStructureSnapshot = nextStructureSnapshot;
 
         // Keep timeline/current target fresh while tab remains visible.
         planMyNightPollTimer = setTimeout(() => {
             const tab = document.getElementById('plan-my-night-subtab');
-            if (tab && tab.classList.contains('active')) {
-                loadPlanMyNight();
+            if (tab && tab.classList.contains('active') && !document.hidden) {
+                loadPlanMyNight({ silent: true });
             }
         }, 60000);
     } catch (error) {
+        restorePlanMyNightViewport(viewportState, container);
+
+        if (silent) {
+            console.warn('Silent Plan My Night refresh failed:', error);
+            planMyNightPollTimer = setTimeout(() => {
+                const tab = document.getElementById('plan-my-night-subtab');
+                if (tab && tab.classList.contains('active')) {
+                    loadPlanMyNight({ silent: true });
+                }
+            }, 60000);
+            return;
+        }
+
+        planMyNightStructureSnapshot = null;
         DOMUtils.clear(container);
         const alert = document.createElement('div');
         alert.className = 'alert alert-danger';
         alert.textContent = i18n.t('plan_my_night.failed_to_load');
         container.appendChild(alert);
     }
+}
+
+function escapePlanSelectorValue(value) {
+    if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+        return CSS.escape(String(value));
+    }
+    return String(value).replace(/"/g, '\\"');
+}
+
+function restorePlanMyNightFocus(target) {
+    if (!target?.entryId || !target?.action) {
+        return;
+    }
+
+    const entrySelectorValue = escapePlanSelectorValue(target.entryId);
+    const actionSelectorValue = escapePlanSelectorValue(target.action);
+
+    requestAnimationFrame(() => {
+        const element = document.querySelector(
+            `.plan-target-item[data-plan-entry-id="${entrySelectorValue}"] [data-plan-action="${actionSelectorValue}"]`
+        );
+        if (element instanceof HTMLElement) {
+            element.focus({ preventScroll: true });
+        }
+    });
+}
+
+function restorePlanMyNightViewport(viewportState, container) {
+    if (!viewportState) {
+        return;
+    }
+
+    requestAnimationFrame(() => {
+        window.scrollTo({ top: viewportState.scrollY, left: viewportState.scrollX, behavior: 'auto' });
+
+        requestAnimationFrame(() => {
+            window.scrollTo({ top: viewportState.scrollY, left: viewportState.scrollX, behavior: 'auto' });
+            if (container) {
+                container.style.minHeight = '';
+            }
+        });
+    });
+}
+
+function updatePlanTargetOrderLabels() {
+    const items = Array.from(document.querySelectorAll('#plan-my-night-timeline-list .plan-target-item'));
+    items.forEach((item, index) => {
+        const title = item.querySelector('h5');
+        const targetName = item.getAttribute('data-plan-target-name') || 'N/A';
+        if (title) {
+            title.textContent = `${index + 1}. ${targetName}`;
+        }
+    });
+}
+
+function updatePlanMoveButtonsState() {
+    const items = Array.from(document.querySelectorAll('#plan-my-night-timeline-list .plan-target-item'));
+    items.forEach((item, index) => {
+        const moveUpBtn = item.querySelector('[data-plan-action="move-up"]');
+        const moveDownBtn = item.querySelector('[data-plan-action="move-down"]');
+        if (moveUpBtn instanceof HTMLButtonElement) {
+            moveUpBtn.disabled = index === 0;
+        }
+        if (moveDownBtn instanceof HTMLButtonElement) {
+            moveDownBtn.disabled = index === items.length - 1;
+        }
+    });
+}
+
+function movePlanTargetItemInDom(entryId, direction) {
+    const timelineList = document.getElementById('plan-my-night-timeline-list');
+    if (!timelineList || !entryId || !Number.isInteger(direction) || direction === 0) {
+        return false;
+    }
+
+    const selectorValue = escapePlanSelectorValue(entryId);
+    const item = timelineList.querySelector(`.plan-target-item[data-plan-entry-id="${selectorValue}"]`);
+    if (!(item instanceof HTMLElement)) {
+        return false;
+    }
+
+    const items = Array.from(timelineList.querySelectorAll('.plan-target-item'));
+    const currentIndex = items.indexOf(item);
+    if (currentIndex < 0) {
+        return false;
+    }
+
+    const newIndex = currentIndex + direction;
+    if (newIndex < 0 || newIndex >= items.length) {
+        return false;
+    }
+
+    const sibling = items[newIndex];
+    if (!sibling) {
+        return false;
+    }
+
+    if (direction < 0) {
+        timelineList.insertBefore(item, sibling);
+    } else {
+        timelineList.insertBefore(sibling, item);
+    }
+
+    updatePlanTargetOrderLabels();
+    updatePlanMoveButtonsState();
+    return true;
 }
 
 function makePlanActionButton(labelKey, className, onClick) {
@@ -330,6 +592,7 @@ function renderPlanMyNight(payload) {
     }
 
     const summary = document.createElement('div');
+    summary.id = 'plan-my-night-summary';
     summary.className = 'card mb-3';
     const summaryBody = document.createElement('div');
     summaryBody.className = 'card-body';
@@ -421,6 +684,7 @@ function renderPlanMyNight(payload) {
     timelineWrap.className = 'mt-3';
 
     const progressLabel = document.createElement('div');
+    progressLabel.id = 'plan-my-night-progress-label';
     progressLabel.className = 'small text-muted mb-1';
     progressLabel.textContent = i18n.t('plan_my_night.timeline_progress', {
         progress: (timeline.progress_percent || 0).toFixed(1)
@@ -429,6 +693,7 @@ function renderPlanMyNight(payload) {
     const progress = document.createElement('div');
     progress.className = 'progress';
     const progressBar = document.createElement('div');
+    progressBar.id = 'plan-my-night-progress-bar';
     progressBar.className = 'progress-bar bg-info';
     progressBar.style.width = `${Math.max(0, Math.min(100, timeline.progress_percent || 0))}%`;
     progressBar.setAttribute('role', 'progressbar');
@@ -453,6 +718,7 @@ function renderPlanMyNight(payload) {
     }
 
     const timelineList = document.createElement('ul');
+    timelineList.id = 'plan-my-night-timeline-list';
     timelineList.className = 'timeline-with-icons plan-my-night-timeline';
 
     const civilStartItem = document.createElement('li');
@@ -473,6 +739,9 @@ function renderPlanMyNight(payload) {
 
     entries.forEach((entry, index) => {
         const item = document.createElement('li');
+        if (entry.id !== undefined && entry.id !== null) {
+            item.setAttribute('data-plan-entry-id', String(entry.id));
+        }
         item.className = 'timeline-item mb-3 rounded p-2 ps-3 plan-target-item';
         if (entry.id && entry.id === timeline.current_target_id) {
             item.classList.add('plan-target-current');
@@ -499,7 +768,9 @@ function renderPlanMyNight(payload) {
         const head = document.createElement('div');
         const name = document.createElement('h5');
         name.className = 'fw-bold mb-1';
-        name.textContent = `${index + 1}. ${entry.name || entry.target_name || 'N/A'}`;
+        const entryDisplayName = entry.name || entry.target_name || 'N/A';
+        item.setAttribute('data-plan-target-name', entryDisplayName);
+        name.textContent = `${index + 1}. ${entryDisplayName}`;
 
         const targetTypeLabel = getPlanTargetTypeDisplayName(entry.type);
         const constellationLabel = getPlanConstellationDisplayName(entry.constellation);
@@ -598,8 +869,14 @@ function renderPlanMyNight(payload) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ new_index: index - 1 })
                 });
-                await loadPlanMyNight();
+                movePlanTargetItemInDom(entry.id, -1);
+                await loadPlanMyNight({
+                    silent: true,
+                    preferPatchOnly: true,
+                    restoreFocus: { entryId: entry.id, action: 'move-up' }
+                });
             });
+            moveUpBtn.setAttribute('data-plan-action', 'move-up');
             moveUpBtn.disabled = index === 0;
             details.appendChild(moveUpBtn);
 
@@ -609,8 +886,14 @@ function renderPlanMyNight(payload) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ new_index: index + 1 })
                 });
-                await loadPlanMyNight();
+                movePlanTargetItemInDom(entry.id, 1);
+                await loadPlanMyNight({
+                    silent: true,
+                    preferPatchOnly: true,
+                    restoreFocus: { entryId: entry.id, action: 'move-down' }
+                });
             });
+            moveDownBtn.setAttribute('data-plan-action', 'move-down');
             moveDownBtn.disabled = index === entries.length - 1;
             details.appendChild(moveDownBtn);
         }
