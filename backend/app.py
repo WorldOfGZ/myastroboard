@@ -312,7 +312,7 @@ def change_own_password():
             error_key = 'users.password_must_be_different'
 
         logger.warning(f"Password change rejected for user {session.get('username')}: {e}")
-        return jsonify({'error': error_text, 'error_key': error_key}), 400
+        return jsonify({'error': 'Invalid request', 'error_key': error_key}), 400
     except Exception as e:
         logger.error(f"Error changing password for user {session.get('username')}: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -331,7 +331,7 @@ def get_own_preferences():
         return jsonify({'preferences': preferences})
     except ValueError as e:
         logger.warning(f"Preference fetch rejected for user {session.get('username')}: {e}")
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'error': 'Invalid request', 'error_key': 'settings.pref_save_error'}), 400
     except Exception as e:
         logger.error(f"Error reading preferences for user {session.get('username')}: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -369,7 +369,7 @@ def update_own_preferences():
             error_key = 'settings.pref_invalid_theme'
 
         logger.warning(f"Preference update rejected for user {session.get('username')}: {e}")
-        return jsonify({'error': error_text, 'error_key': error_key}), 400
+        return jsonify({'error': 'Invalid request', 'error_key': error_key}), 400
     except Exception as e:
         logger.error(f"Error updating preferences for user {session.get('username')}: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -422,7 +422,7 @@ def create_user():
             error_key = 'users.invalid_role'
 
         logger.warning(f"User creation failed: {e}")
-        return jsonify({'error': error_text, 'error_key': error_key}), 400
+        return jsonify({'error': 'Invalid request', 'error_key': error_key}), 400
     except Exception as e:
         logger.error(f"Error creating user: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -466,7 +466,7 @@ def update_user(user_id):
             error_key = 'users.invalid_role'
 
         logger.warning(f"User update failed for user_id {user_id}: {e}")
-        return jsonify({'error': error_text, 'error_key': error_key}), 400
+        return jsonify({'error': 'Invalid request', 'error_key': error_key}), 400
     except Exception as e:
         logger.error(f"Error updating user: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -490,7 +490,7 @@ def delete_user(user_id):
             error_key = 'users.cannot_delete_own_account'
 
         logger.warning(f"User deletion failed for user_id {user_id}: {e}")
-        return jsonify({'error': error_text, 'error_key': error_key}), 400
+        return jsonify({'error': 'Invalid request', 'error_key': error_key}), 400
     except Exception as e:
         logger.error(f"Error deleting user: {e}")
         return jsonify({'error': 'Internal server error'}), 500
