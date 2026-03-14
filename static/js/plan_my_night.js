@@ -216,7 +216,9 @@ function escapePlanSelectorValue(value) {
     if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
         return CSS.escape(String(value));
     }
-    return String(value).replace(/"/g, '\\"');
+    // Fallback: escape backslashes first, then double-quotes, for use inside a
+    // double-quoted attribute selector value (e.g. [attr="<value>"]).
+    return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 function restorePlanMyNightFocus(target) {
