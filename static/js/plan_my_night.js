@@ -319,10 +319,20 @@ function movePlanTargetItemInDom(entryId, direction) {
 }
 
 function makePlanActionButton(labelKey, className, onClick) {
+    // Icon if pdf or csv to add with text
+    let ico = '';
+    if (labelKey === 'plan_my_night.export_pdf') {
+        ico = '<i class="bi bi-filetype-pdf"></i> ';
+    } else if (labelKey === 'plan_my_night.export_csv') {
+        ico = '<i class="bi bi-filetype-csv"></i> ';
+    } else if (labelKey === 'plan_my_night.clear_plan') {
+        ico = '<i class="bi bi-trash"></i> ';
+    }
+
     const button = document.createElement('button');
     button.type = 'button';
     button.className = className;
-    button.textContent = i18n.t(labelKey);
+    button.innerHTML = ico + i18n.t(labelKey);
     button.addEventListener('click', onClick);
     return button;
 }
@@ -568,8 +578,8 @@ function renderPlanMyNight(payload) {
                 const lang = typeof i18n?.getCurrentLanguage === 'function' ? i18n.getCurrentLanguage() : 'en';
                 window.location.href = `/api/plan-my-night/export.pdf?lang=${encodeURIComponent(lang)}`;
             });
-            toolbar.appendChild(exportCsvBtn);
             toolbar.appendChild(exportPdfBtn);
+            toolbar.appendChild(exportCsvBtn);
         }
 
         const clearButton = makePlanActionButton('plan_my_night.clear_plan', 'btn btn-danger btn-sm', async () => {
