@@ -182,6 +182,68 @@ function computePlannedCoverage(entries, plan) {
     };
 }
 
+function getPlanEntryMinutes(entry) {
+    const explicitMinutes = Number.parseInt(String(entry?.planned_minutes ?? ''), 10);
+    if (Number.isFinite(explicitMinutes) && explicitMinutes >= 0) {
+        return explicitMinutes;
+    }
+    return parsePlanDurationToMinutes(entry?.planned_duration);
+}
+
+function getPlanCoverageSegmentColor(index) {
+    const palette = [
+        'bg-primary',
+        'bg-info',
+        'bg-success',
+        'bg-warning',
+        'bg-danger',
+        'bg-secondary',
+    ];
+    return palette[index % palette.length];
+}
+
+function buildPlanCoverageSegments(entries, nightMinutes) {
+    const safeNightMinutes = Math.max(0, Number(nightMinutes) || 0);
+    const sourceEntries = Array.isArray(entries) ? entries : [];
+
+    if (!sourceEntries.length || safeNightMinutes <= 0) {
+        return [];
+    }
+
+    let consumedMinutes = 0;
+    const segments = [];
+
+    sourceEntries.forEach((entry, index) => {
+        const entryMinutes = Math.max(0, getPlanEntryMinutes(entry));
+        if (entryMinutes <= 0) {
+            return;
+        }
+
+        const remainingNightMinutes = Math.max(0, safeNightMinutes - consumedMinutes);
+        if (remainingNightMinutes <= 0) {
+            return;
+        }
+
+        const visibleMinutes = Math.min(entryMinutes, remainingNightMinutes);
+        const widthPercent = (visibleMinutes / safeNightMinutes) * 100;
+        if (widthPercent <= 0) {
+            return;
+        }
+
+        consumedMinutes += visibleMinutes;
+
+        segments.push({
+            widthPercent,
+            targetNumber: index + 1,
+            label: entry?.name || entry?.target_name || `Target ${index + 1}`,
+            minutes: entryMinutes,
+            colorClass: getPlanCoverageSegmentColor(index),
+        });
+    });
+
+    return segments;
+}
+
 function getCoverageStatus(fillPercent) {
     const safePercent = Number(fillPercent) || 0;
     if (safePercent > 100) {
@@ -309,15 +371,38 @@ function renderPlanMyNight(payload) {
     coverageHeader.appendChild(coverageBadge);
 
     const coverageProgress = document.createElement('div');
-    coverageProgress.className = 'progress';
-    const coverageProgressBar = document.createElement('div');
-    coverageProgressBar.className = `progress-bar ${coverage.fillPercent > 100 ? 'bg-danger' : 'bg-success'}`;
-    coverageProgressBar.style.width = `${Math.max(0, Math.min(100, coverage.fillPercent))}%`;
-    coverageProgressBar.setAttribute('role', 'progressbar');
-    coverageProgressBar.setAttribute('aria-valuemin', '0');
-    coverageProgressBar.setAttribute('aria-valuemax', '100');
-    coverageProgressBar.setAttribute('aria-valuenow', String(Math.round(Math.min(100, coverage.fillPercent))));
-    coverageProgress.appendChild(coverageProgressBar);
+    coverageProgress.className = 'progress-stacked plan-coverage-progress';
+
+    const coverageSegments = buildPlanCoverageSegments(entries, coverage.nightMinutes);
+    if (coverageSegments.length) {
+        coverageSegments.forEach(segment => {
+            const segmentWrap = document.createElement('div');
+            segmentWrap.className = 'progress';
+            segmentWrap.style.width = `${segment.widthPercent.toFixed(2)}%`;
+
+            const segmentBar = document.createElement('div');
+            segmentBar.className = `progress-bar ${segment.colorClass}`;
+            segmentBar.setAttribute('role', 'progressbar');
+            segmentBar.setAttribute('aria-valuemin', '0');
+            segmentBar.setAttribute('aria-valuemax', '100');
+            segmentBar.setAttribute('aria-valuenow', String(Math.round(segment.widthPercent)));
+            segmentBar.setAttribute('aria-label', `${segment.label} (${formatMinutesAsHourMinute(segment.minutes)})`);
+            segmentBar.title = `${segment.label} (${formatMinutesAsHourMinute(segment.minutes)})`;
+            segmentBar.textContent = String(segment.targetNumber);
+
+            segmentWrap.appendChild(segmentBar);
+            coverageProgress.appendChild(segmentWrap);
+        });
+    } else {
+        const coverageProgressBar = document.createElement('div');
+        coverageProgressBar.className = `progress-bar ${coverage.fillPercent > 100 ? 'bg-danger' : 'bg-success'}`;
+        coverageProgressBar.style.width = `${Math.max(0, Math.min(100, coverage.fillPercent))}%`;
+        coverageProgressBar.setAttribute('role', 'progressbar');
+        coverageProgressBar.setAttribute('aria-valuemin', '0');
+        coverageProgressBar.setAttribute('aria-valuemax', '100');
+        coverageProgressBar.setAttribute('aria-valuenow', String(Math.round(Math.min(100, coverage.fillPercent))));
+        coverageProgress.appendChild(coverageProgressBar);
+    }
 
     coverageWrap.appendChild(coverageHeader);
     coverageWrap.appendChild(coverageProgress);
