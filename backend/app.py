@@ -4,6 +4,7 @@ Provides astronomy planning and configuration management
 """
 
 
+import atexit
 import secrets
 from datetime import timezone
 from flask import Flask, request, jsonify, render_template, send_file, send_from_directory, session, redirect, url_for, g
@@ -3656,6 +3657,39 @@ try:
     get_or_create_scheduler()
 except Exception as e:
     logger.error(f"Failed to initialize UpTonight scheduler on startup: {e}", exc_info=True)
+
+# Ensure scheduler and any running UpTonight container are stopped when the worker exits
+# (covers gunicorn workers that never reach the __main__ finally block)
+def _stop_schedulers_on_exit():
+    scheduler = app.config.get('scheduler')
+    if scheduler:
+        try:
+            scheduler.stop()
+        except Exception as e:
+            logger.warning(f"Error stopping UpTonight scheduler on exit: {e}")
+    cache_scheduler = app.config.get('cache_scheduler')
+    if cache_scheduler:
+        try:
+            cache_scheduler.stop()
+        except Exception as e:
+            logger.warning(f"Error stopping cache scheduler on exit: {e}")
+
+atexit.register(_stop_schedulers_on_exit)
+
+# Handle SIGTERM explicitly so cleanup runs even when gunicorn forces a fast
+# worker shutdown (atexit is not guaranteed to fire on SIGTERM in all workers).
+try:
+    import signal as _signal
+
+    def _sigterm_handler(signum, frame):
+        _stop_schedulers_on_exit()
+        # Restore default handler and re-raise so gunicorn can complete its shutdown.
+        _signal.signal(_signal.SIGTERM, _signal.SIG_DFL)
+        os.kill(os.getpid(), _signal.SIGTERM)
+
+    _signal.signal(_signal.SIGTERM, _sigterm_handler)
+except Exception:
+    pass  # Signal registration is best-effort (e.g. not the main thread)
 
 # Initialize cache scheduler when the app starts (for each gunicorn worker)
 # This ensures caches are populated before any requests are served
