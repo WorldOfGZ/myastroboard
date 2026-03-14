@@ -1,0 +1,136 @@
+/* Plan My Night */
+
+#plan-my-night-display .plan-duration-input {
+    width: 8.75rem;
+    min-width: 8rem;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 575.98px) {
+    #plan-my-night-display .plan-duration-input {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+.plan-current-banner {
+    border-left: 4px solid var(--bs-success);
+}
+
+#plan-my-night-display .plan-coverage-progress {
+    height: 0.9rem;
+}
+
+#plan-my-night-display .plan-coverage-progress .progress {
+    min-width: 2px;
+}
+
+#plan-my-night-display .plan-coverage-progress .progress-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.66rem;
+    font-weight: var(--font-bold);
+    line-height: 1;
+    color: var(--bs-light);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#plan-my-night-display .plan-coverage-progress .progress + .progress {
+    box-shadow: inset 1px 0 0 color-mix(in srgb, #fff 40%, transparent);
+}
+
+#plan-my-night-display .plan-my-night-timeline {
+    --plan-axis-x: 1.75rem;
+    --plan-card-gap: 2.25rem;
+    --plan-time-badge-width: 56px;
+    --plan-axis-trim: 8px;
+    position: relative;
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 calc(var(--plan-axis-x) + var(--plan-card-gap));
+    border-left: none;
+}
+
+#plan-my-night-display .plan-my-night-timeline::before {
+    content: "";
+    position: absolute;
+    top: var(--plan-axis-trim);
+    bottom: var(--plan-axis-trim);
+    left: var(--plan-axis-x);
+    width: 1px;
+    background-color: var(--bs-info-border-subtle);
+}
+
+#plan-my-night-display .plan-my-night-timeline .timeline-item {
+    border: 1px solid var(--border-muted);
+    margin-left: 0;
+}
+
+#plan-my-night-display .plan-my-night-timeline .plan-target-current {
+    border: 2px solid var(--bs-success);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--bs-success) 22%, transparent);
+    background-color: color-mix(in srgb, var(--surface-card) 88%, var(--bs-success-bg-subtle) 12%);
+}
+
+#plan-my-night-display .plan-my-night-timeline .plan-target-done {
+    border-style: dashed;
+    border-color: color-mix(in srgb, var(--border-muted) 70%, var(--bs-success) 30%);
+    background-color: color-mix(in srgb, var(--surface-card) 92%, var(--bs-secondary-bg) 8%);
+}
+
+#plan-my-night-display .plan-my-night-timeline .plan-target-done h5 {
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+    text-decoration-color: color-mix(in srgb, var(--text-color) 65%, transparent);
+}
+
+#plan-my-night-display .plan-my-night-timeline .plan-target-current h5 {
+    color: color-mix(in srgb, var(--text-color) 82%, var(--bs-success) 18%);
+}
+
+#plan-my-night-display .plan-my-night-timeline .timeline-icon.plan-time-badge {
+    top: 0;
+    left: calc(-1 * var(--plan-card-gap));
+    transform: translateX(-50%);
+    min-width: var(--plan-time-badge-width);
+    width: auto;
+    height: 30px;
+    border-radius: var(--border-radius-pill);
+    padding: 0 8px;
+    font-size: 0.74rem;
+    font-weight: var(--font-bold);
+    letter-spacing: 0.02em;
+    color: var(--quality-good-text);
+    background-color: var(--bs-info);
+}
+
+#plan-my-night-display .plan-my-night-timeline .timeline-icon.plan-time-badge.plan-time-badge-current {
+    background-color: var(--bs-success);
+    color: var(--bs-light);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--bs-success) 25%, transparent);
+}
+
+#plan-my-night-display .plan-my-night-timeline .timeline-icon.plan-time-badge.plan-time-badge-done {
+    background-color: var(--bs-secondary);
+    color: var(--bs-light);
+}
+
+#plan-my-night-display .plan-my-night-timeline .timeline-icon.plan-time-badge.plan-boundary-badge {
+    background-color: var(--bs-secondary);
+    color: var(--bs-light);
+}
+
+#plan-my-night-display .plan-my-night-timeline .plan-boundary-item {
+    background-color: color-mix(in srgb, var(--surface-card) 88%, var(--bs-secondary-bg) 12%);
+    border-style: dashed;
+}
+
+#plan-my-night-display .plan-my-night-timeline .plan-boundary-item:last-child .timeline-icon.plan-time-badge.plan-boundary-badge {
+    top: auto;
+    bottom: 0;
+    transform: translateX(-50%);
+}
+

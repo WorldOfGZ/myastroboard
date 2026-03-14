@@ -1,59 +1,69 @@
-# Multi-stage build for smaller production image
-FROM python:3.12-slim AS builder
+# syntax=docker/dockerfile:1.7
+# =================================
+# Builder stage
+# =================================
+FROM python:3.13-slim AS builder
 
 # Build environment
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV MPLBACKEND=Agg
-ENV PIP_NO_CACHE_DIR=1
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    MPLBACKEND=Agg \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /build
 
-# Install build dependencies (Debian)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    python3-dev \
-    libffi-dev \
-    libssl-dev \
-    cargo \
-    rustc \
+# Install build dependencies
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends \
+       build-essential \
+       python3-dev \
+       libffi-dev \
+       libssl-dev \
+       cargo \
+       rustc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy and install Python dependencies
+# Copy requirements and build wheels
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt \
-    && pip install --no-cache-dir --user gunicorn
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip wheel --wheel-dir /wheels -r requirements.txt
 
-# ================================
+# =================================
 # Production stage
-# ================================
-FROM python:3.12-slim AS production
+# =================================
+FROM python:3.13-slim AS production
 
-# Prevents .pyc files and enables immediate logging
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV MPLBACKEND=Agg
-ENV PIP_NO_CACHE_DIR=1
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1
-ENV PATH=/root/.local/bin:/usr/local/bin:$PATH
+# Labels
+LABEL maintainer="Gloup" \
+      description="MyAstroBoard" \
+      org.opencontainers.image.source="https://github.com/WorldOfGZ/myastroboard" \
+      org.opencontainers.image.license="AGPL-3.0"
+
+# Environment
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    MPLBACKEND=Agg \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /app
 
-# Install only runtime dependencies (Debian)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    ca-certificates \
-    gnupg \
-    tzdata \
-    docker-cli \
-    passwd \
-    && rm -rf /var/lib/apt/lists/* /tmp/*
+# Install runtime dependencies
+RUN set -eux; \
+    apt-get update; \
+    apt-get upgrade -y; \
+    apt-get install -y --no-install-recommends \
+       curl \
+       ca-certificates \
+       tzdata \
+       passwd; \
+    rm -rf /var/lib/apt/lists/* /tmp/* /usr/share/doc /usr/share/man/* /usr/share/info/*
 
-# Copy Python packages from builder and make accessible to appuser
-COPY --from=builder /root/.local /usr/local
+# Copy wheels from builder and install
+COPY --from=builder /wheels /wheels
+RUN pip install --no-cache-dir /wheels/* \
+    && rm -rf /wheels /root/.cache/pip
 
-# Version files
+# Version file
 COPY VERSION /app/VERSION
 
 # Application code
@@ -62,21 +72,22 @@ COPY templates/ ./templates/
 COPY static/ ./static/
 
 # Application directories
-RUN mkdir -p /app/data /app/uptonight/configs /app/uptonight/outputs 
+RUN mkdir -p /app/data /app/uptonight/configs /app/uptonight/outputs
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser
 
-# Copy entrypoint script and make it executable
+# Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh \
     && sed -i 's/\r$//' /entrypoint.sh \
     && chown root:root /entrypoint.sh
 
+# Expose port
 EXPOSE 5000
 
 # Entrypoint root → fix perms → drop user
 ENTRYPOINT ["/entrypoint.sh"]
 
-# Production default (gunicorn)
+# Default command
 CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:5000", "backend.app:app"]

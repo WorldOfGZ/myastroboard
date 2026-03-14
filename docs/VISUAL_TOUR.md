@@ -6,9 +6,10 @@ A visual walkthrough of MyAstroBoard's interface and capabilities.
 1. [Dashboard](#dashboard)
 2. [Weather & Conditions](#weather--conditions)
 3. [Celestial Objects](#celestial-objects)
-4. [Astrodex Collections](#astrodex-collections)
-5. [Equipment Profiles](#equipment-profiles)
-6. [Advanced Features](#advanced-features)
+4. [Plan My Night](#plan-my-night)
+5. [Astrodex Collections](#astrodex-collections)
+6. [Equipment Profiles](#equipment-profiles)
+7. [Advanced Features](#advanced-features)
 
 ---
 
@@ -66,6 +67,17 @@ Explore celestial bodies with detailed information, ratings, and observation rec
 Charts showing object altitude versus time, helping you identify optimal observation windows.
 
 ![Altitude Chart](img/popup_alttime.png)
+
+---
+
+## Plan My Night
+
+### Build and Follow Your Night Session Timeline
+Plan My Night lets you prepare a complete observation timeline directly from UpTonight targets. You can define target durations, reorder priorities in one click, follow the current target, and monitor how much of the night is already planned.
+
+It is designed for practical use in the field with quick timeline updates, readable progress bars, and export options.
+
+![Plan My Night](img/plan_my_night.png)
 
 ---
 

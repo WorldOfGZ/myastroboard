@@ -29,6 +29,7 @@
     <link rel="stylesheet" href="/static/css/bs_logs.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_uptonight.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_astrodex.css?v={{ version }}">
+    <link rel="stylesheet" href="/static/css/bs_plan_my_night.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_equipment.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_metrics.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_events.css?v={{ version }}">
@@ -39,7 +40,9 @@
 <body>
     
     <div class="hero text-center mb-2 pb-1">
-        <h1 class="display-4 fw-bold"><img src="/static/img/favicon-animated.svg" alt="MyAstroBoard Logo" style="height: 1em; vertical-align: middle;"> MyAstroBoard</h1>
+        <h1 class="display-4 fw-bold">
+            <img src="/static/img/favicon-animated.svg" alt="MyAstroBoard Logo" style="height: 1em; vertical-align: middle;"> MyAstroBoard
+        </h1>
         <p class="lead" data-i18n="common.slogan">
             Astronomy Observation Planning Dashboard
         </p>
@@ -50,7 +53,12 @@
 
         <!-- Default Password Warning Banner -->
         <div id="default-password-warning" class="alert alert-warning alert-dismissible fade show mb-3" role="alert" style="display: none;">
-            <i class="bi bi-exclamation-triangle-fill icon-inline" aria-hidden="true"></i><b data-i18n="auth.default_password_warning_alert">You are using the default password</b> <span data-i18n="auth.default_password_warning_request">Please change it in the Users section for security.</span>
+            <i class="bi bi-exclamation-triangle-fill icon-inline" aria-hidden="true"></i>
+            <b data-i18n="auth.default_password_warning_alert">
+                You are using the default password
+            </b> <span data-i18n="auth.default_password_warning_request">
+                Please change it in the Users section for security.
+            </span>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
         
@@ -66,7 +74,9 @@
 
         <!-- Global UpTonight Scheduler Status Banner -->
         <div id="global-scheduler-banner" class="alert alert-info mb-3" role="alert" style="display: none;">
-            <div id="global-scheduler-progress" class="fw-bold" data-i18n="scheduler.processing_catalogues">Processing UpTonight catalogues...</div>
+            <div id="global-scheduler-progress" class="fw-bold" data-i18n="scheduler.processing_catalogues">
+                Processing UpTonight catalogues...
+            </div>
             <div id="global-scheduler-detail" class="global-status-detail"></div>
         </div>
 
@@ -76,40 +86,67 @@
         <!-- Navbar -->
         <nav class="navbar navbar-expand-lg rounded mb-3">
             <div class="container-fluid">
-                <!--<span class="navbar-brand mb-0 h1">
-                    Hey! <span id="username-display"></span>
-                </span>-->
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navBarMyAstroBoard" aria-controls="navBarMyAstroBoard" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navBarMyAstroBoard">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0 nav-pills">
                         <li class="nav-item">
-                            <a class="nav-link main-tab-btn active" aria-current="page" href="#" data-tab="forecast-astro"><i class="bi bi-telescope icon-inline" aria-hidden="true"></i><span data-i18n="navbar.astrophotography">Astrophotography</span></a>
+                            <a class="nav-link main-tab-btn active" aria-current="page" href="#" data-tab="forecast-astro">
+                                <i class="bi bi-telescope icon-inline" aria-hidden="true"></i>
+                                <span data-i18n="navbar.astrophotography">Astrophotography</span>
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link main-tab-btn" aria-current="page" href="#" data-tab="forecast-weather"><i class="bi bi-cloud-sun icon-inline" aria-hidden="true"></i><span data-i18n="navbar.weather">Weather</span></a>
+                            <a class="nav-link main-tab-btn" aria-current="page" href="#" data-tab="forecast-weather">
+                                <i class="bi bi-cloud-sun icon-inline" aria-hidden="true"></i>
+                                <span data-i18n="navbar.weather">Weather</span>
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link main-tab-btn" href="#" data-tab="uptonight"><i class="bi bi-journal-bookmark-fill icon-inline text-success" aria-hidden="true"></i><span data-i18n="navbar.uptonight">UpTonight</span></a>
+                            <a class="nav-link main-tab-btn" href="#" data-tab="uptonight">
+                                <i class="bi bi-journal-bookmark-fill icon-inline text-success" aria-hidden="true"></i>
+                                <span data-i18n="navbar.uptonight">UpTonight</span>
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link main-tab-btn" href="#" data-tab="astrodex"><i class="bi bi-stars icon-inline text-warning" aria-hidden="true"></i><span data-i18n="navbar.astrodex">Astrodex</span></a>
+                            <a class="nav-link main-tab-btn" href="#" data-tab="astrodex">
+                                <i class="bi bi-stars icon-inline text-warning" aria-hidden="true"></i>
+                                <span data-i18n="navbar.astrodex">Astrodex</span>
+                            </a>
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle main-tab-dropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-person icon-inline text-primary" aria-hidden="true"></i><span id="username-display"></span>
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="equipment"><i class="bi bi-binoculars icon-inline" aria-hidden="true"></i><span data-i18n="navbar.equipment">Equipment</span></a></li>
-                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="my-settings"><i class="bi bi-person icon-inline" aria-hidden="true"></i><span data-i18n="navbar.my_settings">My settings</span></a></li>
-                                <li><a class="dropdown-item main-tab-btn" href="#" data-tab="parameters"><i class="bi bi-gear icon-inline" aria-hidden="true"></i><span data-i18n="navbar.app_settings">App settings</span></a></li>
+                                <li>
+                                    <a class="dropdown-item main-tab-btn" href="#" data-tab="equipment">
+                                        <i class="bi bi-binoculars icon-inline" aria-hidden="true"></i>
+                                        <span data-i18n="navbar.equipment">Equipment</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item main-tab-btn" href="#" data-tab="my-settings">
+                                        <i class="bi bi-person icon-inline" aria-hidden="true"></i>
+                                        <span data-i18n="navbar.my_settings">My settings</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item main-tab-btn" href="#" data-tab="parameters">
+                                        <i class="bi bi-gear icon-inline" aria-hidden="true"></i>
+                                        <span data-i18n="navbar.app_settings">App settings</span>
+                                    </a>
+                                </li>
                             </ul>
                         </li>
                     </ul>
                     <ul class="navbar-nav nav-pills align-items-end" id="end-navbar">
                         <li class="nav-item">
-                            <a class="nav-link" href="#" id="logout-btn"><i class="bi bi-box-arrow-right icon-inline" aria-hidden="true"></i><span data-i18n="common.logout_label">Logout</span></a>
+                            <a class="nav-link" href="#" id="logout-btn">
+                                <i class="bi bi-box-arrow-right icon-inline" aria-hidden="true"></i>
+                                <span data-i18n="common.logout_label">Logout</span>
+                            </a>
                         </li>
                     </ul>
                 </div>
@@ -122,25 +159,46 @@
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
                 <ul class="nav nav-pills sub-tabs" id="forecast-astro-subtabs">
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn active" href="#" data-subtab="astro-weather"><i class="bi bi-binoculars icon-inline" aria-hidden="true"></i><span data-i18n="navbar.astro_weather">Astrophotography</span></a>
+                        <a class="nav-link sub-tab-btn active" href="#" data-subtab="astro-weather">
+                            <i class="bi bi-binoculars icon-inline" aria-hidden="true"></i>
+                            <span data-i18n="navbar.astro_weather">Astrophotography</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="window"><i class="bi bi-stars icon-inline text-warning" aria-hidden="true"></i><span data-i18n="navbar.best_window">Best window</span></a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="window">
+                            <i class="bi bi-stars icon-inline text-warning" aria-hidden="true"></i>
+                            <span data-i18n="navbar.best_window">Best window</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="moon"><i class="bi bi-moon-stars icon-inline" aria-hidden="true"></i><span data-i18n="navbar.moon">Moon</span></a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="moon">
+                            <i class="bi bi-moon-stars icon-inline" aria-hidden="true"></i>
+                            <span data-i18n="navbar.moon">Moon</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="sun"><i class="bi bi-sun icon-inline text-warning" aria-hidden="true"></i><span data-i18n="navbar.sun">Sun</span></a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="sun">
+                            <i class="bi bi-sun icon-inline text-warning" aria-hidden="true"></i>
+                            <span data-i18n="navbar.sun">Sun</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="aurora"><i class="bi bi-aurora icon-inline text-success" aria-hidden="true"></i><span data-i18n="navbar.aurora">Aurora Borealis</span></a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="aurora">
+                            <i class="bi bi-aurora icon-inline text-success" aria-hidden="true"></i>
+                            <span data-i18n="navbar.aurora">Aurora Borealis</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="iss"><i class="bi bi-iss icon-inline" aria-hidden="true"></i><span data-i18n="navbar.iss">ISS</span></a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="iss">
+                            <i class="bi bi-iss icon-inline" aria-hidden="true"></i>
+                            <span data-i18n="navbar.iss">ISS</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="calendar"><i class="bi bi-calendar-event text-danger icon-inline" aria-hidden="true"></i><span data-i18n="navbar.calendar">Events Calendar</span></a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="calendar">
+                            <i class="bi bi-calendar-event text-danger icon-inline" aria-hidden="true"></i>
+                            <span data-i18n="navbar.calendar">Events Calendar</span>
+                        </a>
                     </li>
                 </ul>
             </div>
@@ -148,14 +206,20 @@
             <!-- Astrophotography Weather Sub-tab -->
             <div id="astro-weather-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-thermometer-half icon-inline text-danger" aria-hidden="true"></i><span data-i18n="astro_weather.section_title">Current Conditions</span></h2>
+                    <h2>
+                        <i class="bi bi-thermometer-half icon-inline text-danger" aria-hidden="true"></i>
+                        <span data-i18n="astro_weather.section_title">Current Conditions</span>
+                    </h2>
                     
                     <!-- Loading State -->
                     <div id="astro-weather-loading" class="row row-cols-1">
                         <div class="col">
                             <div class="card h-100">
                                 <div class="card-body">
-                                    <h5 class="card-title"><i class="bi bi-clouds icon-inline" aria-hidden="true"></i><span data-i18n="common.loading">Loading...</span></h5>
+                                    <h5 class="card-title">
+                                        <i class="bi bi-clouds icon-inline" aria-hidden="true"></i>
+                                        <span data-i18n="common.loading">Loading...</span>
+                                    </h5>
                                     <p class="card-text" data-i18n="astro_weather.loading_details">Loading astrophotography weather analysis...</p>
                                 </div>
                             </div>
@@ -175,14 +239,20 @@
 
                 <!-- Horizon Graph -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container" id="horizon-graph-main" style="display: none;">
-                    <h2><i class="bi bi-sunrise icon-inline text-warning" aria-hidden="true"></i><span data-i18n="astro_weather.horizon_title">Horizon</span></h2>
+                    <h2>
+                        <i class="bi bi-sunrise icon-inline text-warning" aria-hidden="true"></i>
+                        <span data-i18n="astro_weather.horizon_title">Horizon</span>
+                    </h2>
                     <div id="horizon-graph-loading" style="display: none;" class="alert alert-info" data-i18n="astro_weather.loading_horizon_graph">Loading horizon graph...</div>
                     <div id="horizon-graph-error" style="display: none;"></div>
                     <div id="horizon-graph-display" class="row row-cols-1"></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container" id="best-observation-periods-main" style="display: none;">
-                    <h2><i class="bi bi-hourglass-split icon-inline" aria-hidden="true"></i><span data-i18n="astro_weather.best_periods_title">Best Observation Periods</span></h2>
+                    <h2>
+                        <i class="bi bi-hourglass-split icon-inline" aria-hidden="true"></i>
+                        <span data-i18n="astro_weather.best_periods_title">Best Observation Periods</span>
+                    </h2>
                     
                     <!-- Best Observation Periods -->
                     <!-- <div class="alert alert-info mb-2" role="alert" data-i18n="astro_weather.best_periods_description">Optimal periods for astrophotography in the next 24 hours</div>-->
@@ -190,14 +260,20 @@
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container" id="astro-weather-alerts-main" style="display: none;">
-                    <h2><i class="bi bi-exclamation-triangle-fill icon-inline text-warning" aria-hidden="true"></i><span data-i18n="astro_weather.alerts_title">Weather Alerts</span></h2>
+                    <h2>
+                        <i class="bi bi-exclamation-triangle-fill icon-inline text-warning" aria-hidden="true"></i>
+                        <span data-i18n="astro_weather.alerts_title">Weather Alerts</span>
+                    </h2>
                         
                     <!-- Weather Alerts -->
                     <div id="astro-weather-alerts"></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container" id="astro-advanced-weather-main" style="display: none;">
-                    <h2><i class="bi bi-bar-chart-line icon-inline text-info" aria-hidden="true"></i><span data-i18n="astro_weather.advanced_analysis_title">Advanced Weather Analysis</span></h2>
+                    <h2>
+                        <i class="bi bi-bar-chart-line icon-inline text-info" aria-hidden="true"></i>
+                        <span data-i18n="astro_weather.advanced_analysis_title">Advanced Weather Analysis</span>
+                    </h2>
 
                     <!-- Advanced Charts -->
                     <div class="row row-cols-1 row-cols-sm-1 row-cols-lg-1 row-cols-xl-2">
@@ -211,12 +287,24 @@
             <!-- Window Sub-tab -->
             <div id="window-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-stars icon-inline text-warning" aria-hidden="true"></i> <span data-i18n="best_window.section_title">Best Observation Window</span></h2>
+                    <h2>
+                        <i class="bi bi-stars icon-inline text-warning" aria-hidden="true"></i>
+                        <span data-i18n="best_window.section_title">Best Observation Window</span>
+                    </h2>
                     <div class="alert alert-info" role="alert">
                         <span data-i18n="best_window.info_1">Best next window is calculated within three differents modes, return is in hours:</span><br>
-                        - <b><span data-i18n="best_window.strict">Strict</span></b>: <span data-i18n="best_window.info_2">Sun altitude < -18&deg; AND Moon altitude < 0&deg; => No moon on sky</span><br>
-                        - <b><span data-i18n="best_window.practical">Practical</span></b>: <span data-i18n="best_window.info_3">Sun < -18&deg; AND Moon altitude < 5&deg; => Moon, but negligible</span><br>
-                        - <b><span data-i18n="best_window.illumination">Illumination</span></b>: <span data-i18n="best_window.info_4">Sun < -18&deg; AND Moon illumination < 15% => Visible moon, but faint</span>
+                        - <b>
+                            <span data-i18n="best_window.info_strict">Strict</span>
+                        </b>
+                        <span data-i18n="best_window.info_2">Sun altitude < -18&deg; AND Moon altitude < 0&deg; => No moon on sky</span><br>
+                        - <b>
+                            <span data-i18n="best_window.info_practical">Practical</span>
+                        </b>
+                        <span data-i18n="best_window.info_3">Sun < -18&deg; AND Moon altitude < 5&deg; => Moon, but negligible</span><br>
+                        - <b>
+                            <span data-i18n="best_window.info_illumination">Illumination</span>
+                        </b>
+                        <span data-i18n="best_window.info_4">Sun < -18&deg; AND Moon illumination < 15% => Visible moon, but faint</span>
                     </div>
                     <div class="alert alert-info" role="alert" id="window-loader-info-notice"></div>
                     <div id="window-display" class="row row-cols-1 row-cols-sm-1 row-cols-lg-2 row-cols-xl-4"></div>
@@ -226,23 +314,40 @@
             <!-- Moon Sub-tab -->
             <div id="moon-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-moon-stars icon-inline" aria-hidden="true"></i> <span data-i18n="navbar.moon">Moon</span></h2>
+                    <h2>
+                        <i class="bi bi-moon-stars icon-inline" aria-hidden="true"></i>
+                        <span data-i18n="navbar.moon">Moon</span>
+                    </h2>
                     <div id="moon-display" class="moon-info-card rounded"></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-moon-fill text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="moon.next_days">Moon next days</span></h2>
+                    <h2>
+                        <i class="bi bi-moon-fill text-warning icon-inline" aria-hidden="true"></i>
+                        <span data-i18n="moon.next_days">Moon next days</span>
+                    </h2>
                     <div class="alert alert-info" role="alert">
                         <span data-i18n="moon.info_1">Best next window is calculated within three differents modes, return is in hours:</span><br>
-                        - <b><span data-i18n="best_window.strict">Strict</span></b>: <span data-i18n="best_window.info_2">Sun altitude < -18&deg; AND Moon altitude < 0&deg; => No moon on sky</span><br>
-                        - <b><span data-i18n="best_window.practical">Practical</span></b>: <span data-i18n="best_window.info_3">Sun < -18&deg; AND Moon altitude < 5&deg; => Moon, but negligible</span><br>
-                        - <b><span data-i18n="best_window.illumination">Illumination</span></b>: <span data-i18n="best_window.info_4">Sun < -18&deg; AND Moon illumination < 15% => Visible moon, but faint</span>
+                        - <b>
+                            <span data-i18n="best_window.info_strict">Strict</span>
+                        </b>
+                        <span data-i18n="best_window.info_2">Sun altitude < -18&deg; AND Moon altitude < 0&deg; => No moon on sky</span><br>
+                        - <b>
+                            <span data-i18n="best_window.info_practical">Practical</span>
+                        </b>
+                        <span data-i18n="best_window.info_3">Sun < -18&deg; AND Moon altitude < 5&deg; => Moon, but negligible</span><br>
+                        - <b>
+                            <span data-i18n="best_window.info_illumination">Illumination</span>
+                        </b>
+                        <span data-i18n="best_window.info_4">Sun < -18&deg; AND Moon illumination < 15% => Visible moon, but faint</span>
                     </div>
                     <div id="moon-planner-display"></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-moon-stars icon-inline" aria-hidden="true"></i> <span data-i18n="moon.lunar_eclipse">Lunar Eclipse</span></h2>
+                    <h2>
+                        <i class="bi bi-moon-stars icon-inline" aria-hidden="true"></i> <span data-i18n="moon.lunar_eclipse">Lunar Eclipse</span>
+                    </h2>
                     <div id="lunar-eclipse-display" class="lunar-eclipse-info-card rounded"></div>
                 </div>
             </div>
@@ -250,12 +355,16 @@
             <!-- Sun Sub-tab -->
             <div id="sun-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-brightness-high-fill text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="navbar.sun">Sun</span></h2>
+                    <h2>
+                        <i class="bi bi-brightness-high-fill text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="navbar.sun">Sun</span>
+                    </h2>
                     <div id="sun-display" class="sun-info-card rounded"></div>
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-brightness-low text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="sun.solar_eclipse">Solar Eclipse</span></h2>
+                    <h2>
+                        <i class="bi bi-brightness-low text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="sun.solar_eclipse">Solar Eclipse</span>
+                    </h2>
                     <div id="solar-eclipse-display" class="solar-eclipse-info-card rounded"></div>
                 </div>
             </div>
@@ -263,7 +372,9 @@
             <!-- Aurora Borealis Sub-tab -->
             <div id="aurora-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-aurora text-success icon-inline" aria-hidden="true"></i> <span data-i18n="aurora.borealis_predictions">Aurora Borealis Predictions</span></h2>
+                    <h2>
+                        <i class="bi bi-aurora text-success icon-inline" aria-hidden="true"></i> <span data-i18n="aurora.borealis_predictions">Aurora Borealis Predictions</span>
+                    </h2>
                     <div id="aurora-display" class="aurora-info-card rounded"></div>
                 </div>
             </div>
@@ -271,7 +382,9 @@
             <!-- ISS Sub-tab -->
             <div id="iss-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-iss icon-inline" aria-hidden="true"></i> <span data-i18n="iss.passes">ISS Passes</span></h2>
+                    <h2>
+                        <i class="bi bi-iss icon-inline" aria-hidden="true"></i> <span data-i18n="iss.passes">ISS Passes</span>
+                    </h2>
                     <div id="iss-display" class="iss-info-card rounded"></div>
                 </div>
             </div>
@@ -279,7 +392,9 @@
             <!-- Events Calendar Sub-tab -->
             <div id="calendar-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-calendar-event text-danger icon-inline" aria-hidden="true"></i> <span data-i18n="navbar.calendar">Events Calendar</span></h2>
+                    <h2>
+                        <i class="bi bi-calendar-event text-danger icon-inline" aria-hidden="true"></i> <span data-i18n="navbar.calendar">Events Calendar</span>
+                    </h2>
                     <div id="calendar-display" class="calendar-info-card rounded">
                         <div class="alert alert-info" role="alert"></div>
                     </div>
@@ -295,10 +410,14 @@
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
                 <ul class="nav nav-pills sub-tabs" id="forecast-weather-subtabs">
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="weather"><i class="bi bi-cloud-sun icon-inline" aria-hidden="true"></i> <span data-i18n="navbar.weather">Weather</span></a>
+                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="weather">
+                            <i class="bi bi-cloud-sun icon-inline" aria-hidden="true"></i> <span data-i18n="navbar.weather">Weather</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="trend"><i class="bi bi-graph-up-arrow text-info icon-inline" aria-hidden="true"></i> <span data-i18n="weather.observation_conditions">Observation Conditions</span></a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="trend">
+                            <i class="bi bi-graph-up-arrow text-info icon-inline" aria-hidden="true"></i> <span data-i18n="weather.observation_conditions">Observation Conditions</span>
+                        </a>
                     </li>
                 </ul>
             </div>
@@ -312,7 +431,9 @@
                         <div class="col">
                             <div class="card h-100">
                                 <div class="card-body">
-                                    <h5 class="card-title"><i class="bi bi-cloud-sun icon-inline" aria-hidden="true"></i> <span data-i18n="weather.loading_title">Loading weather data...</span></h5>
+                                    <h5 class="card-title">
+                                        <i class="bi bi-cloud-sun icon-inline" aria-hidden="true"></i> <span data-i18n="weather.loading_title">Loading weather data...</span>
+                                    </h5>
                                     <p class="card-text" data-i18n="weather.loading_text">Fetching forecast and astronomical information</p>
                                 </div>
                             </div>
@@ -325,7 +446,9 @@
             <div id="trend-subtab" class="sub-tab-content">
                 <!-- Astronomical Observation Charts -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-stopwatch text-info icon-inline" aria-hidden="true"></i> <span data-i18n="weather.observation_next_hours">Observation Conditions - Next 12 Hours</span></h2>
+                    <h2>
+                        <i class="bi bi-stopwatch text-info icon-inline" aria-hidden="true"></i> <span data-i18n="weather.observation_next_hours">Observation Conditions - Next 12 Hours</span>
+                    </h2>
                     <div id="astro-charts-loading" class="alert alert-info" role="alert" data-i18n="weather.loading_astro">
                         Loading astronomical data...
                     </div>
@@ -358,9 +481,28 @@
 
         <!-- Astrodex Section -->
         <div id="astrodex-tab" class="main-tab-content">
+            <!-- My settings Sub-tabs -->
+            <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                <ul class="nav nav-pills sub-tabs" id="astrodex-subtabs">
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn active" href="#" data-subtab="astrodex">
+                            <i class="bi bi-stars text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="navbar.astrodex">Astrodex</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" aria-current="page" href="#" data-subtab="plan-my-night">
+                            <i class="bi bi-moon-stars-fill text-info icon-inline" aria-hidden="true"></i> <span data-i18n="navbar.plan_my_night">Plan My Night</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Astrodex Sub-tab -->
             <div id="astrodex-subtab" class="sub-tab-content active">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-stars text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="astrodex.title">Astrodex - Gotta Catch 'Em All!</span></h2>                
+                    <h2>
+                        <i class="bi bi-stars text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="astrodex.title">Astrodex - Gotta Catch 'Em All!</span>
+                    </h2>                
                     <p id="astrodex-collection-subtitle" data-i18n="astrodex.your_collection">Your personal collection of captured celestial objects</p>
                     
                     <!-- Stats Cards -->
@@ -370,7 +512,9 @@
                 
                 </div>
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2 id="astrodex-collection-title"><i class="bi bi-stars text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="astrodex.my_collection"></span>My Collection</span></h2>
+                    <h2 id="astrodex-collection-title">
+                        <i class="bi bi-stars text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="astrodex.my_collection"></span>My Collection</span>
+                    </h2>
                     <!-- Filters and Search -->
                     <div class="row g-3 mt-2 mb-3">
                         <div class="col-md-2">
@@ -409,11 +553,15 @@
                         </div>
 
                         <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary form-control" id="astrodex-sort-order"><i class="bi bi-sort-up icon-inline" aria-hidden="true"></i>Ascending</button>
+                            <button type="submit" class="btn btn-primary form-control" id="astrodex-sort-order">
+                                <i class="bi bi-sort-up icon-inline" aria-hidden="true"></i>Ascending
+                            </button>
                         </div>
 
                         <div class="col-md-2">
-                            <button type="submit" class="btn btn-success form-control" id="add-astrodex-item" data-action="add-astrodex-item"><i class="bi bi-plus-circle icon-inline" aria-hidden="true"></i>Add Object</button>
+                            <button type="submit" class="btn btn-success form-control" id="add-astrodex-item" data-action="add-astrodex-item">
+                                <i class="bi bi-plus-circle icon-inline" aria-hidden="true"></i>Add Object
+                            </button>
                         </div>
                     </div>
                     
@@ -426,6 +574,18 @@
 
                 </div>
             </div>
+
+            <!-- Plan My Night Sub-tab -->
+            <div id="plan-my-night-subtab" class="sub-tab-content">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
+                    <h2>
+                        <i class="bi bi-moon-stars-fill text-info icon-inline" aria-hidden="true"></i> <span data-i18n="navbar.plan_my_night">Plan My Night</span>
+                    </h2>
+                    <p class="text-muted" data-i18n="plan_my_night.section_intro">Build a private timeline for tonight directly from UpTonight targets.</p>
+                    <div id="plan-my-night-display"></div>
+                </div>
+            </div>
+
         </div>
 
         <!-- Equipment Section -->
@@ -434,25 +594,39 @@
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
                 <ul class="nav nav-pills sub-tabs" id="equipment-subtabs">
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="combinations"><i class="bi bi-stars text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.combinations">Combinations</span></a>
+                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="combinations">
+                            <i class="bi bi-stars text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.combinations">Combinations</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="fov"><i class="bi bi-eye-fill text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.fov_calculator">FOV Calculator</span></a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="fov">
+                            <i class="bi bi-eye-fill text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.fov_calculator">FOV Calculator</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="telescopes"><i class="bi bi-telescope icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.telescopes">Telescopes</span></a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="telescopes">
+                            <i class="bi bi-telescope icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.telescopes">Telescopes</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="cameras"><i class="bi bi-camera text-danger icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.cameras">Cameras</span></a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="cameras">
+                            <i class="bi bi-camera text-danger icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.cameras">Cameras</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="mounts"><i class="bi bi-arrows-move icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.mounts">Mounts</span></a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="mounts">
+                            <i class="bi bi-arrows-move icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.mounts">Mounts</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="filters"><i class="bi bi-funnel text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.filters">Filters</span></a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="filters">
+                            <i class="bi bi-funnel text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.filters">Filters</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="accessories"><i class="bi bi-gear icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.accessories">Accessories</span></a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="accessories">
+                            <i class="bi bi-gear icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.accessories">Accessories</span>
+                        </a>
                     </li>
                 </ul>
             </div>
@@ -460,9 +634,13 @@
             <!-- Combinations Sub-tab -->
             <div id="combinations-subtab" class="sub-tab-content active">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2><i class="bi bi-stars text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.eq_combinations">Equipment Combinations</span></h2>
+                    <h2>
+                        <i class="bi bi-stars text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.eq_combinations">Equipment Combinations</span>
+                    </h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted" data-i18n="equipment.eq_combinations_description">Combine telescope, camera, mount, accessories, and filters to analyze setup compatibility and FOV. This setup will be also selectable on Astrodex.</p>
+                        <p class="text-muted" data-i18n="equipment.eq_combinations_description">
+                            Combine telescope, camera, mount, accessories, and filters to analyze setup compatibility and FOV. This setup will be also selectable on Astrodex.
+                        </p>
                         <button class="btn btn-success btn-new-combination" data-i18n="equipment.new_combination">New Combination</button>
                     </div>
                     <div id="equipment-combinations-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
@@ -474,7 +652,9 @@
             <!-- FOV Calculator Sub-tab -->
             <div id="fov-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2><i class="bi bi-eye-fill text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.fov_calculator_cpl">Field of View Calculator</span></h2>
+                    <h2>
+                        <i class="bi bi-eye-fill text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.fov_calculator_cpl">Field of View Calculator</span>
+                    </h2>
                     <div id="equipment-fov-display"></div>
                 </div>
             </div>
@@ -482,9 +662,13 @@
             <!-- Telescopes Sub-tab -->
             <div id="telescopes-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2><i class="bi bi-telescope icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.telescopes">Telescopes</span></h2>
+                    <h2>
+                        <i class="bi bi-telescope icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.telescopes">Telescopes</span>
+                    </h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted" data-i18n="equipment.telescopes_description">Manage your telescope profiles with automatic calculation of focal ratios and effective focal lengths.</p>                    
+                        <p class="text-muted" data-i18n="equipment.telescopes_description">
+                            Manage your telescope profiles with automatic calculation of focal ratios and effective focal lengths.
+                        </p>                    
                         <button class="btn btn-success btn-new-telescope" data-i18n="equipment.new_telescope">New Telescope</button>
                     </div>
                     <div id="equipment-telescopes-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
@@ -496,9 +680,13 @@
             <!-- Cameras Sub-tab -->
             <div id="cameras-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                        <h2><i class="bi bi-camera text-danger icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.cameras">Cameras</span></h2>
+                    <h2>
+                        <i class="bi bi-camera text-danger icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.cameras">Cameras</span>
+                    </h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted" data-i18n="equipment.cameras_description">Manage your camera profiles with automatic calculation of sensor diagonal and image scale.</p>
+                        <p class="text-muted" data-i18n="equipment.cameras_description">
+                            Manage your camera profiles with automatic calculation of sensor diagonal and image scale.
+                        </p>
                         <button class="btn btn-success btn-new-camera" data-i18n="equipment.new_camera">New Camera</button>
                     </div>
                     <div id="equipment-cameras-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
@@ -510,9 +698,13 @@
             <!-- Mounts Sub-tab -->
             <div id="mounts-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2><i class="bi bi-arrows-move icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.mounts">Mounts</span></h2>
+                    <h2>
+                        <i class="bi bi-arrows-move icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.mounts">Mounts</span>
+                    </h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted" data-i18n="equipment.mounts_description">Manage your mount profiles with automatic calculation of recommended imaging payload.</p>
+                        <p class="text-muted" data-i18n="equipment.mounts_description">
+                            Manage your mount profiles with automatic calculation of recommended imaging payload.
+                        </p>
                         <button class="btn btn-success btn-new-mount" data-i18n="equipment.new_mount">New Mount</button>
                     </div>
                     <div id="equipment-mounts-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
@@ -524,9 +716,13 @@
             <!-- Filters Sub-tab -->
             <div id="filters-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2><i class="bi bi-funnel text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.filters">Filters</span></h2>
+                    <h2>
+                        <i class="bi bi-funnel text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.filters">Filters</span>
+                    </h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted" data-i18n="equipment.filters_description">Manage your filter profiles for LRGB, narrowband, broadband, and other imaging filters.</p>
+                        <p class="text-muted" data-i18n="equipment.filters_description">
+                            Manage your filter profiles for LRGB, narrowband, broadband, and other imaging filters.
+                        </p>
                         <button class="btn btn-success btn-new-filter" data-i18n="equipment.new_filter">New Filter</button>
                     </div>
                     <div id="equipment-filters-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
@@ -538,9 +734,13 @@
             <!-- Accessories Sub-tab -->
             <div id="accessories-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container equipment-subtab">
-                    <h2><i class="bi bi-gear icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.accessories">Accessories</span></h2>
+                    <h2>
+                        <i class="bi bi-gear icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.accessories">Accessories</span>
+                    </h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted" data-i18n="equipment.accessories_description">Manage your accessory profiles for focusers, field flatteners, filter wheels, and other equipment.</p>
+                        <p class="text-muted" data-i18n="equipment.accessories_description">
+                            Manage your accessory profiles for focusers, field flatteners, filter wheels, and other equipment.
+                        </p>
                         <button class="btn btn-success btn-new-accessory" data-i18n="equipment.new_accessory">New Accessory</button>
                     </div>
                     <div id="equipment-accessories-display" class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
@@ -556,10 +756,14 @@
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
                 <ul class="nav nav-pills sub-tabs" id="my-settings-subtabs">
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn active" href="#" data-subtab="customize"><i class="bi bi-palette text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="settings.customize">Customize</span></a>
+                        <a class="nav-link sub-tab-btn active" href="#" data-subtab="customize">
+                            <i class="bi bi-palette text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="settings.customize">Customize</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" aria-current="page" href="#" data-subtab="security"><i class="bi bi-shield-lock text-danger icon-inline" aria-hidden="true"></i> <span data-i18n="settings.security">Security</span></a>
+                        <a class="nav-link sub-tab-btn" aria-current="page" href="#" data-subtab="security">
+                            <i class="bi bi-shield-lock text-danger icon-inline" aria-hidden="true"></i> <span data-i18n="settings.security">Security</span>
+                        </a>
                     </li>
                 </ul>
             </div>
@@ -567,9 +771,13 @@
             <!-- Customize Sub-tab -->
             <div id="customize-subtab" class="sub-tab-content active">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-palette text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="settings.customize">Customize</span></h2>
+                    <h2>
+                        <i class="bi bi-palette text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="settings.customize">Customize</span>
+                    </h2>
 
-                    <div class="alert alert-info" role="alert" data-i18n="settings.customize_info">Personalize your dashboard defaults and display preferences. These settings apply only to your account.</div>
+                    <div class="alert alert-info" role="alert" data-i18n="settings.customize_info">
+                        Personalize your dashboard defaults and display preferences. These settings apply only to your account.
+                    </div>
 
                     <div id="customize-message" class="alert" role="alert" style="display: none;"></div>
 
@@ -637,9 +845,13 @@
             <!-- Security Sub-tab -->
             <div id="security-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-shield-lock text-danger icon-inline" aria-hidden="true"></i> <span data-i18n="settings.security">Security</span></h2>
+                    <h2>
+                        <i class="bi bi-shield-lock text-danger icon-inline" aria-hidden="true"></i> <span data-i18n="settings.security">Security</span>
+                    </h2>
 
-                    <div class="alert alert-info" role="alert" data-i18n="settings.security_password_change_info">Change your account password. Your current password is required for confirmation.</div>
+                    <div class="alert alert-info" role="alert" data-i18n="settings.security_password_change_info">
+                        Change your account password. Your current password is required for confirmation.
+                    </div>
 
                     <div id="security-password-message" class="alert" role="alert" style="display: none;"></div>
 
@@ -681,19 +893,29 @@
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
                 <ul class="nav nav-pills sub-tabs" id="forecast-subtabs">
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="configuration"><i class="bi bi-gear text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="settings.configuration">Configuration</span></a>
+                        <a class="nav-link sub-tab-btn active" aria-current="page" href="#" data-subtab="configuration">
+                            <i class="bi bi-gear text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="settings.configuration">Configuration</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="advanced"><i class="bi bi-gear-wide-connected text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="settings.advanced">Advanced Settings</span></a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="advanced">
+                            <i class="bi bi-gear-wide-connected text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="settings.advanced">Advanced Settings</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="logs"><i class="bi bi-journal-text text-info icon-inline" aria-hidden="true"></i> <span data-i18n="settings.logs">Logs</span></a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="logs">
+                            <i class="bi bi-journal-text text-info icon-inline" aria-hidden="true"></i> <span data-i18n="settings.logs">Logs</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="users"><i class="bi bi-people text-success icon-inline" aria-hidden="true"></i> <span data-i18n="settings.users">Users</span></a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="users">
+                            <i class="bi bi-people text-success icon-inline" aria-hidden="true"></i> <span data-i18n="settings.users">Users</span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="metrics"><i class="bi bi-graph-up text-secondary icon-inline" aria-hidden="true"></i> <span data-i18n="settings.metrics">Metrics</span></a>
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="metrics">
+                            <i class="bi bi-graph-up text-secondary icon-inline" aria-hidden="true"></i> <span data-i18n="settings.metrics">Metrics</span>
+                        </a>
                     </li>
                 </ul>
             </div>
@@ -701,9 +923,13 @@
             <!-- Configuration Sub-tab -->
             <div id="configuration-subtab" class="sub-tab-content active">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-geo-alt text-danger icon-inline" aria-hidden="true"></i> <span data-i18n="settings.location">Location Settings</span></h2>
+                    <h2>
+                        <i class="bi bi-geo-alt text-danger icon-inline" aria-hidden="true"></i> <span data-i18n="settings.location">Location Settings</span>
+                    </h2>
                     
-                    <div class="alert alert-info" role="alert" data-i18n="settings.location_info">Location parameters are used for accurate weather, astronomical calculations, and UpTonight scheduling.</div>
+                    <div class="alert alert-info" role="alert" data-i18n="settings.location_info">
+                        Location parameters are used for accurate weather, astronomical calculations, and UpTonight scheduling.
+                    </div>
                     
                     <div class="row g-3">
                         <div class="col-12">
@@ -744,7 +970,9 @@
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-journal-bookmark-fill text-success icon-inline" aria-hidden="true"></i> <span data-i18n="settings.target_catalogues">Target Catalogues</span></h2>
+                    <h2>
+                        <i class="bi bi-journal-bookmark-fill text-success icon-inline" aria-hidden="true"></i> <span data-i18n="settings.target_catalogues">Target Catalogues</span>
+                    </h2>
                     
                     <div class="alert alert-info" role="alert" data-i18n="settings.target_catalogues_info">These parameters are used for UpTonight scheduler.</div>
 
@@ -754,11 +982,17 @@
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-stars text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="settings.astrodex">Astrodex</span></h2>
+                    <h2>
+                        <i class="bi bi-stars text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="settings.astrodex">Astrodex</span>
+                    </h2>
 
                     <div class="alert alert-info" role="alert">
-                        <span data-i18n="settings.astrodex_info_1">The Astrodex is shared by default between all users. Thats mean every body can fill the Astrodex, but only the owner of the picture can edit or delete it.</span><br>
-                        <span data-i18n="settings.astrodex_info_2">If needed, you can set up a private Astrodex for each user.</span>
+                        <span data-i18n="settings.astrodex_info_1">
+                            The Astrodex is shared by default between all users. Thats mean every body can fill the Astrodex, but only the owner of the picture can edit or delete it.
+                        </span><br>
+                        <span data-i18n="settings.astrodex_info_2">
+                            If needed, you can set up a private Astrodex for each user.
+                        </span>
                     </div>
 
                     <div class="bg-features p-3 rounded">
@@ -772,17 +1006,27 @@
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-save text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="settings.save_actions">Save & Actions</span></h2>
+                    <h2>
+                        <i class="bi bi-save text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="settings.save_actions">Save & Actions</span>
+                    </h2>
                     
                     <div class="alert alert-info" role="alert" data-i18n="settings.save_actions_info">
                         When new UpTonight settings are saved, a manual run may be required to see changes on dashboard, or wait for the next scheduled run.
                     </div>
 
                     <div>
-                        <button id="save-config" class="btn btn-primary mb-2"><i class="bi bi-save icon-inline" aria-hidden="true"></i> <span data-i18n="settings.save_configuration">Save Configuration</span></button>
-                        <button id="run-now" class="btn btn-success mb-2"><i class="bi bi-play-circle icon-inline" aria-hidden="true"></i> <span data-i18n="scheduler.run_now">Run UpTonight Now</span></button>
-                        <button id="view-config-main" class="btn btn-secondary mb-2"><i class="bi bi-eye icon-inline" aria-hidden="true"></i> <span data-i18n="settings.view_uptonight_configs">View UpTonight Configs</span></button>
-                        <button id="export-config-main" class="btn btn-secondary mb-2"><i class="bi bi-download icon-inline" aria-hidden="true"></i> <span data-i18n="settings.export_general_config">Export General Config</span></button>
+                        <button id="save-config" class="btn btn-primary mb-2">
+                            <i class="bi bi-save icon-inline" aria-hidden="true"></i> <span data-i18n="settings.save_configuration">Save Configuration</span>
+                        </button>
+                        <button id="run-now" class="btn btn-success mb-2">
+                            <i class="bi bi-play-circle icon-inline" aria-hidden="true"></i> <span data-i18n="scheduler.run_now">Run UpTonight Now</span>
+                        </button>
+                        <button id="view-config-main" class="btn btn-secondary mb-2">
+                            <i class="bi bi-eye icon-inline" aria-hidden="true"></i> <span data-i18n="settings.view_uptonight_configs">View UpTonight Configs</span>
+                        </button>
+                        <button id="export-config-main" class="btn btn-secondary mb-2">
+                            <i class="bi bi-download icon-inline" aria-hidden="true"></i> <span data-i18n="settings.export_general_config">Export General Config</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -791,9 +1035,13 @@
             <div id="advanced-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
                     <div class="alert alert-info" role="alert">
-                        <span data-i18n="settings.uptonight_info">All parameters of this page are coming from UpTonight, please check the UpTonight documentation for more details.</span> <a href="https://github.com/mawinkler/uptonight" target="_blank">Github</a>
+                        <span data-i18n="settings.uptonight_info">
+                            All parameters of this page are coming from UpTonight, please check the UpTonight documentation for more details.
+                        </span> <a href="https://github.com/mawinkler/uptonight" target="_blank">Github</a>
                     </div>
-                    <h2><i class="bi bi-collection text-info icon-inline" aria-hidden="true"></i> <span data-i18n="settings.features">Features</span></h2>
+                    <h2>
+                        <i class="bi bi-collection text-info icon-inline" aria-hidden="true"></i> <span data-i18n="settings.features">Features</span>
+                    </h2>
                     <div class="bg-features p-3 rounded">
                         <div class="form-check form-switch">
                             <input type="checkbox" id="feature-horizon" class="form-check-input" checked switch>
@@ -824,7 +1072,9 @@
                 </div>
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-link text-secondary icon-inline" aria-hidden="true"></i> <span data-i18n="settings.constraints">Constraints</span></h2>
+                    <h2>
+                        <i class="bi bi-link text-secondary icon-inline" aria-hidden="true"></i> <span data-i18n="settings.constraints">Constraints</span>
+                    </h2>
                     <div class="form-check form-switch form-check-inline bg-checkbox">
                         <input id="use-constraints" class="form-check-input" type="checkbox" switch>
                         <label class="form-check-label" for="use-constraints" data-i18n="settings.use_constraints">Use Constraints</label>
@@ -887,7 +1137,9 @@
                 </div>
                 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-galaxy icon-inline" aria-hidden="true"></i> <span data-i18n="settings.bucket_list">Bucket List</span></h2>
+                    <h2>
+                        <i class="bi bi-galaxy icon-inline" aria-hidden="true"></i> <span data-i18n="settings.bucket_list">Bucket List</span>
+                    </h2>
                     <div class="form-group">
                         <small data-i18n="settings.bucket_list_info">Targets to always include (one per line). These will show if visible, ignoring constraints. Use the 'name' attribute for identification.</small>
                         <div class="yaml-editor-container" id="bucket-list-container">
@@ -902,7 +1154,9 @@
                 </div>
                 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-check2-circle icon-inline" aria-hidden="true"></i> <span data-i18n="settings.done_list">Done List</span></h2>
+                    <h2>
+                        <i class="bi bi-check2-circle icon-inline" aria-hidden="true"></i> <span data-i18n="settings.done_list">Done List</span>
+                    </h2>
                     <div class="form-group">
                         <small data-i18n="settings.done_list_info">Targets to never show (one per line). Use the 'name' attribute for identification.</small>
                         <div class="yaml-editor-container" id="done-list-container">
@@ -917,7 +1171,9 @@
                 </div>
                 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-galaxy icon-inline" aria-hidden="true"></i> <span data-i18n="settings.custom_targets">Custom Targets</span></h2>
+                    <h2>
+                        <i class="bi bi-galaxy icon-inline" aria-hidden="true"></i> <span data-i18n="settings.custom_targets">Custom Targets</span>
+                    </h2>
                     <div class="form-group">
                         <small data-i18n="settings.custom_targets_info">Define custom targets in YAML format. Required fields: name, ra, dec. Optional: description, type, constellation, size, mag.</small>
                         <div class="yaml-editor-container" id="custom-targets-container">
@@ -932,7 +1188,9 @@
                 </div>
                 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-brightness-alt-low text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="settings.horizon">Horizon</span></h2>
+                    <h2>
+                        <i class="bi bi-brightness-alt-low text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="settings.horizon">Horizon</span>
+                    </h2>
                     <div class="form-group">
                         <small data-i18n="settings.horizon_info">Define horizon anchor points in YAML format. Anchor points should start with azimuth 0 and end with 360 degrees. Feature Horizon must be enabled.</small>
                         <div class="yaml-editor-container" id="horizon-config-container">
@@ -950,7 +1208,9 @@
                     </div>
 
                     <div class="button-group">
-                        <button id="save-advanced" class="btn btn-primary"><i class="bi bi-save icon-inline" aria-hidden="true"></i> <span data-i18n="settings.save_advanced_settings">Save Advanced Settings</span></button>
+                        <button id="save-advanced" class="btn btn-primary">
+                            <i class="bi bi-save icon-inline" aria-hidden="true"></i> <span data-i18n="settings.save_advanced_settings">Save Advanced Settings</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -958,7 +1218,9 @@
             <!-- Logs Sub-tab -->
             <div id="logs-subtab" class="sub-tab-content">                
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-journal-text text-info icon-inline" aria-hidden="true"></i> <span data-i18n="settings.system_logs">System Logs</span></h2>
+                    <h2>
+                        <i class="bi bi-journal-text text-info icon-inline" aria-hidden="true"></i> <span data-i18n="settings.system_logs">System Logs</span>
+                    </h2>
                     <div class="row row-cols-lg-auto g-3 align-items-center">
                         <div class="col-12">
                             <select class="form-select" id="log-level">
@@ -991,7 +1253,9 @@
             <!-- Users Management Sub-tab (Admin only) -->
             <div id="users-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-people text-success icon-inline" aria-hidden="true"></i> <span data-i18n="users.user_management">User Management</span></h2>
+                    <h2>
+                        <i class="bi bi-people text-success icon-inline" aria-hidden="true"></i> <span data-i18n="users.user_management">User Management</span>
+                    </h2>
                     <div data-i18n="users.manage_users">Manage users and their access roles.</div>
                     
                     <!-- Create User Form -->
@@ -1025,7 +1289,9 @@
                 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">    
                     <!-- Users List -->
-                    <h2><i class="bi bi-people-fill text-success icon-inline" aria-hidden="true"></i> <span data-i18n="users.existing_users">Existing Users</span></h2>
+                    <h2>
+                        <i class="bi bi-people-fill text-success icon-inline" aria-hidden="true"></i> <span data-i18n="users.existing_users">Existing Users</span>
+                    </h2>
                     <div id="users-list"></div>
                 </div>
             </div>
@@ -1033,7 +1299,9 @@
             <!-- Metrics Sub-tab -->
             <div id="metrics-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2><i class="bi bi-bar-chart-line text-info icon-inline" aria-hidden="true"></i> <span data-i18n="metrics.system_metrics">System Metrics</span></h2>
+                    <h2>
+                        <i class="bi bi-bar-chart-line text-info icon-inline" aria-hidden="true"></i> <span data-i18n="metrics.system_metrics">System Metrics</span>
+                    </h2>
                     <div class="alert alert-info" role="alert" data-i18n="metrics.info_title">
                         System performance and resource monitoring. Data refreshes automatically every 5 seconds.
                     </div>
@@ -1108,7 +1376,9 @@
 
                 <!-- Disk Metrics -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3><i class="bi bi-hdd text-secondary icon-inline" aria-hidden="true"></i> <span data-i18n="metrics.disk_storage">Disk Storage</span></h3>
+                    <h3>
+                        <i class="bi bi-hdd text-secondary icon-inline" aria-hidden="true"></i> <span data-i18n="metrics.disk_storage">Disk Storage</span>
+                    </h3>
                     <!-- Disk Folder Breakdown -->
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -1244,7 +1514,9 @@
 
                 <!-- System Info -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h3><i class="bi bi-cloud text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="metrics.system_info">System Information</span></h3>
+                    <h3>
+                        <i class="bi bi-cloud text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="metrics.system_info">System Information</span>
+                    </h3>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <div class="card h-100">
@@ -1378,10 +1650,17 @@
     <footer class="site-footer border-footer">
         <div class="footer-inner">
             <div class="footer-section footer-brand">
-                <span class="text-light"><span data-i18n="common.title_html">MyAstroBoard - Astronomy Observation Planning Dashboard</span>&nbsp;|&nbsp;<span id="version" class="text-light"></span></span>
+                <span class="text-light">
+                    <span data-i18n="common.title_html">MyAstroBoard - Astronomy Observation Planning Dashboard</span>
+                    &nbsp;|&nbsp;
+                    <span id="version" class="text-light"></span>
+                </span>
             </div>
             <div class="footer-section footer-update">
-                <span id="update-notification" class="text-light" style="display: none;"><i class="bi bi-stars icon-inline" aria-hidden="true"></i>A new version is available! <a id="update-link" href="#" class="link-light link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover"></a></span>
+                <span id="update-notification" class="text-light" style="display: none;">
+                    <i class="bi bi-stars icon-inline" aria-hidden="true"></i>
+                    A new version is available! <a id="update-link" href="#" class="link-light link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover"></a>
+                </span>
             </div>
             <div class="footer-section footer-actions">
                 <div class="footer-language">
@@ -1406,9 +1685,7 @@
                     <span data-i18n="pwa.install_app"></span>
                 </button>
                 <a href="https://github.com/WorldOfGZ/myastroboard" target="_blank" rel="noopener noreferrer" class="footer-github link-light link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover">
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-                    </svg>
+                    <i class="bi bi-github icon-inline"></i>
                     GitHub
                 </a>
             </div>
@@ -1499,6 +1776,7 @@
     <script src="/static/js/weather_astro.js?v={{ version }}"></script>
     <script src="/static/js/weather_alerts.js?v={{ version }}"></script>
     <script src="/static/js/astrodex.js?v={{ version }}"></script>
+    <script src="/static/js/plan_my_night.js?v={{ version }}"></script>
     <script src="/static/js/equipment.js?v={{ version }}"></script>
     <script src="/static/js/config.js?v={{ version }}"></script>
     <script src="/static/js/uptonight.js?v={{ version }}"></script>

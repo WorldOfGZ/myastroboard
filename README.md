@@ -48,6 +48,15 @@ Astrodex is your personal tracker for every celestial object you've captured. Br
 
 ![Astrodex Collection](docs/img/astrodex.png)
 
+### Plan My Night: Build Your Observation Timeline
+Plan My Night helps you transform UpTonight targets into a practical session timeline for the current astronomical night.
+
+- Build an ordered target list for your night session
+- Set per-target photo durations in HH:MM
+- Reorder targets quickly to match your real observing strategy
+- Track timeline progress and current target during the night
+- Export your plan as CSV or PDF for field use
+
 ### Equipment Profiles System
 - **Telescope profiles**: focal length, aperture, type
 - **Camera profiles**: sensor size, pixel size, ...

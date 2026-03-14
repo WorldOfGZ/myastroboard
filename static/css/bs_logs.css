@@ -3,7 +3,7 @@
 .logs-container {
     background: var(--log-bg);
     color: var(--log-text);
-    padding: 20px;
+    padding: var(--space-5);
     border-radius: var(--border-radius-lg);
     max-height: 500px;
     overflow-y: auto;
@@ -13,7 +13,7 @@
 }
 
 .log-entry {
-    padding: 6px 0;
+    padding: 0.375rem 0;
     border-bottom: 1px solid var(--log-border);
 }
 
@@ -38,10 +38,10 @@
 }
 
 .log-info-header {
-    padding: 12px;
+    padding: var(--space-3);
     background: var(--log-header-bg);
     border-radius: var(--border-radius);
-    margin-bottom: 15px;
+    margin-bottom: var(--space-5);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -53,12 +53,12 @@
     background: var(--log-select-bg);
     color: var(--log-header-text);
     border: 1px solid var(--log-select-border);
-    border-radius: 4px;
-    padding: 4px 8px;
+    border-radius: var(--border-radius);
+    padding: var(--space-1) var(--space-2);
 }
 
 .log-empty {
     color: var(--log-empty-text);
     text-align: center;
-    padding: 20px;
+    padding: var(--space-5);
 }

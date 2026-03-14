@@ -212,6 +212,8 @@ function switchSubTab(parentTab, subtabName) {
     } else if (subtabName === 'calendar') { //Astro Forecast tab - Events Calendar
         clearEventsCache();
         loadAndDisplayEvents();
+    } else if (subtabName === 'plan-my-night') { //Astrodex tab - Plan My Night
+        loadPlanMyNight();
     }
 }
 

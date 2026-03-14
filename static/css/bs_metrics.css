@@ -2,12 +2,12 @@
 
 #metrics-subtab .card {
     transition: all var(--transition-normal);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-xs);
 }
 
 #metrics-subtab .card:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+    transform: var(--hover-lift-md);
 }
 
 #metrics-subtab .card-body {
@@ -16,7 +16,7 @@
 
 #metrics-subtab .card-title {
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     margin-bottom: 1rem;
     color: var(--text-color);
     border-bottom: 2px solid var(--surface-border);
@@ -40,7 +40,7 @@
     align-items: center;
     gap: 0.4rem;
     font-size: 0.85rem;
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     color: var(--text-color);
 }
 
@@ -52,7 +52,7 @@
 
 #metrics-subtab .disk-usage-progress {
     height: 8px;
-    border-radius: 999px;
+    border-radius: var(--border-radius-pill);
     overflow: hidden;
 }
 
@@ -73,7 +73,7 @@
 #metrics-subtab .processes-panel {
     background: var(--surface-1);
     border: 1px solid var(--surface-border);
-    border-radius: 12px;
+    border-radius: var(--border-radius-card);
     padding: 1rem;
 }
 
@@ -109,7 +109,7 @@
 
 #metrics-subtab .processes-table-wrap {
     border: 1px solid var(--surface-border);
-    border-radius: 10px;
+    border-radius: var(--border-radius-card);
     overflow: hidden;
 }
 
@@ -156,7 +156,7 @@
 }
 
 #metrics-subtab .process-main-name {
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     color: var(--text-color);
     line-height: 1.2;
 }
@@ -164,9 +164,9 @@
 #metrics-subtab .process-container-chip {
     margin-left: 0.35rem;
     padding: 0.1rem 0.4rem;
-    border-radius: 999px;
+    border-radius: var(--border-radius-pill);
     font-size: 0.62rem;
-    font-weight: 700;
+    font-weight: var(--font-bold);
     letter-spacing: 0.03em;
     text-transform: uppercase;
     color: var(--accent-1);
@@ -191,7 +191,7 @@
     width: 48px;
     height: 6px;
     background: var(--surface-card);
-    border-radius: 99px;
+    border-radius: var(--border-radius-pill);
     overflow: hidden;
 }
 
@@ -209,12 +209,12 @@
 #metrics-subtab .progress {
     background-color: var(--surface-card);
     border: 1px solid var(--surface-border);
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     overflow: hidden;
 }
 
 #metrics-subtab .progress-bar {
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     font-size: 0.875rem;
     display: flex;
     align-items: center;
@@ -236,7 +236,7 @@
 
 #metrics-subtab h3 {
     color: var(--text-color);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     font-size: 1.25rem;
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
@@ -251,7 +251,7 @@
 
 #metrics-subtab p strong {
     color: var(--text-color);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     min-width: 140px;
     display: inline-block;
 }
@@ -285,7 +285,7 @@
 #metrics-subtab [id^="system-"],
 #metrics-subtab [id^="process-"],
 #metrics-subtab [id^="network-"] {
-    transition: color 0.3s ease;
+    transition: color var(--transition-smooth);
 }
 
 /* Alert styling in metrics */

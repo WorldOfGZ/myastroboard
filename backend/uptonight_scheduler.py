@@ -15,6 +15,14 @@ from constants import DATA_DIR, DATA_DIR_CACHE, HOST_UPTONIGHT_DIR, OUTPUT_DIR, 
 from logging_config import get_logger
 from utils import IndentDumper
 
+try:
+    import docker
+    from docker.errors import DockerException, ImageNotFound
+except Exception:  # pragma: no cover - optional dependency fallback for local environments
+    docker = None
+    DockerException = Exception
+    ImageNotFound = Exception
+
 # Configure logging and ensure data directory exists
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(DATA_DIR_CACHE, exist_ok=True)
@@ -43,6 +51,9 @@ class UptonightScheduler:
         self.running = False
         self.thread = None
         self.last_run = None
+        self._docker_client = self._init_docker_client()
+        self._running_container = None  # Docker SDK container currently executing
+        self._cleanup_orphaned_containers()  # Remove any containers left by a previous SIGKILL
 
         # Progress tracking
         self.current_catalogue = None
@@ -60,6 +71,115 @@ class UptonightScheduler:
         os.makedirs(CONFIG_DIR, exist_ok=True)
         os.makedirs(DATA_DIR_CACHE, exist_ok=True)
         self._sanitize_config_directory()
+
+    # Label attached to every UpTonight container we create so orphans can be found on restart.
+    _CONTAINER_LABEL = 'com.myastroboard.uptonight'
+
+    def _init_docker_client(self):
+        """Initialize Docker SDK client if available and daemon is reachable."""
+        if docker is None:
+            logger.warning("Python Docker SDK not available, falling back to docker CLI if present")
+            return None
+
+        try:
+            client = docker.from_env()
+            client.ping()
+            logger.debug("Docker SDK client initialized")
+            return client
+        except Exception as e:
+            logger.warning(f"Docker SDK unavailable ({e}), falling back to docker CLI if present")
+            return None
+
+    def _cleanup_orphaned_containers(self):
+        """Stop and remove UpTonight containers left behind by a previous SIGKILL."""
+        if self._docker_client is None:
+            return
+        try:
+            orphans = self._docker_client.containers.list(
+                filters={'label': self._CONTAINER_LABEL, 'status': 'running'}
+            )
+            for c in orphans:
+                cid = (c.id or 'unknown')[:12]
+                logger.warning(f"Removing orphaned UpTonight container: {cid}")
+                try:
+                    c.stop(timeout=5)
+                    c.remove(force=True)
+                except Exception as e:
+                    logger.warning(f"Failed to remove orphaned container {cid}: {e}")
+        except Exception as e:
+            logger.warning(f"Orphan container cleanup failed: {e}")
+
+    def _docker_pull(self, image_name: str):
+        """Pull image through Docker SDK, fallback to docker CLI."""
+        if self._docker_client is not None:
+            self._docker_client.images.pull(image_name)
+            return
+
+        subprocess.run(['docker', 'pull', image_name], check=True, capture_output=True, timeout=300)
+
+    def _docker_run_uptonight(self, host_config_path: str, host_output_path: str):
+        """Run upTonight container through Docker SDK, fallback to docker CLI."""
+        if self._docker_client is not None:
+            container = self._docker_client.containers.run(
+                UPTONIGHT_IMAGE,
+                detach=True,
+                labels={self._CONTAINER_LABEL: 'true'},
+                volumes={
+                    host_config_path: {'bind': '/app/config.yaml', 'mode': 'ro'},
+                    host_output_path: {'bind': '/app/out', 'mode': 'rw'},
+                },
+            )
+            self._running_container = container
+            try:
+                result = container.wait()
+                return_code = result.get('StatusCode', 1)
+                stdout = container.logs(stdout=True, stderr=False).decode('utf-8', errors='replace')
+                stderr = container.logs(stdout=False, stderr=True).decode('utf-8', errors='replace')
+            finally:
+                self._running_container = None
+                try:
+                    container.remove()
+                except Exception:
+                    pass
+            return return_code, stdout, stderr
+
+        docker_cmd = [
+            'docker', 'run', '--rm',
+            '-v', f'{host_config_path}:/app/config.yaml:ro',
+            '-v', f'{host_output_path}:/app/out',
+            UPTONIGHT_IMAGE,
+        ]
+        result = subprocess.run(docker_cmd, capture_output=True, text=True, timeout=600)
+        return result.returncode, result.stdout or '', result.stderr or ''
+
+    def _docker_cleanup_old_images(self, version_to_keep: str):
+        """Remove old upTonight images except active version via SDK, fallback CLI."""
+        if self._docker_client is not None:
+            images = self._docker_client.images.list(name='mawinkler/uptonight')
+
+            for image in images:
+                tags = image.tags or []
+                for full_tag in tags:
+                    if not full_tag.startswith('mawinkler/uptonight:'):
+                        continue
+
+                    tag = full_tag.split(':', 1)[1]
+                    if tag != version_to_keep:
+                        logger.warning(f"Removing old upTonight image: {full_tag}")
+                        try:
+                            self._docker_client.images.remove(full_tag, force=True)
+                        except ImageNotFound:
+                            continue
+            return
+
+        result = subprocess.check_output(
+            ["docker", "images", "mawinkler/uptonight", "--format", "{{.Tag}}"]
+        )
+        tags = result.decode().splitlines()
+        for tag in tags:
+            if tag != version_to_keep:
+                logger.warning(f"Removing old upTonight image: mawinkler/uptonight:{tag}")
+                subprocess.run(["docker", "rmi", "-f", f"mawinkler/uptonight:{tag}"], check=False)
 
     def _sanitize_config_directory(self):
         """Ensure YAML config entries are files, not directories."""
@@ -102,10 +222,28 @@ class UptonightScheduler:
         logger.info(f"Scheduler started - will run every {SCHEDULE_INTERVAL} seconds")
 
     def stop(self):
-        """Stop the scheduler"""
+        """Stop the scheduler and any running UpTonight container."""
         self.running = False
+
+        # Stop the UpTonight container if it is currently executing.
+        # Keep total time well under docker compose down's 10 s window.
+        container = self._running_container
+        if container is not None:
+            logger.info("Stopping UpTonight container on scheduler shutdown...")
+            try:
+                container.stop(timeout=5)
+            except Exception as e:
+                logger.warning(f"Failed to stop running UpTonight container: {e}")
+            finally:
+                # Always force-remove; the exec thread's finally may not run in time.
+                try:
+                    container.remove(force=True)
+                    logger.info("UpTonight container removed.")
+                except Exception:
+                    pass  # Already removed or never fully created
+
         if self.thread:
-            self.thread.join(timeout=5)
+            self.thread.join(timeout=3)
         logger.info("Scheduler stopped")
 
     def _run_loop(self):
@@ -228,7 +366,7 @@ class UptonightScheduler:
 
         # Pull image
         try:
-            subprocess.run(['docker', 'pull', UPTONIGHT_IMAGE], check=True, capture_output=True, timeout=300)
+            self._docker_pull(UPTONIGHT_IMAGE)
         except Exception as e:
             logger.warning(f"Could not pull uptonight image: {e}")
 
@@ -243,34 +381,29 @@ class UptonightScheduler:
             logger.debug(f"Host config path: {host_config_path}")
             logger.debug(f"Host output path: {host_output_path}")
             
-            docker_cmd = [
-                'docker', 'run', '--rm',
-                '-v', f'{host_config_path}:/app/config.yaml:ro',
-                '-v', f'{host_output_path}:/app/out',
-                UPTONIGHT_IMAGE
-            ]
-
             # Avoid Docker auto-creating a directory when source file is missing.
             if not os.path.isfile(config_path):
                 raise FileNotFoundError(f"Config file missing before docker run: {config_path}")
 
             logger.debug(f"Running uptonight for catalogue {catalogue}...")
 
-            result = subprocess.run(docker_cmd, capture_output=True, text=True, timeout=600)
+            return_code, stdout, stderr = self._docker_run_uptonight(host_config_path, host_output_path)
 
             # Write log
             with open(log_file, 'w') as log_f:
-                log_f.write(f"=== STDOUT ===\n{result.stdout or ''}\n")
-                log_f.write(f"=== STDERR ===\n{result.stderr or ''}\n")
-                log_f.write(f"\n=== Exit code: {result.returncode} ===\n")
+                log_f.write(f"=== STDOUT ===\n{stdout}\n")
+                log_f.write(f"=== STDERR ===\n{stderr}\n")
+                log_f.write(f"\n=== Exit code: {return_code} ===\n")
 
-            if result.returncode == 0:
+            if return_code == 0:
                 logger.debug(f"Successfully executed uptonight for catalogue {catalogue}")
             else:
                 logger.error(f"Uptonight failed for catalogue {catalogue}")
 
         except subprocess.TimeoutExpired:
             logger.error(f"Uptonight execution timed out for catalogue {catalogue}")
+        except DockerException as e:
+            logger.error(f"Docker SDK error for catalogue {catalogue}: {e}")
         except Exception as e:
             logger.error(f"Error running uptonight Docker for catalogue {catalogue}: {e}")
 
@@ -345,18 +478,11 @@ class UptonightScheduler:
         logger.debug(f"Cleaning up old upTonight images, keeping version: {version_to_keep}")
 
         try:
-            # Get list of all mawinkler/uptonight image tags
-            result = subprocess.check_output(
-                ["docker", "images", "mawinkler/uptonight", "--format", "{{.Tag}}"]
-            )
-            tags = result.decode().splitlines()
-
-            for tag in tags:
-                if tag != version_to_keep:
-                    logger.warning(f"Removing old upTonight image: mawinkler/uptonight:{tag}")
-                    subprocess.run(["docker", "rmi", "-f", f"mawinkler/uptonight:{tag}"], check=False)
+            self._docker_cleanup_old_images(version_to_keep)
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to list or remove images: {e}")
+        except DockerException as e:
+            logger.error(f"Failed to list or remove images via Docker SDK: {e}")
         except Exception as e:
             logger.error(f"Unexpected error during cleanup: {e}")
 

@@ -24,6 +24,7 @@ Welcome to the comprehensive documentation for MyAstroBoard, the integrated astr
 ### Advanced Topics
 - [Organization](5.ORGANIZATION.md) - How the repo is organized
 - [API Endpoints](API_ENDPOINTS.md) - Complete route inventory from backend/app.py
+- [Plan My Night](PLAN_MY_NIGHT.md) - Night planning workflow and permissions
 - [Cache System](CACHE_SYSTEM.md) - Understanding the caching architecture
 - [Visual Tour](VISUAL_TOUR.md) - Screenshots and feature walkthrough
 
