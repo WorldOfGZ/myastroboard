@@ -14,7 +14,7 @@
     width: 100%;
     overflow: hidden;
     background: var(--bs-secondary-bg-subtle);
-    transition: opacity 0.2s, box-shadow 0.2s;
+    transition: opacity var(--transition-normal), box-shadow var(--transition-normal);
 
     display: flex;
     align-items: center;
@@ -47,9 +47,9 @@
     top: 8px;
     right: 8px;
     background: var(--bs-primary);
-    color: white;
+    color: var(--bs-light);
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     font-size: 0.75rem;
 }
 
@@ -58,7 +58,7 @@
     top: 10px;
     right: 10px;
     background: var(--photo-badge-bg);
-    color: white;
+    color: var(--bs-light);
     padding: 4px 8px;
     border-radius: var(--border-radius);
     font-size: 0.8rem;
@@ -70,7 +70,7 @@
 
 .astrodex-card-title {
     font-size: 1.1rem;
-    font-weight: bold;
+    font-weight: var(--font-bold);
     color: var(--text-primary);
     margin-bottom: 0.5rem;
 }
@@ -107,7 +107,7 @@
 }
 
 .astrodex-catalogue-alias-label {
-    font-weight: 600;
+    font-weight: var(--font-semibold);
 }
 
 .astrodex-catalogue-alias-value {

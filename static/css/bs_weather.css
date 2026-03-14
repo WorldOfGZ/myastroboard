@@ -35,20 +35,9 @@
 
 /* Quality Classes */
 .quality-box {
-    background: linear-gradient(135deg, var(--quality-bg), var(--quality-overlay)) !important;
-    color: var(--quality-text) !important;
-    border: 1px solid var(--quality-border);
-    border-top-left-radius: calc(var(--border-radius) + 2px) !important;
-    border-top-right-radius: calc(var(--border-radius) + 2px) !important;
+    border-top-left-radius: var(--border-radius-card) !important;
+    border-top-right-radius: var(--border-radius-card) !important;
     padding: 0.5rem 0.75rem;
-    font-weight: var(--font-semibold);
-    box-shadow: 0 2px 8px var(--quality-shadow);
-    transition: all var(--transition-normal);
-}
-
-.quality-box:hover {
-    box-shadow: 0 6px 16px var(--quality-shadow-hover);
-    transform: translateY(-1px);
 }
 
 .quality-excellent {
@@ -145,19 +134,8 @@
 
 /* Dew Risk Colors */
 .dew-box {
-    background: linear-gradient(135deg, var(--dew-bg), var(--dew-overlay)) !important;
-    color: var(--dew-text) !important;
-    border: 1px solid var(--dew-border);
     border-radius: var(--border-radius);
-    font-weight: var(--font-semibold);
-    box-shadow: 0 2px 8px var(--dew-shadow);
-    transition: all var(--transition-normal);
     display: inline-block;
-}
-
-.dew-box:hover {
-    box-shadow: 0 6px 16px var(--dew-shadow-hover);
-    transform: translateY(-1px);
 }
 
 .dew-minimal {
@@ -219,8 +197,8 @@
     color: var(--text-light);
     margin-bottom: 1.25rem;
     grid-column: 1 / -1;
-    border-radius: calc(var(--border-radius) + 4px);
-    box-shadow: 0 12px 32px var(--info-card-shadow);
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-info-card);
     border: 1px solid var(--info-card-border);
     position: relative;
     overflow: hidden;
@@ -240,8 +218,8 @@
     background: var(--sun-gradient);
     color: var(--text-light);
     margin-bottom: 1.25rem;
-    border-radius: calc(var(--border-radius) + 4px);
-    box-shadow: 0 12px 32px var(--info-card-shadow);
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-info-card);
     border: 1px solid var(--info-card-border);
     position: relative;
     overflow: hidden;
@@ -288,7 +266,7 @@
     background: var(--bg-sub-container);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-surface-sm);
 }
 
 #best-observation-periods-main .best-period-card .card-header {

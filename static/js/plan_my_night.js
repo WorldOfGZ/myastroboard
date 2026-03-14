@@ -68,7 +68,7 @@ function makePlanActionButton(labelKey, className, onClick) {
 function makePlanIconActionButton(labelKey, className, iconClass, onClick) {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = `${className} plan-icon-btn`;
+    button.className = `${className} btn-icon-square`;
     button.title = i18n.t(labelKey);
     button.setAttribute('aria-label', i18n.t(labelKey));
 
@@ -658,7 +658,7 @@ function renderPlanMyNight(payload) {
             const alttimeButton = document.createElement('button');
             alttimeButton.type = 'button';
             alttimeButton.className = 'btn btn-info btn-sm mt-1';
-            alttimeButton.innerHTML = `<i class="bi bi-graph-up-arrow icon-inline" aria-hidden="true"></i>${i18n.t('features.feature_alttime')}`;
+            alttimeButton.innerHTML = `<i class="bi bi-graph-up-arrow icon-inline" aria-hidden="true"></i>${i18n.t('settings.feature_alttime')}`;
             alttimeButton.addEventListener('click', () => {
                 const alttimePath = `${API_BASE}/api/uptonight/outputs/${encodeURIComponent(entry.catalogue)}/${encodeURIComponent(entry.alttime_file)}`;
                 showAlttimePopup(`${entry.name || entry.target_name || 'Target'} Altitude-Time`, alttimePath);

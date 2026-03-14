@@ -14,8 +14,8 @@
 .login-container {
     background: var(--surface-panel);
     padding: 3rem;
-    border-radius: 1rem;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-login-panel);
     max-width: 400px;
     width: 100%;
     backdrop-filter: blur(10px);
@@ -33,7 +33,7 @@
     font-size: 2.5rem;
     font-weight: var(--font-bold);
     margin-bottom: 0.5rem;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    text-shadow: var(--shadow-login-title);
 }
 
 .login-header p {
@@ -57,14 +57,14 @@
     border-radius: var(--border-radius);
     padding: 0.75rem 1rem;
     font-size: 1rem;
-    transition: all 0.2s ease;
+    transition: all var(--transition-normal);
     background-color: var(--input-bg);
     color: var(--text-color);
 }
 
 .login-form .form-control:focus {
     border-color: var(--border-violet);
-    box-shadow: 0 0 0 0.2rem var(--input-focus-shadow);
+    box-shadow: var(--focus-ring-accent);
     background-color: var(--input-bg);
 }
 
@@ -78,13 +78,13 @@
     font-weight: var(--font-semibold);
     padding: 0.875rem 1.5rem;
     border-radius: var(--border-radius);
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 12px rgba(118, 75, 162, 0.3);
+    transition: all var(--transition-normal);
+    box-shadow: var(--shadow-login-button);
 }
 
 .btn-login:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(118, 75, 162, 0.4);
+    transform: var(--hover-lift-md);
+    box-shadow: var(--shadow-login-button-hover);
     color: var(--text-light);
 }
 
@@ -96,7 +96,7 @@
     opacity: 0.7;
     cursor: not-allowed;
     transform: none;
-    box-shadow: 0 4px 12px rgba(118, 75, 162, 0.2);
+    box-shadow: var(--shadow-login-button-disabled);
 }
 
 /* Error message */
@@ -110,7 +110,7 @@
     font-weight: var(--font-medium);
     opacity: 0;
     transform: translateY(-10px);
-    transition: all 0.3s ease;
+    transition: all var(--transition-smooth);
 }
 
 .error-message.show {
@@ -129,7 +129,7 @@
     font-weight: var(--font-medium);
     opacity: 0;
     transform: translateY(-10px);
-    transition: all 0.3s ease;
+    transition: all var(--transition-smooth);
 }
 
 .success-message.show {

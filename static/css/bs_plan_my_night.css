@@ -21,9 +21,9 @@
     align-items: center;
     justify-content: center;
     font-size: 0.66rem;
-    font-weight: 700;
+    font-weight: var(--font-bold);
     line-height: 1;
-    color: #fff;
+    color: var(--bs-light);
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
     overflow: hidden;
     white-space: nowrap;
@@ -56,7 +56,6 @@
 }
 
 #plan-my-night-display .plan-my-night-timeline .timeline-item {
-    background-color: var(--surface-card);
     border: 1px solid var(--border-muted);
     margin-left: 0;
 }
@@ -90,10 +89,10 @@
     min-width: var(--plan-time-badge-width);
     width: auto;
     height: 30px;
-    border-radius: 999px;
+    border-radius: var(--border-radius-pill);
     padding: 0 8px;
     font-size: 0.74rem;
-    font-weight: 700;
+    font-weight: var(--font-bold);
     letter-spacing: 0.02em;
     color: var(--quality-good-text);
     background-color: var(--bs-info);
@@ -101,13 +100,13 @@
 
 #plan-my-night-display .plan-my-night-timeline .timeline-icon.plan-time-badge.plan-time-badge-current {
     background-color: var(--bs-success);
-    color: #fff;
+    color: var(--bs-light);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--bs-success) 25%, transparent);
 }
 
 #plan-my-night-display .plan-my-night-timeline .timeline-icon.plan-time-badge.plan-time-badge-done {
     background-color: var(--bs-secondary);
-    color: #fff;
+    color: var(--bs-light);
 }
 
 #plan-my-night-display .plan-my-night-timeline .timeline-icon.plan-time-badge.plan-boundary-badge {
@@ -126,21 +125,3 @@
     transform: translateX(-50%);
 }
 
-#plan-my-night-display .plan-icon-btn {
-    width: 2rem;
-    min-width: 2rem;
-    height: 2rem;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-#plan-my-night-display .plan-icon-btn .icon-inline {
-    margin: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1em;
-    line-height: 1;
-}

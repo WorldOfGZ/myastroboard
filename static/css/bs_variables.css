@@ -44,6 +44,12 @@
     --border-violet: #764ba2;
     --border-dark: #1f2937;
     --border-radius: 0.5rem;
+    --border-radius-card: calc(var(--border-radius) + 2px);
+    --border-radius-lg: 1rem;
+    --border-radius-xl: calc(var(--border-radius) + 4px);
+    --border-radius-pill: 999px;
+    --border-color: var(--surface-border);
+    --border-muted: var(--surface-border);
 
     /* Accents */
     --accent-1: #6366f1;
@@ -52,6 +58,15 @@
     --accent-soft-strong: rgba(99, 102, 241, 0.2);
     --accent-glow: rgba(99, 102, 241, 0.3);
     --accent-glow-strong: rgba(99, 102, 241, 0.5);
+    --primary-color: var(--accent-1);
+    --accent-color: var(--accent-1);
+    --success-color: var(--success-500);
+    --success-hover: var(--success-600);
+
+    /* Shared aliases */
+    --bg-sub-container: var(--surface-1);
+    --text-primary: var(--text-color);
+    --text-muted: var(--text-grey);
     
     /* Quality Colors */
     --quality-excellent: #d1fae5;
@@ -71,14 +86,34 @@
     --font-semibold: 600;
     --font-bold: 700;
 
+    /* Spacing */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+
     /* Transitions */
     --transition-normal: 0.2s ease;
     --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --hover-lift-sm: translateY(-1px);
+    --hover-lift-md: translateY(-2px);
 
     /* Shadows */
+    --shadow-xs: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-surface-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+    --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
     --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.08);
     --shadow-md: 0 8px 20px rgba(15, 23, 42, 0.12);
     --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.18);
+    --shadow-login-panel: 0 20px 60px rgba(0, 0, 0, 0.3);
+    --shadow-login-title: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-login-button: 0 4px 12px color-mix(in srgb, var(--accent-1) 30%, transparent);
+    --shadow-login-button-hover: 0 6px 20px color-mix(in srgb, var(--accent-1) 40%, transparent);
+    --shadow-login-button-disabled: 0 4px 12px color-mix(in srgb, var(--accent-1) 20%, transparent);
+    --shadow-info-card: 0 12px 32px var(--info-card-shadow);
+    --focus-ring-accent: 0 0 0 0.2rem var(--input-focus-shadow);
 
     /* Inputs */
     --input-bg: #ffffff;
