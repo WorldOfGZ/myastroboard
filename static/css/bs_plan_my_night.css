@@ -1,7 +1,16 @@
 /* Plan My Night */
 
 #plan-my-night-display .plan-duration-input {
-    width: 110px;
+    width: 8.75rem;
+    min-width: 8rem;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 575.98px) {
+    #plan-my-night-display .plan-duration-input {
+        width: 100%;
+        min-width: 0;
+    }
 }
 
 .plan-current-banner {

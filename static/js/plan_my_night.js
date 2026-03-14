@@ -404,6 +404,26 @@ function parsePlanDurationToMinutes(value) {
     return (hours * 60) + minutes;
 }
 
+function normalizePlanDurationHHMM(value) {
+    const text = String(value || '').trim();
+    if (!text) {
+        return null;
+    }
+
+    const parts = text.split(':');
+    if (parts.length !== 2) {
+        return null;
+    }
+
+    const hours = Number.parseInt(parts[0], 10);
+    const minutes = Number.parseInt(parts[1], 10);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        return null;
+    }
+
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
 function formatMinutesAsHourMinute(minutes) {
     const safeMinutes = Math.max(0, Math.round(Number(minutes) || 0));
     const hours = Math.floor(safeMinutes / 60);
@@ -844,9 +864,16 @@ function renderPlanMyNight(payload) {
         durationLabel.textContent = i18n.t('plan_my_night.photo_duration');
 
         const durationInput = document.createElement('input');
-        durationInput.type = 'text';
-        durationInput.className = 'form-control form-control-sm plan-duration-input';
-        durationInput.value = entry.planned_duration || '01:00';
+        durationInput.type = 'time';
+        durationInput.className = 'form-control plan-duration-input';
+        durationInput.step = '60';
+        durationInput.min = '00:00';
+        durationInput.max = '23:59';
+        durationInput.inputMode = 'numeric';
+        durationInput.pattern = '^([01]\\d|2[0-3]):[0-5]\\d$';
+        durationInput.placeholder = 'hh:mm';
+        durationInput.required = true;
+        durationInput.value = normalizePlanDurationHHMM(entry.planned_duration) || '01:00';
         durationInput.disabled = state === 'previous';
 
         details.appendChild(durationLabel);
@@ -854,10 +881,17 @@ function renderPlanMyNight(payload) {
 
         if (state !== 'previous') {
             const durationSaveBtn = makePlanActionButton('plan_my_night.save_duration', 'btn btn-secondary btn-sm', async () => {
+                const normalizedDuration = normalizePlanDurationHHMM(durationInput.value);
+                if (!normalizedDuration) {
+                    durationInput.reportValidity();
+                    durationInput.focus();
+                    return;
+                }
+
                 await fetchJSON(`/api/plan-my-night/targets/${encodeURIComponent(entry.id)}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ planned_duration: durationInput.value })
+                    body: JSON.stringify({ planned_duration: normalizedDuration })
                 });
                 await loadPlanMyNight();
             });
