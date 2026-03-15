@@ -178,6 +178,10 @@ def set_cache_headers(response):
         # Versioned assets (e.g. ?v=1.2.3) are content-addressed — safe to cache for 1 year
         if request.args.get('v'):
             response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        elif request.path.startswith('/static/ico/'):
+            # Icon files are frequently replaced with same filenames across releases.
+            # Force revalidation for unversioned icon URLs to avoid stale homescreen/app icons.
+            response.headers['Cache-Control'] = 'no-cache, must-revalidate'
         else:
             # Unversioned static assets get a short cache with revalidation
             response.headers['Cache-Control'] = 'public, max-age=3600, must-revalidate'
@@ -207,7 +211,9 @@ def login_page():
 @app.route('/manifest.webmanifest')
 def web_manifest():
     """Serve PWA web manifest"""
-    return send_from_directory(STATIC_DIR, 'manifest.webmanifest', mimetype='application/manifest+json')
+    response = send_from_directory(STATIC_DIR, 'manifest.webmanifest', mimetype='application/manifest+json')
+    response.headers['Cache-Control'] = 'no-cache, must-revalidate'
+    return response
 
 
 @app.route('/sw.js')
