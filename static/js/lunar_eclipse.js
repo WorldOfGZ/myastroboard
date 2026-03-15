@@ -203,6 +203,7 @@ function renderLunarEclipseAltitudeChart(altitudeData) {
     cardBody.className = 'card-body';
     const chartCanvas = document.createElement('canvas');
     chartCanvas.id = 'lunar-eclipse-altitude-chart';
+    chartCanvas.style.width = '100%';
     chartCanvas.style.height = '300px';
     cardBody.appendChild(chartCanvas);
 
@@ -258,6 +259,7 @@ function renderLunarEclipseAltitudeChart(altitudeData) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            resizeDelay: 200,
             plugins: {
                 legend: {
                     display: false

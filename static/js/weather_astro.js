@@ -24,6 +24,7 @@ function createAstroChartShell(title, canvasId, legendItems = [], footerText = '
     body.className = 'card-body';
     const canvas = document.createElement('canvas');
     canvas.id = canvasId;
+    canvas.style.width = '100%';
     canvas.style.height = '300px';
     body.appendChild(canvas);
 
@@ -427,6 +428,7 @@ function renderSeeingTransparencyChart(labels, data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            resizeDelay: 200,
             interaction: {
                 mode: 'index',
                 intersect: false,
@@ -531,6 +533,7 @@ function renderCloudLayersChart(labels, data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            resizeDelay: 200,
             interaction: {
                 mode: 'index',
                 intersect: false,
@@ -626,6 +629,7 @@ function renderDewTrackingChart(labels, data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            resizeDelay: 200,
             interaction: {
                 mode: 'index',
                 intersect: false,

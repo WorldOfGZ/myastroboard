@@ -8,6 +8,7 @@ import atexit
 import secrets
 from datetime import timezone
 from flask import Flask, request, jsonify, render_template, send_file, send_from_directory, session, redirect, url_for, g
+from flask_compress import Compress
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
@@ -124,6 +125,9 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)  # 30 days for rem
 
 CORS(app, supports_credentials=True)
 
+# Enable gzip/brotli compression for all responses
+Compress(app)
+
 # Coordinate conversion regex pattern (module-level constant)
 # Matches DMS format: 48d38m36.16s or 48°38'36.16"
 # Pattern: optional sign, degrees, minutes, seconds
@@ -157,6 +161,19 @@ def log_session_restoration():
                         )
                         # Log once per session to avoid request spam
                         session['_session_restored_logged'] = True
+
+
+@app.after_request
+def set_cache_headers(response):
+    """Set long-term cache headers for versioned static assets."""
+    if request.endpoint == 'static' or request.path.startswith('/static/'):
+        # Versioned assets (e.g. ?v=1.2.3) are content-addressed — safe to cache for 1 year
+        if request.args.get('v'):
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        else:
+            # Unversioned static assets get a short cache with revalidation
+            response.headers['Cache-Control'] = 'public, max-age=3600, must-revalidate'
+    return response
 
 @app.route('/')
 def index():
@@ -197,6 +214,14 @@ def service_worker():
 def offline_page():
     """Serve offline fallback page used by service worker"""
     return send_from_directory(STATIC_DIR, 'offline.html')
+
+
+@app.route('/robots.txt')
+def robots_txt():
+    """Serve robots.txt from root path"""
+    response = send_from_directory(STATIC_DIR, 'robots.txt', mimetype='text/plain')
+    response.headers['Cache-Control'] = 'public, max-age=86400'
+    return response
 
 
 # ============================================================

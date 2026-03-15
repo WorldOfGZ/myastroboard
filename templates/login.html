@@ -11,6 +11,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="MyAstroBoard">
     <meta name="app-version" content="{{ version }}">
+    <meta name="description" content="Login to MyAstroBoard - Astronomy observation planning dashboard.">
     <script src="/static/js/theme.js?v={{ version }}"></script>
     <title data-i18n="auth.login_page_title">Login - MyAstroBoard</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
@@ -19,8 +20,11 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/static/ico/ios/16.png">
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="apple-touch-icon" sizes="180x180" href="/static/ico/ios/180.png">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" as="style" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" integrity="sha384-XGjxtQfXaH2tnPFa9x+ruJTuLE3Aa6LhHSWRr1XeTyhezb4abCG4ccI5AkVDxqC+" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" media="print" onload="this.media='all'" crossorigin="anonymous">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" crossorigin="anonymous"></noscript>
     <link rel="stylesheet" href="/static/css/bs_icons_custom.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_variables.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_main.css?v={{ version }}">
@@ -29,7 +33,7 @@
 <body class="login-page">
     <div class="login-container">
         <div class="login-header">
-            <h1><img src="/static/img/favicon-animated.svg" alt="MyAstroBoard Logo" style="height: 3em; vertical-align: middle;"> MyAstroBoard</h1>
+            <h1><img src="/static/img/favicon-animated.svg" alt="MyAstroBoard Logo" width="48" height="48" style="height: 3em; width: auto; vertical-align: middle;"> MyAstroBoard</h1>
             <p data-i18n="auth.please_authenticate">Please log in to continue</p>
         </div>
         

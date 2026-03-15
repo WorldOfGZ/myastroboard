@@ -45,6 +45,9 @@ function clearEventsCache() {
  */
 async function loadAndDisplayEvents() {
     try {
+        // Ensure translations are loaded before rendering any i18n strings
+        await i18n.ready;
+
         // Check cache first
         const now = new Date().getTime();
         if (cachedEvents && lastEventsUpdate && (now - lastEventsUpdate) < EVENTS_CACHE_DURATION) {

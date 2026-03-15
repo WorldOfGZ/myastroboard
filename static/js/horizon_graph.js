@@ -132,6 +132,7 @@ function renderHorizonChart(horizonData) {
     cardBody.className = 'card-body';
     const canvas = document.createElement('canvas');
     canvas.id = 'horizonCanvas';
+    canvas.style.width = '100%';
     canvas.style.height = '350px';
     cardBody.appendChild(canvas);
 
@@ -232,6 +233,7 @@ function renderHorizonChart(horizonData) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            resizeDelay: 200,
             interaction: {
                 mode: 'index',
                 intersect: false,

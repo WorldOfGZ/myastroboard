@@ -62,8 +62,14 @@ body {
 
 /*Pimp bootstrap*/
 h3 {
-    color: var(--text-light) !important;
+    color: var(--text-color) !important;
     font-size: 1.25rem !important;
+}
+
+/* Card headings keep body text size */
+.card h3,
+.card .card-title {
+    font-size: 1rem !important;
 }
 
 .alert {
@@ -109,7 +115,7 @@ h3 {
 }
 
 .navbar .nav-link {
-    color: var(--text-light);
+    color: var(--text-color);
     font-weight: var(--font-semibold);
     transition: var(--transition-normal);
     margin-right: 1.25rem;
@@ -146,10 +152,23 @@ h3 {
 }
 
 .navbar .dropdown-menu {
-    background-color: var(--accent-1);
-    border-color: var(--accent-glow-strong);
+    background-color: var(--surface-panel);
+    border-color: var(--surface-border-strong);
     padding-left: 1rem;
     padding-right: 1rem;
+    box-shadow: var(--shadow-md);
+}
+
+.navbar .dropdown-menu .dropdown-item {
+    color: var(--text-color);
+    border-radius: var(--border-radius-pill);
+    transition: all var(--transition-normal);
+}
+
+.navbar .dropdown-menu .dropdown-item:hover,
+.navbar .dropdown-menu .dropdown-item:focus {
+    background-color: var(--surface-hover);
+    color: var(--text-color);
 }
 /*
 .navbar .container-fluid {
@@ -157,7 +176,7 @@ h3 {
 }*/
 
 .theme-label, .language-label {
-    color: var(--text-light);
+    color: var(--text-color);
     font-weight: var(--font-medium);
 }
 
@@ -407,7 +426,7 @@ body.density-compact .alert {
 
 .sub-tabs a.active {
     background-color: var(--bg-violet) !important;
-    color: var(--text-light) !important;
+    color: var(--text-color) !important;
 }
 
 .sub-tabs a {
@@ -432,7 +451,7 @@ body.density-compact .alert {
 }
 
 .sub-tab-content h2 {
-    color: var(--text-light);
+    color: var(--text-color);
     border-bottom: 3px solid var(--border-violet);
     padding-bottom: 0.5rem;
 }
@@ -496,7 +515,7 @@ body.density-compact .alert {
 .main-tab-btn, .main-tab-dropdown {
     position: relative;
     background-color: transparent !important;
-    color: var(--text-light) !important;
+    color: var(--text-color) !important;
     font-weight: var(--font-semibold) !important;
     padding: 0.65rem 1.5rem !important;
     border-radius: var(--border-radius-pill);
@@ -530,7 +549,7 @@ body.density-compact .alert {
     background: var(--surface-4) !important;
     border-color: var(--surface-border-strong);
     box-shadow: var(--shadow-md);
-    color: var(--text-light) !important;
+    color: var(--text-color) !important;
 }
 
 .main-tab-btn.active::before, .main-tab-dropdown.active::before {
@@ -603,7 +622,7 @@ body.density-compact .alert {
 .catalogue-type-btn.active {
     background: linear-gradient(135deg, var(--accent-soft-strong), var(--accent-soft)) !important;
     border-color: var(--accent-glow-strong) !important;
-    color: var(--text-light) !important;
+    color: var(--text-color) !important;
     box-shadow: var(--shadow-card);
 }
 
