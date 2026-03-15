@@ -1725,7 +1725,8 @@ async function initializeAstrodexEventListeners() {
 
     //Buttons 
 
-    //Init buttons
+    //Init buttons — wait for translations to be loaded before setting labels
+    await i18n.ready;
     const buttonSort = document.getElementById('astrodex-sort-order');
     buttonSort.innerHTML = `<i class="bi bi-sort-up-alt icon-inline" aria-hidden="true"></i>${i18n.t('astrodex.sort_order_ascending')}`;
     const buttonAddItem = document.getElementById('add-astrodex-item');

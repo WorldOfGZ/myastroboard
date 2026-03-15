@@ -19,8 +19,10 @@ class I18nManager {
         this.fallbackLanguage = 'en';
         this.loadedLanguages = new Set();
         
-        // Initialize with default language
-        this.loadLanguage(this.currentLanguage);
+        // Initialize with default language.
+        // this.ready resolves once the primary language translations are loaded,
+        // allowing callers to await i18n.ready before calling i18n.t().
+        this.ready = this.loadLanguage(this.currentLanguage);
 
         // Ensure fallback language is available for key-level fallback lookups
         if (this.currentLanguage !== this.fallbackLanguage) {
