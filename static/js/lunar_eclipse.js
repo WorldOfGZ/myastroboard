@@ -2,6 +2,16 @@
 // Lunar Eclipse
 // ======================
 
+let lunarEclipseChartInstance = null;
+
+
+function destroyLunarEclipseChart() {
+    if (lunarEclipseChartInstance) {
+        lunarEclipseChartInstance.destroy();
+        lunarEclipseChartInstance = null;
+    }
+}
+
 // Load Lunar Eclipse data
 async function loadLunarEclipse() {
     const container = document.getElementById('lunar-eclipse-display');
@@ -17,6 +27,7 @@ async function loadLunarEclipse() {
 
         // Check if eclipse data is available
         if (!data.lunar_eclipse) {
+            destroyLunarEclipseChart();
             DOMUtils.clear(container);
             const alert = document.createElement('div');
             alert.className = 'alert alert-info';
@@ -171,6 +182,7 @@ async function loadLunarEclipse() {
 
     } catch (error) {
         console.error('Error loading lunar eclipse data:', error);
+        destroyLunarEclipseChart();
         DOMUtils.clear(container);
         const errorBox = document.createElement('div');
         errorBox.className = 'error-box';
@@ -183,6 +195,8 @@ async function loadLunarEclipse() {
 function renderLunarEclipseAltitudeChart(altitudeData) {
     const container = document.getElementById('lunar-eclipse-chart-container');
     if (!container || !altitudeData || altitudeData.length === 0) return;
+
+    destroyLunarEclipseChart();
 
     const times = altitudeData.map(p => p.time);
     const altitudes = altitudeData.map(p => p.altitude_deg);
@@ -238,7 +252,9 @@ function renderLunarEclipseAltitudeChart(altitudeData) {
     if (!ctx) return;
     
     const ctx_2d = ctx.getContext('2d');
-    new Chart(ctx_2d, {
+    if (!ctx_2d) return;
+
+    lunarEclipseChartInstance = new Chart(ctx_2d, {
         type: 'line',
         data: {
             labels: times,

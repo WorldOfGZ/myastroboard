@@ -38,7 +38,14 @@ function applyUserStartupPreferences(force = false) {
     const effectiveSubtab = requestedSubtabExists ? startupSubtab : fallbackSubtab;
 
     if (effectiveSubtab) {
-        switchSubTab(effectiveMainTab, effectiveSubtab);
+        // switchMainTab already activates/loads a sub-tab; only switch again if it is not the expected one.
+        const currentlyActiveSubtab = document
+            .querySelector(`#${effectiveMainTab}-tab .sub-tab-btn.active`)
+            ?.getAttribute('data-subtab');
+
+        if (currentlyActiveSubtab !== effectiveSubtab) {
+            switchSubTab(effectiveMainTab, effectiveSubtab);
+        }
     }
 
     window.__myastroboardStartupApplied = true;
@@ -84,6 +91,8 @@ function setupMainTabs() {
 
 function switchMainTab(tabName) {
     //console.log(`Switching to main tab: ${tabName}`);
+
+    cleanupTransientCharts();
 
     // Forach .main-tab-dropdown remove "active" class
     document.querySelectorAll('.main-tab-dropdown').forEach(dropdown => {
@@ -174,6 +183,8 @@ function setupNavbarAutoCollapse() {
 }
 
 function switchSubTab(parentTab, subtabName) {
+    cleanupTransientCharts();
+
     activateSubTab(parentTab, subtabName);
 
     //console.log(`Switched to sub-tab: ${subtabName} under main tab: ${parentTab}`);
@@ -232,6 +243,25 @@ function activateSubTab(parentTab, subtabName) {
 
     if (btn) btn.classList.add('active');
     if (content) content.classList.add('active');
+}
+
+
+function cleanupTransientCharts() {
+    if (typeof destroyAstronomicalCharts === 'function') {
+        destroyAstronomicalCharts();
+    }
+    if (typeof destroyAstroWeatherCharts === 'function') {
+        destroyAstroWeatherCharts();
+    }
+    if (typeof destroyHorizonChart === 'function') {
+        destroyHorizonChart();
+    }
+    if (typeof destroyLunarEclipseChart === 'function') {
+        destroyLunarEclipseChart();
+    }
+    if (typeof destroySolarEclipseChart === 'function') {
+        destroySolarEclipseChart();
+    }
 }
 
 function setupModalAccessibility() {

@@ -4,6 +4,16 @@
  * Uses Chart.js to render altitude curves
  */
 
+let horizonChartInstance = null;
+
+
+function destroyHorizonChart() {
+    if (horizonChartInstance) {
+        horizonChartInstance.destroy();
+        horizonChartInstance = null;
+    }
+}
+
 /**
  * Load and display horizon graph data
  */
@@ -54,6 +64,7 @@ async function loadHorizonGraph() {
             renderHorizonChart(data.horizon_data);
         } else {
             if (container) {
+                destroyHorizonChart();
                 DOMUtils.clear(container);
                 const alert = document.createElement('div');
                 alert.className = 'alert alert-warning';
@@ -96,6 +107,8 @@ async function loadHorizonGraph() {
 function renderHorizonChart(horizonData) {
     const container = document.getElementById('horizon-graph-display');
     if (!container || !horizonData) return;
+
+    destroyHorizonChart();
     
     // Prepare data
     const sunData = horizonData.sun_data || [];
@@ -179,8 +192,9 @@ function renderHorizonChart(horizonData) {
     if (!canvasElement) return;
     
     const ctx = canvasElement.getContext('2d');
+    if (!ctx) return;
     
-    new Chart(ctx, {
+    horizonChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
             datasets: [

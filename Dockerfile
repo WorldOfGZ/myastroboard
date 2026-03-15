@@ -32,7 +32,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 COPY scripts/minify_static.py ./scripts/minify_static.py
 COPY static/ ./static-src/
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --no-cache-dir jsmin==3.0.1 csscompressor==0.9.5 \
+    pip install --no-cache-dir rjsmin==1.2.5 csscompressor==0.9.5 \
     && python ./scripts/minify_static.py ./static-src ./static-dist
 
 # =================================

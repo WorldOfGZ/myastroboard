@@ -2,6 +2,16 @@
 // Solar Eclipse
 // ======================
 
+let solarEclipseChartInstance = null;
+
+
+function destroySolarEclipseChart() {
+    if (solarEclipseChartInstance) {
+        solarEclipseChartInstance.destroy();
+        solarEclipseChartInstance = null;
+    }
+}
+
 // Load Solar Eclipse data
 async function loadSolarEclipse() {
     const container = document.getElementById('solar-eclipse-display');
@@ -15,6 +25,7 @@ async function loadSolarEclipse() {
 
         // Check if eclipse data is available
         if (!data.solar_eclipse) {
+            destroySolarEclipseChart();
             DOMUtils.clear(container);
             const alert = document.createElement('div');
             alert.className = 'alert alert-info';
@@ -164,6 +175,7 @@ async function loadSolarEclipse() {
 
     } catch (error) {
         console.error('Error loading solar eclipse data:', error);
+        destroySolarEclipseChart();
         DOMUtils.clear(container);
         const errorBox = document.createElement('div');
         errorBox.className = 'error-box';
@@ -176,6 +188,8 @@ async function loadSolarEclipse() {
 function renderSolarEclipseAltitudeChart(altitudeData) {
     const container = document.getElementById('solar-eclipse-chart-container');
     if (!container || !altitudeData || altitudeData.length === 0) return;
+
+    destroySolarEclipseChart();
 
     const times = altitudeData.map(p => p.time);
     const altitudes = altitudeData.map(p => p.altitude_deg);
@@ -231,7 +245,9 @@ function renderSolarEclipseAltitudeChart(altitudeData) {
     if (!ctx) return;
     
     const ctx_2d = ctx.getContext('2d');
-    new Chart(ctx_2d, {
+    if (!ctx_2d) return;
+
+    solarEclipseChartInstance = new Chart(ctx_2d, {
         type: 'line',
         data: {
             labels: times,

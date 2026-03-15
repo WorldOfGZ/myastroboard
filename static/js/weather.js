@@ -212,6 +212,18 @@ async function loadWeather() {
 let cloudConditionsChartInstance = null;
 let seeingConditionsChartInstance = null;
 
+
+function destroyAstronomicalCharts() {
+    if (cloudConditionsChartInstance) {
+        cloudConditionsChartInstance.destroy();
+        cloudConditionsChartInstance = null;
+    }
+    if (seeingConditionsChartInstance) {
+        seeingConditionsChartInstance.destroy();
+        seeingConditionsChartInstance = null;
+    }
+}
+
 //Load Astronomical Charts
 async function loadAstronomicalCharts() {
     const loadingDiv = document.getElementById('astro-charts-loading');
@@ -274,12 +286,7 @@ async function loadAstronomicalCharts() {
         const precipitation = data.hourly.map(item => item.precipitation);
         
         // Destroy existing charts if they exist
-        if (cloudConditionsChartInstance) {
-            cloudConditionsChartInstance.destroy();
-        }
-        if (seeingConditionsChartInstance) {
-            seeingConditionsChartInstance.destroy();
-        }
+        destroyAstronomicalCharts();
         
         // Chart 1: Cloud Conditions & Wind
         const container1 = document.getElementById('cloudConditionsChartContainer');
@@ -295,6 +302,7 @@ async function loadAstronomicalCharts() {
         const ctx1 = document.getElementById('cloudConditionsChart');
         if (!ctx1) return;
         const ctx1_2d = ctx1.getContext('2d');
+        if (!ctx1_2d) return;
         cloudConditionsChartInstance = new Chart(ctx1_2d, {
             type: 'line',
             data: {
@@ -459,6 +467,7 @@ async function loadAstronomicalCharts() {
         const ctx2 = document.getElementById('seeingConditionsChart');
         if (!ctx2) return;
         const ctx2_2d = ctx2.getContext('2d');
+        if (!ctx2_2d) return;
         seeingConditionsChartInstance = new Chart(ctx2_2d, {
             type: 'line',
             data: {

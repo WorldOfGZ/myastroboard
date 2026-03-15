@@ -6,6 +6,22 @@
 let astroWeatherData = null;
 let astroWeatherUpdateInterval = null;
 
+
+function destroyAstroWeatherCharts() {
+    if (window.astroSeeingChart) {
+        window.astroSeeingChart.destroy();
+        window.astroSeeingChart = null;
+    }
+    if (window.astroCloudsChart) {
+        window.astroCloudsChart.destroy();
+        window.astroCloudsChart = null;
+    }
+    if (window.astroConditionsChart) {
+        window.astroConditionsChart.destroy();
+        window.astroConditionsChart = null;
+    }
+}
+
 function createAstroChartShell(title, canvasId, legendItems = [], footerText = '') {
     const col = document.createElement('div');
     col.className = 'col mb-3';
@@ -385,9 +401,7 @@ function renderSeeingTransparencyChart(labels, data) {
     if (!container) return;
     
     // Destroy existing chart
-    if (window.astroSeeingChart) {
-        window.astroSeeingChart.destroy();
-    }
+    destroyAstroWeatherCharts();
     
     const seeingData = data.map(item => item.seeing_pickering * 10); // Convert to percentage scale
     const transparencyData = data.map(item => item.transparency_score);
@@ -400,7 +414,11 @@ function renderSeeingTransparencyChart(labels, data) {
     
     // Render chart
     const ctx = document.getElementById('astro-seeing-chart');
-    window.astroSeeingChart = new Chart(ctx, {
+    if (!ctx || typeof ctx.getContext !== 'function') return;
+    const ctx2d = ctx.getContext('2d');
+    if (!ctx2d) return;
+
+    window.astroSeeingChart = new Chart(ctx2d, {
         type: 'line',
         data: {
             labels: labels,
@@ -484,6 +502,7 @@ function renderCloudLayersChart(labels, data) {
     // Destroy existing chart
     if (window.astroCloudsChart) {
         window.astroCloudsChart.destroy();
+        window.astroCloudsChart = null;
     }
     
     const highCloudImpact = data.map(item => item.high_cloud_impact);
@@ -499,7 +518,11 @@ function renderCloudLayersChart(labels, data) {
     
     // Render chart
     const ctx = document.getElementById('astro-clouds-chart');
-    window.astroCloudsChart = new Chart(ctx, {
+    if (!ctx || typeof ctx.getContext !== 'function') return;
+    const ctx2d = ctx.getContext('2d');
+    if (!ctx2d) return;
+
+    window.astroCloudsChart = new Chart(ctx2d, {
         type: 'line',
         data: {
             labels: labels,
@@ -590,6 +613,7 @@ function renderDewTrackingChart(labels, data) {
     // Destroy existing chart
     if (window.astroConditionsChart) {
         window.astroConditionsChart.destroy();
+        window.astroConditionsChart = null;
     }
     
     const dewRiskScore = data.map(item => item.dew_risk_score);
@@ -603,7 +627,11 @@ function renderDewTrackingChart(labels, data) {
     
     // Render chart
     const ctx = document.getElementById('astro-conditions-chart');
-    window.astroConditionsChart = new Chart(ctx, {
+    if (!ctx || typeof ctx.getContext !== 'function') return;
+    const ctx2d = ctx.getContext('2d');
+    if (!ctx2d) return;
+
+    window.astroConditionsChart = new Chart(ctx2d, {
         type: 'line',
         data: {
             labels: labels,

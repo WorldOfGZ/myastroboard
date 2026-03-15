@@ -167,6 +167,14 @@ def log_session_restoration():
 def set_cache_headers(response):
     """Set long-term cache headers for versioned static assets."""
     if request.endpoint == 'static' or request.path.startswith('/static/'):
+        # In development/debug, always bypass browser cache so frontend changes are visible immediately.
+        in_debug_mode = app.debug or os.environ.get('FLASK_DEBUG') == '1' or os.environ.get('FLASK_ENV') == 'development'
+        if in_debug_mode:
+            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+            return response
+
         # Versioned assets (e.g. ?v=1.2.3) are content-addressed — safe to cache for 1 year
         if request.args.get('v'):
             response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'

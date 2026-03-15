@@ -4,10 +4,8 @@ from __future__ import annotations
 
 import shutil
 import sys
+from importlib import import_module
 from pathlib import Path
-
-from csscompressor import compress
-from jsmin import jsmin
 
 
 def should_skip(path: Path) -> bool:
@@ -19,8 +17,10 @@ def minify_file(path: Path) -> bool:
     source = path.read_text(encoding="utf-8")
 
     if path.suffix.lower() == ".js":
+        jsmin = import_module("rjsmin").jsmin
         minified = jsmin(source)
     elif path.suffix.lower() == ".css":
+        compress = import_module("csscompressor").compress
         minified = compress(source)
     else:
         return False
