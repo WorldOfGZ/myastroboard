@@ -32,6 +32,7 @@ function createChartShell(title, canvasId, legendItems = [], footerText = '') {
     body.className = 'card-body';
     const canvas = document.createElement('canvas');
     canvas.id = canvasId;
+    canvas.style.width = '100%';
     canvas.style.height = '300px';
     body.appendChild(canvas);
 
@@ -384,6 +385,7 @@ async function loadAstronomicalCharts() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                resizeDelay: 200,
                 interaction: {
                     mode: 'index',
                     intersect: false,
@@ -534,6 +536,7 @@ async function loadAstronomicalCharts() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                resizeDelay: 200,
                 interaction: {
                     mode: 'index',
                     intersect: false,

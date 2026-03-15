@@ -7,21 +7,25 @@
     --bg-violet: #764ba26e;
     --bg-violet-opac: #764ba26e;
     --bg-light: #f3f4f6;
-    --surface-1: rgba(255, 255, 255, 0.3);
-    --surface-2: rgba(255, 255, 255, 0.18);
-    --surface-3: rgba(255, 255, 255, 0.12);
-    --surface-4: rgba(255, 255, 255, 0.25);
+    --surface-1: rgba(255, 255, 255, 0.75);
+    --surface-2: rgba(255, 255, 255, 0.50);
+    --surface-3: rgba(255, 255, 255, 0.35);
+    --surface-4: rgba(255, 255, 255, 0.65);
     --surface-card: #f3f4f6;
-    --surface-panel: rgba(255, 255, 255, 0.95);
+    --surface-panel: rgba(255, 255, 255, 0.98);
     --surface-border: rgba(15, 23, 42, 0.08);
-    --surface-border-strong: rgba(255, 255, 255, 0.35);
+    --surface-border-strong: rgba(15, 23, 42, 0.20);
     --surface-hover: rgba(99, 102, 241, 0.04);
 
     /* Text Colors */
     --text-light: #ffffff;
     --text-color: #1f2937;
-    --text-grey: #5f5f5f;
+    --text-grey: #4b4b4b;
     --text-violet: #764ba2;
+
+    /* Bootstrap contrast overrides for accessible secondary text */
+    --bs-secondary-color: #4b4b4b;
+    --bs-body-secondary-color: #4b4b4b;
 
     --success-50: #ecfdf5;
     --success-500: #10b981;
@@ -44,6 +48,7 @@
     --border-violet: #764ba2;
     --border-dark: #1f2937;
     --border-radius: 0.5rem;
+    --border-radius-half: 0.25rem;
     --border-radius-card: calc(var(--border-radius) + 2px);
     --border-radius-lg: 1rem;
     --border-radius-xl: calc(var(--border-radius) + 4px);
