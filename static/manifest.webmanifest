@@ -1,19 +1,29 @@
 {
   "name": "MyAstroBoard",
-  "short_name": "AstroBoard",
+  "short_name": "MyAstroBoard",
   "description": "Astronomy observation planning dashboard with forecasts, events, and target management.",
   "lang": "en",
   "start_url": "/",
   "scope": "/",
+  "id": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "background_color": "#0b1220",
   "theme_color": "#0b1220",
+  "dir": "ltr",
   "categories": [
     "productivity",
     "utilities",
     "science"
   ],
+  "display_override": [
+    "standalone",
+    "window-controls-overlay"
+  ],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/static/ico/android/launchericon-48x48.png",
@@ -50,6 +60,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/static/ico/ios/512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "screenshots": [
@@ -62,9 +78,10 @@
     },
     {
       "src": "/static/img/pwa-screenshot-mobile.png",
-      "sizes": "1554x756",
+      "sizes": "756x1554",
       "type": "image/png",
-      "label": "MyAstroBoard weather view"
+      "form_factor": "narrow",
+      "label": "MyAstroBoard dashboard on mobile"
     }
   ]
 }
