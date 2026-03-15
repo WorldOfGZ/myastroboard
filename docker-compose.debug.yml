@@ -4,6 +4,8 @@ services:
     build: .
     
     # Mount source code directories for live editing
+    # Note: this static bind mount overrides the image-bundled minified assets.
+    # Development therefore serves local source files from ./static instead of build-minified files.
     volumes:
       - ./static:/app/static
       - ./templates:/app/templates

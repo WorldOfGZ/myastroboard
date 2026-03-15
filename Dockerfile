@@ -28,6 +28,13 @@ COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip wheel --wheel-dir /wheels -r requirements.txt
 
+# Minify static assets during build so production serves pre-minified files
+COPY scripts/minify_static.py ./scripts/minify_static.py
+COPY static/ ./static-src/
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir jsmin==3.0.1 csscompressor==0.9.5 \
+    && python ./scripts/minify_static.py ./static-src ./static-dist
+
 # =================================
 # Production stage
 # =================================
@@ -69,7 +76,7 @@ COPY VERSION /app/VERSION
 # Application code
 COPY backend/ ./backend/
 COPY templates/ ./templates/
-COPY static/ ./static/
+COPY --from=builder /build/static-dist ./static/
 
 # Application directories
 RUN mkdir -p /app/data /app/uptonight/configs /app/uptonight/outputs
