@@ -88,10 +88,27 @@
 
         try {
             const appVersionMeta = document.querySelector('meta[name="app-version"]');
-            const appVersion = appVersionMeta ? appVersionMeta.content : 'dev';
+            let appVersion = appVersionMeta ? String(appVersionMeta.content || '').trim() : '';
+
+            if (!appVersion) {
+                try {
+                    const response = await fetch('/api/version', { cache: 'no-store' });
+                    if (response.ok) {
+                        const payload = await response.json();
+                        appVersion = String(payload?.version || '').trim();
+                    }
+                } catch (_) {
+                    // Keep fallback below if version endpoint is unavailable.
+                }
+            }
+
+            if (!appVersion) {
+                appVersion = 'dev';
+            }
 
             await navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(appVersion)}`, {
-                scope: '/'
+                scope: '/',
+                updateViaCache: 'none'
             });
         } catch (error) {
             console.warn('PWA service worker registration failed:', error);
