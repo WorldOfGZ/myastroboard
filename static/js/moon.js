@@ -4,9 +4,15 @@
 
 let moonSvgTemplatePromise = null;
 
+function getAppVersionQuery() {
+    const versionMeta = document.querySelector('meta[name="app-version"]');
+    const version = versionMeta ? String(versionMeta.content || '').trim() : '';
+    return version ? `?v=${encodeURIComponent(version)}` : '';
+}
+
 function getMoonSvgTemplate() {
     if (!moonSvgTemplatePromise) {
-        moonSvgTemplatePromise = fetch('/static/img/moon.svg')
+        moonSvgTemplatePromise = fetch(`/static/img/moon.svg${getAppVersionQuery()}`)
             .then((response) => {
                 if (!response.ok) {
                     throw new Error(`Unable to load moon.svg (${response.status})`);
@@ -16,8 +22,8 @@ function getMoonSvgTemplate() {
             .then((svgText) => {
                 const parser = new DOMParser();
                 const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
-                const svg = svgDoc.querySelector('svg');
-                if (!svg) {
+                    const svg = svgDoc.querySelector('svg');
+                    if (!svg) {
                     throw new Error('moon.svg does not contain a root <svg> element');
                 }
                 return svg;
@@ -27,16 +33,48 @@ function getMoonSvgTemplate() {
 }
 
 async function createMoonPhaseSvg(illumination, waxing) {
+    //console.log(`Creating moon SVG with illumination=${illumination}, waxing=${waxing}`);
+    //illumination = 0.3; // Temporary fixed value for testing, replace with actual illumination when available
     const svgTemplate = await getMoonSvgTemplate();
     const moonSvg = svgTemplate.cloneNode(true);
     const terminator = moonSvg.querySelector('#terminator');
     if (terminator) {
         const clampedIllumination = Math.max(0, Math.min(1, Number.isFinite(illumination) ? illumination : 0));
-        // In direct shadow-mask mode: larger ellipse means larger shadow area.
-        const rx = 44 * (1 - clampedIllumination);
-        terminator.setAttribute('rx', rx);
+        const radius = 44;
+        const targetShadowFraction = 1 - clampedIllumination;
+
+        const overlapFractionForDistance = (distance) => {
+            const d = Math.max(0, Math.min(2 * radius, distance));
+            if (d <= 0) {
+                return 1;
+            }
+            if (d >= 2 * radius) {
+                return 0;
+            }
+            const term = d / (2 * radius);
+            const overlapArea =
+                2 * radius * radius * Math.acos(term) -
+                (d / 2) * Math.sqrt(4 * radius * radius - d * d);
+            return overlapArea / (Math.PI * radius * radius);
+        };
+
+        // Find the circle offset that yields the expected shadow coverage.
+        let low = 0;
+        let high = 2 * radius;
+        for (let i = 0; i < 24; i += 1) {
+            const mid = (low + high) / 2;
+            const currentFraction = overlapFractionForDistance(mid);
+            if (currentFraction > targetShadowFraction) {
+                low = mid;
+            } else {
+                high = mid;
+            }
+        }
+        const distance = (low + high) / 2;
+
+        terminator.setAttribute('rx', String(radius));
         // Waxing is lit on the right, so shadow sits on the left.
-        terminator.setAttribute('cx', waxing ? 50 - rx : 50 + rx);
+        terminator.setAttribute('cx', String(waxing ? 50 - distance : 50 + distance));
     }
     moonSvg.setAttribute('width', '80');
     return moonSvg;
