@@ -8,8 +8,6 @@ This document describes features that could potentially be integrated into MyAst
 **Objective: First stable release + smooth user experience**
 - Stabilization of critical bugs
 - Improved mobile interface (responsive)
-- Customizable dashboard
-- User profile configuration 
 
 ## New Features
 
@@ -27,14 +25,10 @@ This document describes features that could potentially be integrated into MyAst
 ### PWA application
 **Objective: Real PWA application for mobile**
 - PWA notifications for improving conditions (weather, ... ?)
-- Progressive weather updates during sessions
-- Sudden weather change warnings
+- Shortcuts from app: Astrodex, Plan My Night, Weather
 
 ### User profile
-- Allow to change his own password
 - Notification (when/if available in future)
-- Modify Roles: Admin, User (no app settings, but use Astrodex and others), Read-Only (can only consult, not fill Astrodex)
-- Customize interface: usefull ??
 
 ### Backup & Sync Features
 **Easy backup/restore of data config**
