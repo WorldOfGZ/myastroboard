@@ -9,6 +9,7 @@ import threading
 import time
 import yaml
 import json
+from copy import deepcopy
 from datetime import datetime, timedelta
 from weather_openmeteo import get_uptonight_conditions
 from constants import DATA_DIR, DATA_DIR_CACHE, HOST_UPTONIGHT_DIR, OUTPUT_DIR, CONFIG_DIR, SCHEDULE_INTERVAL, UPTONIGHT_IMAGE, UPTONIGHT_VERSION
@@ -29,6 +30,13 @@ os.makedirs(DATA_DIR_CACHE, exist_ok=True)
 
 # Create logger with centralized configuration
 logger = get_logger(__name__)
+
+_COMET_FAILURE_MARKERS = (
+    'uptonight/comets.py',
+    'comet_orbit',
+    '_UFuncNoLoopError',
+    'Compute the distance to Earth for',
+)
 
 # Host paths for Docker-in-Docker volume mounts
 HOST_OUTPUT_DIR = os.path.join(HOST_UPTONIGHT_DIR, 'outputs')
@@ -389,14 +397,48 @@ class UptonightScheduler:
 
             return_code, stdout, stderr = self._docker_run_uptonight(host_config_path, host_output_path)
 
-            # Write log
-            with open(log_file, 'w') as log_f:
-                log_f.write(f"=== STDOUT ===\n{stdout}\n")
-                log_f.write(f"=== STDERR ===\n{stderr}\n")
-                log_f.write(f"\n=== Exit code: {return_code} ===\n")
+            attempts = [{
+                'name': 'ATTEMPT 1',
+                'return_code': return_code,
+                'stdout': stdout,
+                'stderr': stderr,
+            }]
+
+            if (
+                return_code != 0
+                and uptonight_config.get('features', {}).get('comets', True)
+                and self._should_retry_without_comets(stderr)
+            ):
+                logger.warning(
+                    f"Comet computation failed for catalogue {catalogue}; retrying with comets disabled"
+                )
+
+                fallback_config = deepcopy(uptonight_config)
+                fallback_config.setdefault('features', {})['comets'] = False
+                with open(config_path, 'w', encoding='utf-8') as f:
+                    yaml.dump(fallback_config, f, Dumper=IndentDumper, default_flow_style=False, sort_keys=False)
+
+                retry_return_code, retry_stdout, retry_stderr = self._docker_run_uptonight(
+                    host_config_path,
+                    host_output_path,
+                )
+                attempts.append({
+                    'name': 'RETRY WITHOUT COMETS',
+                    'return_code': retry_return_code,
+                    'stdout': retry_stdout,
+                    'stderr': retry_stderr,
+                })
+                return_code, stdout, stderr = retry_return_code, retry_stdout, retry_stderr
+
+            self._write_execution_log(log_file, attempts)
 
             if return_code == 0:
-                logger.debug(f"Successfully executed uptonight for catalogue {catalogue}")
+                if len(attempts) > 1:
+                    logger.warning(
+                        f"Successfully executed uptonight for catalogue {catalogue} after retry without comets"
+                    )
+                else:
+                    logger.debug(f"Successfully executed uptonight for catalogue {catalogue}")
             else:
                 logger.error(f"Uptonight failed for catalogue {catalogue}")
 
@@ -406,6 +448,22 @@ class UptonightScheduler:
             logger.error(f"Docker SDK error for catalogue {catalogue}: {e}")
         except Exception as e:
             logger.error(f"Error running uptonight Docker for catalogue {catalogue}: {e}")
+
+    def _should_retry_without_comets(self, stderr):
+        """Return True when stderr suggests the known upstream comet orbit crash."""
+        if not stderr:
+            return False
+
+        hit_count = sum(marker in stderr for marker in _COMET_FAILURE_MARKERS)
+        return hit_count >= 2
+
+    def _write_execution_log(self, log_file, attempts):
+        """Write one or multiple execution attempts to the uptonight log file."""
+        with open(log_file, 'w', encoding='utf-8') as log_f:
+            for attempt in attempts:
+                log_f.write(f"=== {attempt['name']} STDOUT ===\n{attempt['stdout']}\n")
+                log_f.write(f"=== {attempt['name']} STDERR ===\n{attempt['stderr']}\n")
+            log_f.write(f"\n=== Exit code: {attempts[-1]['return_code']} ===\n")
 
     def _get_weather_for_config(self, config):
         """Get current weather conditions for uptonight config"""
