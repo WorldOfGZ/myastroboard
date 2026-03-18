@@ -294,3 +294,23 @@ class TestGetAlttimeFileName:
         
         result = get_alttime_file_name(target_name, temp_dir)
         assert "orion-nebula" in result
+
+    def test_get_alttime_file_name_apostrophe_variant(self, temp_dir):
+        """Test that filenames keeping apostrophes are matched."""
+        target_name = "Markarian's Chain"
+        expected = "uptonight-alttime-markarian's-chain.png"
+        file_path = os.path.join(temp_dir, expected)
+        open(file_path, 'w').close()
+
+        result = get_alttime_file_name(target_name, temp_dir)
+        assert result == expected
+
+    def test_get_alttime_file_name_typographic_apostrophe(self, temp_dir):
+        """Test that typographic apostrophes map to the same file."""
+        target_name = "Markarian’s Chain"
+        expected = "uptonight-alttime-markarian's-chain.png"
+        file_path = os.path.join(temp_dir, expected)
+        open(file_path, 'w').close()
+
+        result = get_alttime_file_name(target_name, temp_dir)
+        assert result == expected

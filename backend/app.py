@@ -1013,7 +1013,7 @@ def get_uptonight_outputs_api():
                 files = []
                 for filename in os.listdir(target_path):
                     # Only allow safe filename characters
-                    if not re.match(r'^[a-zA-Z0-9_.-]+$', filename):
+                    if not re.match(r"^[a-zA-Z0-9_.\-']+$", filename):
                         continue
 
                     file_path = os.path.join(target_path, filename)
@@ -1044,7 +1044,7 @@ def get_uptonight_file_api(target, filename):
     if not re.match(r'^[a-zA-Z0-9_-]+$', target):
         logger.warning(f"Invalid target name: {target}")
         return jsonify({"error": "Invalid target name"}), 400
-    if not re.match(r'^[a-zA-Z0-9_.\-\(\)]+$', filename):
+    if not re.match(r"^[a-zA-Z0-9_.\-\(\)']+$", filename):
         logger.warning(f"Invalid filename: {filename} for target: {target}")
         return jsonify({"error": "Invalid filename"}), 400
 

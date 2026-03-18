@@ -250,22 +250,46 @@ def sanitize_alttime_target_name(name: str) -> str:
     return name or "target"
 
 
+def _build_alttime_target_name_candidates(name: str) -> List[str]:
+    """Build safe filename candidates for Alttime target images."""
+    normalized = str(name or "").lower()
+    # Normalize common apostrophe variants to ASCII apostrophe.
+    normalized = normalized.replace("\u2019", "'").replace("\u2018", "'").replace("`", "'").replace("\u00b4", "'")
+
+    candidates: List[str] = []
+
+    legacy = sanitize_alttime_target_name(normalized)
+    if legacy:
+        candidates.append(legacy)
+
+    keep_apostrophe = re.sub(r"[^a-z0-9._\-\(\)']", "-", normalized)
+    keep_apostrophe = re.sub(r'\.{2,}', '.', keep_apostrophe)
+    keep_apostrophe = keep_apostrophe.strip('-.') or "target"
+    candidates.append(keep_apostrophe)
+
+    if "'" in keep_apostrophe:
+        candidates.append(keep_apostrophe.replace("'", ""))
+        candidates.append(keep_apostrophe.replace("'", "-"))
+
+    # De-duplicate while preserving first-seen order.
+    return list(dict.fromkeys(candidates))
+
+
 def get_alttime_file_name(target_name: str, catalogue_dir: str) -> str:
     """
     Generate Alttime-compatible file name from target name.
     Return file name if exists, else empty string.
     """
-    sanitized = sanitize_alttime_target_name(target_name)
     base_path = _resolve_catalogue_dir(catalogue_dir)
     if not base_path:
         return ""
 
-    filename = f"uptonight-alttime-{sanitized}.png"
-    file_path = _resolve_path_within(base_path, filename)
-    if not file_path:
-        return ""
+    for candidate in _build_alttime_target_name_candidates(target_name):
+        filename = f"uptonight-alttime-{candidate}.png"
+        file_path = _resolve_path_within(base_path, filename)
+        if not file_path:
+            continue
+        if file_path.exists() and file_path.is_file():
+            return filename
 
-    if file_path.exists() and file_path.is_file():
-        return filename
-    else:
-        return ""
+    return ""

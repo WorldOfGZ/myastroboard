@@ -713,10 +713,10 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                     if (alttimeSource && row['alttime_file'] != '') {
                         //console.log('Generating alttime path for:', row['alttime_file']);
 
-                        const alttimePath = `${API_BASE}/api/uptonight/outputs/${catalogue}/${row['alttime_file']}`;
+                        const alttimePath = `${API_BASE}/api/uptonight/outputs/${encodeURIComponent(catalogue)}/${encodeURIComponent(row['alttime_file'])}`;
                         html += `
                         <td style="text-align: ${col.align}" class="alttime-check" data-path="${alttimePath}" data-title="${escapeHtml(alttimeSource)} Altitude-Time">
-                            <a href="#" class="link-underline link-underline-opacity-0" onclick="showAlttimePopup('${escapeHtml(alttimeSource)} Altitude-Time', '${alttimePath}'); return false;">${displayValue}</a>
+                            <a href="#" class="link-underline link-underline-opacity-0 alttime-popup-link">${displayValue}</a>
                         </td>`;
                     } else {
                         html += `<td style="text-align: ${col.align}">${displayValue}</td>`;
@@ -888,6 +888,24 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                         showMessage('error', i18n.t('plan_my_night.failed_to_add_target'));
                     }
                 }
+            });
+        });
+
+        // Add event listeners for Alttime popup links (avoid inline onclick quoting issues)
+        const alttimeLinks = document.querySelectorAll('.alttime-popup-link');
+        alttimeLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const parentCell = this.closest('.alttime-check');
+                if (!parentCell) {
+                    return;
+                }
+                const title = parentCell.getAttribute('data-title') || 'Target Altitude-Time';
+                const path = parentCell.getAttribute('data-path') || '';
+                if (!path) {
+                    return;
+                }
+                showAlttimePopup(title, path);
             });
         });
         
