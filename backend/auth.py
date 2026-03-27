@@ -124,7 +124,6 @@ class UserManager:
         self.users = {}
         self._users_mtime = None
         self.load_users()
-        self.ensure_default_admin()
     
     def load_users(self):
         """Load users from file"""
@@ -149,6 +148,8 @@ class UserManager:
             logger.info("No users file found, starting fresh")
             self.users = {}
             self._users_mtime = None
+            # Only create default admin if users file is missing
+            self.ensure_default_admin()
 
     def _reload_users_if_changed(self):
         """Reload users from disk when file changed (multi-worker sync)."""
