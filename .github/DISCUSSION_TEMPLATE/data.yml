@@ -1,0 +1,19 @@
+name: 📡 Data Source
+description: Discuss catalogs and data
+title: "[Data]: "
+category: "Data & Catalogs"
+body:
+  - type: input
+    id: source
+    attributes:
+      label: Data source
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: Issue
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggestion

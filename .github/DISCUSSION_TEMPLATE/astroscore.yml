@@ -1,0 +1,24 @@
+name: 📊 AstroScore Discussion
+description: Discuss scoring logic
+title: "[AstroScore]: "
+category: "AstroScore & Algorithms"
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Question
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: Proposed Improvement
+
+  - type: textarea
+    id: comparison
+    attributes:
+      label: Comparison with other tools
+
+  - type: textarea
+    id: data
+    attributes:
+      label: Data / Examples
