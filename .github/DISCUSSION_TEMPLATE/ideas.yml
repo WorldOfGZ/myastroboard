@@ -1,7 +1,4 @@
-name: 💡 Idea
-description: Suggest a feature
 title: "[Idea]: "
-category: "ideas"
 body:
   - type: textarea
     id: problem
