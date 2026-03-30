@@ -1,7 +1,4 @@
-name: 📊 AstroScore Discussion
-description: Discuss scoring logic
 title: "[AstroScore]: "
-category: "AstroScore & Algorithms"
 body:
   - type: textarea
     id: problem
