@@ -1,0 +1,39 @@
+name: 🌌 Night Observation
+description: Share what you observed tonight
+title: "[Night]: "
+category: "Night Reports"
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Location
+
+  - type: input
+    id: date
+    attributes:
+      label: Date
+
+  - type: textarea
+    id: objects
+    attributes:
+      label: Observed Objects
+
+  - type: input
+    id: astroscore
+    attributes:
+      label: AstroScore
+
+  - type: textarea
+    id: conditions
+    attributes:
+      label: Conditions
+
+  - type: textarea
+    id: setup
+    attributes:
+      label: Equipment
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes

@@ -1,0 +1,67 @@
+name: ❓ Question / Help
+description: Ask for help about setup, usage, or issues
+title: "[Q&A]: "
+category: "Q&A"
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Clearly describe your issue or question
+      placeholder: What are you trying to do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What were you doing when the issue happened?
+      placeholder: Observing, configuring, testing AstroScore...
+
+  - type: input
+    id: version
+    attributes:
+      label: MyAstroBoard version / commit
+      placeholder: e.g. v1.2.0 or commit hash
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: Installation type
+      options:
+        - Docker
+        - Docker Compose
+        - Local (Python)
+        - Other
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: OS, Python version, hardware...
+
+  - type: textarea
+    id: data
+    attributes:
+      label: Data used
+      description: Objects, location, date, catalogs...
+      placeholder: M31, France, 2026-03-20...
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      placeholder: What did you expect?
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      placeholder: What actually happened?
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Screenshots
+      description: Paste logs or screenshots if available
