@@ -155,7 +155,7 @@ body:
       label: Photo (optional)
       description: |
         Provide a link to your photo or drag it into GitHub and copy the URL.
-        You can also use Markdown syntax: ![Alt text](URL)
+        You can also use Markdown syntax
       placeholder: "https://github.com/user/repo/path/to/photo.jpg"
 
   # =========================
