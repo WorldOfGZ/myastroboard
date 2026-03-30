@@ -3,40 +3,154 @@ body:
   - type: markdown
     attributes:
       value: |
-        ⚠️ AstroScore discussions MUST include real data (object, location, date).
-        Otherwise the discussion is not actionable.
-        
-  - type: input
-    id: location
-    attributes:
-      label: Location
+        ⚠️ This template is structured for data analysis.
+        Please follow the format strictly when possible.
+
+  # =========================
+  # 📍 WHEN / WHERE
+  # =========================
 
   - type: input
     id: date
     attributes:
-      label: Date
+      label: Observation Date
+      description: Use ISO format (YYYY-MM-DD)
+      placeholder: "2026-03-20"
+    validations:
+      required: true
+
+  - type: input
+    id: start_time
+    attributes:
+      label: Start Time (optional)
+      description: Use 24h format (HH:MM)
+      placeholder: "21:30"
+
+  - type: input
+    id: duration
+    attributes:
+      label: Duration
+      description: Total observation time
+      placeholder: "e.g. 2h30 or 150min"
+
+  - type: input
+    id: location
+    attributes:
+      label: Location
+      description: City, Country
+      placeholder: "Le Puy-en-Velay, France"
+    validations:
+      required: true
+
+  - type: input
+    id: coordinates
+    attributes:
+      label: Coordinates (optional)
+      description: Latitude, Longitude
+      placeholder: "45.043, 3.885"
+
+  # =========================
+  # 🔭 OBSERVATION DATA
+  # =========================
 
   - type: textarea
     id: objects
     attributes:
       label: Observed Objects
+      description: |
+        One object per line.
+        Use standard names (Messier, NGC, IC).
+
+        Example:
+        M31
+        M42
+        NGC 7000
+    validations:
+      required: true
 
   - type: input
     id: astroscore
     attributes:
-      label: AstroScore
+      label: AstroScore (optional)
+      description: Value between 0 and 100
+      placeholder: "75"
 
-  - type: textarea
-    id: conditions
-    attributes:
-      label: Conditions
+  # =========================
+  # 🌌 CONDITIONS
+  # =========================
 
-  - type: textarea
-    id: setup
+  - type: dropdown
+    id: seeing
     attributes:
-      label: Equipment
+      label: Seeing
+      options:
+        - Excellent
+        - Good
+        - Average
+        - Poor
+
+  - type: dropdown
+    id: transparency
+    attributes:
+      label: Transparency
+      options:
+        - Excellent
+        - Good
+        - Average
+        - Poor
+
+  - type: dropdown
+    id: light_pollution
+    attributes:
+      label: Light Pollution
+      options:
+        - Bortle 1
+        - Bortle 2
+        - Bortle 3
+        - Bortle 4
+        - Bortle 5
+        - Bortle 6
+        - Bortle 7
+        - Bortle 8
+        - Bortle 9
+
+  - type: dropdown
+    id: moon_phase
+    attributes:
+      label: Moon Phase
+      options:
+        - New Moon
+        - Crescent
+        - First Quarter
+        - Gibbous
+        - Full Moon
+
+  # =========================
+  # 🔧 EQUIPMENT
+  # =========================
+
+  - type: input
+    id: telescope
+    attributes:
+      label: Telescope
+      placeholder: "e.g. 200mm Newton"
+
+  - type: input
+    id: mount
+    attributes:
+      label: Mount (optional)
+
+  - type: input
+    id: camera
+    attributes:
+      label: Camera (optional)
+
+  # =========================
+  # 📝 NOTES
+  # =========================
 
   - type: textarea
     id: notes
     attributes:
       label: Notes
+      description: Additional details about your session
