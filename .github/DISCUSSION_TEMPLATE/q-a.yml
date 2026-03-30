@@ -1,4 +1,5 @@
 title: "[Q&A]: "
+labels: ["question"]
 body:
   - type: textarea
     id: problem
