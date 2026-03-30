@@ -7,7 +7,7 @@ body:
         Please follow the format strictly when possible.
 
   # =========================
-  # 📍 WHEN / WHERE
+  # WHEN / WHERE
   # =========================
 
   - type: input
@@ -50,7 +50,7 @@ body:
       placeholder: "45.043, 3.885"
 
   # =========================
-  # 🔭 OBSERVATION DATA
+  # OBSERVATION DATA
   # =========================
 
   - type: textarea
@@ -76,7 +76,7 @@ body:
       placeholder: "75"
 
   # =========================
-  # 🌌 CONDITIONS
+  # CONDITIONS
   # =========================
 
   - type: dropdown
@@ -126,7 +126,7 @@ body:
         - Full Moon
 
   # =========================
-  # 🔧 EQUIPMENT
+  # EQUIPMENT
   # =========================
 
   - type: input
@@ -146,7 +146,7 @@ body:
       label: Camera (optional)
 
   # =========================
-  # 🖼 PHOTO
+  # PHOTO
   # =========================
 
   - type: input
@@ -159,7 +159,7 @@ body:
       placeholder: "https://github.com/user/repo/path/to/photo.jpg"
 
   # =========================
-  # 📝 NOTES
+  # NOTES
   # =========================
 
   - type: textarea
