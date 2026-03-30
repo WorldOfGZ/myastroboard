@@ -1,7 +1,4 @@
-name: 📡 Data Source
-description: Discuss catalogs and data
 title: "[Data]: "
-category: "Data & Catalogs"
 body:
   - type: input
     id: source

@@ -1,7 +1,4 @@
-name: 🌌 Night Observation
-description: Share what you observed tonight
 title: "[Night]: "
-category: "Night Reports"
 body:
   - type: input
     id: location
