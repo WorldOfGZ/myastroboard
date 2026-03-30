@@ -146,6 +146,19 @@ body:
       label: Camera (optional)
 
   # =========================
+  # 🖼 PHOTO
+  # =========================
+
+  - type: input
+    id: photo
+    attributes:
+      label: Photo (optional)
+      description: |
+        Provide a link to your photo or drag it into GitHub and copy the URL.
+        You can also use Markdown syntax: ![Alt text](URL)
+      placeholder: "https://github.com/user/repo/path/to/photo.jpg"
+
+  # =========================
   # 📝 NOTES
   # =========================
 
