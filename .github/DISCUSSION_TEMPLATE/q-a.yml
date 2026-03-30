@@ -1,7 +1,4 @@
-name: ❓ Question / Help
-description: Ask for help about setup, usage, or issues
 title: "[Q&A]: "
-category: "Q&A"
 body:
   - type: textarea
     id: problem
