@@ -1,5 +1,11 @@
 title: "[Night]: "
 body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ AstroScore discussions MUST include real data (object, location, date).
+        Otherwise the discussion is not actionable.
+        
   - type: input
     id: location
     attributes:
