@@ -56,12 +56,16 @@ body:
       options:
         - Weather Forecast
         - Astrodex
+        - Plan my Night
         - Astronomy Calculations
         - Observation Conditions
         - Sun & Moon Information
         - UpTonight Integration
         - Configuration Interface
         - Catalogue Browser
+        - Events / Calendar
+        - Aurora Borealis
+        - ISS
         - Docker/Installation
         - UI/UX
         - Other
