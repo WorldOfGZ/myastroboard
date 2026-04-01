@@ -14,6 +14,7 @@ from datetime import datetime, timedelta, date
 from typing import List, Dict, Any, Optional
 from zoneinfo import ZoneInfo
 from logging_config import get_logger
+from i18n_utils import I18nManager
 
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord, ICRS
 from astropy.time import Time
@@ -148,7 +149,7 @@ class SolarSystemEventsService:
         },
     }
 
-    def __init__(self, latitude: float, longitude: float, elevation: float = 0, timezone: str = "UTC"):
+    def __init__(self, latitude: float, longitude: float, elevation: float = 0, timezone: str = "UTC", language: str = "en"):
         """
         Initialize solar system events service.
         
@@ -157,11 +158,14 @@ class SolarSystemEventsService:
             longitude: Observer longitude in degrees
             elevation: Observer elevation in meters (default 0)
             timezone: IANA timezone string (default UTC)
+            language: Language code for translations (default 'en')
         """
         self.latitude = latitude
         self.longitude = longitude
         self.elevation = elevation
         self.timezone = ZoneInfo(timezone)
+        self.language = language
+        self.i18n = I18nManager(language)
         self.location = EarthLocation(
             lat=latitude * u.deg,
             lon=longitude * u.deg,
@@ -236,10 +240,16 @@ class SolarSystemEventsService:
                         peak_time
                     )
                     
+                    # Get translated title and description
+                    title = self.i18n.t('events_api.solar_system.meteor_shower_title', shower_name=shower_name)
+                    description = self.i18n.t('events_api.solar_system.meteor_shower_description',
+                                             zenith_hourly_rate=shower_data['zenith_hourly_rate'],
+                                             parent_body=shower_data['parent_body'])
+                    
                     events.append({
                         'event_type': 'Meteor Shower',
-                        'title': f'{shower_name} Peak',
-                        'description': f'Meteor shower peak. Up to {shower_data["zenith_hourly_rate"]} meteors/hour. Parent body: {shower_data["parent_body"]}',
+                        'title': title,
+                        'description': description,
                         'icon_class': 'bi bi-comet',
                         'peak_time': self._to_local_iso(peak_time),
                         'start_time': self._to_local_iso(peak_time - (2 * u.day)),  # Peak activity is 2 days before to 2 days after
@@ -293,10 +303,16 @@ class SolarSystemEventsService:
                     # Calculate magnitude at different points
                     visibility_type = self._estimate_comet_visibility(comet_data['magnitude'])
                     
+                    # Get translated title and description
+                    title = self.i18n.t('events_api.solar_system.comet_title', comet_name=comet_name)
+                    description = self.i18n.t('events_api.solar_system.comet_description',
+                                             magnitude=comet_data['magnitude'],
+                                             visibility=comet_data['visibility'])
+                    
                     events.append({
                         'event_type': 'Comet Appearance',
-                        'title': f'{comet_name} Near Perihelion',
-                        'description': f'Periodic comet near perihelion. Magnitude ~{comet_data["magnitude"]} ({comet_data["visibility"]}). Check charts for exact location.',
+                        'title': title,
+                        'description': description,
                         'icon_class': 'bi bi-comet',
                         'peak_time': self._to_local_iso(Time(perihelion_date)),
                         'start_time': self._to_local_iso(Time(visibility_start)),
@@ -333,10 +349,13 @@ class SolarSystemEventsService:
         # https://www.occultations.org/
         
         # For demonstration, include a template event
+        title = self.i18n.t('events_api.solar_system.asteroid_occultation_title')
+        description = self.i18n.t('events_api.solar_system.asteroid_occultation_description')
+        
         example_occultation = {
             'event_type': 'Asteroid Occultation',
-            'title': 'Asteroid Occultation - See IOTA for Details',
-            'description': 'Asteroid passing in front of a star. Precise predictions available at IOTA/IOD. Requires precise timing.',
+            'title': title,
+            'description': description,
             'icon_class': 'bi bi-comet',
             'start_time': None,
             'peak_time': None,

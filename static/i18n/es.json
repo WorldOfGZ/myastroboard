@@ -1121,6 +1121,14 @@
       "elongation_description": "{planet} alcanza el alargamiento máximo ({elongation_degrees}°). Mejor tiempo de visualización.",
       "retrograde_title": "{planet} Movimiento retrógrado",
       "retrograde_description": "{planet} parece retroceder durante ~{duration_days} días."
+    },
+    "solar_system": {
+      "meteor_shower_title": "Pico de {shower_name}",
+      "meteor_shower_description": "Lluvia de meteoritos pico. Hasta {zenith_hourly_rate} meteoritos/hora. Cuerpo principal: {parent_body}",
+      "comet_title": "{comet_name} Cerca del Perihelio",
+      "comet_description": "Cometa periódico cerca del perihelio. Magnitud ~{magnitude} ({visibility}). Consulta los gráficos para la ubicación exacta.",
+      "asteroid_occultation_title": "Ocultación de Asteroide - Consulte IOTA para Detalles",
+      "asteroid_occultation_description": "Asteroide pasando frente a una estrella. Predicciones precisas disponibles en IOTA/IOD. Requiere sincronización precisa."
     }
   },
   "weather_alerts": {
