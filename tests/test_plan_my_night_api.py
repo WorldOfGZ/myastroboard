@@ -17,6 +17,7 @@ if 'psutil' not in sys.modules:
 import app as app_module  # type: ignore[import-not-found]
 import astrodex  # type: ignore[import-not-found]
 import plan_my_night  # type: ignore[import-not-found]
+import skytonight_targets  # type: ignore[import-not-found]
 from app import app  # type: ignore[import-not-found]
 from auth import user_manager  # type: ignore[import-not-found]
 
@@ -148,3 +149,35 @@ def test_export_csv(client_admin):
     body = export_response.data.decode('utf-8')
     assert 'order,name,catalogue' in body
     assert 'M42' in body
+
+
+def test_add_target_uses_skytonight_group_dedup(client_admin, monkeypatch):
+    """Equivalent aliases should not create duplicate plan entries."""
+
+    def fake_lookup_entry(catalogue, object_name, force_reload=False, dataset_file=None):
+        entry = {
+            'group_id': 'DSO-0001',
+            'aliases': {
+                'Messier': 'M 81',
+                'OpenNGC': 'NGC 3031',
+            },
+        }
+        if catalogue in {'Messier', 'OpenNGC'} and object_name in {'M 81', 'NGC 3031'}:
+            return entry
+        return {}
+
+    monkeypatch.setattr(skytonight_targets, 'get_lookup_entry', fake_lookup_entry)
+
+    first_response = client_admin.post('/api/plan-my-night/targets', json={
+        'item': {'name': 'M 81', 'id': 'M 81', 'type': 'Galaxy', 'source_type': 'report'},
+        'catalogue': 'Messier',
+    })
+    assert first_response.status_code == 200
+    assert first_response.get_json()['reason'] == 'added'
+
+    second_response = client_admin.post('/api/plan-my-night/targets', json={
+        'item': {'name': 'NGC 3031', 'id': 'NGC 3031', 'type': 'Galaxy', 'source_type': 'report'},
+        'catalogue': 'OpenNGC',
+    })
+    assert second_response.status_code == 200
+    assert second_response.get_json()['reason'] == 'already_in_plan'

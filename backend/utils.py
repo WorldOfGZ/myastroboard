@@ -5,10 +5,61 @@ Provides reusable functionality to avoid code duplication
 import os
 import re
 import json
+import math
 import sys
+import unicodedata
 import yaml
 from typing import Dict, Tuple, Optional
 from constants import CONFIG_FILE, DATA_DIR
+
+
+class _NumpySafeEncoder(json.JSONEncoder):
+    """JSON encoder that converts numpy scalar types to native Python types.
+
+    This avoids ``TypeError: Object of type int64 is not JSON serializable``
+    when the payload contains values derived from numpy/astropy calculations.
+    NaN and Inf values are replaced with None so the output remains valid JSON.
+    """
+
+    def default(self, obj: object) -> object:  # type: ignore[override]
+        try:
+            import numpy as np  # local import – optional dependency
+            if isinstance(obj, np.integer):
+                return int(obj)
+            if isinstance(obj, np.floating):
+                v = float(obj)
+                return None if (math.isnan(v) or math.isinf(v)) else v
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            if isinstance(obj, np.bool_):
+                return bool(obj)
+        except ImportError:
+            pass
+        return super().default(obj)
+
+
+def _sanitize_for_json(obj: object) -> object:
+    """Recursively convert numpy types and replace NaN/Inf with None."""
+    try:
+        import numpy as np
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            v = float(obj)
+            return None if (math.isnan(v) or math.isinf(v)) else v
+        if isinstance(obj, np.bool_):
+            return bool(obj)
+        if isinstance(obj, np.ndarray):
+            return [_sanitize_for_json(x) for x in obj.tolist()]
+    except ImportError:
+        pass
+    if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+        return None
+    if isinstance(obj, dict):
+        return {k: _sanitize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize_for_json(x) for x in obj]
+    return obj
 
 
 # Custom YAML Dumper for proper indentation
@@ -26,6 +77,14 @@ def ensure_directory_exists(path: str) -> None:
         path: Directory path to create
     """
     os.makedirs(path, exist_ok=True)
+
+
+def slugify_location_name(value: str, fallback: str = 'default-location') -> str:
+    """Convert a human location label into a stable ASCII filesystem slug."""
+    normalized = unicodedata.normalize('NFKD', str(value or ''))
+    ascii_value = normalized.encode('ascii', 'ignore').decode('ascii')
+    slug = re.sub(r'[^a-zA-Z0-9]+', '-', ascii_value.lower()).strip('-')
+    return slug or fallback
 
 
 def safe_file_exists(file_path: str) -> bool:
@@ -82,9 +141,13 @@ def save_json_file(file_path: str, data: dict) -> bool:
     try:
         ensure_directory_exists(os.path.dirname(file_path))
         with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+            json.dump(_sanitize_for_json(data), f, indent=2, ensure_ascii=False, cls=_NumpySafeEncoder)
         return True
-    except (OSError, UnicodeDecodeError, TypeError):
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error(
+            f'save_json_file failed for {file_path}: {type(exc).__name__}: {exc}'
+        )
         return False
 
 

@@ -12,6 +12,7 @@ from typing import Dict, List, Optional
 from logging_config import get_logger
 from constellation import Constellation
 import catalogue_aliases
+import skytonight_targets
 
 logger = get_logger(__name__)
 
@@ -28,7 +29,7 @@ UNUSED_ITEM_FIELDS = {'ra', 'dec', 'magnitude', 'size'}
 
 def _normalize_name(name: str) -> str:
     """Normalize names for resilient comparisons."""
-    return catalogue_aliases.normalize_object_name(name)
+    return skytonight_targets.normalize_object_name(name)
 
 
 def _strip_parenthesized_text(value: str) -> str:
@@ -106,11 +107,11 @@ def _get_alias_for_catalogue(aliases: Dict[str, str], catalogue: str) -> str:
 
 
 def _get_alias_metadata(catalogue: str, object_name: str) -> tuple[str, Dict[str, str]]:
-    """Get aliases group metadata from generated catalogue aliases table."""
+    """Get aliases group metadata from the SkyTonight target resolver."""
     if not catalogue or not object_name:
         return '', {}
 
-    entry = catalogue_aliases.get_alias_entry(catalogue, object_name)
+    entry = skytonight_targets.get_lookup_entry(catalogue, object_name)
     if not entry:
         return '', {}
 

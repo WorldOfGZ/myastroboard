@@ -1,4 +1,4 @@
-# Plan My Night
+﻿# Plan My Night
 
 Plan My Night lets each `admin` or `user` build a private target timeline for a single observing night.
 
@@ -8,9 +8,9 @@ Plan My Night lets each `admin` or `user` build a private target timeline for a 
 - `read-only` users can view the Astrodex tab but cannot access Plan My Night actions.
 - Plans are always stored per user in `data/projects/<user_id>_plan_my_night.json`.
 
-## UpTonight Integration
+## SkyTonight Integration
 
-From UpTonight report tables (deep sky, bodies, comets), a dedicated **Plan My Night** column is available:
+From SkyTonight report tables (deep sky, bodies, comets), a dedicated **Plan My Night** column is available:
 
 - If no plan exists, first add creates the plan automatically.
 - If a current-night plan exists, add appends the target.
@@ -40,3 +40,4 @@ From UpTonight report tables (deep sky, bodies, comets), a dedicated **Plan My N
 ## API Summary
 
 See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full list.
+

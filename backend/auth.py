@@ -28,7 +28,7 @@ DEFAULT_ADMIN_PASSWORD = 'admin'
 ALLOWED_STARTUP_MAIN_TABS = {
     'forecast-astro',
     'forecast-weather',
-    'uptonight',
+    'skytonight',
     'astrodex',
     'equipment',
     'my-settings',

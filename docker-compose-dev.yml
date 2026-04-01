@@ -11,8 +11,6 @@ services:
 
     volumes:
       - ./data:/app/data
-      - ./uptonight:/app/uptonight
-      - /var/run/docker.sock:/var/run/docker.sock  # Docker-from-Docker (controled)
 
     environment:
       # Timezone
@@ -45,10 +43,6 @@ services:
 
       # App
       - DATA_DIR=/app/data
-      - UPTONIGHT_DIR=/app/uptonight
-
-      # Docker-in-Docker paths
-      - HOST_UPTONIGHT_DIR=${PWD}/uptonight
 
     restart: unless-stopped
 

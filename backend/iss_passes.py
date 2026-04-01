@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List, Tuple
 from zoneinfo import ZoneInfo
 import os
+import time
 
 import requests
 import astropy.units as u
@@ -19,6 +20,7 @@ from skyfield.api import Loader, EarthSatellite, wgs84
 
 from constants import CACHE_TTL, DATA_DIR_CACHE
 from logging_config import get_logger
+from utils import load_json_file, save_json_file
 
 
 logger = get_logger(__name__)
@@ -28,13 +30,72 @@ os.makedirs(SKYFIELD_CACHE_DIR, exist_ok=True)
 SKYFIELD_LOADER = Loader(SKYFIELD_CACHE_DIR)
 logger.info(f"Skyfield cache directory: {SKYFIELD_CACHE_DIR}")
 
-CELESTRAK_ISS_TLE_URL = "https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE"
+CELESTRAK_ISS_TLE_URLS = [
+    "https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE",
+    "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle",
+    "https://celestrak.org/NORAD/elements/stations.txt",
+    "https://www.celestrak.com/NORAD/elements/stations.txt",
+]
 REQUEST_TIMEOUT_SECONDS = 10
 DEFAULT_FORECAST_DAYS = 20
 MAX_FORECAST_DAYS = 30
 MIN_EVENT_ALTITUDE_DEG = 10.0
 MAX_VISIBLE_SKY_SUN_ALTITUDE_DEG = -4.0
 VISIBILITY_SAMPLE_SECONDS = 5
+ISS_TLE_CACHE_FILE = os.path.join(DATA_DIR_CACHE, 'iss_tle_cache.json')
+ISS_TLE_MAX_AGE_SECONDS = 6 * 60 * 60
+ISS_TLE_FAILURE_COOLDOWN_SECONDS = 3 * 60 * 60
+
+
+def _utc_timestamp() -> int:
+    return int(time.time())
+
+
+def _read_tle_cache() -> Dict[str, Any]:
+    payload = load_json_file(ISS_TLE_CACHE_FILE, default={})
+    return payload if isinstance(payload, dict) else {}
+
+
+def _write_tle_cache(payload: Dict[str, Any]) -> None:
+    save_json_file(ISS_TLE_CACHE_FILE, payload)
+
+
+def _get_cached_tle(max_age_seconds: Optional[int] = None) -> Optional[Tuple[str, str, int]]:
+    cache = _read_tle_cache()
+    line1 = str(cache.get('line1') or '').strip()
+    line2 = str(cache.get('line2') or '').strip()
+    fetched_at = int(cache.get('fetched_at') or 0)
+    if not line1 or not line2 or fetched_at <= 0:
+        return None
+
+    age = _utc_timestamp() - fetched_at
+    if max_age_seconds is not None and age > max_age_seconds:
+        return None
+
+    return line1, line2, fetched_at
+
+
+def _set_cached_tle(line1: str, line2: str) -> None:
+    payload = _read_tle_cache()
+    payload['line1'] = line1
+    payload['line2'] = line2
+    payload['fetched_at'] = _utc_timestamp()
+    payload['last_error_at'] = None
+    _write_tle_cache(payload)
+
+
+def _set_tle_error_timestamp() -> None:
+    payload = _read_tle_cache()
+    payload['last_error_at'] = _utc_timestamp()
+    _write_tle_cache(payload)
+
+
+def _in_tle_failure_cooldown() -> bool:
+    payload = _read_tle_cache()
+    last_error_at = int(payload.get('last_error_at') or 0)
+    if last_error_at <= 0:
+        return False
+    return (_utc_timestamp() - last_error_at) < ISS_TLE_FAILURE_COOLDOWN_SECONDS
 
 
 class ISSPassService:
@@ -107,16 +168,68 @@ class ISSPassService:
             return None
 
     def _fetch_iss_tle(self) -> Tuple[str, str]:
-        """Fetch latest ISS TLE from CelesTrak."""
-        response = requests.get(CELESTRAK_ISS_TLE_URL, timeout=REQUEST_TIMEOUT_SECONDS)
-        response.raise_for_status()
+        """Fetch latest ISS TLE, trying multiple CelesTrak endpoints as fallback."""
+        # Fast path: prefer recent cached TLE to avoid unnecessary upstream requests.
+        cached_recent = _get_cached_tle(max_age_seconds=ISS_TLE_MAX_AGE_SECONDS)
+        if cached_recent is not None:
+            line1, line2, _ = cached_recent
+            return line1, line2
 
-        lines = [line.strip() for line in response.text.splitlines() if line.strip()]
+        # Circuit breaker: if a recent failure happened, avoid hammering providers.
+        if _in_tle_failure_cooldown():
+            cached_any = _get_cached_tle(max_age_seconds=None)
+            if cached_any is not None:
+                line1, line2, fetched_at = cached_any
+                age_hours = (_utc_timestamp() - fetched_at) / 3600.0
+                logger.warning(f"ISS TLE fetch is in cooldown; reusing stale cached TLE ({age_hours:.1f}h old)")
+                return line1, line2
+            raise RuntimeError('ISS TLE fetch is in cooldown and no cached TLE is available')
+
+        last_error: Optional[Exception] = None
+
+        for tle_url in CELESTRAK_ISS_TLE_URLS:
+            try:
+                response = requests.get(tle_url, timeout=REQUEST_TIMEOUT_SECONDS)
+                response.raise_for_status()
+                line1, line2 = self._parse_iss_tle_from_response(response.text)
+                _set_cached_tle(line1, line2)
+                return line1, line2
+            except Exception as exc:
+                last_error = exc
+                logger.debug(f"ISS TLE fetch failed for {tle_url}: {exc}")
+
+        _set_tle_error_timestamp()
+        cached_any = _get_cached_tle(max_age_seconds=None)
+        if cached_any is not None:
+            line1, line2, fetched_at = cached_any
+            age_hours = (_utc_timestamp() - fetched_at) / 3600.0
+            logger.warning(f"All ISS TLE sources failed; using stale cached TLE ({age_hours:.1f}h old)")
+            return line1, line2
+
+        logger.warning("All ISS TLE sources failed and no cached TLE is available")
+        raise RuntimeError(f"Failed to fetch ISS TLE from all sources: {last_error}")
+
+    def _parse_iss_tle_from_response(self, response_text: str) -> Tuple[str, str]:
+        """Extract ISS TLE pair from plain-text response payload."""
+        lines = [line.strip() for line in response_text.splitlines() if line.strip()]
+        first_tle_pair: Optional[Tuple[str, str]] = None
+
         for index in range(len(lines) - 1):
-            if lines[index].startswith("1 ") and lines[index + 1].startswith("2 "):
-                return lines[index], lines[index + 1]
+            line = lines[index]
+            next_line = lines[index + 1]
+            if line.startswith("1 ") and next_line.startswith("2 "):
+                pair = (line, next_line)
+                if first_tle_pair is None:
+                    first_tle_pair = pair
 
-        raise ValueError("Could not parse ISS TLE from CelesTrak response")
+                previous_name = lines[index - 1].upper() if index > 0 else ""
+                if "ISS" in previous_name or "ZARYA" in previous_name:
+                    return pair
+
+        if first_tle_pair is not None:
+            return first_tle_pair
+
+        raise ValueError("Could not parse ISS TLE from response payload")
 
     def _build_passes(self, event_times, event_types, satellite: EarthSatellite, observer, ts, eph) -> List[Dict[str, Any]]:
         """Build normalized pass objects from Skyfield rise/culminate/set events."""
@@ -359,5 +472,5 @@ def get_iss_passes_report(
         )
         return service.get_report(days=days)
     except Exception as e:
-        logger.error(f"Failed to generate ISS passes report: {e}", exc_info=True)
+        logger.warning(f"Failed to generate ISS passes report: {e}")
         return None

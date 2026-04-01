@@ -6,6 +6,8 @@ from typing import Dict, Optional
 
 from logging_config import get_logger
 
+import skytonight_targets
+
 logger = get_logger(__name__)
 
 ALIASES_FILE = os.path.join(os.path.dirname(__file__), 'catalogue_aliases.json')
@@ -54,6 +56,10 @@ def get_alias_entry(catalogue: str, object_name: str) -> Dict:
     """Get aliases entry for a given catalogue/object pair."""
     if not catalogue or not object_name:
         return {}
+
+    skytonight_entry = skytonight_targets.get_lookup_entry(catalogue, object_name)
+    if skytonight_entry:
+        return skytonight_entry
 
     aliases_table = load_aliases_table()
     lookup = aliases_table.get('lookup', {})

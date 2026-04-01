@@ -38,15 +38,34 @@ else:
 # Add backend to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
 from weather_openmeteo import get_hourly_forecast
-from uptonight_parser import get_catalogue_reports
 from events_aggregator import EventsAggregator
 from i18n_utils import I18nManager
 from txtconf_loader import get_repo_version
 from repo_config import load_config, save_config
-from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, OUTPUT_DIR, CONFIG_DIR, CACHE_TTL, UPTONIGHT_CATALOGUES
+from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, CACHE_TTL, SKYTONIGHT_LOGS_DIR, CONFIG_DIR, OUTPUT_DIR
 from logging_config import get_logger
 from version_checker import check_for_updates
 from metrics_collector import collect_metrics
+from skytonight_catalogue_builder import build_and_save_default_dataset
+from skytonight_calculator import load_calculation_results, run_calculations
+from constellation import Constellation as _Constellation
+
+# Map IAU 3-letter abbreviations to full humanised constellation names.
+# humanise converts CamelCase enum names (e.g. "CanisMajor") to
+# spaced names ("Canis Major") so the JS i18n lookup works correctly.
+def _humanize_const_name(name: str) -> str:
+    return re.sub(r'(?<!^)(?=[A-Z])', ' ', name)
+
+_CONSTELLATION_ABBR_MAP: Dict[str, str] = {
+    c.abbr: _humanize_const_name(c.name) for c in _Constellation
+}
+from skytonight_storage import (
+    ensure_skytonight_directories,
+    get_scheduler_lock_file as get_skytonight_scheduler_lock_file,
+    get_scheduler_status_file as get_skytonight_scheduler_status_file,
+    get_scheduler_trigger_file as get_skytonight_scheduler_trigger_file,
+    has_calculation_results,
+)
 from cache_updater import (
     update_dark_window_cache,
     update_moon_report_cache,
@@ -76,7 +95,7 @@ from auth import (
 # Astrodex
 import astrodex
 import plan_my_night
-import catalogue_aliases
+import skytonight_targets
 
 # Equipment Profiles
 import equipment_profiles
@@ -86,6 +105,7 @@ logger = get_logger(__name__)
 
 STATIC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static'))
 TEMPLATE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates'))
+SKYTONIGHT_CALCULATION_LOG_FILE = os.path.join(SKYTONIGHT_LOGS_DIR, 'last_calculation.log')
 
 app = Flask(__name__, 
             template_folder=TEMPLATE_DIR,
@@ -553,18 +573,6 @@ def update_config_api():
     """
     config = request.json
     
-    # Validate at least one catalogue is selected
-    selected_catalogues = config.get('selected_catalogues', [])
-    # De-duplicate while preserving order
-    if selected_catalogues:
-        selected_catalogues = list(dict.fromkeys(selected_catalogues))
-        config['selected_catalogues'] = selected_catalogues
-    if not selected_catalogues:
-        return jsonify({
-            "status": "error", 
-            "message": "At least one catalogue must be selected"
-        }), 400
-    
     # Load old config to detect changes
     old_config = load_config()
     old_location = old_config.get('location', {})
@@ -578,36 +586,6 @@ def update_config_api():
         old_location.get('timezone') != new_location.get('timezone')
     )
     
-    # Compare selected catalogues to previous catalogues (on folder uptonight/outputs)
-    # to remove uptonight/configs & uptonight/outputs of not used catalogues
-    old_catalogues = set(old_config.get('selected_catalogues', [])) 
-    new_catalogues = set(selected_catalogues)
-    removed_catalogues = old_catalogues - new_catalogues
-    for catalogue in removed_catalogues:
-        # Remove config files from UPTONIGHT_CONFIG_DIR config_{catalogue}.yaml
-        config_file = os.path.join(CONFIG_DIR, f'config_{catalogue}.yaml')
-        if os.path.exists(config_file):
-            try:
-                if os.path.isdir(config_file):
-                    logger.warning(f"Removing invalid config directory: {config_file}")
-                    shutil.rmtree(config_file)
-                else:
-                    os.remove(config_file)
-            except Exception as e:
-                logger.error(f"Error removing config file {config_file}: {e}")
-        # Remove output directory
-        output_dir = os.path.join(OUTPUT_DIR, catalogue)
-        if os.path.exists(output_dir):
-            try:
-                for root, dirs, files in os.walk(output_dir, topdown=False):
-                    for name in files:
-                        os.remove(os.path.join(root, name))
-                    for name in dirs:
-                        os.rmdir(os.path.join(root, name))
-                os.rmdir(output_dir)
-            except Exception as e:
-                logger.error(f"Error removing output directory {output_dir}: {e}")
-
     # Ensure features exist with defaults
     if 'features' not in config:
         config['features'] = {
@@ -623,6 +601,13 @@ def update_config_api():
         config['astrodex'] = {
             "private": False
         }
+
+    # Ensure SkyTonight block exists and stays enabled during migration.
+    if 'skytonight' not in config:
+        config['skytonight'] = old_config.get('skytonight', {}) if isinstance(old_config, dict) else {}
+    if not isinstance(config.get('skytonight'), dict):
+        config['skytonight'] = {}
+    config['skytonight']['enabled'] = True
     
     # Save the new config
     save_config(config)
@@ -927,74 +912,474 @@ def check_updates_api():
 
 
 # ============================================================
-# API UpTonight
+# API SkyTonight
 # ============================================================
 
 @app.route('/api/catalogues', methods=['GET'])
 @login_required
 def get_catalogues_api():
-    """Get available target catalogues from uptonight repository"""
+    """Get available deep-sky catalogues from SkyTonight dataset."""
     try:
-        catalogues = UPTONIGHT_CATALOGUES
-        # Sort alphabetically
-        catalogues.sort()
-        return jsonify(catalogues)
+        dataset = skytonight_targets.load_targets_dataset()
+        targets = dataset.get('targets', []) if isinstance(dataset, dict) else []
+        catalogues = set()
+        for target in targets:
+            category = _target_attr(target, 'category', '')
+            if str(category or '').strip() != 'deep_sky':
+                continue
+            for catalogue_name in _target_catalogue_names(target).keys():
+                cleaned = str(catalogue_name or '').strip()
+                if cleaned:
+                    catalogues.add(cleaned)
+        return jsonify(sorted(catalogues))
     except Exception as e:
         logger.error(f"Error getting catalogues: {e}")
-        return jsonify(["Messier"])  # Fallback to default
+        return jsonify([])
 
 
 @app.route('/api/scheduler/status', methods=['GET'])
 @login_required
 def scheduler_status_api():
-    """Get scheduler status"""
-    sched = get_scheduler_for_api()
-    if sched == "remote_scheduler":
-        # Scheduler is running in another worker - get real status from shared file
-        return jsonify(get_remote_scheduler_status())
-    elif sched:
-        return jsonify(sched.get_status())
-    return jsonify({
-        "running": False, 
-        "last_run": None, 
-        "next_run": None,
-        "is_executing": False,
-        "progress": {
-            "current_catalogue": None,
-            "current_index": 0,
-            "total_catalogues": 0,
-            "execution_duration_seconds": None
-        }
-    })
+    """Legacy scheduler endpoint mapped to SkyTonight scheduler status."""
+    return skytonight_scheduler_status_api()
 
 
 @app.route('/api/scheduler/trigger', methods=['POST'])
 @admin_required
 def trigger_scheduler_api():
-    """Manually trigger uptonight execution"""
-    sched = get_scheduler_for_api()
-    if sched == "remote_scheduler":
-        # Scheduler is running in another worker, we can't trigger it directly
-        # But we can create a trigger file that the scheduler will detect
-        import os
-        os.makedirs(DATA_DIR_CACHE, exist_ok=True)
-        trigger_file = os.path.join(DATA_DIR_CACHE, 'scheduler_trigger')
-        try:
-            with open(trigger_file, 'w') as f:
-                f.write('trigger_now')
-            return jsonify({"status": "triggered", "message": "Trigger signal sent to scheduler worker"})
-        except Exception as e:
-            logger.error(f"Failed to create trigger file: {e}")
-            return jsonify({"error": "Failed to trigger scheduler"}), 500
-    elif sched:
-        return jsonify(sched.trigger_now())
-    return jsonify({"error": "Scheduler not running"}), 500
+    """Legacy scheduler endpoint mapped to SkyTonight manual trigger."""
+    return trigger_skytonight_scheduler_api()
 
 
-@app.route('/api/uptonight/outputs', methods=['GET'])
+@app.route('/api/skytonight/scheduler/status', methods=['GET'])
 @login_required
-def get_uptonight_outputs_api():
-    """Get list of UpTonight output directories safely"""
+def skytonight_scheduler_status_api():
+    """Get SkyTonight scheduler status."""
+    sched = get_skytonight_scheduler_for_api()
+    if sched == 'remote_scheduler':
+        return jsonify(get_remote_skytonight_scheduler_status())
+    if sched:
+        return jsonify(sched.get_status())
+    return jsonify({
+        'running': False,
+        'enabled': bool(load_config().get('skytonight', {}).get('enabled', False)),
+        'last_run': None,
+        'next_run': None,
+        'is_executing': False,
+        'mode': 'idle',
+        'reason': 'SkyTonight scheduler not running',
+        'server_time_valid': False,
+        'server_time': None,
+        'timezone': str(load_config().get('location', {}).get('timezone') or 'UTC'),
+        'last_error': None,
+        'last_result': {},
+        'progress': {
+            'execution_duration_seconds': None,
+        },
+    })
+
+
+@app.route('/api/skytonight/scheduler/trigger', methods=['POST'])
+@admin_required
+def trigger_skytonight_scheduler_api():
+    """Manually trigger SkyTonight execution."""
+    sched = get_skytonight_scheduler_for_api()
+    if sched == 'remote_scheduler':
+        trigger_file = get_skytonight_scheduler_trigger_file()
+        try:
+            with open(trigger_file, 'w', encoding='utf-8') as file_obj:
+                file_obj.write('trigger_now')
+            return jsonify({'status': 'triggered', 'message': 'Trigger signal sent to SkyTonight scheduler worker'})
+        except Exception as e:
+            logger.error(f'Failed to create SkyTonight trigger file: {e}')
+            return jsonify({'error': 'Failed to trigger SkyTonight scheduler'}), 500
+    if sched:
+        return jsonify(sched.trigger_now())
+    return jsonify({'error': 'SkyTonight scheduler not running'}), 500
+
+
+@app.route('/api/skytonight/dataset/status', methods=['GET'])
+@login_required
+def skytonight_dataset_status_api():
+    """Return current SkyTonight dataset metadata and counts."""
+    dataset = skytonight_targets.load_targets_dataset()
+    targets = dataset.get('targets', []) if isinstance(dataset, dict) else []
+    metadata = dataset.get('metadata', {}) if isinstance(dataset, dict) else {}
+    scheduler = get_skytonight_scheduler_for_api()
+    if scheduler == 'remote_scheduler':
+        scheduler_status = get_remote_skytonight_scheduler_status()
+    elif scheduler:
+        scheduler_status = scheduler.get_status()
+    else:
+        scheduler_status = {'running': False, 'is_executing': False}
+
+    deep_sky_count = 0
+    for target in targets:
+        category = getattr(target, 'category', None)
+        if category is None and isinstance(target, dict):
+            category = target.get('category')
+        if str(category or '').strip() == 'deep_sky':
+            deep_sky_count += 1
+
+    return jsonify({
+        'enabled': bool(load_config().get('skytonight', {}).get('enabled', False)),
+        'loaded': bool(dataset.get('loaded', False)),
+        'dataset_file': str(dataset.get('dataset_file', '')),
+        'metadata': metadata if isinstance(metadata, dict) else {},
+        'computed_counts': {
+            'targets_total': len(targets),
+            'deep_sky': deep_sky_count,
+        },
+        'calculations_cached': has_calculation_results(),
+        'scheduler': {
+            'running': scheduler_status.get('running', False),
+            'is_executing': scheduler_status.get('is_executing', False),
+            'last_run': scheduler_status.get('last_run'),
+            'next_run': scheduler_status.get('next_run'),
+            'mode': scheduler_status.get('mode'),
+            'reason': scheduler_status.get('reason'),
+        },
+    })
+
+
+@app.route('/api/skytonight/dataset/rebuild', methods=['POST'])
+@admin_required
+def skytonight_dataset_rebuild_api():
+    """Force a SkyTonight dataset rebuild immediately."""
+    try:
+        result = _run_skytonight_refresh()
+        return jsonify({'status': 'rebuilt', **result})
+    except Exception as e:
+        logger.error(f'Failed to rebuild SkyTonight dataset: {e}')
+        return jsonify({'error': 'Failed to rebuild SkyTonight dataset'}), 500
+
+
+@app.route('/api/skytonight/log', methods=['GET'])
+@login_required
+def skytonight_log_api():
+    """Return the latest SkyTonight calculation log content."""
+    try:
+        ensure_skytonight_directories()
+        if not os.path.isfile(SKYTONIGHT_CALCULATION_LOG_FILE):
+            return jsonify({'log_content': ''})
+
+        with open(SKYTONIGHT_CALCULATION_LOG_FILE, 'r', encoding='utf-8') as file_obj:
+            return jsonify({'log_content': file_obj.read()})
+    except Exception as e:
+        logger.error(f'Error getting SkyTonight log content: {e}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+def _target_attr(target: object, key: str, default=None):
+    if isinstance(target, dict):
+        return target.get(key, default)
+    return getattr(target, key, default)
+
+
+def _target_catalogue_names(target: object) -> Dict[str, str]:
+    value = _target_attr(target, 'catalogue_names', {})
+    return value if isinstance(value, dict) else {}
+
+
+def _annotate_skytonight_item(item: Dict[str, Any], user_id: str, username: str, source_catalogue: str, plan_state: str):
+    item_name = str(item.get('id') or item.get('target name') or item.get('name') or '').strip()
+    if item_name:
+        item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name, source_catalogue)
+        item['in_plan_my_night'] = plan_my_night.is_target_in_current_plan(user_id, username, source_catalogue, item_name)
+        group_id, aliases = _get_catalogue_alias_payload(source_catalogue, item_name)
+        item['catalogue_group_id'] = group_id
+        item['catalogue_aliases'] = aliases
+    else:
+        item['in_astrodex'] = False
+        item['in_plan_my_night'] = False
+        item['catalogue_group_id'] = ''
+        item['catalogue_aliases'] = {}
+    item['plan_state'] = plan_state
+
+
+def _resolve_skytonight_plot_image() -> str:
+    """Return the available SkyTonight plot filename in priority order."""
+    output_root = os.path.join(OUTPUT_DIR, 'SkyTonight')
+    candidate_filenames = (
+        'skytonight-plot.png',
+        'uptonight-plot.png',  # legacy compatibility
+    )
+
+    for filename in candidate_filenames:
+        if os.path.isfile(os.path.join(output_root, filename)):
+            return filename
+    return ''
+
+
+def _build_skytonight_reports_payload(catalogue: Optional[str], user_id: str, username: str) -> Dict[str, Any]:
+    """Build the SkyTonight reports payload served to the frontend.
+
+    When the scheduler has already computed a calculation results cache (i.e.
+    :func:`~skytonight_storage.has_calculation_results` returns True) the data
+    is served from that pre-computed file.  This contains per-target
+    visibility metrics and AstroScore computed for tonight.
+
+    When no cache exists yet (first startup before the scheduler ran) the
+    function falls back to the static targets dataset so the frontend always
+    gets something useful.
+    """
+    plan_payload = plan_my_night.get_plan_with_timeline(user_id, username)
+    plan_state = plan_payload.get('state', 'none')
+    plot_image_filename = _resolve_skytonight_plot_image()
+
+    base_result: Dict[str, Any] = {
+        'plot_image': plot_image_filename if plot_image_filename else False,
+        'report': [],
+        'bodies': [],
+        'comets': [],
+    }
+
+    # --- Prefer calculation results cache (scheduler-computed) ---
+    if has_calculation_results():
+        calc = load_calculation_results()
+        night_meta = calc.get('metadata', {})
+
+        base_result['night_metadata'] = night_meta
+
+        max_deep_sky_rows = 1000 if not catalogue else 4000
+        deep_sky_rows = 0
+
+        for calc_item in calc.get('deep_sky', []):
+            if deep_sky_rows >= max_deep_sky_rows:
+                break
+
+            # Catalogue filter
+            calc_catalogue_names: Dict[str, str] = calc_item.get('catalogue_names', {})
+            if catalogue:
+                display_name = str(calc_catalogue_names.get(catalogue, '') or '').strip()
+                if not display_name:
+                    continue
+                source_catalogue = catalogue
+            else:
+                display_name = str(calc_item.get('preferred_name', '') or '').strip()
+                source_catalogue = str(next(iter(calc_catalogue_names.keys()), 'SkyTonight'))
+
+            observation = calc_item.get('observation', {})
+            const_abbr = calc_item.get('constellation', '')
+            const_full = _CONSTELLATION_ABBR_MAP.get(const_abbr, const_abbr)
+            ra_hms = observation.get('ra_hms', '')
+            dec_dms = observation.get('dec_dms', '')
+            row: Dict[str, Any] = {
+                'id': display_name,
+                'target name': display_name,
+                'type': calc_item.get('object_type', ''),
+                'constellation': const_full,
+                'mag': calc_item.get('magnitude'),
+                'size': calc_item.get('size_arcmin'),
+                'foto': calc_item.get('astro_score'),
+                'fraction of time observable': observation.get('observable_fraction'),
+                'altitude': observation.get('max_altitude'),
+                'azimuth': observation.get('azimuth'),
+                'observable_hours': observation.get('observable_hours'),
+                'right ascension': ra_hms,
+                'declination': dec_dms,
+                'hmsdms': f"{ra_hms} / {dec_dms}" if ra_hms and dec_dms else None,
+                'meridian transit': observation.get('meridian_transit'),
+                'antimeridian transit': observation.get('antimeridian_transit'),
+                'catalogue_names': calc_catalogue_names,
+                'alttime_file': '',
+                'source_type': 'calculated',
+                'plan_state': plan_state,
+            }
+            _annotate_skytonight_item(row, user_id, username, source_catalogue, plan_state)
+            base_result['report'].append(row)
+            deep_sky_rows += 1
+
+        for calc_item in calc.get('bodies', []):
+            observation = calc_item.get('observation', {})
+            ra_hms = observation.get('ra_hms', '')
+            dec_dms = observation.get('dec_dms', '')
+            meridian_transit = observation.get('meridian_transit')
+            row = {
+                'target name': calc_item.get('preferred_name', ''),
+                'type': calc_item.get('object_type', ''),
+                'visual magnitude': calc_item.get('magnitude'),
+                'foto': calc_item.get('astro_score'),
+                'altitude': observation.get('max_altitude'),
+                'azimuth': observation.get('azimuth'),
+                'max altitude time': meridian_transit,
+                'meridian transit': meridian_transit,
+                'antimeridian transit': observation.get('antimeridian_transit'),
+                'right ascension': ra_hms,
+                'declination': dec_dms,
+                'hmsdms': f"{ra_hms} / {dec_dms}" if ra_hms and dec_dms else None,
+                'observable_hours': observation.get('observable_hours'),
+                'alttime_file': '',
+                'source_type': 'calculated',
+                'plan_state': plan_state,
+            }
+            _annotate_skytonight_item(row, user_id, username, 'Bodies', plan_state)
+            base_result['bodies'].append(row)
+
+        for calc_item in calc.get('comets', []):
+            observation = calc_item.get('observation', {})
+            metadata = calc_item.get('metadata', {})
+            if not isinstance(metadata, dict):
+                metadata = {}
+            ra_hms = observation.get('ra_hms', '')
+            dec_dms = observation.get('dec_dms', '')
+            row = {
+                'target name': calc_item.get('preferred_name', ''),
+                'type': calc_item.get('object_type', ''),
+                'visual magnitude': calc_item.get('magnitude'),
+                'absolute magnitude': metadata.get('absolute_magnitude'),
+                'q': metadata.get('perihelion_date', ''),
+                'foto': calc_item.get('astro_score'),
+                'altitude': observation.get('max_altitude'),
+                'azimuth': observation.get('azimuth'),
+                'distance earth au': None,
+                'distance sun au': None,
+                'rise time': None,
+                'set time': None,
+                'meridian transit': observation.get('meridian_transit'),
+                'antimeridian transit': observation.get('antimeridian_transit'),
+                'right ascension': ra_hms,
+                'declination': dec_dms,
+                'hmsdms': f"{ra_hms} / {dec_dms}" if ra_hms and dec_dms else None,
+                'observable_hours': observation.get('observable_hours'),
+                'alttime_file': '',
+                'source_type': 'calculated',
+                'plan_state': plan_state,
+            }
+            _annotate_skytonight_item(row, user_id, username, 'Comets', plan_state)
+            base_result['comets'].append(row)
+
+        base_result['report_truncated'] = len(base_result['report']) >= max_deep_sky_rows
+        base_result['report_limit'] = max_deep_sky_rows
+        return base_result
+
+    # --- Fallback: static targets dataset (no calculations yet) ---
+    dataset = skytonight_targets.load_targets_dataset()
+    targets = dataset.get('targets', []) if isinstance(dataset, dict) else []
+    if not targets:
+        logger.info('SkyTonight dataset is empty; returning empty payload and relying on scheduler refresh')
+
+    max_deep_sky_rows = 1000 if not catalogue else 4000
+    skip_deep_sky_annotations = catalogue is None
+    deep_sky_rows = 0
+
+    for target in targets:
+        category = str(_target_attr(target, 'category', '') or '').strip()
+        preferred_name = str(_target_attr(target, 'preferred_name', '') or '').strip()
+        object_type = str(_target_attr(target, 'object_type', '') or '').strip()
+        constellation = str(_target_attr(target, 'constellation', '') or '').strip()
+        magnitude = _target_attr(target, 'magnitude', None)
+        catalogue_names = _target_catalogue_names(target)
+        metadata = _target_attr(target, 'metadata', {})
+        if not isinstance(metadata, dict):
+            metadata = {}
+
+        if category == 'deep_sky':
+            if deep_sky_rows >= max_deep_sky_rows:
+                continue
+
+            if catalogue:
+                display_name = str(catalogue_names.get(catalogue, '') or '').strip()
+                if not display_name:
+                    continue
+                source_catalogue = catalogue
+            else:
+                display_name = preferred_name
+                source_catalogue = str(next(iter(catalogue_names.keys()), 'SkyTonight'))
+
+            const_full = _CONSTELLATION_ABBR_MAP.get(constellation, constellation)
+            row = {
+                'id': display_name,
+                'target name': display_name,
+                'type': object_type,
+                'constellation': const_full,
+                'mag': magnitude,
+                'size': _target_attr(target, 'size_arcmin', None),
+                'foto': None,
+                'alttime_file': '',
+                'source_type': 'dataset',
+            }
+            if skip_deep_sky_annotations:
+                row['in_astrodex'] = False
+                row['in_plan_my_night'] = False
+                row['catalogue_group_id'] = ''
+                row['catalogue_aliases'] = {}
+                row['plan_state'] = plan_state
+            else:
+                _annotate_skytonight_item(row, user_id, username, source_catalogue, plan_state)
+            base_result['report'].append(row)
+            deep_sky_rows += 1
+            continue
+
+        if category == 'bodies':
+            row = {
+                'target name': preferred_name,
+                'type': object_type,
+                'visual magnitude': magnitude,
+                'foto': None,
+                'alttime_file': '',
+                'source_type': 'dataset',
+            }
+            _annotate_skytonight_item(row, user_id, username, 'Bodies', plan_state)
+            base_result['bodies'].append(row)
+            continue
+
+        if category == 'comets':
+            row = {
+                'target name': preferred_name,
+                'type': object_type,
+                'visual magnitude': magnitude,
+                'q': metadata.get('perihelion_date', ''),
+                'alttime_file': '',
+                'source_type': 'dataset',
+            }
+            _annotate_skytonight_item(row, user_id, username, 'Comets', plan_state)
+            base_result['comets'].append(row)
+
+    base_result['report_truncated'] = len(base_result['report']) >= max_deep_sky_rows
+    base_result['report_limit'] = max_deep_sky_rows
+    return base_result
+
+
+@app.route('/api/skytonight/reports', methods=['GET'])
+@login_required
+def get_skytonight_reports_api():
+    """Return SkyTonight report payload."""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id or not user:
+            return jsonify({'error': 'User not authenticated'}), 401
+        return jsonify(_build_skytonight_reports_payload(None, user_id, user.username))
+    except Exception as e:
+        logger.error(f'Error getting SkyTonight reports: {e}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/skytonight/reports/<catalogue>', methods=['GET'])
+@login_required
+def get_skytonight_catalogue_reports_api(catalogue):
+    """Return SkyTonight report payload filtered by a deep-sky catalogue alias."""
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id or not user:
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        if not re.match(r'^[a-zA-Z0-9_-]+$', catalogue):
+            logger.warning(f'Invalid catalogue name: {catalogue}')
+            return jsonify({'error': 'Invalid catalogue name'}), 400
+
+        return jsonify(_build_skytonight_reports_payload(catalogue, user_id, user.username))
+    except Exception as e:
+        logger.error(f'Error getting SkyTonight catalogue reports: {e}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/skytonight/outputs', methods=['GET'])
+@login_required
+def get_skytonight_outputs_api():
+    """Get list of legacy image output directories safely."""
     try:
         outputs = []
 
@@ -1032,14 +1417,14 @@ def get_uptonight_outputs_api():
         return jsonify(outputs)
 
     except Exception:
-        logger.exception("Error getting UpTonight outputs")
+        logger.exception("Error getting SkyTonight outputs")
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@app.route('/api/uptonight/outputs/<target>/<filename>', methods=['GET'])
+@app.route('/api/skytonight/outputs/<target>/<filename>', methods=['GET'])
 @login_required
-def get_uptonight_file_api(target, filename):
-    """Download a specific UpTonight output file safely"""
+def get_skytonight_file_api(target, filename):
+    """Download a specific legacy output file safely."""
     # Validate target and filename
     if not re.match(r'^[a-zA-Z0-9_-]+$', target):
         logger.warning(f"Invalid target name: {target}")
@@ -1063,14 +1448,14 @@ def get_uptonight_file_api(target, filename):
         return send_from_directory(target_dir, filename, as_attachment=True)
 
     except Exception:
-        logger.exception(f"Error sending UpTonight file {filename} for target {target}")
+        logger.exception(f"Error sending SkyTonight file {filename} for target {target}")
         return jsonify({"error": "File not found"}), 404
 
 
-@app.route('/api/uptonight/reports/<catalogue>', methods=['GET'])
+@app.route('/api/skytonight/reports-legacy/<catalogue>', methods=['GET'])
 @login_required
 def get_catalogue_reports_api(catalogue):
-    """Get parsed reports for a specific target"""
+    """Legacy alias returning SkyTonight catalogue reports payload."""
     try:
         user = get_current_user()
         user_id = user.user_id if user else None
@@ -1081,103 +1466,23 @@ def get_catalogue_reports_api(catalogue):
             logger.warning(f"Invalid catalogue name: {catalogue}")
             return jsonify({'error': 'Invalid catalogue name'}), 400
             
-        output_dir_abs = os.path.abspath(OUTPUT_DIR)
-        catalogue_dir = os.path.abspath(os.path.join(OUTPUT_DIR, catalogue))
-        if not catalogue_dir.startswith(output_dir_abs + os.sep):
-            logger.warning(f"Catalogue path traversal attempt: {catalogue}")
-            return jsonify({'error': 'Invalid path'}), 400
-
-        reports = get_catalogue_reports(catalogue_dir)
-        plan_payload = plan_my_night.get_plan_with_timeline(user_id, user.username)
-        plan_state = plan_payload.get('state', 'none')
-        
-        # Transform data into format expected by frontend
-        result = {}
-        
-        # Add plot_image flag if plot exists
-        plot_data = reports.get('plot', {})
-        result['plot_image'] = plot_data.get('available', False)
-        
-        # Add report array (always set, even if empty)
-        objects_data = reports.get('objects', {})
-        result['report'] = objects_data.get('objects', [])
-        
-        # Enhance objects with astrodex status
-        for item in result['report']:
-            item_name = item.get('id', '')
-            if item_name:
-                item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name, catalogue)
-                item['in_plan_my_night'] = plan_my_night.is_target_in_current_plan(user_id, user.username, catalogue, item_name)
-                group_id, aliases = _get_catalogue_alias_payload(catalogue, item_name)
-                item['catalogue_group_id'] = group_id
-                item['catalogue_aliases'] = aliases
-            else:
-                item['in_astrodex'] = False
-                item['in_plan_my_night'] = False
-                item['catalogue_group_id'] = ''
-                item['catalogue_aliases'] = {}
-            item['plan_state'] = plan_state
-        
-        # Add other report types (bodies, comets) if they exist
-        bodies_data = reports.get('bodies', {})
-        if bodies_data.get('bodies'):
-            result['bodies'] = bodies_data['bodies']
-            # Enhance bodies with astrodex status
-            for item in result['bodies']:
-                item_name = item.get('target name', '')
-                if item_name:
-                    item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name, catalogue)
-                    item['in_plan_my_night'] = plan_my_night.is_target_in_current_plan(user_id, user.username, catalogue, item_name)
-                    group_id, aliases = _get_catalogue_alias_payload(catalogue, item_name)
-                    item['catalogue_group_id'] = group_id
-                    item['catalogue_aliases'] = aliases
-                else:
-                    item['in_astrodex'] = False
-                    item['in_plan_my_night'] = False
-                    item['catalogue_group_id'] = ''
-                    item['catalogue_aliases'] = {}
-                item['plan_state'] = plan_state
-        
-        comets_data = reports.get('comets', {})
-        if comets_data.get('comets'):
-            result['comets'] = comets_data['comets']
-            # Enhance comets with astrodex status
-            for item in result['comets']:
-                item_name = item.get('target name', '')
-                if item_name:
-                    item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name, catalogue)
-                    item['in_plan_my_night'] = plan_my_night.is_target_in_current_plan(user_id, user.username, catalogue, item_name)
-                    group_id, aliases = _get_catalogue_alias_payload(catalogue, item_name)
-                    item['catalogue_group_id'] = group_id
-                    item['catalogue_aliases'] = aliases
-                else:
-                    item['in_astrodex'] = False
-                    item['in_plan_my_night'] = False
-                    item['catalogue_group_id'] = ''
-                    item['catalogue_aliases'] = {}
-                item['plan_state'] = plan_state
-        
-        return jsonify(result)
+        return jsonify(_build_skytonight_reports_payload(catalogue, user_id, user.username))
     except Exception as e:
         logger.error(f"Error getting catalogue reports: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@app.route('/api/uptonight/logs/<catalogue>', methods=['GET'])
+@app.route('/api/skytonight/logs/<catalogue>', methods=['GET'])
 @login_required
 def get_catalogue_log(catalogue):
-    """Get log file for a specific catalogue"""
+    """Legacy-compatible log endpoint returning SkyTonight calculation log."""
     if not re.match(r'^[a-zA-Z0-9_-]+$', catalogue):
         logger.warning(f"Invalid catalogue name: {catalogue}")
         return jsonify({"error": "Invalid catalogue name"}), 400
 
     try:
-        catalogue_dir = os.path.normpath(os.path.join(OUTPUT_DIR, catalogue))
-        if not catalogue_dir.startswith(os.path.abspath(OUTPUT_DIR)):
-            logger.error(f"Attempted path traversal attack with catalogue: {catalogue}")
-            return jsonify({"error": "Invalid path"}), 400
-
-        log_file = os.path.join(catalogue_dir, 'uptonight.log')
+        ensure_skytonight_directories()
+        log_file = SKYTONIGHT_CALCULATION_LOG_FILE
         
         # Check if log file exists
         if not os.path.exists(log_file):
@@ -1192,7 +1497,7 @@ def get_catalogue_log(catalogue):
             log_content = f.read()
         
         return jsonify({
-            "catalogue": catalogue,
+            "catalogue": "skytonight",
             "log_content": log_content,
             "file_size": os.path.getsize(log_file)
         })
@@ -1202,27 +1507,23 @@ def get_catalogue_log(catalogue):
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@app.route('/api/uptonight/logs/<catalogue>/exists', methods=['GET'])
+@app.route('/api/skytonight/logs/<catalogue>/exists', methods=['GET'])
 @login_required
 def check_catalogue_log_exists(catalogue):
-    """Check if log file exists for a specific catalogue"""
+    """Legacy-compatible log existence endpoint for SkyTonight log."""
     # Strict catalogue name validation
     if not re.match(r'^[a-zA-Z0-9_-]+$', catalogue):
         logger.warning(f"Invalid catalogue name: {catalogue}")
         return jsonify({"error": "Invalid catalogue name"}), 400
 
     try:
-        # Normalize path and confine to OUTPUT_DIR
-        catalogue_dir = os.path.normpath(os.path.join(OUTPUT_DIR, catalogue))
-        if not catalogue_dir.startswith(os.path.abspath(OUTPUT_DIR)):
-            return jsonify({"error": "Invalid path"}), 400
-
-        log_file = os.path.join(catalogue_dir, 'uptonight.log')
+        ensure_skytonight_directories()
+        log_file = SKYTONIGHT_CALCULATION_LOG_FILE
 
         log_exists = os.path.exists(log_file) and os.path.getsize(log_file) > 0
 
         return jsonify({
-            "catalogue": catalogue,
+            "catalogue": "skytonight",
             "log_exists": log_exists
         })
 
@@ -1231,90 +1532,36 @@ def check_catalogue_log_exists(catalogue):
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@app.route('/api/uptonight/reports/<catalogue>/<report_type>', methods=['GET'])
+@app.route('/api/skytonight/reports/<catalogue>/<report_type>', methods=['GET'])
 @login_required
 def get_catalogue_report_text(catalogue, report_type):
-    """Get report text file for a specific catalogue and report type"""
+    """Legacy text-report endpoint is deprecated for SkyTonight."""
     # Validate catalogue name
     if not re.match(r'^[a-zA-Z0-9_-]+$', catalogue):
         logger.warning(f"Invalid catalogue name: {catalogue}")
         return jsonify({"error": "Invalid catalogue name"}), 400
 
-    # Map report type to filenames
-    report_files = {
-        'general': 'uptonight-report.txt',
-        'bodies': 'uptonight-bodies-report.txt',
-        'comets': 'uptonight-comets-report.txt'
-    }
-
-    if report_type not in report_files:
-        return jsonify({"error": f"Invalid report type: {report_type}"}), 400
-
-    try:
-        # Normalize path and confine to OUTPUT_DIR
-        catalogue_dir = os.path.normpath(os.path.join(OUTPUT_DIR, catalogue))
-        if not catalogue_dir.startswith(os.path.abspath(OUTPUT_DIR)):
-            return jsonify({"error": "Invalid path"}), 400
-
-        report_file = os.path.join(catalogue_dir, report_files[report_type])
-
-        if not os.path.exists(report_file):
-            return jsonify({"error": "Report file not found"}), 404
-
-        if os.path.getsize(report_file) == 0:
-            return jsonify({"error": "Report file is empty"}), 404
-
-        with open(report_file, 'r', encoding='utf-8') as f:
-            report_content = f.read()
-
-        return jsonify({
-            "catalogue": catalogue,
-            "report_type": report_type,
-            "report_content": report_content,
-            "file_size": os.path.getsize(report_file)
-        })
-
-    except Exception:
-        logger.exception("Error getting catalogue report text")
-        return jsonify({'error': 'Internal server error'}), 500
+    return jsonify({"error": "SkyTonight does not generate text report artifacts"}), 404
 
 
-@app.route('/api/uptonight/reports/<catalogue>/available', methods=['GET'])
+@app.route('/api/skytonight/reports/<catalogue>/available', methods=['GET'])
 @login_required
 def check_catalogue_reports_available(catalogue):
-    """Check which report files exist for a specific catalogue"""
+    """SkyTonight does not generate text report artifacts."""
     # Validate catalogue name
     if not re.match(r'^[a-zA-Z0-9_-]+$', catalogue):
         logger.warning(f"Invalid catalogue name: {catalogue}")
         return jsonify({"error": "Invalid catalogue name"}), 400
 
-    try:
-        # Normalize path and confine to OUTPUT_DIR
-        catalogue_dir = os.path.normpath(os.path.join(OUTPUT_DIR, catalogue))
-        if not catalogue_dir.startswith(os.path.abspath(OUTPUT_DIR)):
-            return jsonify({"error": "Invalid path"}), 400
-
-        # Map report types to filenames
-        report_files = {
-            'general': 'uptonight-report.txt',
-            'bodies': 'uptonight-bodies-report.txt',
-            'comets': 'uptonight-comets-report.txt'
-        }
-
-        available = {}
-        for report_type, filename in report_files.items():
-            report_file = os.path.join(catalogue_dir, filename)
-            available[report_type] = os.path.exists(report_file) and os.path.getsize(report_file) > 0
-
-        return jsonify({
-            "catalogue": catalogue,
-            "available": available,
-            "has_any": any(available.values())
-        })
-
-    except Exception:
-        logger.exception("Error checking catalogue reports availability")
-        return jsonify({'error': 'Internal server error'}), 500
+    return jsonify({
+        "catalogue": catalogue,
+        "available": {
+            "general": False,
+            "bodies": False,
+            "comets": False,
+        },
+        "has_any": False,
+    })
 
 
 # ============================================================
@@ -2081,7 +2328,7 @@ def _get_catalogue_alias_payload(catalogue: str, item_name: str) -> tuple[str, d
     if not catalogue or not item_name:
         return '', {}
 
-    entry = catalogue_aliases.get_alias_entry(catalogue, item_name)
+    entry = skytonight_targets.get_lookup_entry(catalogue, item_name)
     if not isinstance(entry, dict):
         return '', {}
 
@@ -3638,125 +3885,175 @@ def get_equipment_summary():
 # Scheduler Management
 # ============================================================
 
-def get_or_create_scheduler():
-    """Get the scheduler instance, creating it if necessary"""
-    if 'scheduler' not in app.config:
-        # Only start scheduler in one worker process using file locking
-        os.makedirs(DATA_DIR_CACHE, exist_ok=True)
-        lock_file_path = os.path.join(DATA_DIR_CACHE, 'scheduler.lock')
-        
+def _run_skytonight_refresh():
+    """Run the current SkyTonight refresh pipeline.
+
+    Two phases:
+    1. Rebuild the targets dataset (catalogue ingestion from PyOngc, MPC…).
+    2. Run observability calculations for tonight and write the results cache.
+    """
+    ensure_skytonight_directories()
+    config = load_config()
+    comet_source_mode = str(config.get('skytonight', {}).get('datasets', {}).get('comets', {}).get('source') or 'mpc+jpl')
+
+    # --- Phase 1: catalogue dataset ---
+    try:
+        from skytonight_calculator import _set_progress as _calc_set_progress
+        _calc_set_progress('build_dataset')
+    except Exception:
+        pass
+
+    try:
+        dataset_result = build_and_save_default_dataset(comet_source_mode=comet_source_mode)
+        metadata = dataset_result.get('metadata', {}) if isinstance(dataset_result, dict) else {}
+        dataset_counts = metadata.get('counts', {}) if isinstance(metadata, dict) else {}
+        dataset_payload = {
+            'dataset_generated': True,
+            'generated_at': metadata.get('generated_at'),
+            'sources': metadata.get('sources', []),
+            'counts': dataset_counts,
+        }
+        _append_skytonight_calculation_log('dataset_success', dataset_payload)
+    except Exception as exc:
+        _append_skytonight_calculation_log('dataset_error', {'error': str(exc), 'comet_source_mode': comet_source_mode})
+        raise
+
+    # --- Phase 2: observability calculations ---
+    try:
+        calc_result = run_calculations(config=config)
+        _append_skytonight_calculation_log('calculation_success', calc_result)
+    except Exception as exc:
+        _append_skytonight_calculation_log('calculation_error', {'error': str(exc)})
+        # Calculations failing is not fatal — the dataset is still usable.
+        logger.error(f'SkyTonight observability calculations failed: {exc}')
+        calc_result = {}
+
+    return {**dataset_payload, 'calculation': calc_result}
+
+
+def _append_skytonight_calculation_log(status: str, payload: Dict[str, Any]):
+    """Append a single line to the SkyTonight calculation log."""
+    ensure_skytonight_directories()
+    log_entry = {
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        'status': status,
+        'payload': payload,
+    }
+    try:
+        with open(SKYTONIGHT_CALCULATION_LOG_FILE, 'a', encoding='utf-8') as file_obj:
+            file_obj.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
+    except Exception as exc:
+        logger.warning(f'Failed to append SkyTonight calculation log: {exc}')
+
+
+def get_or_create_skytonight_scheduler():
+    """Get the SkyTonight scheduler instance, creating it if necessary."""
+    if 'skytonight_scheduler' not in app.config:
+        lock_file_path = get_skytonight_scheduler_lock_file()
+
         try:
             lock_file = open(lock_file_path, 'w')
-            
-            if sys.platform == "win32":
-                # Windows file locking
+
+            if sys.platform == 'win32':
                 try:
                     msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
                 except OSError:
-                    # Another worker already has the lock, don't start scheduler
-                    if not app.config.get('scheduler_lock_logged'):
-                        logger.debug("UpTonight scheduler already running in another worker process, skipping creation")
-                        app.config['scheduler_lock_logged'] = True
-                    app.config['is_scheduler_worker'] = False
+                    if not app.config.get('skytonight_scheduler_lock_logged'):
+                        logger.debug('SkyTonight scheduler already running in another worker process, skipping creation')
+                        app.config['skytonight_scheduler_lock_logged'] = True
+                    app.config['is_skytonight_scheduler_worker'] = False
                     lock_file.close()
                     return None
             else:
-                # Unix file locking
                 fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            
-            logger.debug("Creating scheduler instance (acquired lock)...")
-            from uptonight_scheduler import UptonightScheduler
-            scheduler = UptonightScheduler(
+
+            logger.debug('Creating SkyTonight scheduler instance (acquired lock)...')
+            from skytonight_scheduler import SkyTonightScheduler
+
+            scheduler = SkyTonightScheduler(
                 config_loader=load_config,
-                app=app
+                runner=_run_skytonight_refresh,
+                app=app,
             )
             scheduler.start()
-            app.config['scheduler'] = scheduler
-            app.config['scheduler_lock_file'] = lock_file
-            app.config['is_scheduler_worker'] = True
-            logger.debug("UpTonight scheduler created and started successfully.")
-            
-        except (IOError, OSError) as e:
-            # Another worker already has the lock, don't start scheduler
-            # Only log this message once per worker
-            if not app.config.get('scheduler_lock_logged'):
-                logger.debug("UpTonight scheduler already running in another worker process, skipping creation")
-                app.config['scheduler_lock_logged'] = True
-            app.config['is_scheduler_worker'] = False
+            app.config['skytonight_scheduler'] = scheduler
+            app.config['skytonight_scheduler_lock_file'] = lock_file
+            app.config['is_skytonight_scheduler_worker'] = True
+            logger.debug('SkyTonight scheduler created and started successfully.')
+
+        except (IOError, OSError):
+            if not app.config.get('skytonight_scheduler_lock_logged'):
+                logger.debug('SkyTonight scheduler already running in another worker process, skipping creation')
+                app.config['skytonight_scheduler_lock_logged'] = True
+            app.config['is_skytonight_scheduler_worker'] = False
             return None
         except Exception as e:
-            logger.error(f"Failed to create scheduler: {e}")
-            app.config['is_scheduler_worker'] = False
+            logger.error(f'Failed to create SkyTonight scheduler: {e}')
+            app.config['is_skytonight_scheduler_worker'] = False
             return None
-            
-    return app.config.get('scheduler')
 
-def get_scheduler_for_api():
-    """Get scheduler for API endpoints - tries to find running scheduler across workers"""
-    # First try to get local scheduler
-    scheduler = get_or_create_scheduler()
+    return app.config.get('skytonight_scheduler')
+
+
+def get_skytonight_scheduler_for_api():
+    """Get SkyTonight scheduler for API endpoints across workers."""
+    scheduler = get_or_create_skytonight_scheduler()
     if scheduler:
         return scheduler
-    
-    # If we don't have a local scheduler, check if another worker has it
-    # by testing if the lock file exists and is locked
-    import os
-    lock_file_path = os.path.join(DATA_DIR_CACHE, 'scheduler.lock')
-    
+
+    lock_file_path = get_skytonight_scheduler_lock_file()
     if os.path.exists(lock_file_path):
         test_file = None
         try:
             test_file = open(lock_file_path, 'r')
-            
-            if sys.platform == "win32":
-                # Windows file locking test
+            if sys.platform == 'win32':
                 try:
                     msvcrt.locking(test_file.fileno(), msvcrt.LK_NBLCK, 1)
-                    # If we can acquire the lock, the scheduler is not running
                     return None
                 except OSError:
-                    # Lock is held by another process, scheduler is running
-                    return "remote_scheduler"  # Placeholder to indicate scheduler exists
+                    return 'remote_scheduler'
             else:
-                # Unix file locking test
                 fcntl.flock(test_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                # If we can acquire the lock, the scheduler is not running
                 return None
-                
         except (IOError, OSError):
-            # Lock is held by another process, scheduler is running
-            return "remote_scheduler"  # Placeholder to indicate scheduler exists
+            return 'remote_scheduler'
         finally:
             if test_file is not None:
                 test_file.close()
-    
+
     return None
 
-def get_remote_scheduler_status():
-    """Get scheduler status from shared file for remote workers"""
-    status_file = os.path.join(DATA_DIR_CACHE, 'scheduler_status.json')
+
+def get_remote_skytonight_scheduler_status():
+    """Get SkyTonight scheduler status from shared file for remote workers."""
+    status_file = get_skytonight_scheduler_status_file()
     try:
         if os.path.exists(status_file):
-            with open(status_file, 'r') as f:
-                status = json.load(f)
-                status['worker'] = 'remote'  # Mark as remote
+            with open(status_file, 'r', encoding='utf-8') as file_obj:
+                status = json.load(file_obj)
+                status['worker'] = 'remote'
                 return status
     except Exception as e:
-        logger.error(f"Failed to read remote scheduler status: {e}")
-    
-    # Default fallback
+        logger.error(f'Failed to read remote SkyTonight scheduler status: {e}')
+
+    config = load_config()
     return {
-        "running": True, 
-        "last_run": None, 
-        "next_run": None, 
-        "is_executing": False,
-        "worker": "remote",
-        "progress": {
-            "current_catalogue": None,
-            "current_index": 0,
-            "total_catalogues": 0,
-            "execution_duration_seconds": None
-        }
+        'running': True,
+        'enabled': bool(config.get('skytonight', {}).get('enabled', False)),
+        'last_run': None,
+        'next_run': None,
+        'is_executing': False,
+        'mode': 'remote',
+        'reason': 'SkyTonight scheduler status unavailable from remote worker',
+        'server_time_valid': False,
+        'server_time': None,
+        'timezone': str(config.get('location', {}).get('timezone') or 'UTC'),
+        'worker': 'remote',
+        'last_error': None,
+        'last_result': {},
+        'progress': {
+            'execution_duration_seconds': None,
+        },
     }
 
 def get_or_create_cache_scheduler():
@@ -3782,22 +4079,21 @@ def get_or_create_cache_scheduler():
 # Application Startup Initialization
 # ============================================================
 
-# Initialize UpTonight scheduler when the app starts (for each worker)
 try:
-    logger.info("Initializing UpTonight scheduler on application startup...")
-    get_or_create_scheduler()
+    logger.info('Initializing SkyTonight scheduler on application startup...')
+    get_or_create_skytonight_scheduler()
 except Exception as e:
-    logger.error(f"Failed to initialize UpTonight scheduler on startup: {e}", exc_info=True)
+    logger.error(f'Failed to initialize SkyTonight scheduler on startup: {e}', exc_info=True)
 
-# Ensure scheduler and any running UpTonight container are stopped when the worker exits
+# Ensure schedulers are stopped when the worker exits
 # (covers gunicorn workers that never reach the __main__ finally block)
 def _stop_schedulers_on_exit():
-    scheduler = app.config.get('scheduler')
-    if scheduler:
+    skytonight_scheduler = app.config.get('skytonight_scheduler')
+    if skytonight_scheduler:
         try:
-            scheduler.stop()
+            skytonight_scheduler.stop()
         except Exception as e:
-            logger.warning(f"Error stopping UpTonight scheduler on exit: {e}")
+            logger.warning(f'Error stopping SkyTonight scheduler on exit: {e}')
     cache_scheduler = app.config.get('cache_scheduler')
     if cache_scheduler:
         try:
@@ -3841,6 +4137,20 @@ if __name__ == '__main__':
         app.run(host='0.0.0.0', port=5000, debug=in_debug_mode, use_reloader=in_debug_mode)
     finally:
         # Ensure scheduler stops gracefully on shutdown
+        skytonight_scheduler = app.config.get('skytonight_scheduler')
+        if skytonight_scheduler:
+            skytonight_scheduler.stop()
+            logger.info('SkyTonight scheduler stopped.')
+
+            skytonight_lock_file = app.config.get('skytonight_scheduler_lock_file')
+            if skytonight_lock_file:
+                try:
+                    skytonight_lock_file.close()
+                    os.unlink(get_skytonight_scheduler_lock_file())
+                    logger.info('SkyTonight scheduler lock file cleaned up.')
+                except Exception as e:
+                    logger.warning(f'Failed to clean up SkyTonight lock file: {e}')
+
         scheduler = app.config.get('scheduler')
         if scheduler:
             scheduler.stop()

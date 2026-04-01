@@ -1,4 +1,4 @@
-# API Endpoints
+﻿# API Endpoints
 
 This page lists the HTTP routes currently declared in `backend/app.py`.
 
@@ -52,15 +52,15 @@ This page lists the HTTP routes currently declared in `backend/app.py`.
 - `GET /api/scheduler/status`
 - `POST /api/scheduler/trigger`
 
-## UpTonight
+## SkyTonight
 
-- `GET /api/uptonight/outputs`
-- `GET /api/uptonight/outputs/<target>/<filename>`
-- `GET /api/uptonight/reports/<catalogue>`
-- `GET /api/uptonight/logs/<catalogue>`
-- `GET /api/uptonight/logs/<catalogue>/exists`
-- `GET /api/uptonight/reports/<catalogue>/<report_type>`
-- `GET /api/uptonight/reports/<catalogue>/available`
+- `GET /api/skytonight/outputs`
+- `GET /api/skytonight/outputs/<catalogue>/<filename>`
+- `GET /api/skytonight/reports/<catalogue>`
+- `GET /api/skytonight/logs/<catalogue>`
+- `GET /api/skytonight/logs/<catalogue>/exists`
+- `GET /api/skytonight/reports/<catalogue>/<report_type>`
+- `GET /api/skytonight/reports/<catalogue>/available`
 
 ## Weather, Moon, Sun, and Astronomy
 
@@ -147,3 +147,4 @@ This page lists the HTTP routes currently declared in `backend/app.py`.
 - `DELETE /api/equipment/combinations/<combination_id>`
 - `POST /api/equipment/fov-calculator`
 - `GET /api/equipment/summary`
+

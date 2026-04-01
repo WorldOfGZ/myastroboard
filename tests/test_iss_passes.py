@@ -1,6 +1,7 @@
 """Unit tests for ISS pass service and ISS event aggregation."""
 
 from datetime import timedelta
+from requests import HTTPError
 
 from iss_passes import ISSPassService, get_iss_passes_report
 from events_aggregator import EventsAggregator
@@ -64,6 +65,113 @@ class TestISSPassServiceWrapper:
         )
 
         assert result is None
+
+
+class TestISSPassServiceTleFallback:
+    """Test ISS TLE multi-source fallback behavior."""
+
+    def test_fetch_iss_tle_falls_back_after_http_403(self, monkeypatch):
+        service = ISSPassService(45.5, -73.5, 30, "America/Montreal")
+        calls = {"count": 0}
+
+        monkeypatch.setattr("iss_passes._get_cached_tle", lambda max_age_seconds=None: None)
+        monkeypatch.setattr("iss_passes._in_tle_failure_cooldown", lambda: False)
+        monkeypatch.setattr("iss_passes._set_tle_error_timestamp", lambda: None)
+
+        class _Response:
+            def __init__(self, text: str, error=None):
+                self.text = text
+                self._error = error
+
+            def raise_for_status(self):
+                if self._error is not None:
+                    raise self._error
+
+        def _mock_get(*args, **kwargs):
+            calls["count"] += 1
+            if calls["count"] == 1:
+                return _Response("", HTTPError("403 Client Error: Forbidden"))
+            return _Response(
+                "ISS (ZARYA)\n"
+                "1 25544U 98067A   26100.00000000  .00010000  00000+0  18000-3 0  9991\n"
+                "2 25544  51.6400 120.0000 0005000 200.0000 160.0000 15.50000000000000\n"
+            )
+
+        monkeypatch.setattr("iss_passes.requests.get", _mock_get)
+
+        line1, line2 = service._fetch_iss_tle()
+
+        assert line1.startswith("1 25544")
+        assert line2.startswith("2 25544")
+        assert calls["count"] == 2
+
+    def test_fetch_iss_tle_raises_when_all_sources_fail(self, monkeypatch):
+        service = ISSPassService(45.5, -73.5, 30, "America/Montreal")
+
+        monkeypatch.setattr("iss_passes._get_cached_tle", lambda max_age_seconds=None: None)
+        monkeypatch.setattr("iss_passes._in_tle_failure_cooldown", lambda: False)
+        monkeypatch.setattr("iss_passes._set_tle_error_timestamp", lambda: None)
+
+        class _Response:
+            def raise_for_status(self):
+                raise HTTPError("403 Client Error: Forbidden")
+
+        monkeypatch.setattr("iss_passes.requests.get", lambda *args, **kwargs: _Response())
+
+        try:
+            service._fetch_iss_tle()
+            assert False, "Expected RuntimeError when all TLE sources fail"
+        except RuntimeError as exc:
+            assert "Failed to fetch ISS TLE from all sources" in str(exc)
+
+    def test_fetch_iss_tle_uses_cache_in_cooldown(self, monkeypatch):
+        service = ISSPassService(45.5, -73.5, 30, "America/Montreal")
+
+        monkeypatch.setattr("iss_passes._get_cached_tle", lambda max_age_seconds=None: (
+            "1 25544U 98067A   26100.00000000  .00010000  00000+0  18000-3 0  9991",
+            "2 25544  51.6400 120.0000 0005000 200.0000 160.0000 15.50000000000000",
+            0,
+        ))
+        monkeypatch.setattr("iss_passes._in_tle_failure_cooldown", lambda: True)
+
+        called = {"count": 0}
+
+        def _should_not_call(*args, **kwargs):
+            called["count"] += 1
+            raise AssertionError("Network should not be called in cooldown with cache")
+
+        monkeypatch.setattr("iss_passes.requests.get", _should_not_call)
+
+        line1, line2 = service._fetch_iss_tle()
+        assert line1.startswith("1 25544")
+        assert line2.startswith("2 25544")
+        assert called["count"] == 0
+
+    def test_fetch_iss_tle_uses_stale_cache_after_source_failures(self, monkeypatch):
+        service = ISSPassService(45.5, -73.5, 30, "America/Montreal")
+
+        monkeypatch.setattr("iss_passes._in_tle_failure_cooldown", lambda: False)
+        monkeypatch.setattr("iss_passes._set_tle_error_timestamp", lambda: None)
+
+        def _mock_get(*args, **kwargs):
+            raise HTTPError("503 Service Unavailable")
+
+        monkeypatch.setattr("iss_passes.requests.get", _mock_get)
+
+        def _cached(max_age_seconds=None):
+            if max_age_seconds is None:
+                return (
+                    "1 25544U 98067A   26100.00000000  .00010000  00000+0  18000-3 0  9991",
+                    "2 25544  51.6400 120.0000 0005000 200.0000 160.0000 15.50000000000000",
+                    0,
+                )
+            return None
+
+        monkeypatch.setattr("iss_passes._get_cached_tle", _cached)
+
+        line1, line2 = service._fetch_iss_tle()
+        assert line1.startswith("1 25544")
+        assert line2.startswith("2 25544")
 
 
 class TestISSCalendarAggregation:

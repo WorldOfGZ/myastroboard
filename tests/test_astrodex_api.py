@@ -12,6 +12,7 @@ sys.path.insert(0, backend_path)
 
 import astrodex  # type: ignore[import-not-found]
 import catalogue_aliases  # type: ignore[import-not-found]
+import skytonight_targets  # type: ignore[import-not-found]
 from auth import user_manager  # type: ignore[import-not-found]
 
 if 'psutil' not in sys.modules:
@@ -56,7 +57,7 @@ def test_switch_catalogue_name_api(client, monkeypatch):
         monkeypatch.setenv('DATA_DIR', tmpdir)
         astrodex.ASTRODEX_DIR = os.path.join(tmpdir, 'astrodex')
         astrodex.ASTRODEX_IMAGES_DIR = os.path.join(astrodex.ASTRODEX_DIR, 'images')
-        monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', _fake_alias_entry)
+        monkeypatch.setattr(skytonight_targets, 'get_lookup_entry', _fake_alias_entry)
 
         user = user_manager.get_user_by_username('admin')
         item = astrodex.create_astrodex_item(

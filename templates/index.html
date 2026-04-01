@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="MyAstroBoard">
     <meta name="app-version" content="{{ version }}">
-    <meta name="description" content="MyAstroBoard - Astronomy observation planning dashboard with weather forecasts, UpTonight targets, lunar and solar events, ISS passes, and equipment management.">
+    <meta name="description" content="MyAstroBoard - Astronomy observation planning dashboard with weather forecasts, SkyTonight targets, lunar and solar events, ISS passes, and equipment management.">
     <script src="/static/js/theme.js?v={{ version }}"></script>
     <title data-i18n="common.title_html">MyAstroBoard - Astronomy Observation Planning Dashboard</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
@@ -31,7 +31,7 @@
     <link rel="stylesheet" href="/static/css/bs_weather.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_yaml.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_logs.css?v={{ version }}">
-    <link rel="stylesheet" href="/static/css/bs_uptonight.css?v={{ version }}">
+    <link rel="stylesheet" href="/static/css/bs_skytonight.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_astrodex.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_plan_my_night.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_equipment.css?v={{ version }}">
@@ -75,10 +75,10 @@
             </span>
         </div>
 
-        <!-- Global UpTonight Scheduler Status Banner -->
+        <!-- Global SkyTonight Scheduler Status Banner -->
         <div id="global-scheduler-banner" class="alert alert-info mb-3" role="alert" style="display: none;">
             <div id="global-scheduler-progress" class="fw-bold" data-i18n="scheduler.processing_catalogues">
-                Processing UpTonight catalogues...
+                Processing SkyTonight catalogues...
             </div>
             <div id="global-scheduler-detail" class="global-status-detail"></div>
         </div>
@@ -107,9 +107,9 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link main-tab-btn" href="#" data-tab="uptonight">
+                            <a class="nav-link main-tab-btn" href="#" data-tab="skytonight">
                                 <i class="bi bi-journal-bookmark-fill icon-inline text-success" aria-hidden="true"></i>
-                                <span data-i18n="navbar.uptonight">UpTonight</span>
+                                <span data-i18n="navbar.skytonight">SkyTonight</span>
                             </a>
                         </li>
                         <li class="nav-item">
@@ -208,7 +208,7 @@
 
             <!-- Astrophotography Weather Sub-tab -->
             <div id="astro-weather-subtab" class="sub-tab-content">
-                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                <div id="target-catalogues-section" class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h2>
                         <i class="bi bi-thermometer-half icon-inline text-danger" aria-hidden="true"></i>
                         <span data-i18n="astro_weather.section_title">Current Conditions</span>
@@ -289,7 +289,7 @@
 
             <!-- Window Sub-tab -->
             <div id="window-subtab" class="sub-tab-content">
-                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                <div id="save-actions-section" class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h2>
                         <i class="bi bi-stars icon-inline text-warning" aria-hidden="true"></i>
                         <span data-i18n="best_window.section_title">Best Observation Window</span>
@@ -316,7 +316,7 @@
 
             <!-- Moon Sub-tab -->
             <div id="moon-subtab" class="sub-tab-content">
-                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                <div id="features-section" class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h2>
                         <i class="bi bi-moon-stars icon-inline" aria-hidden="true"></i>
                         <span data-i18n="navbar.moon">Moon</span>
@@ -469,14 +469,14 @@
 
         </div>
 
-        <!-- UpTonight Section -->
-        <div id="uptonight-tab" class="main-tab-content">
-            <!-- UpTonight Sub-tabs -->
+        <!-- SkyTonight Section -->
+        <div id="skytonight-tab" class="main-tab-content">
+            <!-- SkyTonight Sub-tabs -->
             <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                <ul class="nav nav-pills sub-tabs" id="uptonight-subtabs">
+                <ul class="nav nav-pills sub-tabs" id="skytonight-subtabs">
                     <div class="alert alert-info mb-2" role="alert">
-                        <span data-i18n="uptonight.info_1"></span><br>
-                        <span data-i18n="uptonight.info_2"></span>
+                        <span data-i18n="skytonight.info_1"></span><br>
+                        <span data-i18n="skytonight.info_2"></span>
                     </div>
                 </ul>
             </div>            
@@ -527,14 +527,14 @@
                         <div class="col-md-2">
                             <select id="astrodex-type-filter" class="form-select">
                                 <option value="all" data-i18n="astrodex.filter_type_all">All Types</option>
-                                <option value="Galaxy" data-i18n="uptonight.type_galaxy">Galaxy</option>
-                                <option value="Nebula" data-i18n="uptonight.type_nebula">Nebula</option>
-                                <option value="Planetary Nebula" data-i18n="uptonight.type_planetary_nebula">Planetary Nebula</option>
-                                <option value="Star Cluster" data-i18n="uptonight.type_star_cluster">Star Cluster</option>
-                                <option value="Open Cluster" data-i18n="uptonight.type_open_cluster">Open Cluster</option>
-                                <option value="Globular Cluster" data-i18n="uptonight.type_globular_cluster">Globular Cluster</option>
-                                <option value="Planet" data-i18n="uptonight.type_planet">Planet</option>
-                                <option value="Comet" data-i18n="uptonight.type_comet">Comet</option>
+                                <option value="Galaxy" data-i18n="skytonight.type_galaxy">Galaxy</option>
+                                <option value="Nebula" data-i18n="skytonight.type_nebula">Nebula</option>
+                                <option value="Planetary Nebula" data-i18n="skytonight.type_planetary_nebula">Planetary Nebula</option>
+                                <option value="Star Cluster" data-i18n="skytonight.type_star_cluster">Star Cluster</option>
+                                <option value="Open Cluster" data-i18n="skytonight.type_open_cluster">Open Cluster</option>
+                                <option value="Globular Cluster" data-i18n="skytonight.type_globular_cluster">Globular Cluster</option>
+                                <option value="Planet" data-i18n="skytonight.type_planet">Planet</option>
+                                <option value="Comet" data-i18n="skytonight.type_comet">Comet</option>
                             </select>
                         </div>
 
@@ -584,7 +584,7 @@
                     <h2>
                         <i class="bi bi-moon-stars-fill text-info icon-inline" aria-hidden="true"></i> <span data-i18n="navbar.plan_my_night">Plan My Night</span>
                     </h2>
-                    <p class="text-muted" data-i18n="plan_my_night.section_intro">Build a private timeline for tonight directly from UpTonight targets.</p>
+                    <p class="text-muted" data-i18n="plan_my_night.section_intro">Build a private timeline for tonight directly from SkyTonight targets.</p>
                     <div id="plan-my-night-display"></div>
                 </div>
             </div>
@@ -791,7 +791,7 @@
                                 <select id="pref-startup-main-tab" class="form-select">
                                     <option value="forecast-astro" data-i18n="navbar.astrophotography">Astrophotography</option>
                                     <option value="forecast-weather" data-i18n="navbar.weather">Weather</option>
-                                    <option value="uptonight" data-i18n="navbar.uptonight">UpTonight</option>
+                                    <option value="skytonight" data-i18n="navbar.skytonight">SkyTonight</option>
                                     <option value="astrodex" data-i18n="navbar.astrodex">Astrodex</option>
                                     <option value="equipment" data-i18n="navbar.equipment">Equipment</option>
                                     <option value="my-settings" data-i18n="navbar.my_settings">My settings</option>
@@ -931,7 +931,7 @@
                     </h2>
                     
                     <div class="alert alert-info" role="alert" data-i18n="settings.location_info">
-                        Location parameters are used for accurate weather, astronomical calculations, and UpTonight scheduling.
+                        Location parameters are used for accurate weather, astronomical calculations, and SkyTonight scheduling.
                     </div>
                     
                     <div class="row g-3">
@@ -977,7 +977,7 @@
                         <i class="bi bi-journal-bookmark-fill text-success icon-inline" aria-hidden="true"></i> <span data-i18n="settings.target_catalogues">Target Catalogues</span>
                     </h2>
                     
-                    <div class="alert alert-info" role="alert" data-i18n="settings.target_catalogues_info">These parameters are used for UpTonight scheduler.</div>
+                    <div class="alert alert-info" role="alert" data-i18n="settings.target_catalogues_info">These parameters are used for SkyTonight scheduler.</div>
 
                     <div id="catalogues-list"></div>
 
@@ -999,7 +999,7 @@
                     </div>
 
                     <div class="bg-features p-3 rounded">
-                        <div class="form-check form-switch">
+                        <div id="feature-objects-wrapper" class="form-check form-switch">
                             <input type="checkbox" id="astrodex-private" class="form-check-input" switch>
                             <label class="form-check-label" for="astrodex-private"> <span data-i18n="settings.astrodex_private">Private Astrodex</span></label>
                             <div class="form-text" data-i18n="settings.astrodex_private_info">Enable this option to set up a private Astrodex for each user</div>
@@ -1014,7 +1014,7 @@
                     </h2>
                     
                     <div class="alert alert-info" role="alert" data-i18n="settings.save_actions_info">
-                        When new UpTonight settings are saved, a manual run may be required to see changes on dashboard, or wait for the next scheduled run.
+                        When new SkyTonight settings are saved, a manual run may be required to see changes on dashboard, or wait for the next scheduled run.
                     </div>
 
                     <div>
@@ -1022,10 +1022,10 @@
                             <i class="bi bi-save icon-inline" aria-hidden="true"></i> <span data-i18n="settings.save_configuration">Save Configuration</span>
                         </button>
                         <button id="run-now" class="btn btn-success mb-2">
-                            <i class="bi bi-play-circle icon-inline" aria-hidden="true"></i> <span data-i18n="scheduler.run_now">Run UpTonight Now</span>
+                            <i class="bi bi-play-circle icon-inline" aria-hidden="true"></i> <span data-i18n="scheduler.run_now">Run SkyTonight Now</span>
                         </button>
                         <button id="view-config-main" class="btn btn-secondary mb-2">
-                            <i class="bi bi-eye icon-inline" aria-hidden="true"></i> <span data-i18n="settings.view_uptonight_configs">View UpTonight Configs</span>
+                            <i class="bi bi-eye icon-inline" aria-hidden="true"></i> <span data-i18n="settings.view_skytonight_configs">View generated configs</span>
                         </button>
                         <button id="export-config-main" class="btn btn-secondary mb-2">
                             <i class="bi bi-download icon-inline" aria-hidden="true"></i> <span data-i18n="settings.export_general_config">Export General Config</span>
@@ -1038,25 +1038,25 @@
             <div id="advanced-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
                     <div class="alert alert-info" role="alert">
-                        <span data-i18n="settings.uptonight_info">
-                            All parameters of this page are coming from UpTonight, please check the UpTonight documentation for more details.
-                        </span> <a href="https://github.com/mawinkler/uptonight" target="_blank">Github</a>
+                        <span data-i18n="settings.skytonight_info">
+                            All parameters of this page are used by SkyTonight internals.
+                        </span>
                     </div>
                     <h2>
                         <i class="bi bi-collection text-info icon-inline" aria-hidden="true"></i> <span data-i18n="settings.features">Features</span>
                     </h2>
                     <div class="bg-features p-3 rounded">
-                        <div class="form-check form-switch">
+                        <div id="feature-bodies-wrapper" class="form-check form-switch">
                             <input type="checkbox" id="feature-horizon" class="form-check-input" checked switch>
                             <label class="form-check-label" for="feature-horizon"> <span data-i18n="settings.feature_horizon">Horizon</span></label>
                             <div class="form-text" data-i18n="settings.feature_horizon_info">Plot the horizon based on `horizon.anchor_points` to configure below</div>
                         </div>
-                        <div class="form-check form-switch">
+                        <div id="feature-comets-wrapper" class="form-check form-switch">
                             <input type="checkbox" id="feature-objects" class="form-check-input" checked switch>
                             <label class="form-check-label" for="feature-objects"> <span data-i18n="settings.feature_objects">Objects</span></label>
                             <div class="form-text" data-i18n="settings.feature_objects_info">Calculate and plot deep sky objects based on the chosen target list</div>
                         </div>
-                        <div class="form-check form-switch">
+                        <div id="feature-alttime-wrapper" class="form-check form-switch">
                             <input type="checkbox" id="feature-bodies" class="form-check-input" checked switch >
                             <label class="form-check-label" for="feature-bodies"> <span data-i18n="settings.feature_bodies">Bodies</span></label>
                             <div class="form-text" data-i18n="settings.feature_bodies_info">Calculate and plot solar system bodies</div>
@@ -1078,12 +1078,12 @@
                     <h2>
                         <i class="bi bi-link text-secondary icon-inline" aria-hidden="true"></i> <span data-i18n="settings.constraints">Constraints</span>
                     </h2>
-                    <div class="form-check form-switch form-check-inline bg-checkbox">
+                    <div id="use-constraints-wrapper" class="form-check form-switch form-check-inline bg-checkbox">
                         <input id="use-constraints" class="form-check-input" type="checkbox" switch>
                         <label class="form-check-label" for="use-constraints" data-i18n="settings.use_constraints">Use Constraints</label>
                     </div>
                     <div class="row g-3 mt-1 mb-2" id="constraints-fields">
-                        <div class="col-md-3">
+                        <div id="max-targets-field" class="col-md-3">
                             <label for="altitude-min" class="form-label" data-i18n="settings.altitude_min">Min Altitude (&deg;):</label>
                             <input type="number" id="altitude-min" class="form-control" value="30" step="1" title="Minimum altitude in degrees above horizon (typical: 30&deg;)" data-i18n-title="settings.altitude_min_title">
                             <div class="form-text" data-i18n="settings.altitude_min_info">Degrees above horizon</div>
@@ -1139,7 +1139,7 @@
                     </div>
                 </div>
                 
-                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                <div id="bucket-list-section" class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h2>
                         <i class="bi bi-galaxy icon-inline" aria-hidden="true"></i> <span data-i18n="settings.bucket_list">Bucket List</span>
                     </h2>
@@ -1156,7 +1156,7 @@
                     </div>
                 </div>
                 
-                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                <div id="done-list-section" class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h2>
                         <i class="bi bi-check2-circle icon-inline" aria-hidden="true"></i> <span data-i18n="settings.done_list">Done List</span>
                     </h2>
@@ -1173,7 +1173,7 @@
                     </div>
                 </div>
                 
-                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                <div id="custom-targets-section" class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h2>
                         <i class="bi bi-galaxy icon-inline" aria-hidden="true"></i> <span data-i18n="settings.custom_targets">Custom Targets</span>
                     </h2>
@@ -1190,7 +1190,7 @@
                     </div>
                 </div>
                 
-                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                <div id="horizon-config-section" class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h2>
                         <i class="bi bi-brightness-alt-low text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="settings.horizon">Horizon</span>
                     </h2>
@@ -1206,8 +1206,8 @@
                         <small id="horizon-error" class="error-msg"></small>
                     </div>
 
-                    <div class="alert alert-info mt-3" role="alert" data-i18n="settings.uptonight_reload_info">
-                        When new UpTonight settings are saved, a manual run may be required to see changes on dashboard, or wait for the next scheduled run.
+                    <div class="alert alert-info mt-3" role="alert" data-i18n="settings.skytonight_reload_info">
+                        When new SkyTonight settings are saved, a manual run may be required to see changes on dashboard, or wait for the next scheduled run.
                     </div>
 
                     <div class="button-group">
@@ -1475,7 +1475,7 @@
                                         <div class="disk-usage-head">
                                             <div class="disk-usage-path">
                                                 <i class="bi bi-hdd-stack text-muted" aria-hidden="true"></i>
-                                                <span class="font-monospace">uptonight/configs/</span>
+                                                <span class="font-monospace">skytonight/configs/</span>
                                             </div>
                                             <div class="disk-usage-values font-monospace">
                                                 <span id="folder-configs-size" class="fw-semibold">-</span>
@@ -1494,7 +1494,7 @@
                                         <div class="disk-usage-head">
                                             <div class="disk-usage-path">
                                                 <i class="bi bi-hdd-stack text-muted" aria-hidden="true"></i>
-                                                <span class="font-monospace">uptonight/outputs/</span>
+                                                <span class="font-monospace">skytonight/outputs/</span>
                                             </div>
                                             <div class="disk-usage-values font-monospace">
                                                 <span id="folder-outputs-size" class="fw-semibold">-</span>
@@ -1768,7 +1768,7 @@
     <script src="/static/js/apiHelper.js?v={{ version }}"></script>
     <script src="/static/js/events_alerts.js?v={{ version }}"></script>
     <script src="/static/js/utils.js?v={{ version }}"></script>
-    <script src="/static/js/uptonightScheduler.js?v={{ version }}"></script>
+    <script src="/static/js/skytonightScheduler.js?v={{ version }}"></script>
     <script src="/static/js/moon.js?v={{ version }}"></script>
     <script src="/static/js/sun.js?v={{ version }}"></script>
     <script src="/static/js/solar_eclipse.js?v={{ version }}"></script>
@@ -1783,7 +1783,7 @@
     <script src="/static/js/plan_my_night.js?v={{ version }}"></script>
     <script src="/static/js/equipment.js?v={{ version }}"></script>
     <script src="/static/js/config.js?v={{ version }}"></script>
-    <script src="/static/js/uptonight.js?v={{ version }}"></script>
+    <script src="/static/js/skytonight.js?v={{ version }}"></script>
     <script src="/static/js/logs.js?v={{ version }}"></script>
     <script src="/static/js/metrics.js?v={{ version }}"></script>
     <script src="/static/js/pwa.js?v={{ version }}"></script>

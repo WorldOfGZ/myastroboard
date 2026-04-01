@@ -1,4 +1,4 @@
-# 📸 MyAstroBoard - Visual Tour
+﻿# 📸 MyAstroBoard - Visual Tour
 
 A visual walkthrough of MyAstroBoard's interface and capabilities.
 
@@ -53,17 +53,17 @@ Detailed calculations of solar and lunar positions, phases, rise/set times, and 
 
 ![Sun and Moon](img/sun_moon.png)
 
-### Deep Sky Objects Catalogue from UpTonight
+### Deep Sky Objects Catalogue from SkyTonight
 Browse thousands of deep-sky objects from multiple catalogues with detailed information and observation quality scoring.
 
 ![Deep Sky Objects](img/deep_sky_objects.png)
 
-### Celestial Bodies View from UpTonight
+### Celestial Bodies View from SkyTonight
 Explore celestial bodies with detailed information, ratings, and observation recommendations.
 
 ![Bodies](img/bodies.png)
 
-### Altitude Charts from UpTonight
+### Altitude Charts from SkyTonight
 Charts showing object altitude versus time, helping you identify optimal observation windows.
 
 ![Altitude Chart](img/popup_alttime.png)
@@ -73,7 +73,7 @@ Charts showing object altitude versus time, helping you identify optimal observa
 ## Plan My Night
 
 ### Build and Follow Your Night Session Timeline
-Plan My Night lets you prepare a complete observation timeline directly from UpTonight targets. You can define target durations, reorder priorities in one click, follow the current target, and monitor how much of the night is already planned.
+Plan My Night lets you prepare a complete observation timeline directly from SkyTonight targets. You can define target durations, reorder priorities in one click, follow the current target, and monitor how much of the night is already planned.
 
 It is designed for practical use in the field with quick timeline updates, readable progress bars, and export options.
 
@@ -153,7 +153,7 @@ Next 20 passes of ISS in your location.
 ## Advanced Features
 
 ### Smart Scheduling
-- Automated UpTonight execution with configurable intervals
+- Automated SkyTonight execution with configurable intervals
 - Per-catalogue processing for multiple target lists
 - Weather updates before each processing run
 - Version notifications and update management
@@ -201,3 +201,4 @@ New to MyAstroBoard? Follow these steps:
 ---
 
 *Explore the cosmos with MyAstroBoard - Your personal astronomy command center!*
+

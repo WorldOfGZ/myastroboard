@@ -1,4 +1,4 @@
-# Cache System - Server-Side Management
+﻿# Cache System - Server-Side Management
 
 ## Overview
 
@@ -18,9 +18,9 @@ The cache system has been redesigned to be managed **entirely server-side** with
 
 **Note on Weather Data:**
 - **UI Weather Forecast**: Cached for 1 hour (suitable for display)
-- **Uptonight Conditions**: NOT cached - always fetches fresh real-time data
-  - Uptonight requires accurate current conditions (temperature, pressure, humidity)
-  - Each uptonight run bypasses cache to get live conditions from Open-Meteo API
+- **SkyTonight Conditions**: NOT cached - always fetches fresh real-time data
+  - SkyTonight requires accurate current conditions (temperature, pressure, humidity)
+  - Each SkyTonight run bypasses cache to get live conditions from Open-Meteo API
 
 ### Automatic Location Change Detection
 When any of these location parameters change, **all astronomical caches are immediately reset**:
@@ -77,39 +77,39 @@ This ensures calculations are always relevant to the current observer location.
   - Reduces API calls for display data
 - **Fresh Client** (`create_fresh_weather_client()`):
   - NO caching - always fresh data
-  - Used for uptonight real-time conditions
+  - Used for SkyTonight real-time conditions
   - Ensures accurate current conditions for astronomical planning
 
 **Why Two Clients?**
 - **UI needs**: Hourly forecast data is fine cached for 1 hour (it doesn't change much)
-- **Uptonight needs**: Current conditions (temperature, pressure, humidity) must be real-time
-- Uptonight runs at specific times and needs exact current atmospheric conditions for calculations
+- **SkyTonight needs**: Current conditions (temperature, pressure, humidity) must be real-time
+- SkyTonight runs at specific times and needs exact current atmospheric conditions for calculations
 - A 1-hour old temperature reading would be inaccurate for precise astronomical planning
 
 ### Cache Flow
 
 ```
 App Startup
-    ↓
+  ↓
 Cache Scheduler starts
-    ↓
+  ↓
 Initial cache population (immediately)
-    ├─ Check location config
-    ├─ Update all caches
-    └─ Set timestamps
-    ↓
+  ├─ Check location config
+  ├─ Update all caches
+  └─ Set timestamps
+  ↓
 Wait for TTL interval (CACHE_TTL seconds)
-    ↓
+  ↓
 Periodic cache refresh
-    ├─ Check if location changed
-    ├─ If changed: reset caches immediately
-    ├─ Recalculate all caches
-    └─ Update timestamps
-    ↓
+  ├─ Check if location changed
+  ├─ If changed: reset caches immediately
+  ├─ Recalculate all caches
+  └─ Update timestamps
+  ↓
 API Requests
-    ├─ Check cache validity (TTL)
-    ├─ Return data if valid
-    └─ Return 202 Pending if not valid
+  ├─ Check cache validity (TTL)
+  ├─ Return data if valid
+  └─ Return 202 Pending if not valid
 ```
 
 ## Configuration Changes
@@ -185,36 +185,36 @@ These endpoints return **from cache only**:
 ### Initial Startup
 ```
 Container starts
-    ↓
+  ↓
 Cache Scheduler created
-    ↓
+  ↓
 First run: Populate ALL caches immediately
-    ├─ Initialize location config tracking
-    ├─ Calculate all astronomical and weather data
-    └─ Cache becomes ready (200 responses from API)
-    ↓
+  ├─ Initialize location config tracking
+  ├─ Calculate all astronomical and weather data
+  └─ Cache becomes ready (200 responses from API)
+  ↓
 Timeline: ~30-60 seconds typically
 ```
 
 ### Regular Intervals
 ```
 Wait CACHE_TTL (default 1800 seconds / 30 minutes)
-    ↓
+  ↓
 Run scheduled cache update
-    ├─ Check location config
-    ├─ If location changed: reset caches, update tracking
-    ├─ Recalculate all caches
-    └─ Update timestamps
-    ↓
+  ├─ Check location config
+  ├─ If location changed: reset caches, update tracking
+  ├─ Recalculate all caches
+  └─ Update timestamps
+  ↓
 Next interval...
 ```
 
 ### Manual Trigger
 ```
 Admin calls: POST /api/scheduler/trigger
-    ↓
-Uptonight scheduler runs reports
-    ↓
+  ↓
+SkyTonight scheduler runs reports
+  ↓
 When complete: User can see results
 ```
 
@@ -230,7 +230,7 @@ When complete: User can see results
 ### Cache Sizes (Typical)
 - Moon report: ~5-10 KB
 - Sun report: ~3-5 KB
-- Best windows: ~5-8 KB each (×3 modes)
+- Best windows: ~5-8 KB each (x3 modes)
 - Moon planner: ~20-30 KB
 - Dark window: ~1-2 KB
 - Total: ~50-100 KB in memory
@@ -253,11 +253,11 @@ When complete: User can see results
 - This should not happen - file locking prevents it
 - If it does, check for cache_scheduler.lock file conflicts
 
-### Uptonight Getting Stale Weather Conditions
-- **This should NOT happen** - uptonight always fetches fresh data
-- Uptonight uses `get_uptonight_conditions()` with `use_cache=False`
-- Check server logs for "Using Open-Meteo uptonight conditions"
-- Each uptonight run bypasses HTTP cache for real-time conditions
+### SkyTonight Getting Stale Weather Conditions
+- **This should NOT happen** - SkyTonight always fetches fresh data
+- SkyTonight uses `get_SkyTonight_conditions()` with `use_cache=False`
+- Check server logs for "Using Open-Meteo SkyTonight conditions"
+- Each SkyTonight run bypasses HTTP cache for real-time conditions
 - If conditions seem old, check Open-Meteo API availability
 
 ## Technical Implementation Details
@@ -290,3 +290,4 @@ is_valid = elapsed < CACHE_TTL  # True if < 1800 seconds
 5. Save new config
 6. If changed: Reset caches + Update tracking
 7. Return response with status
+

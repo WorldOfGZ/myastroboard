@@ -17,6 +17,31 @@ let astrodexFilters = {
     sortOrder: 'asc'
 };
 
+function tSkyTonightCompat(key, params = {}) {
+    const skytonightKey = `skytonight.${key}`;
+    return i18n.t(skytonightKey, params);
+}
+
+function getObjectTypeOptionsHtml(selectedType = '') {
+    const objectTypes = [
+        ['Galaxy', 'type_galaxy'],
+        ['Nebula', 'type_nebula'],
+        ['Planetary Nebula', 'type_planetary_nebula'],
+        ['Star Cluster', 'type_star_cluster'],
+        ['Open Cluster', 'type_open_cluster'],
+        ['Globular Cluster', 'type_globular_cluster'],
+        ['Planet', 'type_planet'],
+        ['Moon', 'type_moon'],
+        ['Sun', 'type_sun'],
+        ['Comet', 'type_comet'],
+        ['Other', 'type_other'],
+    ];
+
+    return objectTypes
+        .map(([value, key]) => `<option value="${value}" ${selectedType === value ? 'selected' : ''}>${tSkyTonightCompat(key)}</option>`)
+        .join('');
+}
+
 // ============================================
 // Equipment Integration
 // ============================================
@@ -400,9 +425,10 @@ function renderAstrodexGrid(items, isAllowedAstrodex) {
         title.textContent = item.name;
         const type = document.createElement('div');
         type.className = 'astrodex-card-type';
-        let traslationKey = 'uptonight.type_' + strToTranslateKey(item.type);
-        if (i18n.has(traslationKey)) {
-            type.textContent = i18n.t(traslationKey);
+        let translationKey = 'type_' + strToTranslateKey(item.type);
+        const skytonightKey = `skytonight.${translationKey}`;
+        if (i18n.has(skytonightKey)) {
+            type.textContent = tSkyTonightCompat(translationKey);
         } else {
             type.textContent = item.type || i18n.t('astrodex.unknown');
         }
@@ -690,17 +716,7 @@ async function showAddAstrodexItemModal() {
             <div class="col-md-6">
                 <label for="item-type" class="form-label">${i18n.t('astrodex.form_object_type')}</label>
                 <select id="item-type" class="form-select">
-                    <option value="Galaxy">${i18n.t('uptonight.type_galaxy')}</option>
-                    <option value="Nebula">${i18n.t('uptonight.type_nebula')}</option>
-                    <option value="Planetary Nebula">${i18n.t('uptonight.type_planetary_nebula')}</option>
-                    <option value="Star Cluster">${i18n.t('uptonight.type_star_cluster')}</option>
-                    <option value="Open Cluster">${i18n.t('uptonight.type_open_cluster')}</option>
-                    <option value="Globular Cluster">${i18n.t('uptonight.type_globular_cluster')}</option>
-                    <option value="Planet">${i18n.t('uptonight.type_planet')}</option>
-                    <option value="Moon">${i18n.t('uptonight.type_moon')}</option>
-                    <option value="Sun">${i18n.t('uptonight.type_sun')}</option>
-                    <option value="Comet">${i18n.t('uptonight.type_comet')}</option>
-                    <option value="Other">${i18n.t('uptonight.type_other')}</option>
+                    ${getObjectTypeOptionsHtml()}
                 </select>
             </div>            
             <div class="col-md-6">
@@ -804,17 +820,7 @@ async function showAstrodexItemDetail(itemId) {
             <div class="col-md-6">
                 <label for="edit-type-${escapeHtml(item.id)}" class="col form-label">${i18n.t('astrodex.form_object_type')}</label>
                 <select id="edit-type-${escapeHtml(item.id)}" class="form-select" data-action="update-field" data-item-id="${escapeHtml(item.id)}" data-field="type">
-                    <option value="Galaxy" ${item.type === 'Galaxy' ? 'selected' : ''}>${i18n.t('uptonight.type_galaxy')}</option>
-                    <option value="Nebula" ${item.type === 'Nebula' ? 'selected' : ''}>${i18n.t('uptonight.type_nebula')}</option>
-                    <option value="Planetary Nebula" ${item.type === 'Planetary Nebula' ? 'selected' : ''}>${i18n.t('uptonight.type_planetary_nebula')}</option>
-                    <option value="Star Cluster" ${item.type === 'Star Cluster' ? 'selected' : ''}>${i18n.t('uptonight.type_star_cluster')}</option>
-                    <option value="Open Cluster" ${item.type === 'Open Cluster' ? 'selected' : ''}>${i18n.t('uptonight.type_open_cluster')}</option>
-                    <option value="Globular Cluster" ${item.type === 'Globular Cluster' ? 'selected' : ''}>${i18n.t('uptonight.type_globular_cluster')}</option>
-                    <option value="Planet" ${item.type === 'Planet' ? 'selected' : ''}>${i18n.t('uptonight.type_planet')}</option>
-                    <option value="Moon" ${item.type === 'Moon' ? 'selected' : ''}>${i18n.t('uptonight.type_moon')}</option>
-                    <option value="Comet" ${item.type === 'Comet' ? 'selected' : ''}>${i18n.t('uptonight.type_comet')}</option>
-                    <option value="Sun" ${item.type === 'Sun' ? 'selected' : ''}>${i18n.t('uptonight.type_sun')}</option>
-                    <option value="Other" ${item.type === 'Other' ? 'selected' : ''}>${i18n.t('uptonight.type_other')}</option>
+                    ${getObjectTypeOptionsHtml(item.type)}
                     <option value="Unknown" ${item.type === 'Unknown' || !item.type ? 'selected' : ''}>${i18n.t('astrodex.unknown')}</option>
                 </select>
             </div>
