@@ -7,7 +7,7 @@ score and day/night visibility classification.
 """
 
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List, Tuple, cast
 from zoneinfo import ZoneInfo
 import os
 import time
@@ -15,7 +15,7 @@ import time
 import requests
 import astropy.units as u
 from astropy.time import Time as AstroTime
-from astropy.coordinates import EarthLocation, AltAz, get_sun
+from astropy.coordinates import Angle, EarthLocation, AltAz, get_sun
 from skyfield.api import Loader, EarthSatellite, wgs84
 
 from constants import CACHE_TTL, DATA_DIR_CACHE
@@ -420,8 +420,8 @@ class ISSPassService:
         """Compute Sun altitude in degrees for observer at a UTC datetime."""
         astro_time = AstroTime(when_utc)
         frame = AltAz(obstime=astro_time, location=self.location)
-        sun_alt = get_sun(astro_time).transform_to(frame).alt
-        return float(sun_alt.to_value(u.deg))
+        sun_alt = cast(Angle, get_sun(astro_time).transform_to(frame).alt)
+        return cast(float, sun_alt.deg)
 
     def _classify_day_night(self, sun_altitude_deg: float) -> str:
         """Classify visibility context based on Sun altitude."""

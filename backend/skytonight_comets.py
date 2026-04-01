@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import math
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 import requests
 
@@ -71,15 +71,16 @@ def _get_earth_heliocentric(obs_time: datetime) -> Tuple[float, float, float]:
     """
     try:
         from astropy.time import Time
-        from astropy.coordinates import get_body_barycentric
+        from astropy.coordinates import CartesianRepresentation, get_body_barycentric
         from astropy import units as u
         t = Time(obs_time)
-        e_bary = get_body_barycentric('earth', t)
-        s_bary = get_body_barycentric('sun', t)
+        e_bary = cast(CartesianRepresentation, get_body_barycentric('earth', t))
+        s_bary = cast(CartesianRepresentation, get_body_barycentric('sun', t))
+        delta_xyz = (e_bary - s_bary).get_xyz().to_value(u.AU)
         return (
-            (e_bary.x - s_bary.x).to(u.AU).value,
-            (e_bary.y - s_bary.y).to(u.AU).value,
-            (e_bary.z - s_bary.z).to(u.AU).value,
+            float(delta_xyz[0]),
+            float(delta_xyz[1]),
+            float(delta_xyz[2]),
         )
     except Exception:
         # Rough circular approximation: 1 AU, ~1 deg/day
@@ -252,7 +253,7 @@ def _to_comet_target(row: Dict[str, Any], source: str) -> Optional[SkyTonightTar
     if designation and designation != name:
         aliases.append(designation)
 
-    metadata = {
+    metadata: Dict[str, Any] = {
         'source': source,
         'updated_at': datetime.now(timezone.utc).isoformat(),
     }

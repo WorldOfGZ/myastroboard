@@ -5,7 +5,7 @@ https://open-meteo.com/en/docs
 from http.client import responses
 import json
 import os
-from typing import Any, Optional, cast
+from typing import Any, Optional
 import pandas as pd
 from repo_config import load_config
 from constants import URL_OPENMETEO, DATA_DIR, CONFIG_FILE, CONDITIONS_FILE
@@ -74,10 +74,7 @@ def parse_hourly(response, hourly_vars, timezone_str: Optional[str] = "UTC"):
             import zoneinfo
             try:
                 zoneinfo.ZoneInfo(timezone_str)
-                date_series = cast(pd.Series, df["date"])
-                df["date"] = date_series.map(
-                    lambda x: x.tz_convert(timezone_str) if hasattr(x, "tz_convert") else x
-                )
+                df["date"] = pd.to_datetime(df["date"], utc=True).dt.tz_convert(timezone_str)
             except zoneinfo.ZoneInfoNotFoundError:
                 logger.warning(f"Unknown timezone '{timezone_str}', keeping dates in UTC")
                 # Keep dates in UTC if timezone is invalid

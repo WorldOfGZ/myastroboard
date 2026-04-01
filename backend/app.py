@@ -57,7 +57,8 @@ def _humanize_const_name(name: str) -> str:
     return re.sub(r'(?<!^)(?=[A-Z])', ' ', name)
 
 _CONSTELLATION_ABBR_MAP: Dict[str, str] = {
-    c.abbr: _humanize_const_name(c.name) for c in _Constellation
+    str(c.abbr): _humanize_const_name(c.name) for c in _Constellation
+    if c.abbr is not None
 }
 from skytonight_storage import (
     ensure_skytonight_directories,

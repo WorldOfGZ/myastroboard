@@ -246,7 +246,7 @@ def _load_pyongc_rows() -> List[PyOngcRow]:
             dec_degrees=dec_degrees,
             magnitude=_safe_float(magnitudes[1] if len(magnitudes) > 1 else None) or _safe_float(magnitudes[0] if len(magnitudes) > 0 else None),
             size_arcmin=_safe_float(dimensions[0] if len(dimensions) > 0 else None),
-            messier=_normalize_identifier(identifiers[0]) if len(identifiers) > 0 and identifiers[0] else None,
+            messier=_normalize_identifier(str(identifiers[0])) if len(identifiers) > 0 and identifiers[0] is not None else None,
             ngc_names=[_normalize_identifier(value) for value in _coerce_identifier_list(identifiers[1] if len(identifiers) > 1 else [])],
             ic_names=[_normalize_identifier(value) for value in _coerce_identifier_list(identifiers[2] if len(identifiers) > 2 else [])],
             common_names=_coerce_identifier_list(identifiers[3] if len(identifiers) > 3 else []),
