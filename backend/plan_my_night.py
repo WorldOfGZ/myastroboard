@@ -10,7 +10,7 @@ import io
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
-import catalogue_aliases
+import skytonight_targets
 from constants import DATA_DIR
 from logging_config import get_logger
 
@@ -197,16 +197,16 @@ def save_user_plan(user_id: str, payload: Dict, username: Optional[str] = None) 
 
 
 def _normalize_name(name: str) -> str:
-    return catalogue_aliases.normalize_object_name(name)
+    return skytonight_targets.normalize_object_name(name)
 
 
 def _target_group_id(catalogue: str, name: str) -> str:
-    entry = catalogue_aliases.get_alias_entry(catalogue, name)
+    entry = skytonight_targets.get_lookup_entry(catalogue, name)
     return str(entry.get('group_id', '') or '')
 
 
 def _target_aliases(catalogue: str, name: str) -> Dict[str, str]:
-    entry = catalogue_aliases.get_alias_entry(catalogue, name)
+    entry = skytonight_targets.get_lookup_entry(catalogue, name)
     aliases = entry.get('aliases', {}) if isinstance(entry, dict) else {}
     return aliases if isinstance(aliases, dict) else {}
 

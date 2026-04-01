@@ -32,7 +32,7 @@ def create_weather_client():
 def create_fresh_weather_client():
     """
     Create a non-cached Open-Meteo API client for real-time data.
-    Used for uptonight conditions where fresh data is required.
+    Used for SkyTonight conditions where fresh data is required.
     
     Returns:
         openmeteo_requests.Client: Configured client instance with:

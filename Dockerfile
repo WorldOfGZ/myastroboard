@@ -79,7 +79,7 @@ COPY templates/ ./templates/
 COPY --from=builder /build/static-dist ./static/
 
 # Application directories
-RUN mkdir -p /app/data /app/uptonight/configs /app/uptonight/outputs
+RUN mkdir -p /app/data
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser

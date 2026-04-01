@@ -69,8 +69,8 @@ async function initializeApp() {
     setupEventListeners();
     loadVersion();
 
-    // Init uptonight scheduler
-    UptonightScheduler.init();
+    // Init SkyTonight scheduler
+    SkyTonightScheduler.init();
 
     checkCacheStatus();
 
@@ -137,8 +137,8 @@ function switchMainTab(tabName) {
     }
     
     // Load tab-specific content
-    if (tabName === 'uptonight') {
-        loadUptonightResultsTabs();
+    if (tabName === 'skytonight') {
+        loadSkyTonightResultsTabs();
     } else if (tabName === 'astrodex') {
         loadAstrodex();
     } else if (tabName === 'forecast-weather') {
@@ -295,7 +295,7 @@ function setupEventListeners() {
     
     // Run Now button
     document.getElementById('run-now')
-        ?.addEventListener('click', UptonightScheduler.trigger);
+        ?.addEventListener('click', SkyTonightScheduler.trigger);
     
     // Constraints toggle
     document.getElementById('use-constraints')?.addEventListener('change', (e) => {

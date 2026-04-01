@@ -212,9 +212,9 @@ def get_hourly_forecast():
         return None
 
 
-def get_uptonight_conditions():
+def get_skytonight_conditions():
     """
-    Return current uptonight conditions summary (1h forecast).
+    Return current SkyTonight conditions summary (1h forecast).
     ALWAYS fetches fresh data (no caching) for accurate real-time conditions.
     """
     try:
@@ -226,14 +226,14 @@ def get_uptonight_conditions():
             "surface_pressure"
         ]
 
-        # Bypass cache for fresh uptonight conditions
+        # Bypass cache for fresh SkyTonight conditions
         response = fetch_weather(
             latitude=config["location"]["latitude"],
             longitude=config["location"]["longitude"],
             timezone=config["location"]["timezone"],
             hourly_vars=hourly_vars,
             forecast_hours=1,
-            use_cache=False  # Always fetch fresh data for uptonight
+            use_cache=False  # Always fetch fresh data for SkyTonight
         )
 
         hourly = response.Hourly()
@@ -266,7 +266,7 @@ def get_uptonight_conditions():
         return conditions
 
     except Exception:
-        logger.exception("Error while fetching uptonight conditions")
+        logger.exception("Error while fetching SkyTonight conditions")
         return None
 
 

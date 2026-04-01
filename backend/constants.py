@@ -5,17 +5,26 @@ Centralizes commonly used values to avoid duplication and ensure consistency
 import os
 
 # Directory paths
-DATA_DIR = os.environ.get('DATA_DIR', '/app/data')
+DEFAULT_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+DATA_DIR = os.environ.get('DATA_DIR', DEFAULT_DATA_DIR)
 DATA_DIR_CACHE = os.path.join(DATA_DIR, 'cache')
-UPTONIGHT_DIR = os.environ.get('UPTONIGHT_DIR', '/app/uptonight')
-HOST_UPTONIGHT_DIR = os.environ.get('HOST_UPTONIGHT_DIR', './uptonight')  # For Docker-from-Docker access
+SKYTONIGHT_DIR = os.environ.get('SKYTONIGHT_DIR', os.path.join(DATA_DIR, 'skytonight'))
+SKYTONIGHT_CATALOGUES_DIR = os.path.join(SKYTONIGHT_DIR, 'catalogues')
+SKYTONIGHT_DATASET_FILE = os.path.join(SKYTONIGHT_CATALOGUES_DIR, 'targets.json')
+SKYTONIGHT_RESULTS_FILE = os.path.join(SKYTONIGHT_DIR, 'calculation_results.json')
 
 # File paths
 CONFIG_FILE = os.path.join(DATA_DIR, 'config.json')
 LOG_FILE = os.path.join(DATA_DIR, 'myastroboard.log')
 CONDITIONS_FILE = os.path.join(DATA_DIR_CACHE, 'conditions.json')
-OUTPUT_DIR = os.path.join(UPTONIGHT_DIR, 'outputs')
-CONFIG_DIR = os.path.join(UPTONIGHT_DIR, 'configs')
+CONFIG_DIR = os.path.join(SKYTONIGHT_DIR, 'configs')
+OUTPUT_DIR = os.path.join(SKYTONIGHT_DIR, 'outputs')
+SKYTONIGHT_OUTPUT_DIR = os.path.join(SKYTONIGHT_DIR, 'outputs')
+SKYTONIGHT_LOGS_DIR = os.path.join(SKYTONIGHT_DIR, 'logs')
+SKYTONIGHT_RUNTIME_DIR = os.path.join(SKYTONIGHT_DIR, 'runtime')
+SKYTONIGHT_SCHEDULER_STATUS_FILE = os.path.join(SKYTONIGHT_RUNTIME_DIR, 'scheduler_status.json')
+SKYTONIGHT_SCHEDULER_TRIGGER_FILE = os.path.join(SKYTONIGHT_RUNTIME_DIR, 'scheduler_trigger')
+SKYTONIGHT_SCHEDULER_LOCK_FILE = os.path.join(SKYTONIGHT_RUNTIME_DIR, 'scheduler.lock')
 
 # Environment configuration
 SCHEDULE_INTERVAL = int(os.environ.get('SCHEDULE_INTERVAL', '21601'))  # 6 hours in seconds (1 sec more to see it in logs immediately on startup so not set)
@@ -48,7 +57,5 @@ LOG_BACKUP_COUNT = 5
 LOG_LEVEL = os.environ.get('LOG_LEVEL', 'WARNING').upper()  # Global log level for file output
 CONSOLE_LOG_LEVEL = os.environ.get('CONSOLE_LOG_LEVEL', 'WARNING').upper()  # Console log level
 
-# UpTonight version and image configuration
-UPTONIGHT_VERSION = '2.6'
-UPTONIGHT_IMAGE = f'mawinkler/uptonight:{UPTONIGHT_VERSION}'
-UPTONIGHT_CATALOGUES = ['GaryImm', 'Herschel400', 'LBN', 'LDN', 'Messier', 'OpenIC', 'OpenNGC', 'Pensack500']
+# SkyTonight dataset configuration
+SKYTONIGHT_PREFERRED_NAME_ORDER = ['OpenNGC', 'Messier', 'OpenIC', 'Caldwell']

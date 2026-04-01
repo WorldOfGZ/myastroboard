@@ -7,7 +7,7 @@ import psutil
 import platform
 from datetime import datetime
 from logging_config import get_logger
-from constants import DATA_DIR, OUTPUT_DIR, CONFIG_DIR
+from constants import DATA_DIR, OUTPUT_DIR, CONFIG_DIR, SKYTONIGHT_DIR, SKYTONIGHT_CATALOGUES_DIR, SKYTONIGHT_OUTPUT_DIR
 
 logger = get_logger(__name__)
 
@@ -97,8 +97,11 @@ def get_disk_space_details():
             'data/cache': os.path.join(DATA_DIR, 'cache'),
             'data/astrodex': os.path.join(DATA_DIR, 'astrodex'),
             'data/equipments': os.path.join(DATA_DIR, 'equipments'),
-            'uptonight_configs': CONFIG_DIR,
-            'uptonight_outputs': OUTPUT_DIR,
+            'skytonight': SKYTONIGHT_DIR,
+            'skytonight/catalogues': SKYTONIGHT_CATALOGUES_DIR,
+            'skytonight/outputs': SKYTONIGHT_OUTPUT_DIR,
+            'skytonight_configs': CONFIG_DIR,
+            'skytonight_outputs': OUTPUT_DIR,
         }
         
         folder_usage = {}

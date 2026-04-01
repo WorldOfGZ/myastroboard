@@ -13,6 +13,7 @@ from pathlib import Path
 from utils import (
     IndentDumper,
     ensure_directory_exists,
+    slugify_location_name,
     safe_file_exists,
     load_json_file,
     save_json_file,
@@ -54,6 +55,14 @@ class TestDirectoryUtils:
     def test_safe_file_exists_invalid_input(self):
         """Test with invalid input - should return False"""
         assert safe_file_exists(None) is False
+
+    def test_slugify_location_name_ascii_and_accents(self):
+        """Test location slug generation with accents and spaces"""
+        assert slugify_location_name('Bovée sur Barboure') == 'bovee-sur-barboure'
+
+    def test_slugify_location_name_fallback(self):
+        """Test location slug generation fallback on empty input"""
+        assert slugify_location_name(' !!! ') == 'default-location'
 
 
 class TestJsonFileOperations:

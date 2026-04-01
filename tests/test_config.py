@@ -14,6 +14,7 @@ from config_defaults import (
     DEFAULT_FEATURES,
     DEFAULT_CONSTRAINTS,
     DEFAULT_HORIZON,
+    DEFAULT_SKYTONIGHT,
     DEFAULT_CONFIG
 )
 
@@ -90,7 +91,8 @@ class TestDefaultConfig:
             "done_list",
             "custom_targets",
             "horizon",
-            "output_datestamp"
+            "output_datestamp",
+            "skytonight",
         ]
         for key in expected_keys:
             assert key in DEFAULT_CONFIG, f"Missing key: {key}"
@@ -101,6 +103,14 @@ class TestDefaultConfig:
         assert DEFAULT_CONFIG["features"] == DEFAULT_FEATURES
         assert DEFAULT_CONFIG["constraints"] == DEFAULT_CONSTRAINTS
         assert DEFAULT_CONFIG["horizon"] == DEFAULT_HORIZON
+        assert DEFAULT_CONFIG["skytonight"] == DEFAULT_SKYTONIGHT
+
+    def test_default_skytonight_structure(self):
+        """Test SkyTonight defaults expose scheduler and dataset controls"""
+        assert DEFAULT_SKYTONIGHT["constraints_always_enabled"] is True
+        assert DEFAULT_SKYTONIGHT["datasets"]["catalogues"]["deep_sky"] is True
+        assert DEFAULT_SKYTONIGHT["datasets"]["comets"]["source"] == "mpc+jpl"
+        assert DEFAULT_SKYTONIGHT["scheduler"]["mode"] == "fallback-6h"
 
 
 class TestConfigLoading:
@@ -149,6 +159,44 @@ class TestConfigLoading:
             required_fields = ["location", "selected_catalogues", "features", "constraints"]
             for field in required_fields:
                 assert field in config
+        finally:
+            constants.CONFIG_FILE = original_config_file_const
+            repo_config.CONFIG_FILE = original_config_file_repo
+
+    def test_load_config_merges_new_skytonight_defaults(self, temp_dir):
+        """Test legacy configs receive missing SkyTonight defaults on load"""
+        import constants
+        import repo_config
+        original_config_file_const = constants.CONFIG_FILE
+        original_config_file_repo = repo_config.CONFIG_FILE
+        test_config_file = os.path.join(temp_dir, "load_test_legacy.json")
+
+        legacy_config = {
+            "location": {
+                "name": "Legacy",
+                "latitude": 40.0,
+                "longitude": -3.0,
+                "elevation": 100,
+                "timezone": "Europe/Madrid"
+            },
+            "constraints": {
+                "altitude_constraint_min": 35,
+            }
+        }
+
+        with open(test_config_file, 'w', encoding='utf-8') as file_obj:
+            json.dump(legacy_config, file_obj)
+
+        try:
+            constants.CONFIG_FILE = test_config_file
+            repo_config.CONFIG_FILE = test_config_file
+
+            config = load_config()
+            assert config["location"]["name"] == "Legacy"
+            assert config["constraints"]["altitude_constraint_min"] == 35
+            assert config["constraints"]["airmass_constraint"] == DEFAULT_CONSTRAINTS["airmass_constraint"]
+            assert "skytonight" in config
+            assert config["skytonight"]["scheduler"]["mode"] == "fallback-6h"
         finally:
             constants.CONFIG_FILE = original_config_file_const
             repo_config.CONFIG_FILE = original_config_file_repo
@@ -220,7 +268,16 @@ class TestConfigSaving:
             
             # Load it back
             loaded_config = load_config()
-            assert loaded_config == sample_config
+            for key, value in sample_config['location'].items():
+                assert loaded_config['location'][key] == value
+            for key, value in sample_config['features'].items():
+                assert loaded_config['features'][key] == value
+            for key, value in sample_config['constraints'].items():
+                assert loaded_config['constraints'][key] == value
+            assert loaded_config['selected_catalogues'] == sample_config['selected_catalogues']
+            assert loaded_config['min_altitude'] == sample_config['min_altitude']
+            assert loaded_config['use_constraints'] == sample_config['use_constraints']
+            assert 'skytonight' in loaded_config
         finally:
             constants.CONFIG_FILE = original_config_file_const
             repo_config.CONFIG_FILE = original_config_file_repo

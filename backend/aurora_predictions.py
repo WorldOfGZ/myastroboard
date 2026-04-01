@@ -68,7 +68,7 @@ class AuroraService:
                         return None
             return None
         except requests.RequestException as e:
-            logger.warning(f"Failed to fetch current Kp index from NOAA: {e}")
+            logger.debug(f"Failed to fetch current Kp index from NOAA: {e}")
             return None
         except Exception as e:
             logger.error(f"Error fetching Kp index: {e}")
@@ -115,7 +115,7 @@ class AuroraService:
             logger.debug(f"Fetched Kp forecast: {len(forecast_data)} entries")
             return forecast_data if forecast_data else None
         except requests.RequestException as e:
-            logger.warning(f"Failed to fetch Kp forecast from NOAA: {e}")
+            logger.debug(f"Failed to fetch Kp forecast from NOAA: {e}")
             return None
         except Exception as e:
             logger.error(f"Error fetching Kp forecast: {e}")
@@ -284,10 +284,30 @@ class AuroraService:
         try:
             # Fetch current Kp index
             current_kp = self.fetch_current_kp_index()
+            kp_forecast = None
             if current_kp is None:
-                logger.warning("Could not fetch current Kp index")
-                # Use a reasonable default
-                current_kp = 3.0
+                # Try forecast as a soft fallback before using a static default.
+                kp_forecast = self.fetch_kp_forecast()
+                if kp_forecast:
+                    latest_kp = None
+                    for entry in reversed(kp_forecast):
+                        kp_value = entry.get('kp') if isinstance(entry, dict) else None
+                        if kp_value is None:
+                            continue
+                        try:
+                            latest_kp = float(kp_value)
+                            break
+                        except (TypeError, ValueError):
+                            continue
+
+                    if latest_kp is not None:
+                        current_kp = latest_kp
+                        logger.info(f"Current Kp unavailable; using forecast fallback Kp={current_kp}")
+
+                if current_kp is None:
+                    # Final fallback for NOAA outages.
+                    current_kp = 3.0
+                    logger.info("Current Kp unavailable; using default Kp index 3.0")
             
             # Calculate aurora score
             aurora_score = self.get_aurora_score(current_kp)
@@ -317,7 +337,8 @@ class AuroraService:
             }
             
             # Try to fetch forecast
-            kp_forecast = self.fetch_kp_forecast()
+            if kp_forecast is None:
+                kp_forecast = self.fetch_kp_forecast()
             if kp_forecast:
                 try:
                     from zoneinfo import ZoneInfo

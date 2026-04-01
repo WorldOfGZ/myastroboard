@@ -2,7 +2,8 @@
 set -e
 
 echo "[INFO] Fixing permissions on mounted volumes..."
-chown -R appuser:appuser /app/data /app/uptonight || true
+mkdir -p /app/data/skytonight/configs /app/data/skytonight/outputs
+chown -R appuser:appuser /app/data || true
 
 echo "[INFO] Cleaning temporary files in /app/data..."
 # Old cache storage and lock files
@@ -13,30 +14,9 @@ find /app/data -type f \( \
   -name "scheduler_status.json" \
 \) -delete || true
 rm -rf /app/data/cache/* || true # Clear cache directory
-rm -rf /app/uptonight/outputs/* || true # Clear outputs directory
-rm -rf /app/uptonight/configs/* || true # Clear configs directory
+mkdir -p /app/data/skytonight
+rm -rf /app/data/skytonight/* || true # Clear skytonight directory
 
-
-# ---- Docker socket permissions fix ----
-if [ -S /var/run/docker.sock ]; then
-    DOCKER_GID=$(stat -c '%g' /var/run/docker.sock)
-    echo "[INFO] Detected docker.sock group id: $DOCKER_GID"
-
-    if [ "$DOCKER_GID" -eq 0 ]; then
-        echo "[WARNING] docker.sock belongs to root (Docker Desktop case)"
-        echo "[WARNING] Running app as root because non-root access is impossible here"
-        exec "$@"
-    else
-        # Normal Linux case
-        if ! getent group dockerhost > /dev/null 2>&1; then
-            groupadd -g "$DOCKER_GID" dockerhost
-        fi
-        usermod -aG dockerhost appuser
-        echo "[INFO] Starting application as non-root user"
-        exec su appuser -c "$*"
-    fi
-else
-    echo "[INFO] No docker.sock mounted, starting normally"
-    exec su appuser -c "$*"
-fi
+echo "[INFO] Starting application as non-root user"
+exec su appuser -c "$*"
 

@@ -1,15 +1,19 @@
 /* =====================
-   uptonightScheduler
-   (UpTonight execution)
+    skytonightScheduler
+    (SkyTonight execution)
    ===================== */
 
-const UptonightScheduler = (() => {
+const SkyTonightScheduler = (() => {
 
     const state = {
         isExecuting: false,
         pollInterval: null,
         mode: 'idle', // idle | manual | scheduled
     };
+
+    // Guard against transient is_executing=false flicker during thread start.
+    // We only call finish() after two consecutive false responses.
+    let _notExecutingCount = 0;
 
     let last_catalogue_executed = null;
 
@@ -21,7 +25,7 @@ const UptonightScheduler = (() => {
     };
 
     async function fetchStatus() {
-        return fetchJSONWithRetry('/api/scheduler/status', {}, {
+        return fetchJSONWithRetry('/api/skytonight/scheduler/status', {}, {
             maxAttempts: 3,
             baseDelayMs: 1000,
             maxDelayMs: 5000,
@@ -34,7 +38,7 @@ const UptonightScheduler = (() => {
             blockButton();
             state.mode = 'manual';
 
-            const data = await fetchJSONWithRetry('/api/scheduler/trigger', {
+            const data = await fetchJSONWithRetry('/api/skytonight/scheduler/trigger', {
                 method: 'POST'
             }, {
                 maxAttempts: 1,
@@ -56,46 +60,59 @@ const UptonightScheduler = (() => {
     function render(status) {
         
         if (status.is_executing) {
+            _notExecutingCount = 0;
+            state.isExecuting = true;
             showBanner();
             blockButton();
 
             const p = status.progress;
-            if (p?.current_catalogue && p.total_catalogues > 0) {
-                const duration = p.execution_duration_seconds
-                    ? ` (${formatDuration(p.execution_duration_seconds)})`
-                    : '';
+            const duration = p?.execution_duration_seconds
+                ? ` (${formatDuration(p.execution_duration_seconds)})`
+                : '';
+
+            if (p?.phase && p.phase !== '') {
+                // Phase-based progress from skytonight_calculator
+                const phaseLabel = i18n.t(`scheduler.phase_${p.phase}`, {}, p.phase);
+                if (p.phase_total > 0) {
+                    els.progress().textContent =
+                        `${phaseLabel} — ${p.phase_processed}/${p.phase_total}${duration}`;
+                } else {
+                    els.progress().textContent = `${phaseLabel}${duration}`;
+                }
+                els.detail().textContent = '';
+            } else if (p?.current_catalogue && p.total_catalogues > 0) {
+                // Legacy per-catalogue progress
                 els.progress().textContent =
                     `${i18n.t('scheduler.processing')} ${p.current_index}/${p.total_catalogues}${duration}`;
                 els.detail().textContent =
                     `${i18n.t('scheduler.current')} ${p.current_catalogue}`;
                 genericMessageLoadingDiv(p.current_catalogue);
-
-                //If current catalogue is different as previous, reload page
                 if (last_catalogue_executed !== null && last_catalogue_executed !== p.current_catalogue) {
-                    //Only if DOM catalogue-LBN-subtab exists
                     if (document.getElementById(`catalogue-${last_catalogue_executed}-subtab`)) {
                         loadCatalogueResults(last_catalogue_executed);
                     }
                 }
-                //Remember current catalogue
                 last_catalogue_executed = p.current_catalogue;
             } else {
                 els.progress().textContent =
-                    i18n.t('scheduler.processing_catalogues');
+                    i18n.t('scheduler.processing_catalogues') + duration;
                 els.detail().textContent = '';
             }
         } else if (state.isExecuting) {
-            //The last execution is never triggered before
-            if (document.getElementById(`catalogue-${last_catalogue_executed}-subtab`)) {
-                loadCatalogueResults(last_catalogue_executed);
+            _notExecutingCount++;
+            if (_notExecutingCount >= 2) {
+                // Two consecutive false responses — execution genuinely finished.
+                if (document.getElementById(`catalogue-${last_catalogue_executed}-subtab`)) {
+                    loadCatalogueResults(last_catalogue_executed);
+                }
+                loadSkyTonightResultsTabs();
+                last_catalogue_executed = null;
+                state.isExecuting = false;
+                _notExecutingCount = 0;
+                finish();
             }
-            //Reload results tabs because of possible catalogue checkbox changes
-            loadUptonightResultsTabs();
-            last_catalogue_executed = null;
-            finish();
+            // else: keep banner up, wait for confirmation next poll
         }
-
-        state.isExecuting = status.is_executing;
     }
 
     function finish() {
@@ -121,7 +138,7 @@ const UptonightScheduler = (() => {
             const status = await fetchStatus();
             render(status);
         } catch (e) {
-            console.error('Uptonight scheduler polling error', e);
+            console.error('SkyTonight scheduler polling error', e);
             stopPolling();
             resetUI();
         }

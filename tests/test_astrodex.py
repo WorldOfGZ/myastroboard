@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
 import astrodex
 import catalogue_aliases
+import skytonight_targets
 
 
 @pytest.fixture
@@ -451,7 +452,7 @@ class TestAstrodexAliases:
 
     def test_alias_deduplication_across_catalogues(self, temp_data_dir, monkeypatch):
         """Test duplicate detection using catalogue aliases"""
-        monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', self._fake_alias_entry)
+        monkeypatch.setattr(skytonight_targets, 'get_lookup_entry', self._fake_alias_entry)
 
         item_data = {
             'name': 'M81',
@@ -465,7 +466,7 @@ class TestAstrodexAliases:
 
     def test_alias_matching_with_decorated_target_name(self, temp_data_dir, monkeypatch):
         """Test matching still works when target labels contain extra description text."""
-        monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', self._fake_alias_entry)
+        monkeypatch.setattr(skytonight_targets, 'get_lookup_entry', self._fake_alias_entry)
 
         item = astrodex.create_astrodex_item(
             'testuser',
@@ -478,7 +479,7 @@ class TestAstrodexAliases:
 
     def test_alias_matching_catalogue_key_case_insensitive(self, temp_data_dir, monkeypatch):
         """Test matching with different catalogue key casing."""
-        monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', self._fake_alias_entry)
+        monkeypatch.setattr(skytonight_targets, 'get_lookup_entry', self._fake_alias_entry)
 
         item = astrodex.create_astrodex_item(
             'testuser',
@@ -490,6 +491,7 @@ class TestAstrodexAliases:
 
     def test_alias_metadata_enrichment(self, temp_data_dir, monkeypatch):
         """Test alias metadata is attached to items when available"""
+        monkeypatch.setattr(skytonight_targets, 'get_lookup_entry', self._fake_alias_entry)
         monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', self._fake_alias_entry)
 
         item_data = {
@@ -530,6 +532,7 @@ class TestAstrodexAliases:
 
     def test_switch_item_catalogue_name(self, temp_data_dir, monkeypatch):
         """Test switching displayed name to another catalogue alias"""
+        monkeypatch.setattr(skytonight_targets, 'get_lookup_entry', self._fake_alias_entry)
         monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', self._fake_alias_entry)
 
         item_data = {
@@ -547,6 +550,7 @@ class TestAstrodexAliases:
 
     def test_switch_item_catalogue_name_duplicate(self, temp_data_dir, monkeypatch):
         """Test switching fails when an equivalent object already exists"""
+        monkeypatch.setattr(skytonight_targets, 'get_lookup_entry', self._fake_alias_entry)
         monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', self._fake_alias_entry)
 
         first_item = astrodex.create_astrodex_item(
@@ -592,6 +596,7 @@ class TestAstrodexVisibilityModes:
 
     def test_public_mode_merges_shared_items_and_pictures(self, temp_data_dir, monkeypatch):
         """Public mode merges equivalent objects and keeps owner metadata per picture."""
+        monkeypatch.setattr(skytonight_targets, 'get_lookup_entry', self._fake_alias_entry)
         monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', self._fake_alias_entry)
 
         user1_item = astrodex.create_astrodex_item(
@@ -631,6 +636,7 @@ class TestAstrodexVisibilityModes:
 
     def test_private_mode_shows_only_own_items(self, temp_data_dir, monkeypatch):
         """Private mode hides other users items and pictures."""
+        monkeypatch.setattr(skytonight_targets, 'get_lookup_entry', self._fake_alias_entry)
         monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', self._fake_alias_entry)
 
         user1_item = astrodex.create_astrodex_item(

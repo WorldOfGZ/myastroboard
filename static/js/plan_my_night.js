@@ -3,6 +3,25 @@
 let planMyNightPollTimer = null;
 let planMyNightStructureSnapshot = null;
 
+function tSkyTonightCompat(key, params = {}) {
+    const skytonightKey = `skytonight.${key}`;
+    return i18n.t(skytonightKey, params);
+}
+
+function tSkyTonightType(value) {
+    const normalizedValue = (value || '').toString().trim();
+    if (!normalizedValue) {
+        return '-';
+    }
+
+    const suffix = strToTranslateKey(normalizedValue);
+    const skytonightKey = `skytonight.type_${suffix}`;
+    if (i18n.has(skytonightKey)) {
+        return i18n.t(skytonightKey);
+    }
+    return normalizedValue;
+}
+
 function isPlanEditRole(role) {
     return role === 'admin' || role === 'user';
 }
@@ -356,17 +375,7 @@ function makePlanIconActionButton(labelKey, className, iconClass, onClick) {
 }
 
 function getPlanTargetTypeDisplayName(value) {
-    const normalizedValue = (value || '').toString().trim();
-    if (!normalizedValue) {
-        return '-';
-    }
-
-    const translationKey = 'uptonight.type_' + strToTranslateKey(normalizedValue);
-    if (i18n.has(translationKey)) {
-        return i18n.t(translationKey);
-    }
-
-    return normalizedValue;
+    return tSkyTonightType(value);
 }
 
 function getPlanConstellationDisplayName(value) {
@@ -590,7 +599,7 @@ function renderPlanMyNight(payload) {
             await fetchJSON('/api/plan-my-night/clear', { method: 'DELETE' });
             showMessage('success', i18n.t('plan_my_night.plan_cleared'));
             await loadPlanMyNight();
-            await loadUptonightResultsTabs();
+            await loadSkyTonightResultsTabs();
         });
         toolbar.appendChild(clearButton);
     }
@@ -824,7 +833,7 @@ function renderPlanMyNight(payload) {
         if (entry.in_astrodex) {
             const capturedBadge = document.createElement('span');
             capturedBadge.className = 'in-astrodex-badge';
-            capturedBadge.innerHTML = `<i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.captured')}`;
+            capturedBadge.innerHTML = `<i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('captured')}`;
             controls.appendChild(capturedBadge);
         } else {
             const addToAstrodexBtn = makePlanActionButton('plan_my_night.add_to_astrodex', 'btn btn-primary btn-sm', async () => {
@@ -835,7 +844,7 @@ function renderPlanMyNight(payload) {
                     showMessage('success', i18n.t('plan_my_night.added_to_astrodex'));
                 }
                 await loadPlanMyNight();
-                await loadUptonightResultsTabs();
+                await loadSkyTonightResultsTabs();
                 await refreshAstrodexAfterPlanAction();
             });
             controls.appendChild(addToAstrodexBtn);
@@ -859,7 +868,7 @@ function renderPlanMyNight(payload) {
             const removeBtn = makePlanActionButton('plan_my_night.remove_target', 'btn btn-danger btn-sm', async () => {
                 await fetchJSON(`/api/plan-my-night/targets/${encodeURIComponent(entry.id)}`, { method: 'DELETE' });
                 await loadPlanMyNight();
-                await loadUptonightResultsTabs();
+                await loadSkyTonightResultsTabs();
             });
             controls.appendChild(removeBtn);
         }
@@ -947,11 +956,11 @@ function renderPlanMyNight(payload) {
         item.appendChild(details);
 
         const astroInfoValues = [];
-        const rightAscensionLabel = i18n.t('uptonight.right_ascension');
-        const declinationLabel = i18n.t('uptonight.declination');
-        const magLabel = i18n.t('uptonight.table_mag');
-        const sizeLabel = i18n.t('uptonight.table_size');
-        const fotoLabel = i18n.t('uptonight.table_foto');
+        const rightAscensionLabel = tSkyTonightCompat('right_ascension');
+        const declinationLabel = tSkyTonightCompat('declination');
+        const magLabel = tSkyTonightCompat('table_mag');
+        const sizeLabel = tSkyTonightCompat('table_size');
+        const fotoLabel = tSkyTonightCompat('table_foto');
 
         if (entry.ra) {
             astroInfoValues.push(`${rightAscensionLabel}: ${entry.ra}`);
@@ -989,7 +998,7 @@ function renderPlanMyNight(payload) {
             alttimeButton.className = 'btn btn-info btn-sm mt-1';
             alttimeButton.innerHTML = `<i class="bi bi-graph-up-arrow icon-inline" aria-hidden="true"></i>${i18n.t('settings.feature_alttime')}`;
             alttimeButton.addEventListener('click', () => {
-                const alttimePath = `${API_BASE}/api/uptonight/outputs/${encodeURIComponent(entry.catalogue)}/${encodeURIComponent(entry.alttime_file)}`;
+                const alttimePath = `${API_BASE}/api/skytonight/outputs/${encodeURIComponent(entry.catalogue)}/${encodeURIComponent(entry.alttime_file)}`;
                 showAlttimePopup(`${entry.name || entry.target_name || 'Target'} Altitude-Time`, alttimePath);
             });
             item.appendChild(alttimeButton);

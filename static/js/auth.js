@@ -20,7 +20,7 @@ const DEFAULT_USER_PREFERENCES = {
 const startupSubtabsByMain = {
     'forecast-astro': ['astro-weather', 'window', 'moon', 'sun', 'aurora', 'iss', 'calendar'],
     'forecast-weather': ['weather', 'trend'],
-    'uptonight': [],
+    'skytonight': [],
     'astrodex': ['astrodex', 'plan-my-night'],
     'equipment': ['combinations', 'fov', 'telescopes', 'cameras', 'mounts', 'filters', 'accessories'],
     'my-settings': ['customize', 'security'],

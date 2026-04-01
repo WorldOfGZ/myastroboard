@@ -569,7 +569,8 @@ def update_iss_passes_cache(days: int = 20):
         )
 
         if report is None:
-            raise ValueError("Failed to generate ISS passes report")
+            logger.warning("ISS passes report unavailable (provider/network/cache miss); keeping previous cache state")
+            return
 
         cache_store._iss_passes_cache["data"] = report
         cache_store._iss_passes_cache["timestamp"] = time.time()
@@ -582,7 +583,7 @@ def update_iss_passes_cache(days: int = 20):
         logger.info(f"ISS passes cache updated at {datetime.now().isoformat()}")
 
     except Exception as e:
-        logger.error(f"Failed to update ISS passes cache: {e}", exc_info=True)
+        logger.warning(f"Failed to update ISS passes cache: {e}")
 
 
 def update_planetary_events_cache():

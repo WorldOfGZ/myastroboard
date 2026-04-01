@@ -36,6 +36,8 @@ async function loadConfiguration() {
     try {
         const config = await fetchJSON('/api/config');
         currentConfig = config;
+        toggleTargetCataloguesSection(true);
+        toggleSkyTonightAdvancedSettings(true);
         
         // Populate basic fields - check if elements exist before setting values
         const locationName = document.getElementById('location-name');
@@ -75,10 +77,12 @@ async function loadConfiguration() {
         if (featureAlttime) featureAlttime.checked = features.alttime !== false;
         
         // Constraints
-        const useConstraints = config.use_constraints !== false;  // Default to true
+        const skytonightEnabled = true;
+        const useConstraints = skytonightEnabled ? true : (config.use_constraints !== false);  // Default to true
         const useConstraintsEl = document.getElementById('use-constraints');
         if (useConstraintsEl) {
             useConstraintsEl.checked = useConstraints;
+            useConstraintsEl.disabled = skytonightEnabled;
             toggleConstraintsFields(useConstraints);
         }
         
@@ -106,7 +110,10 @@ async function loadConfiguration() {
         if (timeThreshold) timeThreshold.value = constraints.fraction_of_time_observable_threshold || 0.5;
         
         const maxTargets = document.getElementById('max-targets');
-        if (maxTargets) maxTargets.value = constraints.max_number_within_threshold || 60;
+        if (maxTargets) {
+            maxTargets.value = constraints.max_number_within_threshold || 60;
+            maxTargets.disabled = skytonightEnabled;
+        }
         
         const moonIllumination = document.getElementById('moon-illumination');
         if (moonIllumination) moonIllumination.checked = constraints.moon_separation_use_illumination !== false;
@@ -150,29 +157,21 @@ async function loadConfiguration() {
 }
 
 async function saveConfiguration() {
-    // Validate at least one catalogue selected
-    const selectedCatalogues = Array.from(
-        document.querySelectorAll('#catalogues-list input:checked')
-    ).map(cb => cb.value);
-    const uniqueCatalogues = Array.from(new Set(selectedCatalogues));
-    
-    if (uniqueCatalogues.length === 0) {
-        showMessage('error', i18n.t('settings.at_least_one_catalogue'));
-        return;
-    }
+    const skytonightEnabled = true;
+    const uniqueCatalogues = Array.from(new Set(currentConfig?.selected_catalogues || []));
     
     // Parse bucket list
     const bucketListText = document.getElementById('bucket-list').value.trim();
-    const bucketList = bucketListText ? bucketListText.split('\n').map(s => s.trim()).filter(s => s) : [];
+    const bucketList = skytonightEnabled ? [] : (bucketListText ? bucketListText.split('\n').map(s => s.trim()).filter(s => s) : []);
     
     // Parse done list
     const doneListText = document.getElementById('done-list').value.trim();
-    const doneList = doneListText ? doneListText.split('\n').map(s => s.trim()).filter(s => s) : [];
+    const doneList = skytonightEnabled ? [] : (doneListText ? doneListText.split('\n').map(s => s.trim()).filter(s => s) : []);
     
     // Parse custom targets
     const customTargetsText = document.getElementById('custom-targets').value.trim();
     let customTargets = [];
-    if (customTargetsText) {
+    if (!skytonightEnabled && customTargetsText) {
         try {
             customTargets = parseCustomTargetsYAML(customTargetsText);
         } catch (e) {
@@ -184,7 +183,7 @@ async function saveConfiguration() {
     // Parse horizon
     const horizonText = document.getElementById('horizon-config').value.trim();
     let horizon = null;
-    if (horizonText) {
+    if (!skytonightEnabled && horizonText) {
         try {
             horizon = parseHorizonYAML(horizonText);
             // Only include horizon if it has anchor_points
@@ -206,13 +205,13 @@ async function saveConfiguration() {
             timezone: document.getElementById('timezone').value
         },
         selected_catalogues: uniqueCatalogues,
-        use_constraints: document.getElementById('use-constraints').checked,
+        use_constraints: skytonightEnabled ? true : document.getElementById('use-constraints').checked,
         features: {
             horizon: document.getElementById('feature-horizon').checked,
-            objects: document.getElementById('feature-objects').checked,
-            bodies: document.getElementById('feature-bodies').checked,
-            comets: document.getElementById('feature-comets').checked,
-            alttime: document.getElementById('feature-alttime').checked
+            objects: skytonightEnabled ? true : document.getElementById('feature-objects').checked,
+            bodies: skytonightEnabled ? true : document.getElementById('feature-bodies').checked,
+            comets: skytonightEnabled ? true : document.getElementById('feature-comets').checked,
+            alttime: skytonightEnabled ? true : document.getElementById('feature-alttime').checked
         },
         constraints: {
             altitude_constraint_min: parseFloat(document.getElementById('altitude-min').value),
@@ -223,7 +222,7 @@ async function saveConfiguration() {
             moon_separation_min: parseFloat(document.getElementById('moon-sep').value),
             moon_separation_use_illumination: document.getElementById('moon-illumination').checked,
             fraction_of_time_observable_threshold: parseFloat(document.getElementById('time-threshold').value),
-            max_number_within_threshold: parseInt(document.getElementById('max-targets').value),
+            max_number_within_threshold: skytonightEnabled ? 60 : parseInt(document.getElementById('max-targets').value),
             north_to_east_ccw: document.getElementById('north-ccw').checked
         },
         bucket_list: bucketList,
@@ -249,8 +248,6 @@ async function saveConfiguration() {
         if (result.status === 'success') {
             showMessage('success', i18n.t('settings.config_saved'));
             currentConfig = config;
-            // Reload catalogues to reflect the saved selection
-            loadCatalogues();
         } else {
             showMessage('error', result.message || i18n.t('settings.failed_to_save_config'));
         }
@@ -258,6 +255,37 @@ async function saveConfiguration() {
         console.error('Error saving configuration:', error);
         showMessage('error', i18n.t('settings.failed_to_save_config'));
     }
+}
+
+function toggleTargetCataloguesSection(skytonightEnabled) {
+    const section = document.getElementById('target-catalogues-section');
+    if (!section) return;
+    section.style.display = skytonightEnabled ? 'none' : '';
+}
+
+function toggleSkyTonightAdvancedSettings(skytonightEnabled) {
+    const setDisplay = (id, visible) => {
+        const elt = document.getElementById(id);
+        if (elt) {
+            elt.style.display = visible ? '' : 'none';
+        }
+    };
+
+    // SkyTonight mode keeps horizon feature but removes legacy feature selectors.
+    setDisplay('feature-objects-wrapper', !skytonightEnabled);
+    setDisplay('feature-bodies-wrapper', !skytonightEnabled);
+    setDisplay('feature-comets-wrapper', !skytonightEnabled);
+    setDisplay('feature-alttime-wrapper', !skytonightEnabled);
+
+    // Constraints are always enabled in SkyTonight mode.
+    setDisplay('use-constraints-wrapper', !skytonightEnabled);
+    setDisplay('max-targets-field', !skytonightEnabled);
+
+    // Hide legacy list editors in SkyTonight mode.
+    setDisplay('bucket-list-section', !skytonightEnabled);
+    setDisplay('done-list-section', !skytonightEnabled);
+    setDisplay('custom-targets-section', !skytonightEnabled);
+    setDisplay('horizon-config-section', !skytonightEnabled);
 }
 
 function toggleConstraintsFields(enabled) {
@@ -362,7 +390,7 @@ async function viewConfiguration() {
             });
 
             if (configsData.length === 0) {
-                showMessage('error', 'No generated UpTonight configuration available yet.');
+                showMessage('error', 'No generated SkyTonight configuration is available yet.');
                 return;
             }
 
@@ -373,7 +401,7 @@ async function viewConfiguration() {
                 showMessage('error', i18n.t('common.modal_not_initialized'));
                 return;
             }
-            titleElement.innerHTML = `<i class="bi bi-file-earmark-text icon-inline" aria-hidden="true"></i>${i18n.t('settings.uptonight_configurations')}`;
+            titleElement.innerHTML = `<i class="bi bi-file-earmark-text icon-inline" aria-hidden="true"></i>${i18n.t('settings.config_outputs')}`;
             
             //Prepare modal content
             const contentElement = document.getElementById('modal_lg_close_body');
@@ -390,7 +418,7 @@ async function viewConfiguration() {
             const selectorLabel = document.createElement('label');
             selectorLabel.className = 'visually-hidden';
             selectorLabel.setAttribute('for', 'config-selector');
-            selectorLabel.textContent = i18n.t('settings.select_uptonight_config');
+            selectorLabel.textContent = 'Select a generated configuration to view details';
             const selectorElement = document.createElement('select');
             selectorElement.className = 'form-select';
             selectorElement.id = 'config-selector';
@@ -433,7 +461,7 @@ async function viewConfiguration() {
             // Change config
             selector.onchange = (e) => displayConfig(e.target.value);
 
-            // Export uptonight config as YAML
+            // Export selected config as YAML
             const exportBtn = document.getElementById('export-config-from-modal');
             if (exportBtn) {
                 exportBtn.onclick = () => {

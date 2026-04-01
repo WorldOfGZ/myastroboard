@@ -1,7 +1,9 @@
 """
-Default configuration constants for UpTonight
+Default configuration constants for SkyTonight
 Centralized location for all default configuration values
 """
+
+from copy import deepcopy
 
 # Default location configuration
 DEFAULT_LOCATION = {
@@ -47,6 +49,37 @@ DEFAULT_HORIZON = {
     "anchor_points": []
 }
 
+
+DEFAULT_SKYTONIGHT_SCHEDULER = {
+    "mode": "fallback-6h",
+    "server_time_valid": False,
+    "next_run": None,
+    "last_run": None,
+}
+
+
+DEFAULT_SKYTONIGHT_DATASETS = {
+    "catalogues": {
+        "deep_sky": True,
+        "bodies": True,
+        "comets": True,
+    },
+    "comets": {
+        "source": "mpc+jpl",
+        "auto_update": True,
+    },
+}
+
+
+DEFAULT_SKYTONIGHT = {
+    "enabled": True,
+    "constraints_always_enabled": True,
+    "preferred_name_order": ["OpenNGC", "Messier", "OpenIC", "Caldwell"],
+    "constraints": deepcopy(DEFAULT_CONSTRAINTS),
+    "scheduler": deepcopy(DEFAULT_SKYTONIGHT_SCHEDULER),
+    "datasets": deepcopy(DEFAULT_SKYTONIGHT_DATASETS),
+}
+
 # Default complete configuration
 DEFAULT_CONFIG = {
     "location": DEFAULT_LOCATION,
@@ -60,5 +93,6 @@ DEFAULT_CONFIG = {
     "custom_targets": [],
     "horizon": DEFAULT_HORIZON,
     "output_datestamp": False,
-    "astrodex": DEFAULT_ASTRODEX
+    "astrodex": DEFAULT_ASTRODEX,
+    "skytonight": DEFAULT_SKYTONIGHT,
 }

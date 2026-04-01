@@ -1,28 +1,42 @@
-// UpTonight Results Display and Management
+﻿// SkyTonight Results Display and Management
 
 let catalogueResults = {};
 let currentCatalogueTab = ''; // Track current catalogue for Astrodex integration
-let uptonightDisplayAstrodexCache = null;
-let uptonightDisplayAstrodexPromise = null;
+let skytonightDisplayAstrodexCache = null;
+let skytonightDisplayAstrodexPromise = null;
 
-async function getUptonightDisplayAstrodex() {
-    if (uptonightDisplayAstrodexCache !== null) {
-        return uptonightDisplayAstrodexCache;
+function tSkyTonightCompat(key, params = {}) {
+    const skytonightKey = `skytonight.${key}`;
+    return i18n.t(skytonightKey, params);
+}
+
+function tSkyTonightType(value) {
+    const suffix = strToTranslateKey(value);
+    const skytonightKey = `skytonight.type_${suffix}`;
+    if (i18n.has(skytonightKey)) {
+        return i18n.t(skytonightKey);
+    }
+    return value;
+}
+
+async function getSkyTonightDisplayAstrodex() {
+    if (skytonightDisplayAstrodexCache !== null) {
+        return skytonightDisplayAstrodexCache;
     }
 
-    if (uptonightDisplayAstrodexPromise) {
-        return uptonightDisplayAstrodexPromise;
+    if (skytonightDisplayAstrodexPromise) {
+        return skytonightDisplayAstrodexPromise;
     }
 
-    uptonightDisplayAstrodexPromise = (async () => {
+    skytonightDisplayAstrodexPromise = (async () => {
         const roleUser = await getUserRole();
         const canDisplay = roleUser === 'user' || roleUser === 'admin';
-        uptonightDisplayAstrodexCache = canDisplay;
-        uptonightDisplayAstrodexPromise = null;
+        skytonightDisplayAstrodexCache = canDisplay;
+        skytonightDisplayAstrodexPromise = null;
         return canDisplay;
     })();
 
-    return uptonightDisplayAstrodexPromise;
+    return skytonightDisplayAstrodexPromise;
 }
 
 // ======================
@@ -69,20 +83,20 @@ async function loadCatalogues() {
 }
 
 // ======================
-// UpTonight Results Tabs
+// SkyTonight Results Tabs
 // ======================
 
-//Load uptonight results tabs
-async function loadUptonightResultsTabs() {
+//Load SkyTonight results tabs
+async function loadSkyTonightResultsTabs() {
     try {
-        const outputs = await fetchJSON('/api/uptonight/outputs');
+        const outputs = [{ target: 'SkyTonight', files: [] }];
         
-        const subtabsContainer = document.getElementById('uptonight-subtabs');
+        const subtabsContainer = document.getElementById('skytonight-subtabs');
         let  eltFirstTab = -1; // Index of the first tab to activate by default
 
         DOMUtils.clear(subtabsContainer);
         
-        //console.log('Uptonight outputs:', outputs);
+        //console.log('SkyTonight outputs:', outputs);
 
         //Make the tab links for each catalogue output
         if (outputs && outputs.length > 0) {
@@ -106,11 +120,11 @@ async function loadUptonightResultsTabs() {
                 subtabsContainer.appendChild(li);
             });
         } else {
-            subtabsContainer.textContent = i18n.t('uptonight.no_data_available');
+            subtabsContainer.textContent = tSkyTonightCompat('no_data_available');
         }
         
         // Create content divs for catalogue tabs
-        const uptontightTab = document.getElementById('uptonight-tab');
+        const skytonightTab = document.getElementById('skytonight-tab');
         
         if (outputs && outputs.length > 0) {
             outputs.forEach((output, index) => {
@@ -122,7 +136,7 @@ async function loadUptonightResultsTabs() {
                     const wrapper = document.createElement('div');
                     wrapper.className = 'shadow p-2 mb-3 rounded bg-sub-container';
                     const title = document.createElement('h2');
-                    title.innerHTML = `<i class="bi bi-journal-bookmark text-success icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.catalogue_results', {catalogue: output.target})}`;
+                    title.innerHTML = `<i class="bi bi-journal-bookmark text-success icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('catalogue_results', {catalogue: output.target})}`;
                     const typeButtons = document.createElement('ul');
                     typeButtons.className = 'nav nav-pills sub-tabs';
                     typeButtons.id = `catalogue-${output.target}-type-buttons`;
@@ -136,7 +150,7 @@ async function loadUptonightResultsTabs() {
                     wrapper.appendChild(typeButtons);
                     wrapper.appendChild(content);
                     div.appendChild(wrapper);
-                    uptontightTab.appendChild(div);
+                    skytonightTab.appendChild(div);
                     
                     // Load catalogue data
                     loadCatalogueResults(output.target);
@@ -151,13 +165,13 @@ async function loadUptonightResultsTabs() {
         requestAnimationFrame(() => {
             if (outputs && outputs.length > 0) {
                 //Get data-subtab value of the first subtab button
-                const firstSubTabBtn = document.querySelector('#uptonight-subtabs > li:nth-child(1) > a');
+                const firstSubTabBtn = document.querySelector('#skytonight-subtabs > li:nth-child(1) > a');
                 const firstSubTab = firstSubTabBtn ? firstSubTabBtn.getAttribute('data-subtab') : null;
                 //console.log(`Activating first subtab: ${firstSubTab}`);
-                activateSubTab('uptonight', firstSubTab);
+                activateSubTab('skytonight', firstSubTab);
 
                 //console.log(`Activating first subtab: catalogue-${outputs[eltFirstTab].target}`);
-                //activateSubTab('uptonight', `catalogue-${outputs[eltFirstTab].target}`);
+                //activateSubTab('skytonight', `catalogue-${outputs[eltFirstTab].target}`);
             }
         });
                 
@@ -171,7 +185,19 @@ async function loadCatalogueResults(catalogue) {
     currentCatalogueTab = catalogue; // Track current catalogue
     try {
 
-        const reports = await fetchJSON(`/api/uptonight/reports/${catalogue}`);
+        // SkyTonight is the only supported source.
+        const reportsSource = 'skytonight';
+        let reports;
+        try {
+            const isSkyTonightAggregate = catalogue === 'SkyTonight';
+            reports = await fetchJSON(isSkyTonightAggregate ? '/api/skytonight/reports' : `/api/skytonight/reports/${catalogue}`);
+            if (reports.error) {
+                throw new Error(reports.error);
+            }
+        } catch (e) {
+            console.warn(`SkyTonight reports unavailable for ${catalogue}:`, e);
+            throw e;
+        }
         //console.log('Catalogue reports:', reports);
         const buttonsContainer = document.getElementById(`catalogue-${catalogue}-type-buttons`);
         const container = document.getElementById(`catalogue-${catalogue}-content`);
@@ -190,6 +216,7 @@ async function loadCatalogueResults(catalogue) {
         const hasReport = reports.report && reports.report.length > 0;
         const hasBodies = reports.bodies && reports.bodies.length > 0;
         const hasComets = reports.comets && reports.comets.length > 0;
+        const hasAnyData = !!(hasPlot || hasReport || hasBodies || hasComets);
 
         const renderButtons = (buttonItems) => {
             DOMUtils.clear(buttonsContainer);
@@ -215,50 +242,46 @@ async function loadCatalogueResults(catalogue) {
         // Add buttons in order: Plot, Deep sky objects (Report), Bodies, Comets
         const buttonItems = [];
         if (hasPlot) {
-            buttonItems.push({ type: 'plot', label: `<i class="bi bi-bar-chart-line text-success icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.plot')}`, active: !firstType });
+            buttonItems.push({ type: 'plot', label: `<i class="bi bi-bar-chart-line text-success icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('plot')}`, active: !firstType });
             if (!firstType) firstType = 'plot';
         }
         if (hasReport) {
-            buttonItems.push({ type: 'report', label: `<i class="bi bi-galaxy icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.deep_sky_objects')}`, active: !firstType });
+            buttonItems.push({ type: 'report', label: `<i class="bi bi-galaxy icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('deep_sky_objects')}`, active: !firstType });
             if (!firstType) firstType = 'report';
         }
         if (hasBodies) {
-            buttonItems.push({ type: 'bodies', label: `<i class="bi bi-globe2 text-warning icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.bodies')}`, active: !firstType });
+            buttonItems.push({ type: 'bodies', label: `<i class="bi bi-globe2 text-warning icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('bodies')}`, active: !firstType });
             if (!firstType) firstType = 'bodies';
         }
         if (hasComets) {
-            buttonItems.push({ type: 'comets', label: `<i class="bi bi-comet text-warning icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.comets')}`, active: !firstType });
+            buttonItems.push({ type: 'comets', label: `<i class="bi bi-comet text-warning icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('comets')}`, active: !firstType });
             if (!firstType) firstType = 'comets';
         }
+        if (reportsSource === 'skytonight') {
+            buttonItems.push({ type: 'log', label: `<i class="bi bi-journal-text text-danger icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('logs')}`, active: !firstType });
+            if (!firstType && hasAnyData) firstType = 'log';
+        }
         
-        // Check if log file exists and add log button
-        // Check if report files exist and add reports button  
-        Promise.all([
-            checkCatalogueLogExists(catalogue),
-            checkCatalogueReportsAvailable(catalogue)
-        ]).then(([logExists, reportsAvailable]) => {
-            const enrichedButtons = [...buttonItems.map((button, index) => ({ ...button, active: index === 0 }))];
-            if (logExists) {
-                enrichedButtons.push({ type: 'log', label: `<i class="bi bi-journal-text text-danger icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.logs')}`, active: false });
-            }
-            if (reportsAvailable && reportsAvailable.has_any) {
-                enrichedButtons.push({ type: 'reports', label: `<i class="bi bi-journal-code icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.reports')}`, active: false });
-            }
-            renderButtons(enrichedButtons);
-            
-            // Store reports availability for later use
-            if (reportsAvailable) {
-                window.catalogueReportsAvailability = window.catalogueReportsAvailability || {};
-                window.catalogueReportsAvailability[catalogue] = reportsAvailable.available;
-            }
-        });
-
         renderButtons(buttonItems);
         
         // Store the reports data for switching between types
         window.catalogueReports = window.catalogueReports || {};
+        window.catalogueReportSources = window.catalogueReportSources || {};
         window.catalogueReports[catalogue] = reports;
-        
+        window.catalogueReportSources[catalogue] = reportsSource;
+        window.catalogueReportsAvailability = window.catalogueReportsAvailability || {};
+        window.catalogueReportsAvailability[catalogue] = {};
+
+        // Show a clear empty state instead of forcing an empty log-error view.
+        if (!hasAnyData) {
+            DOMUtils.clear(container);
+            const emptyAlert = document.createElement('div');
+            emptyAlert.className = 'alert alert-info mt-3';
+            emptyAlert.textContent = tSkyTonightCompat('no_data_available');
+            container.appendChild(emptyAlert);
+            return;
+        }
+
         // Show default (first available) view
         if (firstType) {
             showCatalogueType(catalogue, firstType);
@@ -272,15 +295,16 @@ async function loadCatalogueResults(catalogue) {
         DOMUtils.clear(container);
         const alert = document.createElement('div');
         alert.className = 'alert alert-danger';
-        alert.textContent = i18n.t('uptonight.failed_to_load_catalogue_results');
+        alert.textContent = tSkyTonightCompat('failed_to_load_catalogue_results');
         container.appendChild(alert);
     }
 }
 
 async function showCatalogueType(catalogue, type) {
-    const displayAstrodex = await getUptonightDisplayAstrodex();
+    const displayAstrodex = await getSkyTonightDisplayAstrodex();
 
     const reports = window.catalogueReports[catalogue];
+    const reportSource = window.catalogueReportSources?.[catalogue] || 'skytonight';
     if (!reports) return;
 
     // Update active button
@@ -289,12 +313,12 @@ async function showCatalogueType(catalogue, type) {
         btn.classList.remove('active');
         let btnType = '';
         switch(type) {
-            case 'plot': btnType = i18n.t('uptonight.plot'); break;
-            case 'report': btnType = i18n.t('uptonight.deep_sky_objects'); break;
-            case 'bodies': btnType = i18n.t('uptonight.bodies'); break;
-            case 'comets': btnType = i18n.t('uptonight.comets'); break;
-            case 'log': btnType = i18n.t('uptonight.logs'); break;
-            case 'reports': btnType = i18n.t('uptonight.reports'); break;
+            case 'plot': btnType = tSkyTonightCompat('plot'); break;
+            case 'report': btnType = tSkyTonightCompat('deep_sky_objects'); break;
+            case 'bodies': btnType = tSkyTonightCompat('bodies'); break;
+            case 'comets': btnType = tSkyTonightCompat('comets'); break;
+            case 'log': btnType = tSkyTonightCompat('logs'); break;
+            case 'reports': btnType = tSkyTonightCompat('reports'); break;
             default: console.warn(`Unknown catalogue type: ${type}`); return;
         }
         if (btn.textContent.includes(btnType)) btn.classList.add('active');
@@ -309,21 +333,14 @@ async function showCatalogueType(catalogue, type) {
         plotDiv.className = 'plot-container mt-3';
 
         const img = document.createElement('img');
-        img.src = `${API_BASE}/api/uptonight/outputs/${encodeURIComponent(catalogue)}/uptonight-plot.png`;
+        img.src = `${API_BASE}/api/skytonight/outputs/${encodeURIComponent(catalogue)}/${encodeURIComponent(reports.plot_image)}`;
         img.alt = `${catalogue} plot`;
         img.className = 'img-fluid rounded';
         img.onclick = () => showPlotPopup(`${catalogue} Plot`, img.src);
 
         const info = document.createElement('div');
         info.className = 'text-muted small mt-2';
-        info.append(i18n.t('uptonight.uptonight_credit') + ' ');
-        const link = document.createElement('a');
-        link.href = 'https://github.com/mawinkler/uptonight';
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        link.textContent = 'mawinkler/uptonight';
-        info.appendChild(link);
-        info.append('.');
+        info.textContent = tSkyTonightCompat('skytonight_credit');
 
         plotDiv.appendChild(img);
         plotDiv.appendChild(info);
@@ -335,22 +352,28 @@ async function showCatalogueType(catalogue, type) {
     if (type === 'log') {
         const loading = document.createElement('div');
         loading.className = 'loading';
-        loading.textContent = i18n.t('uptonight.loading_log_content');
+        loading.textContent = tSkyTonightCompat('loading_log_content');
         container.appendChild(loading);
 
-        loadCatalogueLog(catalogue).then(logContent => {
+        const loadLogPromise = loadSkytonightLog();
+
+        loadLogPromise.then(logContent => {
             DOMUtils.clear(container);
             const logContainer = document.createElement('div');
             logContainer.className = 'logs-container mt-3 rounded';
 
-            if (logContent) {
+            if (typeof logContent === 'string') {
                 const pre = document.createElement('pre');
-                pre.textContent = logContent; // safe
+                if (logContent.trim().length === 0) {
+                    pre.textContent = tSkyTonightCompat('no_data_available');
+                } else {
+                    pre.textContent = logContent; // safe
+                }
                 logContainer.appendChild(pre);
             } else {
                 const error = document.createElement('div');
                 error.className = 'error-box';
-                error.textContent = i18n.t('uptonight.failed_to_load_log_content');
+                error.textContent = tSkyTonightCompat('failed_to_load_log_content');
                 logContainer.appendChild(error);
             }
 
@@ -361,61 +384,10 @@ async function showCatalogueType(catalogue, type) {
 
     // --- Reports ---
     if (type === 'reports') {
-        const availability = window.catalogueReportsAvailability?.[catalogue] || {};
-        const dropdownOptions = [];
-        if (availability.general) dropdownOptions.push(['general', 'General']);
-        if (availability.bodies) dropdownOptions.push(['bodies', 'Bodies']);
-        if (availability.comets) dropdownOptions.push(['comets', 'Comets']);
-
-        if (!dropdownOptions.length) {
-            const alert = document.createElement('div');
-            alert.className = 'alert alert-info mt-3';
-            alert.textContent = i18n.t('uptonight.no_report_available');
-            container.appendChild(alert);
-            return;
-        }
-
-        const wrapper = document.createElement('div');
-        wrapper.className = 'mt-3';
-
-        const selectDiv = document.createElement('div');
-        selectDiv.className = 'mb-3';
-
-        const label = document.createElement('label');
-        label.className = 'form-label';
-        label.setAttribute('for', `report-selector-${catalogue}`);
-        label.textContent = i18n.t('uptonight.select_report_type');
-        selectDiv.appendChild(label);
-
-        const select = document.createElement('select');
-        select.className = 'form-select';
-        select.id = `report-selector-${catalogue}`;
-        select.onchange = () => loadSelectedReport(catalogue, select.value);
-
-        dropdownOptions.forEach(([val, text]) => {
-            const option = document.createElement('option');
-            option.value = val;
-            option.textContent = text;
-            select.appendChild(option);
-        });
-
-        selectDiv.appendChild(select);
-        wrapper.appendChild(selectDiv);
-
-        const reportContent = document.createElement('div');
-        reportContent.id = `report-content-${catalogue}`;
-        reportContent.className = 'logs-container rounded';
-
-        const loading = document.createElement('div');
-        loading.className = 'loading';
-        loading.textContent = i18n.t('uptonight.loading_report_content');
-        reportContent.appendChild(loading);
-
-        wrapper.appendChild(reportContent);
-        container.appendChild(wrapper);
-
-        const firstReportType = availability.general ? 'general' : (availability.bodies ? 'bodies' : 'comets');
-        loadSelectedReport(catalogue, firstReportType);
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-info mt-3';
+        alert.textContent = tSkyTonightCompat('no_report_available');
+        container.appendChild(alert);
         return;
     }
 
@@ -431,7 +403,7 @@ async function showCatalogueType(catalogue, type) {
         container.appendChild(fragment);
     } else {
         const p = document.createElement('p');
-        p.textContent = i18n.t('uptonight.failed_to_load_report_content');
+        p.textContent = tSkyTonightCompat('failed_to_load_report_content');
         container.appendChild(p);
     }
 }
@@ -441,48 +413,48 @@ async function showCatalogueType(catalogue, type) {
 // ======================
 
 function generateReportTable(report, catalogue, type, displayAstrodex = true) {
-    if (!report || report.length === 0) return `<p>${i18n.t('uptonight.no_target_in_report')}</p>`;
+    if (!report || report.length === 0) return `<p>${tSkyTonightCompat('no_target_in_report')}</p>`;
     
     // Define column order and configuration for Report type
     const reportColumns = [
-        { key: 'id', label: i18n.t('uptonight.table_id'), align: 'left' },
-        { key: 'target name', label: i18n.t('uptonight.table_name'), align: 'left' },
-        { key: 'size', label: i18n.t('uptonight.table_size'), align: 'center', unit: "'" },
-        { key: 'foto', label: i18n.t('uptonight.table_foto'), align: 'center' },
-        { key: 'mag', label: i18n.t('uptonight.table_mag'), align: 'center' },
-        { key: 'constellation', label: i18n.t('uptonight.table_constellation'), align: 'center' },
-        { key: 'type', label: i18n.t('uptonight.table_type'), align: 'center' },
-        { key: 'altitude', label: i18n.t('uptonight.table_altitude'), align: 'center', unit: '°', decimals: 2 },
-        { key: 'azimuth', label: i18n.t('uptonight.table_azimuth'), align: 'center', unit: '°', decimals: 2 },
-        ...(displayAstrodex ? [{ key: 'astrodex', label: i18n.t('uptonight.table_astrodex'), align: 'center' }] : []),
-        ...(displayAstrodex ? [{ key: 'plan_my_night', label: i18n.t('uptonight.table_plan_my_night'), align: 'center' }] : []),
-        { key: 'more', label: i18n.t('uptonight.table_more'), align: 'center' }
+        { key: 'id', label: tSkyTonightCompat('table_id'), align: 'left' },
+        { key: 'target name', label: tSkyTonightCompat('table_name'), align: 'left' },
+        { key: 'size', label: tSkyTonightCompat('table_size'), align: 'center', unit: "'" },
+        { key: 'foto', label: tSkyTonightCompat('table_foto'), align: 'center' },
+        { key: 'mag', label: tSkyTonightCompat('table_mag'), align: 'center' },
+        { key: 'constellation', label: tSkyTonightCompat('table_constellation'), align: 'center' },
+        { key: 'type', label: tSkyTonightCompat('table_type'), align: 'center' },
+        { key: 'altitude', label: tSkyTonightCompat('table_altitude'), align: 'center', unit: '°', decimals: 2 },
+        { key: 'azimuth', label: tSkyTonightCompat('table_azimuth'), align: 'center', unit: '°', decimals: 2 },
+        ...(displayAstrodex ? [{ key: 'astrodex', label: tSkyTonightCompat('table_astrodex'), align: 'center' }] : []),
+        ...(displayAstrodex ? [{ key: 'plan_my_night', label: tSkyTonightCompat('table_plan_my_night'), align: 'center' }] : []),
+        { key: 'more', label: tSkyTonightCompat('table_more'), align: 'center' }
     ];
     
     // Define column order and configuration for Bodies type
     const bodiesColumns = [
-        { key: 'target name', label: i18n.t('uptonight.table_name'), align: 'left' },
-        { key: 'altitude', label: i18n.t('uptonight.table_altitude'), align: 'center', unit: '°', decimals: 2 },
-        { key: 'azimuth', label: i18n.t('uptonight.table_azimuth'), align: 'center', unit: '°', decimals: 2 },
-        { key: 'max altitude time', label: i18n.t('uptonight.table_max_altitude_time'), align: 'center' },
-        { key: 'visual magnitude', label: i18n.t('uptonight.table_visual_magnitude'), align: 'center', decimals: 2 },
-        { key: 'foto', label: i18n.t('uptonight.table_foto'), align: 'center' },
-        { key: 'type', label: i18n.t('uptonight.table_type'), align: 'center' },
-        ...(displayAstrodex ? [{ key: 'astrodex', label: i18n.t('uptonight.table_astrodex'), align: 'center' }] : []),
-        ...(displayAstrodex ? [{ key: 'plan_my_night', label: i18n.t('uptonight.table_plan_my_night'), align: 'center' }] : []),
-        { key: 'more', label: i18n.t('uptonight.table_more'), align: 'center' }
+        { key: 'target name', label: tSkyTonightCompat('table_name'), align: 'left' },
+        { key: 'altitude', label: tSkyTonightCompat('table_altitude'), align: 'center', unit: '°', decimals: 2 },
+        { key: 'azimuth', label: tSkyTonightCompat('table_azimuth'), align: 'center', unit: '°', decimals: 2 },
+        { key: 'max altitude time', label: tSkyTonightCompat('table_max_altitude_time'), align: 'center' },
+        { key: 'visual magnitude', label: tSkyTonightCompat('table_visual_magnitude'), align: 'center', decimals: 2 },
+        { key: 'foto', label: tSkyTonightCompat('table_foto'), align: 'center' },
+        { key: 'type', label: tSkyTonightCompat('table_type'), align: 'center' },
+        ...(displayAstrodex ? [{ key: 'astrodex', label: tSkyTonightCompat('table_astrodex'), align: 'center' }] : []),
+        ...(displayAstrodex ? [{ key: 'plan_my_night', label: tSkyTonightCompat('table_plan_my_night'), align: 'center' }] : []),
+        { key: 'more', label: tSkyTonightCompat('table_more'), align: 'center' }
     ];
     
     // Define column order and configuration for Comets type
     const cometsColumns = [
-        { key: 'target name', label: i18n.t('uptonight.table_name'), align: 'left' },
-        { key: 'altitude', label: i18n.t('uptonight.table_altitude'), align: 'center', unit: '°', decimals: 2 },
-        { key: 'azimuth', label: i18n.t('uptonight.table_azimuth'), align: 'center', unit: '°', decimals: 2 },
-        { key: 'visual magnitude', label: i18n.t('uptonight.table_visual_magnitude'), align: 'center', decimals: 2 },
-        { key: 'distance earth au', label: i18n.t('uptonight.table_distance_earth'), align: 'center', unit: ' au', decimals: 2 },
-        ...(displayAstrodex ? [{ key: 'astrodex', label: i18n.t('uptonight.table_astrodex'), align: 'center' }] : []),
-        ...(displayAstrodex ? [{ key: 'plan_my_night', label: i18n.t('uptonight.table_plan_my_night'), align: 'center' }] : []),
-        { key: 'more', label: i18n.t('uptonight.table_more'), align: 'center' }
+        { key: 'target name', label: tSkyTonightCompat('table_name'), align: 'left' },
+        { key: 'altitude', label: tSkyTonightCompat('table_altitude'), align: 'center', unit: '°', decimals: 2 },
+        { key: 'azimuth', label: tSkyTonightCompat('table_azimuth'), align: 'center', unit: '°', decimals: 2 },
+        { key: 'visual magnitude', label: tSkyTonightCompat('table_visual_magnitude'), align: 'center', decimals: 2 },
+        { key: 'distance earth au', label: tSkyTonightCompat('table_distance_earth'), align: 'center', unit: ' au', decimals: 2 },
+        ...(displayAstrodex ? [{ key: 'astrodex', label: tSkyTonightCompat('table_astrodex'), align: 'center' }] : []),
+        ...(displayAstrodex ? [{ key: 'plan_my_night', label: tSkyTonightCompat('table_plan_my_night'), align: 'center' }] : []),
+        { key: 'more', label: tSkyTonightCompat('table_more'), align: 'center' }
     ];
     
     // Fields to show in "More" popup
@@ -514,8 +486,8 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
     let html = `
         <div class="row row-cols-lg-auto g-3 align-items-center mt-3">
             <div class="col-12">
-                <label for="filter-${catalogue}-${type}" class="visually-hidden">${i18n.t('uptonight.search')}</label>
-                <input type="text" id="filter-${catalogue}-${type}" placeholder="${i18n.t('uptonight.search_placeholder')}" class="filter-input form-control">
+                <label for="filter-${catalogue}-${type}" class="visually-hidden">${tSkyTonightCompat('search')}</label>
+                <input type="text" id="filter-${catalogue}-${type}" placeholder="${tSkyTonightCompat('search_placeholder')}" class="filter-input form-control">
             </div>`;
     
     // Only show foto filter for report and bodies types, not for comets
@@ -526,13 +498,13 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
             <div class="col-12">
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="foto-filter-${catalogue}-${type}">
-                    <label class="form-check-label" for="inlineFormCheck"> ${i18n.t('uptonight.search_foto')} </label>
+                    <label class="form-check-label" for="inlineFormCheck"> ${tSkyTonightCompat('search_foto')} </label>
                 </div>               
             </div>`;
         
         html += `
             <div class="col-12">
-                <label for="foto-value-${catalogue}-${type}" class="visually-hidden">${i18n.t('uptonight.search_foto_score')}</label>
+                <label for="foto-value-${catalogue}-${type}" class="visually-hidden">${tSkyTonightCompat('search_foto_score')}</label>
                 <input type="number" id="foto-value-${catalogue}-${type}" value="${savedFotoValue}" step="0.1" min="0" max="1" class="shared-foto-value form-control">
             </div>`;
     }
@@ -541,9 +513,9 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
     if (constellations.length > 0) {
         html += `
             <div class="col-12">
-                <label class="visually-hidden" for="constellation-filter-${catalogue}-${type}">${i18n.t('uptonight.search_constellations')}</label>
+                <label class="visually-hidden" for="constellation-filter-${catalogue}-${type}">${tSkyTonightCompat('search_constellations')}</label>
                 <select class="form-select filter-select" id="constellation-filter-${catalogue}-${type}">
-                    <option value="">${i18n.t('uptonight.search_all_constellations')}</option>`;
+                    <option value="">${tSkyTonightCompat('search_all_constellations')}</option>`;
         constellations.forEach(c => {
             let label_c = c;
             let translationKey = 'constellations.' + strToTranslateKey(label_c);
@@ -563,17 +535,12 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
     if (types.length > 0) {
         html += `
             <div class="col-12">
-                <label class="visually-hidden" for="type-filter-${catalogue}-${type}">${i18n.t('uptonight.search_types')}</label>
+                <label class="visually-hidden" for="type-filter-${catalogue}-${type}">${tSkyTonightCompat('search_types')}</label>
                 <select id="type-filter-${catalogue}-${type}" class="form-select filter-select">
-                    <option value="">${i18n.t('uptonight.search_all_types')}</option>`;
+                    <option value="">${tSkyTonightCompat('search_all_types')}</option>`;
         types.forEach(t => {
             let label_t = t;
-            let translationKey = 'uptonight.type_' + strToTranslateKey(label_t);
-            if (i18n.has(translationKey)) {
-                label_t = i18n.t(translationKey);
-            } else { 
-                console.warn(`Translation key not found: ${translationKey}`);
-            }
+            label_t = tSkyTonightType(label_t);
 
             html += `<option value="${escapeHtml(t)}">${escapeHtml(label_t)}</option>`;
         });
@@ -609,7 +576,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
             if (col.key === 'more') {
                 // Generate More link that opens a popup
                 const popupId = `more-popup-${catalogue}-${type}-${idx}`;
-                html += `<td style="text-align: ${col.align}"><a href="#" onclick="showMorePopup('${popupId}'); return false;" class="link-underline link-underline-opacity-0"><i class="bi bi-clipboard-data icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.table_more')}</a></td>`;
+                html += `<td style="text-align: ${col.align}"><a href="#" onclick="showMorePopup('${popupId}'); return false;" class="link-underline link-underline-opacity-0"><i class="bi bi-clipboard-data icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('table_more')}</a></td>`;
             } else if (col.key === 'astrodex') {
                 // Generate Astrodex action button
                 const itemName = row['id'] || row['target name'];
@@ -631,9 +598,9 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                 
                 if(displayAstrodex) {
                     if (isInAstrodex) {
-                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><span class="in-astrodex-badge"><i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.captured')}</span></td>`;
+                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><span class="in-astrodex-badge"><i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('captured')}</span></td>`;
                     } else if (itemName) {
-                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><button class="btn btn-sm btn-outline-primary astrodex-add-btn" data-item="${itemDataJson}"><i class="bi bi-plus-circle icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.add')}</button></td>`;
+                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><button class="btn btn-sm btn-outline-primary astrodex-add-btn" data-item="${itemDataJson}"><i class="bi bi-plus-circle icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('add')}</button></td>`;
                     } else {
                         html += `<td style="text-align: ${col.align}">-</td>`;
                     }
@@ -663,11 +630,11 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
 
                 if (displayAstrodex) {
                     if (isInPlanMyNight) {
-                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><span class="in-astrodex-badge in-plan-my-night-badge"><i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.planned')}</span></td>`;
+                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><span class="in-astrodex-badge in-plan-my-night-badge"><i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('planned')}</span></td>`;
                     } else if (planState === 'previous') {
-                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><button class="btn btn-sm btn-outline-secondary" disabled title="${i18n.t('uptonight.plan_clear_required')}">${i18n.t('uptonight.add')}</button></td>`;
+                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><button class="btn btn-sm btn-outline-secondary" disabled title="${tSkyTonightCompat('plan_clear_required')}">${tSkyTonightCompat('add')}</button></td>`;
                     } else if (itemName) {
-                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><button class="btn btn-sm btn-outline-info plan-my-night-add-btn" data-item="${itemDataJson}" data-catalogue="${escapeHtml(catalogue)}"><i class="bi bi-moon-stars-fill icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.add')}</button></td>`;
+                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><button class="btn btn-sm btn-outline-info plan-my-night-add-btn" data-item="${itemDataJson}" data-catalogue="${escapeHtml(catalogue)}"><i class="bi bi-moon-stars-fill icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('add')}</button></td>`;
                     } else {
                         html += `<td style="text-align: ${col.align}">-</td>`;
                     }
@@ -688,11 +655,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                     // Apply decimal rounding for fields with decimals config
                     value = parseFloat(value).toFixed(col.decimals);
                 } else if (col.key === 'type' && value) { // Type field - try to translate the value
-                    // If translation exists
-                    let translationKey = 'uptonight.type_' + strToTranslateKey(value);
-                    if (i18n.has(translationKey)) {
-                        value = i18n.t(translationKey);
-                    } 
+                    value = tSkyTonightType(value);
                 } else if (col.key === 'constellation' && value) { // Constellation field - try to translate the value
                     let translationKey = 'constellations.' + strToTranslateKey(value);
                     if (i18n.has(translationKey)) {
@@ -713,7 +676,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                     if (alttimeSource && row['alttime_file'] != '') {
                         //console.log('Generating alttime path for:', row['alttime_file']);
 
-                        const alttimePath = `${API_BASE}/api/uptonight/outputs/${encodeURIComponent(catalogue)}/${encodeURIComponent(row['alttime_file'])}`;
+                        const alttimePath = `${API_BASE}/api/skytonight/outputs/${encodeURIComponent(catalogue)}/${encodeURIComponent(row['alttime_file'])}`;
                         html += `
                         <td style="text-align: ${col.align}" class="alttime-check" data-path="${alttimePath}" data-title="${escapeHtml(alttimeSource)} Altitude-Time">
                             <a href="#" class="link-underline link-underline-opacity-0 alttime-popup-link">${displayValue}</a>
@@ -745,10 +708,11 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                 if (value !== null && value !== undefined) {
                     let label = field.charAt(0).toUpperCase() + field.slice(1);
                     let labelTranslations = strToTranslateKey(label);
-                    if (i18n.has(`uptonight.${labelTranslations}`)) {
-                        label = i18n.t(`uptonight.${labelTranslations}`);
+                    const skytonightLabelKey = `skytonight.${labelTranslations}`;
+                    if (i18n.has(skytonightLabelKey)) {
+                        label = i18n.t(skytonightLabelKey);
                     } else {
-                        console.warn(`Missing translation for: uptonight.${labelTranslations}`);
+                        console.warn(`Missing translation for: ${skytonightLabelKey}`);
                     }
                     let displayValue = String(value);
                     
@@ -757,7 +721,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                         if (field === 'absolute magnitude' && !isNaN(value)) {
                             displayValue = parseFloat(value).toFixed(2);
                         } else if (field === 'distance sun au' && !isNaN(value)) {
-                            label = i18n.t('uptonight.distance_sun');
+                            label = tSkyTonightCompat('distance_sun');
                             displayValue = parseFloat(value).toFixed(2) + ' au';
                         }
                     }
@@ -841,7 +805,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                     addFromCatalogue(itemData);
                 } catch (error) {
                     console.error('Error adding to astrodex:', error);
-                    showMessage('error', i18n.t('uptonight.failed_to_add_astrodex'));
+                    showMessage('error', tSkyTonightCompat('failed_to_add_astrodex'));
                 }
             });
         });
@@ -883,7 +847,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                 } catch (error) {
                     console.error('Error adding to Plan My Night:', error);
                     if (error.message && error.message.includes('Plan belongs to previous night')) {
-                        showMessage('warning', i18n.t('uptonight.plan_clear_required'));
+                        showMessage('warning', tSkyTonightCompat('plan_clear_required'));
                     } else {
                         showMessage('error', i18n.t('plan_my_night.failed_to_add_target'));
                     }
@@ -1040,7 +1004,7 @@ function sortTable(catalogue, column, type) {
         if (header !== th) {
             header.setAttribute('data-sort', 'none');
             const indicator = header.querySelector('.sort-indicator');
-            if (indicator) indicator.textContent = '';
+            if (indicator) indicator.classList.remove('bi-caret-up-fill', 'bi-caret-down-fill');
         }
     });
     
@@ -1055,7 +1019,12 @@ function sortTable(catalogue, column, type) {
     th.setAttribute('data-sort', sortDirection);
     const indicator = th.querySelector('.sort-indicator');
     if (indicator) {
-        indicator.textContent = sortDirection === 'asc' ? '▲' : '▼';
+        indicator.classList.remove('bi-caret-up-fill', 'bi-caret-down-fill');
+
+        indicator.classList.add(
+            sortDirection === 'asc' ? 'bi-caret-up-fill' : 'bi-caret-down-fill',
+            'bi'
+        );
     }
     
     // Sort rows
@@ -1205,7 +1174,7 @@ function showMorePopup(popupId) {
         // Use BS modal
         //Prepare modal title
         const titleElement = document.getElementById('modal_lg_close_title');
-        titleElement.textContent = i18n.t('uptonight.more_info');
+        titleElement.textContent = tSkyTonightCompat('more_info');
         
         //Prepare modal content
         const contentElement = document.getElementById('modal_lg_close_body');
@@ -1291,7 +1260,7 @@ async function updateCatalogueCapturedBadge(itemDataOrName, isInAstrodex) {
                 DOMUtils.clear(astrodexCell);
                 const badge = document.createElement('span');
                 badge.className = 'in-astrodex-badge';
-                badge.innerHTML = `<i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.captured')}`;
+                badge.innerHTML = `<i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('captured')}`;
                 astrodexCell.appendChild(badge);
             } else {
                 const itemDataJson = JSON.stringify(rowItemData);
@@ -1299,7 +1268,7 @@ async function updateCatalogueCapturedBadge(itemDataOrName, isInAstrodex) {
                 const addButton = document.createElement('button');
                 addButton.className = 'btn btn-sm btn-outline-primary astrodex-add-btn';
                 addButton.setAttribute('data-item', itemDataJson);
-                addButton.innerHTML = `<i class="bi bi-plus-circle icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.add')}`;
+                addButton.innerHTML = `<i class="bi bi-plus-circle icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('add')}`;
                 astrodexCell.appendChild(addButton);
             }
         });
@@ -1366,7 +1335,7 @@ function updateCataloguePlanMyNightBadge(itemDataOrName, isPlanned) {
                 DOMUtils.clear(planCell);
                 const badge = document.createElement('span');
                 badge.className = 'in-astrodex-badge in-plan-my-night-badge';
-                badge.innerHTML = `<i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.planned')}`;
+                badge.innerHTML = `<i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('planned')}`;
                 planCell.appendChild(badge);
             } else {
                 const itemDataJson = JSON.stringify(rowItemData);
@@ -1375,7 +1344,7 @@ function updateCataloguePlanMyNightBadge(itemDataOrName, isPlanned) {
                 addButton.className = 'btn btn-sm btn-outline-info plan-my-night-add-btn';
                 addButton.setAttribute('data-item', itemDataJson);
                 addButton.setAttribute('data-catalogue', rowItemData.catalogue || currentCatalogueTab || '');
-                addButton.innerHTML = `<i class="bi bi-moon-stars-fill icon-inline" aria-hidden="true"></i>${i18n.t('uptonight.add')}`;
+                addButton.innerHTML = `<i class="bi bi-moon-stars-fill icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('add')}`;
                 planCell.appendChild(addButton);
             }
         });
@@ -1436,22 +1405,12 @@ function updateCataloguePlanMyNightData(itemDataOrName, isPlanned) {
 // Log Management
 // ======================
 
-async function checkCatalogueLogExists(catalogue) {
+async function loadSkytonightLog() {
     try {
-        const result = await fetchJSON(`/api/uptonight/logs/${catalogue}/exists`);
-        return result.log_exists;
-    } catch (error) {
-        console.error('Error checking log file existence:', error);
-        return false;
-    }
-}
-
-async function loadCatalogueLog(catalogue) {
-    try {
-        const result = await fetchJSON(`/api/uptonight/logs/${catalogue}`);
+        const result = await fetchJSON('/api/skytonight/log');
         return result.log_content;
     } catch (error) {
-        console.error('Error loading log file:', error);
+        console.error('Error loading SkyTonight log file:', error);
         return null;
     }
 }
@@ -1460,52 +1419,3 @@ async function loadCatalogueLog(catalogue) {
 // Report Management
 // ======================
 
-async function checkCatalogueReportsAvailable(catalogue) {
-    try {
-        const result = await fetchJSON(`/api/uptonight/reports/${catalogue}/available`);
-        return result;
-    } catch (error) {
-        console.error('Error checking reports availability:', error);
-        return null;
-    }
-}
-
-async function loadSelectedReport(catalogue, reportType) {
-    try {
-        const contentDiv = document.getElementById(`report-content-${catalogue}`);
-        if (!contentDiv) return;
-
-        DOMUtils.clear(contentDiv);
-        
-        const loading = document.createElement('div');
-        loading.className = 'loading';
-        loading.textContent = i18n.t('uptonight.loading_report_content');
-        contentDiv.appendChild(loading);
-
-        const result = await fetchJSON(`/api/uptonight/reports/${catalogue}/${reportType}`);
-
-        DOMUtils.clear(contentDiv);
-
-        if (result && result.report_content) {
-            const pre = document.createElement('pre');
-            pre.textContent = result.report_content; // SAFE
-            contentDiv.appendChild(pre);
-        } else {
-            const alert = document.createElement('div');
-            alert.className = 'alert alert-warning';
-            alert.textContent = i18n.t('uptonight.report_empty');
-            contentDiv.appendChild(alert);
-        }
-
-    } catch (error) {
-        console.error('Error loading report:', error);
-        const contentDiv = document.getElementById(`report-content-${catalogue}`);
-        if (contentDiv) {
-            DOMUtils.clear(contentDiv);
-            const alert = document.createElement('div');
-            alert.className = 'alert alert-danger';
-            alert.textContent = i18n.t('uptonight.failed_to_load_report_content');
-            contentDiv.appendChild(alert);
-        }
-    }
-}
