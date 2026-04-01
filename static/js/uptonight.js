@@ -1088,6 +1088,32 @@ function getColumnIndex(table, columnName) {
     return 1;
 }
 
+function sanitizeImageSource(rawSrc) {
+    if (typeof rawSrc !== 'string') {
+        return '';
+    }
+
+    const src = rawSrc.trim();
+    if (!src) {
+        return '';
+    }
+
+    // Allow only local relative paths and same-origin http(s) URLs.
+    // Block javascript:, data:, blob:, and cross-origin URLs.
+    try {
+        const parsed = new URL(src, window.location.origin);
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+            return '';
+        }
+        if (parsed.origin !== window.location.origin) {
+            return '';
+        }
+        return parsed.toString();
+    } catch (error) {
+        return '';
+    }
+}
+
 // ======================
 // Modal Popups
 // ======================
@@ -1112,9 +1138,15 @@ function showPlotPopup(title, src) {
         // Clear existing content safely
         DOMUtils.clear(bodyElement);
 
+        const safeSrc = sanitizeImageSource(src);
+        if (!safeSrc) {
+            console.error('Invalid image source');
+            return;
+        }
+
         const img = document.createElement('img');
         img.id = 'image-display';
-        img.src = src;                // property assignment = safe
+        img.src = safeSrc;
         img.alt = 'Plot';
         img.title = title;            // safe
         img.className = 'img-fluid rounded';
@@ -1146,9 +1178,15 @@ function showAlttimePopup(title, src) {
         // Clear existing content safely
         DOMUtils.clear(bodyElement);
 
+        const safeSrc = sanitizeImageSource(src);
+        if (!safeSrc) {
+            console.error('Invalid image source');
+            return;
+        }
+
         const img = document.createElement('img');
         img.id = 'image-display';
-        img.src = src;                // property assignment = safe
+        img.src = safeSrc;
         img.alt = 'Altitude-Time Plot';
         img.title = title;            // safe
         img.className = 'img-fluid rounded';
