@@ -1141,6 +1141,14 @@
       "elongation_description": "{planet} atteint son élongation maximale ({elongation_degrees}°). Meilleur moment d'observation.",
       "retrograde_title": "Mouvement rétrograde de {planet}",
       "retrograde_description": "{planet} semble se déplacer vers l'arrière pendant ~{duration_days} jours."
+    },
+    "solar_system": {
+      "meteor_shower_title": "Pic des {shower_name}",
+      "meteor_shower_description": "Pic de pluie de météores. Jusqu'à {zenith_hourly_rate} météores/heure. Corps parent : {parent_body}",
+      "comet_title": "{comet_name} Près du Périhélie",
+      "comet_description": "Comète périodique près du périhélie. Magnitude ~{magnitude} ({visibility}). Consultez les cartes pour la localisation exacte.",
+      "asteroid_occultation_title": "Occultation d'Astéroïde - Consultez l'IOTA pour les Détails",
+      "asteroid_occultation_description": "Astéroïde passant devant une étoile. Prédictions précises disponibles sur IOTA/IOD. Nécessite un chronométrage précis."
     }
   },
   

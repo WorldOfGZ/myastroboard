@@ -19,7 +19,7 @@ import io
 import sys
 from datetime import datetime, timedelta
 from dataclasses import asdict
-from typing import Optional
+from typing import Optional, Dict, Any
 from zoneinfo import ZoneInfo, available_timezones
 
 import sys
@@ -1746,6 +1746,10 @@ def get_upcoming_events_api():
             if cache_store.is_cache_valid(cache_store._solar_system_events_cache, CACHE_TTL):
                 solar_system_events_data = cache_store._solar_system_events_cache.get("data")
 
+        # Translate solar system events if needed
+        if solar_system_events_data and language != "en":
+            solar_system_events_data = _translate_solar_system_events(solar_system_events_data, language)
+
         # Aggregate events
         aggregator = EventsAggregator(latitude, longitude, user_timezone, language=language)
         events = aggregator.aggregate_all_events(
@@ -1813,23 +1817,111 @@ def get_special_phenomena_api():
 @app.route("/api/events/solarsystem", methods=["GET"])
 @login_required
 def get_solar_system_events_api():
-    """Return solar system events (meteor showers, comets, asteroid occultations)"""
+    """Return solar system events (meteor showers, comets, asteroid occultations) with language support"""
     try:
+        # Get language parameter from request
+        requested_language = request.args.get("lang") or request.headers.get("Accept-Language", "en")
+        requested_language = requested_language.split(",")[0].split("-")[0].lower()
+        supported_languages = I18nManager.get_supported_languages()
+        language = requested_language if requested_language in supported_languages else "en"
+        
         if cache_store.is_cache_valid(cache_store._solar_system_events_cache, CACHE_TTL):
-            return jsonify(cache_store._solar_system_events_cache["data"])
+            data = cache_store._solar_system_events_cache["data"]
+            return jsonify(_translate_solar_system_events(data, language))
 
         # Try shared cache first
         if cache_store.sync_cache_from_shared("solar_system_events", cache_store._solar_system_events_cache):
             if cache_store.is_cache_valid(cache_store._solar_system_events_cache, CACHE_TTL):
-                return jsonify(cache_store._solar_system_events_cache["data"])
+                data = cache_store._solar_system_events_cache["data"]
+                return jsonify(_translate_solar_system_events(data, language))
 
         # Cache not ready -> refresh it
         update_solar_system_events_cache()
-        return jsonify(cache_store._solar_system_events_cache.get("data", {"events": []}))
+        data = cache_store._solar_system_events_cache.get("data", {"events": []})
+        return jsonify(_translate_solar_system_events(data, language))
 
     except Exception as e:
         logger.error(f"Error retrieving solar system events: {e}")
         return jsonify({'error': 'Internal server error'}), 500
+
+
+def _translate_solar_system_events(data: Dict[str, Any], language: str) -> Dict[str, Any]:
+    """
+    Translate solar system event descriptions based on language
+    
+    Args:
+        data: Solar system events cache data
+        language: Target language code
+    
+    Returns:
+        Data with translated event descriptions
+    """
+    if language == "en":
+        # English is default, no translation needed
+        return data
+    
+    # Create a copy to avoid modifying cache
+    translated_data = data.copy() if isinstance(data, dict) else {"events": []}
+    events = translated_data.get("events", [])
+    
+    if not isinstance(events, list):
+        return translated_data
+    
+    # Translate each event's title and description
+    i18n = I18nManager(language)
+    translated_events = []
+    
+    for event in events:
+        if not isinstance(event, dict):
+            translated_events.append(event)
+            continue
+        
+        translated_event = event.copy()
+        event_type = event.get("event_type", "")
+        
+        try:
+            # Translate based on event type
+            if event_type == "Meteor Shower":
+                raw_data = event.get("raw_data", {})
+                shower_name = raw_data.get("shower", "")
+                zenith_hourly_rate = event.get("zenith_hourly_rate", "")
+                parent_body = event.get("parent_body", "")
+                
+                if shower_name and zenith_hourly_rate and parent_body:
+                    title = i18n.t('events_api.solar_system.meteor_shower_title', shower_name=shower_name)
+                    description = i18n.t('events_api.solar_system.meteor_shower_description',
+                                        zenith_hourly_rate=zenith_hourly_rate,
+                                        parent_body=parent_body)
+                    translated_event["title"] = title
+                    translated_event["description"] = description
+            
+            elif event_type == "Comet Appearance":
+                magnitude = event.get("magnitude", "")
+                visibility = event.get("equipment_needed", "")
+                raw_data = event.get("raw_data", {})
+                comet_name = raw_data.get("comet", "")
+                
+                if comet_name and magnitude and visibility:
+                    title = i18n.t('events_api.solar_system.comet_title', comet_name=comet_name)
+                    description = i18n.t('events_api.solar_system.comet_description',
+                                        magnitude=magnitude,
+                                        visibility=visibility)
+                    translated_event["title"] = title
+                    translated_event["description"] = description
+            
+            elif event_type == "Asteroid Occultation":
+                title = i18n.t('events_api.solar_system.asteroid_occultation_title')
+                description = i18n.t('events_api.solar_system.asteroid_occultation_description')
+                translated_event["title"] = title
+                translated_event["description"] = description
+        
+        except Exception as e:
+            logger.debug(f"Error translating solar system event: {e}")
+        
+        translated_events.append(translated_event)
+    
+    translated_data["events"] = translated_events
+    return translated_data
 
 
 @app.route("/api/astro/sidereal-time", methods=["GET"])

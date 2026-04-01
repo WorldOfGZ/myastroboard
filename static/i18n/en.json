@@ -1140,6 +1140,14 @@
       "elongation_description": "{planet} reaches maximum elongation ({elongation_degrees}°). Best viewing time.",
       "retrograde_title": "{planet} Retrograde Motion",
       "retrograde_description": "{planet} appears to move backward for ~{duration_days} days."
+    },
+    "solar_system": {
+      "meteor_shower_title": "{shower_name} Peak",
+      "meteor_shower_description": "Meteor shower peak. Up to {zenith_hourly_rate} meteors/hour. Parent body: {parent_body}",
+      "comet_title": "{comet_name} Near Perihelion",
+      "comet_description": "Periodic comet near perihelion. Magnitude ~{magnitude} ({visibility}). Check charts for exact location.",
+      "asteroid_occultation_title": "Asteroid Occultation - See IOTA for Details",
+      "asteroid_occultation_description": "Asteroid passing in front of a star. Precise predictions available at IOTA/IOD. Requires precise timing."
     }
   },
   
