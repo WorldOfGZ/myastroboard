@@ -1075,14 +1075,6 @@
     "form_filters": "Filters"
   },
 
-  "yaml_editor": {
-    "valid_yaml": "Valid YAML syntax",
-    "invalid_yaml": "Invalid YAML syntax",
-    "error_multiple_spaces": "Line {line_nb}: Indentation should be multiple of 2 spaces",
-    "error_tabs": "Line {line_nb}: Use spaces instead of tabs",
-    "error_space_after_colon": "Line {line_nb}: Add space after colon"
-  },
-
   "weather": {
     "observation_conditions": "Observation Conditions",
     "forecast": "Forecast",

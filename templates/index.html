@@ -29,7 +29,6 @@
     <link rel="stylesheet" href="/static/css/bs_variables.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_main.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_weather.css?v={{ version }}">
-    <link rel="stylesheet" href="/static/css/bs_yaml.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_logs.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_skytonight.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_astrodex.css?v={{ version }}">
@@ -974,18 +973,6 @@
 
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h2>
-                        <i class="bi bi-journal-bookmark-fill text-success icon-inline" aria-hidden="true"></i> <span data-i18n="settings.target_catalogues">Target Catalogues</span>
-                    </h2>
-                    
-                    <div class="alert alert-info" role="alert" data-i18n="settings.target_catalogues_info">These parameters are used for SkyTonight scheduler.</div>
-
-                    <div id="catalogues-list"></div>
-
-                    <div class="alert alert-info" role="alert"><i class="bi bi-info-circle icon-inline" aria-hidden="true"></i> <span data-i18n="settings.target_catalogues_warning">At least one catalogue must be selected. Messier is selected by default.</span></div>
-                </div>
-
-                <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>
                         <i class="bi bi-stars text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="settings.astrodex">Astrodex</span>
                     </h2>
 
@@ -1036,51 +1023,15 @@
 
             <!-- Advanced Settings Sub-tab -->
             <div id="advanced-subtab" class="sub-tab-content">
-                <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <div class="alert alert-info" role="alert">
-                        <span data-i18n="settings.skytonight_info">
-                            All parameters of this page are used by SkyTonight internals.
-                        </span>
-                    </div>
-                    <h2>
-                        <i class="bi bi-collection text-info icon-inline" aria-hidden="true"></i> <span data-i18n="settings.features">Features</span>
-                    </h2>
-                    <div class="bg-features p-3 rounded">
-                        <div id="feature-bodies-wrapper" class="form-check form-switch">
-                            <input type="checkbox" id="feature-horizon" class="form-check-input" checked switch>
-                            <label class="form-check-label" for="feature-horizon"> <span data-i18n="settings.feature_horizon">Horizon</span></label>
-                            <div class="form-text" data-i18n="settings.feature_horizon_info">Plot the horizon based on `horizon.anchor_points` to configure below</div>
-                        </div>
-                        <div id="feature-comets-wrapper" class="form-check form-switch">
-                            <input type="checkbox" id="feature-objects" class="form-check-input" checked switch>
-                            <label class="form-check-label" for="feature-objects"> <span data-i18n="settings.feature_objects">Objects</span></label>
-                            <div class="form-text" data-i18n="settings.feature_objects_info">Calculate and plot deep sky objects based on the chosen target list</div>
-                        </div>
-                        <div id="feature-alttime-wrapper" class="form-check form-switch">
-                            <input type="checkbox" id="feature-bodies" class="form-check-input" checked switch >
-                            <label class="form-check-label" for="feature-bodies"> <span data-i18n="settings.feature_bodies">Bodies</span></label>
-                            <div class="form-text" data-i18n="settings.feature_bodies_info">Calculate and plot solar system bodies</div>
-                        </div>
-                        <div class="form-check form-switch">
-                            <input type="checkbox" id="feature-comets" class="form-check-input" checked switch>
-                            <label class="form-check-label" for="feature-comets"> <span data-i18n="settings.feature_comets">Comets</span></label>
-                            <div class="form-text" data-i18n="settings.feature_comets_info">Calculate and plot comets</div>
-                        </div>
-                        <div class="form-check form-switch">
-                            <input type="checkbox" id="feature-alttime" class="form-check-input" checked switch>
-                            <label class="form-check-label" for="feature-alttime"> <span data-i18n="settings.feature_alttime">Altitude/Time Plots</span></label>
-                            <div class="form-text" data-i18n="settings.feature_alttime_info">Calculate and plot altitude vs time diagrams</div>
-                        </div>
-                    </div>
-                </div>
-
+                
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h2>
                         <i class="bi bi-link text-secondary icon-inline" aria-hidden="true"></i> <span data-i18n="settings.constraints">Constraints</span>
                     </h2>
-                    <div id="use-constraints-wrapper" class="form-check form-switch form-check-inline bg-checkbox">
-                        <input id="use-constraints" class="form-check-input" type="checkbox" switch>
-                        <label class="form-check-label" for="use-constraints" data-i18n="settings.use_constraints">Use Constraints</label>
+                    <div class="alert alert-info" role="alert">
+                        <span data-i18n="settings.skytonight_info">
+                            All parameters of this page are used by SkyTonight internals.
+                        </span>
                     </div>
                     <div class="row g-3 mt-1 mb-2" id="constraints-fields">
                         <div id="max-targets-field" class="col-md-3">
@@ -1118,11 +1069,6 @@
                             <input type="number" id="time-threshold" class="form-control" value="0.5" step="0.1" min="0" max="1">
                             <div class="form-text" data-i18n="settings.time_threshold_info">Fraction of darkness time object must be observable (0.0-1.0, e.g., 0.5 = 50%)</div>
                         </div>
-                        <div class="col-md-3">
-                            <label for="max-targets" class="form-label" data-i18n="settings.max_targets">Max Targets in Threshold:</label>
-                            <input type="number" id="max-targets" class="form-control" value="60" step="1">
-                            <div class="form-text" data-i18n="settings.max_targets_info">Maximum number of targets to calculate (recommended: ~45 for MQTT, ~60 otherwise)</div>
-                        </div>
                     </div>
                     <div class="form-check form-switch form-check-inline bg-checkbox col-md-3">
                         <div class="form-check form-switch">
@@ -1136,74 +1082,6 @@
                             <label class="form-check-label" for="north-ccw" data-i18n="settings.north_ccw">North to East CCW</label>
                             <div class="form-text" data-i18n="settings.north_ccw_info">Set azimuth display: counter-clockwise (north at top, east at left) or clockwise</div>
                         </div>
-                    </div>
-                </div>
-                
-                <div id="bucket-list-section" class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>
-                        <i class="bi bi-galaxy icon-inline" aria-hidden="true"></i> <span data-i18n="settings.bucket_list">Bucket List</span>
-                    </h2>
-                    <div class="form-group">
-                        <small data-i18n="settings.bucket_list_info">Targets to always include (one per line). These will show if visible, ignoring constraints. Use the 'name' attribute for identification.</small>
-                        <div class="yaml-editor-container" id="bucket-list-container">
-                            <textarea id="bucket-list" class="yaml-editor" rows="4" placeholder="IC 434&#10;NGC 2359&#10;M 16" title="Personal bucket list - targets that will always be included if visible" data-i18n-title="settings.bucket_list_title"></textarea>
-                            <div class="yaml-validation-status" id="bucket-list-status">
-                                <span class="icon"><i class="bi bi-search" aria-hidden="true"></i></span>
-                                <span class="yaml-validation-message" data-i18n="settings.ready">Ready</span>
-                            </div>
-                        </div>
-                        <small id="bucket-list-error" class="error-msg"></small>
-                    </div>
-                </div>
-                
-                <div id="done-list-section" class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>
-                        <i class="bi bi-check2-circle icon-inline" aria-hidden="true"></i> <span data-i18n="settings.done_list">Done List</span>
-                    </h2>
-                    <div class="form-group">
-                        <small data-i18n="settings.done_list_info">Targets to never show (one per line). Use the 'name' attribute for identification.</small>
-                        <div class="yaml-editor-container" id="done-list-container">
-                            <textarea id="done-list" class="yaml-editor"  rows="4" placeholder="IC 1795&#10;LBN 535" title="Targets you've already observed and want to exclude" data-i18n-title="settings.done_list_title"></textarea>
-                            <div class="yaml-validation-status" id="done-list-status">
-                                <span class="icon"><i class="bi bi-search" aria-hidden="true"></i></span>
-                                <span class="yaml-validation-message" data-i18n="settings.ready">Ready</span>
-                            </div>
-                        </div>
-                        <small id="done-list-error" class="error-msg"></small>
-                    </div>
-                </div>
-                
-                <div id="custom-targets-section" class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>
-                        <i class="bi bi-galaxy icon-inline" aria-hidden="true"></i> <span data-i18n="settings.custom_targets">Custom Targets</span>
-                    </h2>
-                    <div class="form-group">
-                        <small data-i18n="settings.custom_targets_info">Define custom targets in YAML format. Required fields: name, ra, dec. Optional: description, type, constellation, size, mag.</small>
-                        <div class="yaml-editor-container" id="custom-targets-container">
-                            <textarea id="custom-targets" class="yaml-editor" rows="10" placeholder="- name: NGC 4395&#10;  description: NGC 4395&#10;  type: Galaxy&#10;  constellation: Canes Venatici&#10;  size: 13&#10;  ra: 12 25 48&#10;  dec: +33 32 48&#10;  mag: 10.0" title="Add your own custom targets not in the standard catalogues" data-i18n-title="settings.custom_targets_title"></textarea>
-                            <div class="yaml-validation-status" id="custom-targets-status">
-                                <span class="icon"><i class="bi bi-search" aria-hidden="true"></i></span>
-                                <span class="yaml-validation-message" data-i18n="settings.ready">Ready</span>
-                            </div>
-                        </div>
-                        <small id="custom-targets-error" class="error-msg"></small>
-                    </div>
-                </div>
-                
-                <div id="horizon-config-section" class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>
-                        <i class="bi bi-brightness-alt-low text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="settings.horizon">Horizon</span>
-                    </h2>
-                    <div class="form-group">
-                        <small data-i18n="settings.horizon_info">Define horizon anchor points in YAML format. Anchor points should start with azimuth 0 and end with 360 degrees. Feature Horizon must be enabled.</small>
-                        <div class="yaml-editor-container" id="horizon-config-container">
-                            <textarea id="horizon-config" class="yaml-editor" rows="8" placeholder="step_size: 5&#10;anchor_points:&#10;  - alt: 20&#10;    az: 0&#10;  ...&#10;  - alt: 20&#10;    az: 360" title="Define your custom horizon profile with altitude/azimuth pairs" data-i18n-title="settings.horizon_config_title"></textarea>
-                            <div class="yaml-validation-status" id="horizon-config-status">
-                                <span class="icon"><i class="bi bi-search" aria-hidden="true"></i></span>
-                                <span class="yaml-validation-message" data-i18n="settings.ready">Ready</span>
-                            </div>
-                        </div>
-                        <small id="horizon-error" class="error-msg"></small>
                     </div>
 
                     <div class="alert alert-info mt-3" role="alert" data-i18n="settings.skytonight_reload_info">

@@ -30,7 +30,6 @@ This page lists the HTTP routes currently declared in `backend/app.py`.
 
 - `GET /api/config`
 - `POST /api/config`
-- `GET /api/config/view`
 - `GET /api/config/export`
 
 ## Platform & Utility

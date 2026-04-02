@@ -290,17 +290,11 @@ function setupEventListeners() {
     // Configuration save
     document.getElementById('save-config')?.addEventListener('click', saveConfiguration);
     document.getElementById('save-advanced')?.addEventListener('click', saveConfiguration);
-    document.getElementById('view-config-main')?.addEventListener('click', viewConfiguration);
     document.getElementById('export-config-main')?.addEventListener('click', exportConfiguration);
     
     // Run Now button
     document.getElementById('run-now')
         ?.addEventListener('click', SkyTonightScheduler.trigger);
-    
-    // Constraints toggle
-    document.getElementById('use-constraints')?.addEventListener('change', (e) => {
-        toggleConstraintsFields(e.target.checked);
-    });
     
     // Coordinate conversion
     document.getElementById('latitude-input')?.addEventListener('blur', () => convertCoordinate('latitude'));
@@ -341,9 +335,6 @@ function setupEventListeners() {
             imageModal.style.display = 'none';
         }
     });
-    
-    // Initialize YAML editors with validation
-    initializeYAMLEditors();
 }
 
 // ======================

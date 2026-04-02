@@ -586,16 +586,6 @@ def update_config_api():
         old_location.get('elevation') != new_location.get('elevation') or
         old_location.get('timezone') != new_location.get('timezone')
     )
-    
-    # Ensure features exist with defaults
-    if 'features' not in config:
-        config['features'] = {
-            "horizon": True,
-            "objects": True,
-            "bodies": True,
-            "comets": True,
-            "alttime": True
-        }
 
     # Ensure Astrodex config exists with defaults
     if 'astrodex' not in config:
@@ -603,11 +593,33 @@ def update_config_api():
             "private": False
         }
 
-    # Ensure SkyTonight block exists and stays enabled during migration.
-    if 'skytonight' not in config:
-        config['skytonight'] = old_config.get('skytonight', {}) if isinstance(old_config, dict) else {}
-    if not isinstance(config.get('skytonight'), dict):
-        config['skytonight'] = {}
+    # Migrate legacy top-level 'constraints' → skytonight.constraints
+    legacy_constraints = config.pop('constraints', None)
+
+    # Ensure SkyTonight block exists; deep-merge partial incoming skytonight
+    # with the full existing skytonight config so that settings not controlled
+    # by the settings UI (scheduler, datasets, preferred_name_order …) are
+    # never silently discarded.
+    old_skytonight = old_config.get('skytonight') if isinstance(old_config, dict) else None
+    if not isinstance(old_skytonight, dict):
+        old_skytonight = {}
+
+    incoming_skytonight = config.get('skytonight')
+    if not isinstance(incoming_skytonight, dict):
+        config['skytonight'] = dict(old_skytonight)
+    else:
+        merged_st = dict(old_skytonight)
+        for _k, _v in incoming_skytonight.items():
+            if isinstance(_v, dict) and isinstance(merged_st.get(_k), dict):
+                merged_st[_k] = {**merged_st[_k], **_v}
+            else:
+                merged_st[_k] = _v
+        config['skytonight'] = merged_st
+
+    # Apply migrated legacy constraints when skytonight.constraints was absent
+    if legacy_constraints and not config['skytonight'].get('constraints'):
+        config['skytonight']['constraints'] = legacy_constraints
+
     config['skytonight']['enabled'] = True
     
     # Save the new config
@@ -645,43 +657,6 @@ def get_system_metrics():
     except Exception:
         logger.error("Error getting system metrics")
         return jsonify({'error': 'Failed to retrieve system metrics'}), 500
-
-
-@app.route('/api/config/view', methods=['GET'])
-@admin_required
-def view_configs_api():
-    """Return all YAML configurations in CONFIG_DIR in a structured format"""
-    try:
-        configs = []
-
-        # Yaml configs in folder
-        for filename in os.listdir(CONFIG_DIR):
-            if filename.endswith(('.yml', '.yaml')):
-                # debug log to check filename and path
-                logger.debug(f"Found config file: {filename} in {CONFIG_DIR}")
-                
-                path = os.path.join(CONFIG_DIR, filename)
-                if not os.path.isfile(path):
-                    logger.warning(f"Skipping non-file YAML entry: {path}")
-                    continue
-
-                with open(path, 'r', encoding='utf-8') as f:
-                    yaml_content = f.read()
-                    json_content = yaml.safe_load(yaml_content)
-
-                    configs.append({
-                        "name": filename,
-                        "yaml": yaml_content,
-                        "json": json_content
-                    })
-
-        return jsonify({
-            "status": "success",
-            "configs": configs
-        })
-    except Exception as e:
-        logger.error(f"Error viewing configs: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/config/export', methods=['GET'])
