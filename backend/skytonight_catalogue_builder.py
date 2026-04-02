@@ -11,7 +11,7 @@ from logging_config import get_logger
 from skytonight_bodies import build_body_targets
 from skytonight_comets import build_comet_targets
 from skytonight_models import SkyTonightCoordinates, SkyTonightTarget
-from skytonight_targets import normalize_catalogue_name, normalize_object_name, save_targets_dataset
+from skytonight_targets import normalize_catalogue_name, normalize_object_name, save_targets_dataset, choose_preferred_catalogue_name
 
 
 logger = get_logger(__name__)
@@ -195,7 +195,7 @@ def build_targets_from_rows(rows: Iterable[PyOngcRow], caldwell_map: Optional[Di
         if not canonical_name:
             continue
 
-        preferred_name = catalogue_names.get(canonical_catalogue) or row.name
+        preferred_name = choose_preferred_catalogue_name(catalogue_names) or row.name
         source_catalogues = sorted({canonical_catalogue, *catalogue_names.keys()})
         target = SkyTonightTarget(
             target_id=_target_id_from_key(canonical_catalogue, canonical_name),

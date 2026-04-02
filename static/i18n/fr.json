@@ -661,6 +661,7 @@
     "culmination_time": "Heure de culmination",
     "absolute_magnitude": "Magnitude absolue",
     "distance_sun_au": "Distance Soleil (UA)",
+    "catalogue_names": "Identifiants catalogues",
     "type_galaxy": "Galaxie",
     "type_open_cluster": "Amas ouvert",
     "type_dark_nebula": "Nébuleuse sombre",
