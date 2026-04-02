@@ -570,6 +570,18 @@ def _compute_target_result(
     else:
         window_start_hour = night_start.hour
 
+    # Rise / set times within the observable window
+    last_obs_reversed = next((i for i, v in enumerate(reversed(list(in_window_mask))) if v), None)
+    last_obs_idx = (total_steps - 1 - last_obs_reversed) if last_obs_reversed is not None else None
+    rise_time = (
+        (night_start + timedelta(minutes=first_obs_idx * _TIME_RESOLUTION_MINUTES)).strftime('%H:%M')
+        if first_obs_idx is not None else None
+    )
+    set_time = (
+        (night_start + timedelta(minutes=last_obs_idx * _TIME_RESOLUTION_MINUTES)).strftime('%H:%M')
+        if last_obs_idx is not None else None
+    )
+
     # Messier check
     is_messier = 'Messier' in (target.catalogue_names or {})
 
@@ -616,6 +628,8 @@ def _compute_target_result(
             'observable_hours': round(observable_hours, 2),
             'meridian_transit': meridian_time,
             'antimeridian_transit': antimeridian_time,
+            'rise_time': rise_time,
+            'set_time': set_time,
             'ra_hms': ra_hms,
             'dec_dms': dec_dms,
         },
@@ -698,6 +712,23 @@ def _compute_body_result(
         else night_start.hour
     )
 
+    # Peak time during the night window
+    max_altitude_time = (
+        (night_start + timedelta(minutes=peak_idx * _TIME_RESOLUTION_MINUTES)).strftime('%H:%M')
+    )
+
+    # Rise / set times within the observable window
+    last_obs_reversed_b = next((i for i, v in enumerate(reversed(list(in_window_mask))) if v), None)
+    last_obs_idx_b = (total_steps - 1 - last_obs_reversed_b) if last_obs_reversed_b is not None else None
+    rise_time_b = (
+        (night_start + timedelta(minutes=first_obs_idx * _TIME_RESOLUTION_MINUTES)).strftime('%H:%M')
+        if first_obs_idx is not None else None
+    )
+    set_time_b = (
+        (night_start + timedelta(minutes=last_obs_idx_b * _TIME_RESOLUTION_MINUTES)).strftime('%H:%M')
+        if last_obs_idx_b is not None else None
+    )
+
     # Moon angular separation (informational only for bodies, not a filter)
     angular_distance_moon: Optional[float] = None
     if moon.ra_deg is not None and moon.dec_deg is not None:
@@ -743,6 +774,9 @@ def _compute_body_result(
             'observable_hours': round(observable_hours, 2),
             'meridian_transit': meridian_time,
             'antimeridian_transit': antimeridian_time,
+            'max_altitude_time': max_altitude_time,
+            'rise_time': rise_time_b,
+            'set_time': set_time_b,
             'ra_hms': ra_hms,
             'dec_dms': dec_dms,
         },

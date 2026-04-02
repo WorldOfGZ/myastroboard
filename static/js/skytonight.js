@@ -703,29 +703,34 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
             
             moreFields.forEach(field => {
                 let value = row[field];
-                if (value !== null && value !== undefined) {
-                    let label = field.charAt(0).toUpperCase() + field.slice(1);
-                    let labelTranslations = strToTranslateKey(label);
-                    const skytonightLabelKey = `skytonight.${labelTranslations}`;
-                    if (i18n.has(skytonightLabelKey)) {
-                        label = i18n.t(skytonightLabelKey);
-                    } else {
-                        console.warn(`Missing translation for: ${skytonightLabelKey}`);
-                    }
-                    let displayValue = String(value);
-                    
-                    // Apply special formatting for comets fields
-                    if (type === 'comets') {
-                        if (field === 'absolute magnitude' && !isNaN(value)) {
-                            displayValue = parseFloat(value).toFixed(2);
-                        } else if (field === 'distance sun au' && !isNaN(value)) {
-                            label = tSkyTonightCompat('distance_sun');
+                let label = field.charAt(0).toUpperCase() + field.slice(1);
+                let labelTranslations = strToTranslateKey(label);
+                const skytonightLabelKey = `skytonight.${labelTranslations}`;
+                if (i18n.has(skytonightLabelKey)) {
+                    label = i18n.t(skytonightLabelKey);
+                } else {
+                    console.warn(`Missing translation for: ${skytonightLabelKey}`);
+                }
+                const hasValue = value !== null && value !== undefined && value !== '';
+                let displayValue = hasValue ? String(value) : '–';
+
+                // Apply special formatting for comets fields
+                if (type === 'comets') {
+                    if (field === 'absolute magnitude' && hasValue && !isNaN(value)) {
+                        displayValue = parseFloat(value).toFixed(2);
+                    } else if (field === 'distance sun au') {
+                        label = tSkyTonightCompat('distance_sun');
+                        if (hasValue && !isNaN(value)) {
+                            displayValue = parseFloat(value).toFixed(2) + ' au';
+                        }
+                    } else if (field === 'distance earth au') {
+                        if (hasValue && !isNaN(value)) {
                             displayValue = parseFloat(value).toFixed(2) + ' au';
                         }
                     }
-                    
-                    html += `<tr><td class="more-label">${escapeHtml(label)}</td><td class="more-value">${escapeHtml(displayValue)}</td></tr>`;
                 }
+
+                html += `<tr><td class="more-label">${escapeHtml(label)}</td><td class="more-value">${escapeHtml(displayValue)}</td></tr>`;
             });
             
             html += `
