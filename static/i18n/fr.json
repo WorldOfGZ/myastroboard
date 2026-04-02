@@ -1076,14 +1076,6 @@
     "form_filters": "Filtres"
   },
 
-  "yaml_editor": {
-    "valid_yaml": "Syntaxe YAML valide",
-    "invalid_yaml": "Syntaxe YAML invalide",
-    "error_multiple_spaces": "Ligne {line_nb} : L'indentation doit être un multiple de 2 espaces",
-    "error_tabs": "Ligne {line_nb} : Utilisez des espaces au lieu des tabulations",
-    "error_space_after_colon": "Ligne {line_nb} : Ajoutez un espace après les deux-points"
-  },
-
   "weather": {
     "observation_conditions": "Conditions d'observation",
     "forecast": "Prévisions",

@@ -99,13 +99,15 @@ def sample_config():
             "comets": True,
             "alttime": True
         },
-        "constraints": {
-            "altitude_constraint_min": 30,
-            "altitude_constraint_max": 80,
-            "airmass_constraint": 2,
-            "size_constraint_min": 10,
-            "size_constraint_max": 300,
-            "moon_separation_min": 45
+        "skytonight": {
+            "constraints": {
+                "altitude_constraint_min": 30,
+                "altitude_constraint_max": 80,
+                "airmass_constraint": 2,
+                "size_constraint_min": 10,
+                "size_constraint_max": 300,
+                "moon_separation_min": 45
+            }
         }
     }
 

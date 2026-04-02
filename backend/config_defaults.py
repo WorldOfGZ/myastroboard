@@ -15,15 +15,6 @@ DEFAULT_LOCATION = {
 }
 
 # Default feature flags
-DEFAULT_FEATURES = {
-    "horizon": False,
-    "objects": True,
-    "bodies": True,
-    "comets": True,
-    "alttime": True
-}
-
-# Default feature flags
 DEFAULT_ASTRODEX = {
     "private": False
 }
@@ -39,14 +30,7 @@ DEFAULT_CONSTRAINTS = {
     "moon_separation_min": 45,
     "moon_separation_use_illumination": True,
     "fraction_of_time_observable_threshold": 0.5,
-    "max_number_within_threshold": 60,
     "north_to_east_ccw": False
-}
-
-# Default horizon configuration
-DEFAULT_HORIZON = {
-    "step_size": 5,
-    "anchor_points": []
 }
 
 
@@ -83,16 +67,7 @@ DEFAULT_SKYTONIGHT = {
 # Default complete configuration
 DEFAULT_CONFIG = {
     "location": DEFAULT_LOCATION,
-    "selected_catalogues": ["Messier"],
     "min_altitude": 30,
-    "use_constraints": False,
-    "features": DEFAULT_FEATURES,
-    "constraints": DEFAULT_CONSTRAINTS,
-    "bucket_list": [],
-    "done_list": [],
-    "custom_targets": [],
-    "horizon": DEFAULT_HORIZON,
-    "output_datestamp": False,
     "astrodex": DEFAULT_ASTRODEX,
     "skytonight": DEFAULT_SKYTONIGHT,
 }

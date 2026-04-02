@@ -1060,13 +1060,6 @@
     "form_accessories": "Accesorios",
     "form_filters": "Filtros"
   },
-  "yaml_editor": {
-    "valid_yaml": "Sintaxis válida YAML",
-    "invalid_yaml": "Sintaxis YAML no válida",
-    "error_multiple_spaces": "Línea {line_nb}: la sangría debe ser múltiplo de 2 espacios",
-    "error_tabs": "Línea {line_nb}: use espacios en lugar de tabulaciones",
-    "error_space_after_colon": "Línea {line_nb}: agregar espacio después de dos puntos"
-  },
   "weather": {
     "observation_conditions": "Condiciones de observación",
     "forecast": "Pronóstico",

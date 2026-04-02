@@ -1059,13 +1059,6 @@
     "form_accessories": "Zubehör",
     "form_filters": "Filter"
   },
-  "yaml_editor": {
-    "valid_yaml": "Gültige YAML-Syntax",
-    "invalid_yaml": "Ungültige YAML-Syntax",
-    "error_multiple_spaces": "Zeile {line_nb}: Der Einzug sollte ein Vielfaches von 2 Leerzeichen sein",
-    "error_tabs": "Zeile {line_nb}: Verwenden Sie Leerzeichen anstelle von Tabulatoren",
-    "error_space_after_colon": "Zeile {line_nb}: Fügen Sie nach dem Doppelpunkt ein Leerzeichen hinzu"
-  },
   "weather": {
     "observation_conditions": "Beobachtungsbedingungen",
     "forecast": "Vorhersage",
