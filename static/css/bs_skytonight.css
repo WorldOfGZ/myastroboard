@@ -25,3 +25,18 @@
     font-size: 0.875rem;
     border: 1px solid var(--bs-success);
 }
+
+.messier-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: 0.18em 0.45em;
+    border-radius: 0.3em;
+    vertical-align: middle;
+    margin-right: 0.35em;
+    background-color: #1a6fa8;
+    color: #fff;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}

@@ -673,14 +673,21 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                 if ((col.key === 'id' || col.key === 'target name')) {
                     // Use ID if available, otherwise use target name for generating alttime filename
                     const alttimeSource = row['id'] || row['target name'];
+                    // Messier badge: shown in the target name cell when the object is in the Messier catalogue
+                    const messierNum = (col.key === 'target name')
+                        ? (row['catalogue_names'] && row['catalogue_names']['Messier'] ? row['catalogue_names']['Messier'] : null)
+                        : null;
+                    const messierBadge = messierNum
+                        ? `<span class="messier-badge" title="${escapeHtml(messierNum)}">${escapeHtml(messierNum)}</span>`
+                        : '';
                     if (alttimeSource && row['alttime_file'] != '') {
                         const alttimeTargetId = encodeURIComponent(row['alttime_file']);
                         html += `
                         <td style="text-align: ${col.align}" class="alttime-check" data-alttime-id="${escapeHtml(row['alttime_file'])}" data-title="${escapeHtml(alttimeSource)} - ${escapeHtml(tSkyTonightCompat('altitude_time_title'))}">
-                            <a href="#" class="link-underline link-underline-opacity-0 alttime-popup-link">${displayValue}</a>
+                            ${messierBadge}<a href="#" class="link-underline link-underline-opacity-0 alttime-popup-link">${displayValue}</a>
                         </td>`;
                     } else {
-                        html += `<td style="text-align: ${col.align}">${displayValue}</td>`;
+                        html += `<td style="text-align: ${col.align}">${messierBadge}${displayValue}</td>`;
                     }
                 } else {
                     html += `<td style="text-align: ${col.align}">${displayValue}</td>`;

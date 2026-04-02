@@ -97,6 +97,23 @@ def _collect_catalogue_names(row: PyOngcRow, caldwell_map: Optional[Dict[str, st
             names['OpenNGC'] = _normalize_identifier(row.ic_names[0])
         names['OpenIC'] = _normalize_identifier(row.ic_names[0])
 
+    # PyOngc returns identifiers[1]/[2] as cross-references only — they are None
+    # for the primary NGC/IC object itself.  Derive OpenNGC / OpenIC from the
+    # canonical row name when the cross-reference columns were empty.
+    norm_primary = _normalize_identifier(row.name)
+    if norm_primary.startswith('NGC ') and 'OpenNGC' not in names:
+        names['OpenNGC'] = norm_primary
+    elif norm_primary.startswith('IC ') and 'OpenIC' not in names:
+        names['OpenIC'] = norm_primary
+        if 'OpenNGC' not in names:
+            names['OpenNGC'] = norm_primary
+
+    # Popular / common name (first entry from PyOngc common-names list)
+    if row.common_names:
+        first_common = str(row.common_names[0]).strip()
+        if first_common:
+            names['CommonName'] = first_common
+
     # First: extract Caldwell identifier directly from PyOngc other_identifiers
     # (PyOngc returns entries like "C 1", "C 42" in the other_identifiers field)
     for identifier in row.other_identifiers:
@@ -147,7 +164,11 @@ def _target_id_from_key(canonical_catalogue: str, canonical_name: str) -> str:
 
 def _merge_target(existing: SkyTonightTarget, incoming: SkyTonightTarget) -> SkyTonightTarget:
     catalogue_names = dict(existing.catalogue_names)
-    catalogue_names.update(incoming.catalogue_names)
+    # Merge incoming catalogue entries without overwriting keys already present
+    # (keeps the first-seen CommonName, Messier, etc. rather than the last).
+    for k, v in incoming.catalogue_names.items():
+        if k not in catalogue_names or not catalogue_names[k]:
+            catalogue_names[k] = v
 
     aliases = sorted({*existing.aliases, *incoming.aliases})
     source_catalogues = sorted({*existing.source_catalogues, *incoming.source_catalogues})
