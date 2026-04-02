@@ -118,7 +118,13 @@ def resolve_schedule(config: Dict[str, Any], now: Optional[datetime] = None) -> 
 class SkyTonightScheduler:
     """Internal scheduler that refreshes the SkyTonight dataset and writes shared status."""
 
-    def __init__(self, config_loader: Callable[[], Dict[str, Any]], runner: Callable[[], Dict[str, Any]], app=None):
+    def __init__(
+        self,
+        config_loader: Callable[[], Dict[str, Any]],
+        runner: Callable[[], Dict[str, Any]],
+        app=None,
+        cache_ready_event: Optional[threading.Event] = None,
+    ):
         self.config_loader = config_loader
         self.runner = runner
         self.app = app
@@ -133,6 +139,10 @@ class SkyTonightScheduler:
         self.current_reason = ''
         self._execution_lock = threading.Lock()
         self._scheduler_started = False
+        # Optional event set by CacheScheduler after first successful update.
+        # When present, the first automatic run is delayed until caches are warm.
+        self._cache_ready_event: Optional[threading.Event] = cache_ready_event
+        self._cache_ready_waited = False
         ensure_skytonight_directories()
 
         stored_status = load_scheduler_status(default={})
@@ -197,6 +207,26 @@ class SkyTonightScheduler:
                 should_run = schedule.server_time >= schedule.next_run
 
             if should_run and not self._execution_lock.locked():
+                # On the first automatic run, wait for the cache scheduler to finish
+                # its initial update so SkyTonight calculations use warm caches.
+                if (
+                    not manual_trigger
+                    and not self._cache_ready_waited
+                    and self._cache_ready_event is not None
+                    and not self._cache_ready_event.is_set()
+                ):
+                    self._cache_ready_waited = True
+                    logger.info(
+                        'Waiting up to 5 minutes for initial cache update '
+                        'before first SkyTonight run...'
+                    )
+                    ready = self._cache_ready_event.wait(timeout=300)
+                    if not ready:
+                        logger.warning(
+                            'Cache ready timeout exceeded; proceeding with SkyTonight run anyway.'
+                        )
+                elif not self._cache_ready_waited:
+                    self._cache_ready_waited = True
                 # Set is_executing optimistically before the thread lands so the
                 # status file never shows is_executing=False during pending start.
                 self.is_executing = True

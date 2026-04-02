@@ -3962,7 +3962,7 @@ def _append_skytonight_calculation_log(status: str, payload: Dict[str, Any]):
         logger.warning(f'Failed to append SkyTonight calculation log: {exc}')
 
 
-def get_or_create_skytonight_scheduler():
+def get_or_create_skytonight_scheduler(cache_ready_event=None):
     """Get the SkyTonight scheduler instance, creating it if necessary."""
     if 'skytonight_scheduler' not in app.config:
         lock_file_path = get_skytonight_scheduler_lock_file()
@@ -3990,6 +3990,7 @@ def get_or_create_skytonight_scheduler():
                 config_loader=load_config,
                 runner=_run_skytonight_refresh,
                 app=app,
+                cache_ready_event=cache_ready_event,
             )
             scheduler.start()
             app.config['skytonight_scheduler'] = scheduler
@@ -4095,9 +4096,20 @@ def get_or_create_cache_scheduler():
 # Application Startup Initialization
 # ============================================================
 
+# Initialize cache scheduler FIRST so its cache_ready_event can be passed to
+# the SkyTonight scheduler, ensuring DSO calculations run on warm caches.
+try:
+    logger.info("Initializing cache scheduler on application startup...")
+    get_or_create_cache_scheduler()
+except Exception as e:
+    logger.error(f"Failed to initialize cache scheduler on startup: {e}", exc_info=True)
+
 try:
     logger.info('Initializing SkyTonight scheduler on application startup...')
-    get_or_create_skytonight_scheduler()
+    _cache_sched = app.config.get('cache_scheduler')
+    get_or_create_skytonight_scheduler(
+        cache_ready_event=_cache_sched.cache_ready_event if _cache_sched is not None else None
+    )
 except Exception as e:
     logger.error(f'Failed to initialize SkyTonight scheduler on startup: {e}', exc_info=True)
 
@@ -4134,13 +4146,7 @@ try:
 except Exception:
     pass  # Signal registration is best-effort (e.g. not the main thread)
 
-# Initialize cache scheduler when the app starts (for each gunicorn worker)
-# This ensures caches are populated before any requests are served
-try:
-    logger.info("Initializing cache scheduler on application startup...")
-    get_or_create_cache_scheduler()
-except Exception as e:
-    logger.error(f"Failed to initialize cache scheduler on startup: {e}", exc_info=True)
+# (moved cache scheduler startup above; this block is intentionally empty)
 
 # ============================================================
 

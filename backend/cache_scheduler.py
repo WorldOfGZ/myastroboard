@@ -27,6 +27,12 @@ class CacheScheduler:
         self._first_run = True
         self._lock_file = None
         self._has_lock = False
+        # Signalled after the first successful cache update so that dependent
+        # schedulers (e.g. SkyTonightScheduler) can wait before their first run.
+        self.cache_ready_event = threading.Event()
+        # Signalled after the first successful cache update so that dependent
+        # schedulers (e.g. SkyTonightScheduler) can wait before their first run.
+        self.cache_ready_event = threading.Event()
 
     def start(self):
         """Start the cache scheduler if it can acquire the lock"""
@@ -104,6 +110,9 @@ class CacheScheduler:
                 else:
                     logger.info("Running scheduled cache update...")
                 self.update_all_caches()
+                if not self.cache_ready_event.is_set():
+                    self.cache_ready_event.set()
+                    logger.info('Initial cache update complete — cache_ready_event set.')
             except Exception as e:
                 logger.error(f"Error updating caches: {e}", exc_info=True)
             
