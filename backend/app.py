@@ -60,6 +60,9 @@ _CONSTELLATION_ABBR_MAP: Dict[str, str] = {
     str(c.abbr): _humanize_const_name(c.name) for c in _Constellation
     if c.abbr is not None
 }
+# PyOngc uses Se1/Se2 for the two halves of Serpens (not in the IAU enum).
+_CONSTELLATION_ABBR_MAP['Se1'] = 'Serpens Caput'
+_CONSTELLATION_ABBR_MAP['Se2'] = 'Serpens Cauda'
 from skytonight_storage import (
     ensure_skytonight_directories,
     get_scheduler_lock_file as get_skytonight_scheduler_lock_file,
