@@ -12,6 +12,7 @@ from __future__ import annotations
 import math
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 from zoneinfo import ZoneInfo
@@ -63,6 +64,7 @@ def _save_alttime_json(
     night_end: datetime,
     constraints: Dict[str, Any],
     timezone_name: str = 'UTC',
+    precomputed_times_iso: Optional[List[str]] = None,
 ) -> bool:
     """Persist altitude-time series for one target to the outputs directory.
 
@@ -73,10 +75,13 @@ def _save_alttime_json(
     """
     try:
         ensure_directory_exists(SKYTONIGHT_OUTPUT_DIR)
-        times_iso = [
-            t.strftime('%Y-%m-%dT%H:%M:%S')  # type: ignore[attr-defined]
-            for t in times.to_datetime(timezone=timezone.utc)
-        ]
+        if precomputed_times_iso is not None:
+            times_iso = precomputed_times_iso
+        else:
+            times_iso = [
+                t.strftime('%Y-%m-%dT%H:%M:%S')  # type: ignore[attr-defined]
+                for t in times.to_datetime(timezone=timezone.utc)
+            ]
         payload: Dict[str, Any] = {
             'target_id': target_id,
             'name': name,
@@ -338,6 +343,41 @@ def _antimeridian_transit_time(
         return None
 
 
+def _meridian_transit_fast(
+    ra_hours: float,
+    lst_hours: np.ndarray,
+    times_local: List[datetime],
+) -> Optional[str]:
+    """Fast meridian transit using a precomputed LST array (avoids per-step sidereal_time calls)."""
+    try:
+        ha = ((lst_hours - ra_hours + 12.0) % 24.0) - 12.0
+        crossings = np.where((ha[:-1] < 0) & (ha[1:] >= 0))[0]
+        if len(crossings) > 0:
+            return times_local[int(crossings[0]) + 1].strftime('%H:%M')
+        return None
+    except Exception as exc:
+        logger.debug(f'Fast meridian transit failed: {exc}')
+        return None
+
+
+def _antimeridian_transit_fast(
+    ra_hours: float,
+    lst_hours: np.ndarray,
+    times_local: List[datetime],
+) -> Optional[str]:
+    """Fast antimeridian transit using a precomputed LST array."""
+    try:
+        anti_ra = (ra_hours + 12.0) % 24.0
+        ha = ((lst_hours - anti_ra + 12.0) % 24.0) - 12.0
+        crossings = np.where((ha[:-1] < 0) & (ha[1:] >= 0))[0]
+        if len(crossings) > 0:
+            return times_local[int(crossings[0]) + 1].strftime('%H:%M')
+        return None
+    except Exception as exc:
+        logger.debug(f'Fast antimeridian transit failed: {exc}')
+        return None
+
+
 class _MoonInfo:
     """Cached moon properties for one night session."""
 
@@ -468,6 +508,10 @@ def _compute_target_result(
     night_end: datetime,
     lat: float,
     lon: float,
+    *,
+    az_values: Optional[np.ndarray] = None,
+    lst_hours: Optional[np.ndarray] = None,
+    times_local: Optional[List[datetime]] = None,
 ) -> Optional[Dict[str, Any]]:
     """Return a computed result dict for one target, or None if not visible."""
     if target.coordinates is None:
@@ -544,13 +588,14 @@ def _compute_target_result(
     # At the peak time, also record AZ
     peak_az_deg: Optional[float] = None
     try:
-        peak_time = times[peak_idx : peak_idx + 1]
-        coord = SkyCoord(ra=ra_hours * u.hourangle, dec=dec_degrees * u.deg, frame='icrs')
-        frame = AltAz(obstime=peak_time, location=location)
-        peak_altaz = coord.transform_to(frame)
-        az_cw = float(peak_altaz.az.deg[0])  # type: ignore[index]
-        # north_to_east_ccw: azimuth increases CCW (N top, E left)
-        # Standard astropy/altaz az increases CW (N top, E right)
+        if az_values is not None:
+            az_cw = float(az_values[peak_idx])
+        else:
+            peak_time = times[peak_idx : peak_idx + 1]
+            coord = SkyCoord(ra=ra_hours * u.hourangle, dec=dec_degrees * u.deg, frame='icrs')
+            frame = AltAz(obstime=peak_time, location=location)
+            peak_altaz = coord.transform_to(frame)
+            az_cw = float(peak_altaz.az.deg[0])  # type: ignore[index]
         peak_az_deg = round((360.0 - az_cw) % 360.0 if north_to_east_ccw else az_cw, 1)
     except Exception:
         pass
@@ -559,35 +604,40 @@ def _compute_target_result(
     night_hours = (night_end - night_start).total_seconds() / 3600.0
     observable_hours = night_hours * observable_fraction
 
-    # Determine the hour of the night when the target starts being observable
-    # to compute the "comfort" scoring window.
-    first_obs_idx = next((i for i, v in enumerate(in_window_mask) if v), None)
-    if first_obs_idx is not None:
-        first_obs_time = night_start + timedelta(
-            minutes=first_obs_idx * _TIME_RESOLUTION_MINUTES
-        )
-        window_start_hour = first_obs_time.hour
-    else:
-        window_start_hour = night_start.hour
+    # Find first/last observable indices using NumPy (avoids O(n) Python generator loops)
+    obs_indices = np.nonzero(in_window_mask)[0]
+    first_obs_idx: Optional[int] = int(obs_indices[0]) if len(obs_indices) > 0 else None
+    last_obs_idx: Optional[int] = int(obs_indices[-1]) if len(obs_indices) > 0 else None
 
-    # Rise / set times within the observable window
-    last_obs_reversed = next((i for i, v in enumerate(reversed(list(in_window_mask))) if v), None)
-    last_obs_idx = (total_steps - 1 - last_obs_reversed) if last_obs_reversed is not None else None
-    rise_time = (
-        (night_start + timedelta(minutes=first_obs_idx * _TIME_RESOLUTION_MINUTES)).strftime('%H:%M')
-        if first_obs_idx is not None else None
-    )
-    set_time = (
-        (night_start + timedelta(minutes=last_obs_idx * _TIME_RESOLUTION_MINUTES)).strftime('%H:%M')
-        if last_obs_idx is not None else None
-    )
+    if times_local is not None:
+        window_start_hour = times_local[first_obs_idx].hour if first_obs_idx is not None else night_start.hour
+        rise_time: Optional[str] = times_local[first_obs_idx].strftime('%H:%M') if first_obs_idx is not None else None
+        set_time: Optional[str] = times_local[last_obs_idx].strftime('%H:%M') if last_obs_idx is not None else None
+    else:
+        if first_obs_idx is not None:
+            _fot = night_start + timedelta(minutes=first_obs_idx * _TIME_RESOLUTION_MINUTES)
+            window_start_hour = _fot.hour
+        else:
+            window_start_hour = night_start.hour
+        rise_time = (
+            (night_start + timedelta(minutes=first_obs_idx * _TIME_RESOLUTION_MINUTES)).strftime('%H:%M')
+            if first_obs_idx is not None else None
+        )
+        set_time = (
+            (night_start + timedelta(minutes=last_obs_idx * _TIME_RESOLUTION_MINUTES)).strftime('%H:%M')
+            if last_obs_idx is not None else None
+        )
 
     # Messier check
     is_messier = 'Messier' in (target.catalogue_names or {})
 
     # Meridian / antimeridian times
-    meridian_time = _meridian_transit_time(ra_hours, night_start, night_end, lat, lon)
-    antimeridian_time = _antimeridian_transit_time(ra_hours, night_start, night_end, lat, lon)
+    if lst_hours is not None and times_local is not None:
+        meridian_time = _meridian_transit_fast(ra_hours, lst_hours, times_local)
+        antimeridian_time = _antimeridian_transit_fast(ra_hours, lst_hours, times_local)
+    else:
+        meridian_time = _meridian_transit_time(ra_hours, night_start, night_end, lat, lon)
+        antimeridian_time = _antimeridian_transit_time(ra_hours, night_start, night_end, lat, lon)
 
     # RA/Dec in HMS/DMS
     ra_hms = _hours_to_hms(ra_hours)
@@ -921,48 +971,76 @@ def run_calculations(
     processed_deep_sky = 0
     processed_bodies = 0
     processed_comets = 0
-    _set_progress('deep_sky', 0, n_deep_sky)
-
     # Clear altitude-time JSON files from the previous calculation run so stale
     # files are never served after a recalculation for a different night.
     _clear_alttime_files()
 
+    # -----------------------------------------------------------------------
+    # Phase 1: Bodies (planets, Moon) — live ephemeris, fast, save immediately
+    # -----------------------------------------------------------------------
+    _set_progress('bodies', 0, n_bodies)
     for target in all_targets:
-        if target.category == 'bodies':
-            if processed_bodies == 0:
-                _set_progress('bodies', 0, n_bodies)
-            # Bodies (planets, Moon) have no static coordinates — use live ephemeris
-            body_result, body_alt_deg = _compute_body_result(
-                target=target,
-                times=times,
-                location=location_obj,
-                moon=moon,
-                constraints=constraints,
-                night_start=night_start,
-                night_end=night_end,
-                lat=lat,
-                lon=lon,
-            )
-            if body_result is not None:
-                bodies_results.append(body_result)
-                if body_alt_deg is not None:
-                    _save_alttime_json(
-                        target_id=target.target_id,
-                        name=body_result.get('preferred_name', target.target_id),
-                        times=times,
-                        altitudes=body_alt_deg,
-                        night_start=night_start,
-                        night_end=night_end,
-                        constraints=constraints,
-                        timezone_name=timezone_name,
-                    )
-            processed_bodies += 1
-            _set_progress('bodies', processed_bodies, n_bodies)
+        if target.category != 'bodies':
             continue
+        body_result, body_alt_deg = _compute_body_result(
+            target=target,
+            times=times,
+            location=location_obj,
+            moon=moon,
+            constraints=constraints,
+            night_start=night_start,
+            night_end=night_end,
+            lat=lat,
+            lon=lon,
+        )
+        if body_result is not None:
+            bodies_results.append(body_result)
+            if body_alt_deg is not None:
+                _save_alttime_json(
+                    target_id=target.target_id,
+                    name=body_result.get('preferred_name', target.target_id),
+                    times=times,
+                    altitudes=body_alt_deg,
+                    night_start=night_start,
+                    night_end=night_end,
+                    constraints=constraints,
+                    timezone_name=timezone_name,
+                )
+        processed_bodies += 1
+        _set_progress('bodies', processed_bodies, n_bodies)
 
+    # Immediate partial save: bodies are available in the frontend while comets/DSOs compute
+    logger.info(f'Bodies done: {len(bodies_results)} visible. Writing partial results...')
+    save_json_file(SKYTONIGHT_RESULTS_FILE, {
+        'metadata': {
+            'calculated_at': datetime.now(timezone.utc).isoformat(),
+            'location_name': location_name,
+            'latitude': lat,
+            'longitude': lon,
+            'elevation': elevation,
+            'timezone': timezone_name,
+            'night_start': night_start.isoformat(),
+            'night_end': night_end.isoformat(),
+            'night_hours': round(night_hours, 2),
+            'moon_phase': round(moon.phase, 4),
+            'counts': {'deep_sky': 0, 'bodies': len(bodies_results), 'comets': 0},
+            'constraints': constraints,
+            'in_progress': True,
+        },
+        'deep_sky': [],
+        'bodies': bodies_results,
+        'comets': [],
+    })
+
+    # -----------------------------------------------------------------------
+    # Phase 2: Comets — individually (typically few targets)
+    # -----------------------------------------------------------------------
+    _set_progress('comets', 0, n_comets)
+    for target in all_targets:
+        if target.category != 'comets':
+            continue
         if target.coordinates is None:
             continue
-
         try:
             altaz_values = _compute_altaz_series(
                 ra_hours=target.coordinates.ra_hours,
@@ -971,9 +1049,8 @@ def run_calculations(
                 location=location_obj,
             )
         except Exception as exc:
-            logger.debug(f'AltAz computation failed for {target.target_id}: {exc}')
+            logger.debug(f'Comet AltAz computation failed for {target.target_id}: {exc}')
             continue
-
         result = _compute_target_result(
             target=target,
             times=times,
@@ -986,33 +1063,138 @@ def run_calculations(
             lat=lat,
             lon=lon,
         )
-        if result is None:
-            continue
+        if result is not None:
+            comets_results.append(result)
+            _save_alttime_json(
+                target_id=target.target_id,
+                name=result.get('preferred_name', target.target_id),
+                times=times,
+                altitudes=altaz_values,
+                night_start=night_start,
+                night_end=night_end,
+                constraints=constraints,
+                timezone_name=timezone_name,
+            )
+        processed_comets += 1
+        _set_progress('comets', processed_comets, n_comets)
 
-        # Target is visible — persist altitude-time JSON for the frontend graph
-        _save_alttime_json(
-            target_id=target.target_id,
-            name=result.get('preferred_name', target.target_id),
-            times=times,
-            altitudes=altaz_values,
-            night_start=night_start,
-            night_end=night_end,
-            constraints=constraints,
-            timezone_name=timezone_name,
+    # Partial save: bodies + comets are available while DSOs compute
+    logger.info(f'Comets done: {len(comets_results)} visible. Writing partial results...')
+    save_json_file(SKYTONIGHT_RESULTS_FILE, {
+        'metadata': {
+            'calculated_at': datetime.now(timezone.utc).isoformat(),
+            'location_name': location_name,
+            'latitude': lat,
+            'longitude': lon,
+            'elevation': elevation,
+            'timezone': timezone_name,
+            'night_start': night_start.isoformat(),
+            'night_end': night_end.isoformat(),
+            'night_hours': round(night_hours, 2),
+            'moon_phase': round(moon.phase, 4),
+            'counts': {'deep_sky': 0, 'bodies': len(bodies_results), 'comets': len(comets_results)},
+            'constraints': constraints,
+            'in_progress': True,
+        },
+        'deep_sky': [],
+        'bodies': bodies_results,
+        'comets': comets_results,
+    })
+
+    # -----------------------------------------------------------------------
+    # Phase 3: Deep-sky objects — batched AltAz (vectorized over all targets per time step)
+    # -----------------------------------------------------------------------
+    dso_targets_with_coords = [
+        t for t in all_targets
+        if t.category == 'deep_sky' and t.coordinates is not None
+    ]
+    n_dso_batch = len(dso_targets_with_coords)
+    _set_progress('deep_sky', 0, n_dso_batch)
+
+    if n_dso_batch > 0:
+        n_steps = len(times)
+        total_night_min = (night_end - night_start).total_seconds() / 60.0
+        step_minutes = total_night_min / (n_steps - 1) if n_steps > 1 else 0.0
+
+        # Local datetime objects for %H:%M display (rise/set/transit times)
+        times_local = [
+            night_start + timedelta(minutes=i * step_minutes)
+            for i in range(n_steps)
+        ]
+
+        # LST array — computed once for all ~33 steps, replaces 13 000+ × 33 sidereal_time() calls
+        lst_hours_arr = np.array(
+            times.sidereal_time('apparent', longitude=location_obj.lon).hour
         )
 
-        if target.category == 'deep_sky':
-            deep_sky_results.append(result)
-            processed_deep_sky += 1
-            if processed_deep_sky % _DSO_LOG_INTERVAL == 0:
-                logger.info(f'SkyTonight progress: DSO {processed_deep_sky}/{n_deep_sky}')
-            _set_progress('deep_sky', processed_deep_sky, n_deep_sky)
-        elif target.category == 'comets':
-            if processed_comets == 0:
-                _set_progress('comets', 0, n_comets)
-            comets_results.append(result)
-            processed_comets += 1
-            _set_progress('comets', processed_comets, n_comets)
+        # ISO strings computed once — reused for every alttime JSON write
+        times_iso_list: List[str] = [
+            t.strftime('%Y-%m-%dT%H:%M:%S')
+            for t in times.to_datetime(timezone=timezone.utc)
+        ]
+
+        # Build a single SkyCoord array for all DSO targets
+        all_ra_h = np.array([t.coordinates.ra_hours for t in dso_targets_with_coords])
+        all_dec_d = np.array([t.coordinates.dec_degrees for t in dso_targets_with_coords])
+        all_dso_coords = SkyCoord(ra=all_ra_h * u.hourangle, dec=all_dec_d * u.deg, frame='icrs')
+
+        # Batch AltAz: n_steps vectorised calls instead of n_dso_batch individual calls.
+        # Each call transforms all DSO targets at once for one time step.
+        alt_matrix = np.empty((n_dso_batch, n_steps), dtype=np.float32)
+        az_matrix = np.empty((n_dso_batch, n_steps), dtype=np.float32)
+
+        logger.info(
+            f'Computing batch AltAz for {n_dso_batch} DSO targets '
+            f'over {n_steps} time steps...'
+        )
+        _set_progress('deep_sky_altaz', 0, n_steps)
+        for step_i in range(n_steps):
+            frame = AltAz(obstime=times[step_i], location=location_obj)
+            altaz_batch = all_dso_coords.transform_to(frame)
+            alt_matrix[:, step_i] = altaz_batch.alt.deg
+            az_matrix[:, step_i] = altaz_batch.az.deg
+            _set_progress('deep_sky_altaz', step_i + 1, n_steps)
+        logger.info('Batch AltAz computation complete.')
+
+        # Per-target scoring; alttime files written in background threads
+        _set_progress('deep_sky', 0, n_dso_batch)
+        with ThreadPoolExecutor(max_workers=min(4, os.cpu_count() or 2)) as alttime_pool:
+            for idx, target in enumerate(dso_targets_with_coords):
+                result = _compute_target_result(
+                    target=target,
+                    times=times,
+                    altaz_values=alt_matrix[idx],
+                    location=location_obj,
+                    moon=moon,
+                    constraints=constraints,
+                    night_start=night_start,
+                    night_end=night_end,
+                    lat=lat,
+                    lon=lon,
+                    az_values=az_matrix[idx],
+                    lst_hours=lst_hours_arr,
+                    times_local=times_local,
+                )
+                if result is not None:
+                    deep_sky_results.append(result)
+                    alttime_pool.submit(
+                        _save_alttime_json,
+                        target.target_id,
+                        result.get('preferred_name', target.target_id),
+                        times,
+                        alt_matrix[idx],
+                        night_start,
+                        night_end,
+                        constraints,
+                        timezone_name,
+                        times_iso_list,
+                    )
+                processed_deep_sky += 1
+                if processed_deep_sky % _DSO_LOG_INTERVAL == 0:
+                    logger.info(
+                        f'SkyTonight progress: DSO {processed_deep_sky}/{n_dso_batch}'
+                    )
+                _set_progress('deep_sky', processed_deep_sky, n_dso_batch)
 
     # Sort by AstroScore descending
     _set_progress('saving')

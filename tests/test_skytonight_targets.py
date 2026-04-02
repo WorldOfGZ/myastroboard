@@ -33,7 +33,8 @@ def test_choose_preferred_catalogue_name_uses_priority_order():
         'OpenNGC': 'NGC 224',
         'Caldwell': 'C 23',
     })
-    assert name == 'NGC 224'
+    # Messier takes priority over OpenNGC in SKYTONIGHT_PREFERRED_NAME_ORDER
+    assert name == 'M 31'
 
 
 def test_build_lookup_from_targets_registers_catalogues_and_aliases():
