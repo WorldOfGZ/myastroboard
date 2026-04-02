@@ -97,12 +97,21 @@ def _collect_catalogue_names(row: PyOngcRow, caldwell_map: Optional[Dict[str, st
             names['OpenNGC'] = _normalize_identifier(row.ic_names[0])
         names['OpenIC'] = _normalize_identifier(row.ic_names[0])
 
-    caldwell_catalogue = caldwell_map or DEFAULT_CALDWELL_MAP
-    for alias_name in list(names.values()) + [row.name]:
-        caldwell_name = caldwell_catalogue.get(normalize_object_name(alias_name), '')
-        if caldwell_name:
-            names['Caldwell'] = _normalize_identifier(caldwell_name)
+    # First: extract Caldwell identifier directly from PyOngc other_identifiers
+    # (PyOngc returns entries like "C 1", "C 42" in the other_identifiers field)
+    for identifier in row.other_identifiers:
+        if re.match(r'^C \d+$', identifier):
+            names['Caldwell'] = identifier
             break
+
+    # Fallback: use caldwell_map lookup (for custom maps or testing)
+    if 'Caldwell' not in names:
+        caldwell_catalogue = caldwell_map or DEFAULT_CALDWELL_MAP
+        for alias_name in list(names.values()) + [row.name]:
+            caldwell_name = caldwell_catalogue.get(normalize_object_name(alias_name), '')
+            if caldwell_name:
+                names['Caldwell'] = _normalize_identifier(caldwell_name)
+                break
 
     return names
 

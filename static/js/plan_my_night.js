@@ -991,15 +991,15 @@ function renderPlanMyNight(payload) {
             item.appendChild(astroInfo);
         }
 
-        const hasAlttime = entry.catalogue && entry.alttime_file;
+        const hasAlttime = entry.alttime_file;
         if (hasAlttime && typeof showAlttimePopup === 'function') {
             const alttimeButton = document.createElement('button');
             alttimeButton.type = 'button';
             alttimeButton.className = 'btn btn-info btn-sm mt-1';
             alttimeButton.innerHTML = `<i class="bi bi-graph-up-arrow icon-inline" aria-hidden="true"></i>${i18n.t('settings.feature_alttime')}`;
             alttimeButton.addEventListener('click', () => {
-                const alttimePath = `${API_BASE}/api/skytonight/outputs/${encodeURIComponent(entry.catalogue)}/${encodeURIComponent(entry.alttime_file)}`;
-                showAlttimePopup(`${entry.name || entry.target_name || 'Target'} Altitude-Time`, alttimePath);
+                const targetTitle = `${entry.name || entry.target_name || 'Target'} - ${i18n.t('skytonight.altitude_time_title') || 'Altitude vs Time'}`;
+                showAlttimePopup(targetTitle, entry.alttime_file);
             });
             item.appendChild(alttimeButton);
         }

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import math
 import os
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 from zoneinfo import ZoneInfo
@@ -22,14 +23,14 @@ from astropy.time import Time
 
 from astroplan.moon import moon_illumination
 
-from constants import SKYTONIGHT_RESULTS_FILE
+from constants import SKYTONIGHT_OUTPUT_DIR, SKYTONIGHT_RESULTS_FILE
 from logging_config import get_logger
 from repo_config import load_config
 from skytonight_models import SkyTonightTarget
 from skytonight_storage import ensure_skytonight_directories
 from skytonight_targets import load_targets_dataset
 from sun_phases import SunService
-from utils import load_json_file, save_json_file
+from utils import ensure_directory_exists, load_json_file, save_json_file
 
 
 logger = get_logger(__name__)
@@ -42,6 +43,68 @@ _MIN_STEPS = 2
 
 # Log a progress line every N deep-sky targets
 _DSO_LOG_INTERVAL = 500
+
+# Regex pattern for valid alttime target IDs used in file names
+_ALTTIME_ID_SAFE = re.compile(r'[^a-z0-9_-]')
+
+
+def _alttime_json_path(target_id: str) -> str:
+    """Return the full path for a target's altitude-time JSON file."""
+    safe_id = _ALTTIME_ID_SAFE.sub('_', target_id.lower())
+    return os.path.join(SKYTONIGHT_OUTPUT_DIR, f'{safe_id}_alttime.json')
+
+
+def _save_alttime_json(
+    target_id: str,
+    name: str,
+    times: Any,
+    altitudes: np.ndarray,
+    night_start: datetime,
+    night_end: datetime,
+    constraints: Dict[str, Any],
+) -> bool:
+    """Persist altitude-time series for one target to the outputs directory.
+
+    The JSON is consumed by the frontend Chart.js graph rendered on demand
+    when the user opens the altitude-vs-time popup for a specific target.
+    Only targets that pass visibility constraints are saved; the presence of
+    the file is used by the API to indicate that a graph is available.
+    """
+    try:
+        ensure_directory_exists(SKYTONIGHT_OUTPUT_DIR)
+        times_iso = [
+            t.strftime('%Y-%m-%dT%H:%M:%S')  # type: ignore[attr-defined]
+            for t in times.to_datetime(timezone=timezone.utc)
+        ]
+        payload: Dict[str, Any] = {
+            'target_id': target_id,
+            'name': name,
+            'night_start': night_start.isoformat(),
+            'night_end': night_end.isoformat(),
+            'times_utc': times_iso,
+            'altitudes': [round(float(a), 2) for a in altitudes],
+            'altitude_constraint_min': float(constraints.get('altitude_constraint_min', 30)),
+            'altitude_constraint_max': float(constraints.get('altitude_constraint_max', 80)),
+        }
+        path = _alttime_json_path(target_id)
+        return save_json_file(path, payload)
+    except Exception as exc:
+        logger.debug(f'Failed to save alttime JSON for {target_id}: {exc}')
+        return False
+
+
+def _clear_alttime_files() -> None:
+    """Remove all altitude-time JSON files produced by the previous calculation run."""
+    try:
+        ensure_directory_exists(SKYTONIGHT_OUTPUT_DIR)
+        for filename in os.listdir(SKYTONIGHT_OUTPUT_DIR):
+            if filename.endswith('_alttime.json'):
+                try:
+                    os.remove(os.path.join(SKYTONIGHT_OUTPUT_DIR, filename))
+                except Exception:
+                    pass
+    except Exception as exc:
+        logger.debug(f'Failed to clear alttime files: {exc}')
 
 # ---------------------------------------------------------------------------
 # Module-level calculation progress — updated in-place during run_calculations
@@ -556,8 +619,12 @@ def _compute_body_result(
     night_end: datetime,
     lat: float,
     lon: float,
-) -> Optional[Dict[str, Any]]:
+) -> Tuple[Optional[Dict[str, Any]], Optional[np.ndarray]]:
     """Compute visibility for a solar system body using live ephemeris positions.
+
+    Returns a tuple of (result_dict, alt_deg_array).  Both elements are None
+    when the body is not observable tonight.  The alt_deg array is used by the
+    caller to persist the altitude-time graph JSON for the frontend chart.
 
     Bodies do not have static coordinates — their positions are calculated from
     astropy's built-in ephemeris at each time step.  Constraints are relaxed
@@ -571,14 +638,14 @@ def _compute_body_result(
         )
     except Exception as exc:
         logger.debug(f'Body AltAz computation failed for {body_name}: {exc}')
-        return None
+        return None, None
 
     alt_min = float(constraints.get('altitude_constraint_min', 30))
     # Don't apply alt_max clamp for bodies — planets can reach high altitudes
     night_hours = (night_end - night_start).total_seconds() / 3600.0
     total_steps = len(alt_deg)
     if total_steps < _MIN_STEPS:
-        return None
+        return None, None
 
     in_window_mask = (alt_deg >= alt_min)
     observable_steps = int(np.sum(in_window_mask))
@@ -586,11 +653,11 @@ def _compute_body_result(
 
     # Bodies only need to be up for at least 10% of the night
     if observable_fraction < 0.1:
-        return None
+        return None, None
 
     max_altitude = float(np.max(alt_deg))
     if max_altitude < alt_min:
-        return None
+        return None, None
 
     peak_idx = int(np.argmax(alt_deg))
     meridian_altitude = float(alt_deg[peak_idx])
@@ -657,7 +724,7 @@ def _compute_body_result(
         'moon_angular_distance': round(angular_distance_moon, 1) if angular_distance_moon is not None else None,
         'source_catalogues': target.source_catalogues,
         'metadata': target.metadata,
-    }
+    }, alt_deg
 
 
 def _hours_to_hms(hours: float) -> str:
@@ -796,12 +863,16 @@ def run_calculations(
     processed_comets = 0
     _set_progress('deep_sky', 0, n_deep_sky)
 
+    # Clear altitude-time JSON files from the previous calculation run so stale
+    # files are never served after a recalculation for a different night.
+    _clear_alttime_files()
+
     for target in all_targets:
         if target.category == 'bodies':
             if processed_bodies == 0:
                 _set_progress('bodies', 0, n_bodies)
             # Bodies (planets, Moon) have no static coordinates — use live ephemeris
-            result = _compute_body_result(
+            body_result, body_alt_deg = _compute_body_result(
                 target=target,
                 times=times,
                 location=location_obj,
@@ -812,8 +883,18 @@ def run_calculations(
                 lat=lat,
                 lon=lon,
             )
-            if result is not None:
-                bodies_results.append(result)
+            if body_result is not None:
+                bodies_results.append(body_result)
+                if body_alt_deg is not None:
+                    _save_alttime_json(
+                        target_id=target.target_id,
+                        name=body_result.get('preferred_name', target.target_id),
+                        times=times,
+                        altitudes=body_alt_deg,
+                        night_start=night_start,
+                        night_end=night_end,
+                        constraints=constraints,
+                    )
             processed_bodies += 1
             _set_progress('bodies', processed_bodies, n_bodies)
             continue
@@ -846,6 +927,17 @@ def run_calculations(
         )
         if result is None:
             continue
+
+        # Target is visible — persist altitude-time JSON for the frontend graph
+        _save_alttime_json(
+            target_id=target.target_id,
+            name=result.get('preferred_name', target.target_id),
+            times=times,
+            altitudes=altaz_values,
+            night_start=night_start,
+            night_end=night_end,
+            constraints=constraints,
+        )
 
         if target.category == 'deep_sky':
             deep_sky_results.append(result)

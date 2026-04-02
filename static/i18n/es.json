@@ -698,7 +698,14 @@
     "type_s": "*'S",
     "type_star": "Estrella",
     "type_star_cloud": "Nube de estrellas",
-    "type_variable_nebula": "Nebulosa variable"
+    "type_variable_nebula": "Nebulosa variable",
+    "altitude_time_title": "Altitud vs Tiempo",
+    "altitude_time_load_error": "Error al cargar los datos de altitud/tiempo",
+    "altitude_time_night_window": "Noche astronómica",
+    "altitude_time_observable_zone": "Zona observable",
+    "altitude_time_altitude_label": "Altitud (°)",
+    "altitude_time_x_axis": "Hora (UTC)",
+    "altitude_time_y_axis": "Altitud (°)"
   },
 
   "plan_my_night": {
