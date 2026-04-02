@@ -98,8 +98,11 @@ function updateFolderMetrics(folders, rootTotalBytes = null) {
         'data/cache': 'cache',
         'data/astrodex': 'astrodex',
         'data/equipments': 'equipments',
-        'skytonight_configs': 'configs',
-        'skytonight_outputs': 'outputs'
+        'data/skytonight': 'skytonight',
+        'data/skytonight/catalogues': 'skytonight-catalogues',
+        'data/skytonight/outputs': 'skytonight-outputs',
+        'data/skytonight/configs': 'skytonight-configs',
+        'data/skytonight/logs': 'skytonight-logs',
     };
     
     for (const [folderPath, folderKey] of Object.entries(folderMap)) {

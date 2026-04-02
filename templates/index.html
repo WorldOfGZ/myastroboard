@@ -1347,24 +1347,81 @@
                         </div>
                         <div class="col-md-6">
                             <div class="card h-100">
-                                <div class="card-header" data-i18n="metrics.config_outputs">Config & Outputs</div>
+                                <div class="card-header" data-i18n="metrics.config_outputs">SkyTonight</div>
                                 <div class="card-body">
                                     <div class="disk-usage-item mb-3">
                                         <div class="disk-usage-head">
                                             <div class="disk-usage-path">
                                                 <i class="bi bi-hdd-stack text-muted" aria-hidden="true"></i>
-                                                <span class="font-monospace">skytonight/configs/</span>
+                                                <span class="font-monospace">data/skytonight/</span>
                                             </div>
                                             <div class="disk-usage-values font-monospace">
-                                                <span id="folder-configs-size" class="fw-semibold">-</span>
-                                                <span class="text-muted"> / <span id="folder-configs-total">-</span></span>
+                                                <span id="folder-skytonight-size" class="fw-semibold">-</span>
+                                                <span class="text-muted"> / <span id="folder-skytonight-total">-</span></span>
                                             </div>
                                         </div>
                                         <div class="progress disk-usage-progress">
-                                            <div id="folder-configs-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                            <div id="folder-skytonight-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
                                         <div class="disk-usage-meta font-monospace">
-                                            <span id="folder-configs-percent">0%</span>
+                                            <span id="folder-skytonight-percent">0%</span>
+                                            <span data-i18n="metrics.of_root">of root</span>
+                                        </div>
+                                    </div>
+                                    <div class="disk-usage-item mb-3">
+                                        <div class="disk-usage-head">
+                                            <div class="disk-usage-path">
+                                                <i class="bi bi-hdd-stack text-muted" aria-hidden="true"></i>
+                                                <span class="font-monospace">data/skytonight/catalogues/</span>
+                                            </div>
+                                            <div class="disk-usage-values font-monospace">
+                                                <span id="folder-skytonight-catalogues-size" class="fw-semibold">-</span>
+                                                <span class="text-muted"> / <span id="folder-skytonight-catalogues-total">-</span></span>
+                                            </div>
+                                        </div>
+                                        <div class="progress disk-usage-progress">
+                                            <div id="folder-skytonight-catalogues-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <div class="disk-usage-meta font-monospace">
+                                            <span id="folder-skytonight-catalogues-percent">0%</span>
+                                            <span data-i18n="metrics.of_root">of root</span>
+                                        </div>
+                                    </div>
+                                    <div class="disk-usage-item mb-3">
+                                        <div class="disk-usage-head">
+                                            <div class="disk-usage-path">
+                                                <i class="bi bi-hdd-stack text-muted" aria-hidden="true"></i>
+                                                <span class="font-monospace">data/skytonight/outputs/</span>
+                                            </div>
+                                            <div class="disk-usage-values font-monospace">
+                                                <span id="folder-skytonight-outputs-size" class="fw-semibold">-</span>
+                                                <span class="text-muted"> / <span id="folder-skytonight-outputs-total">-</span></span>
+                                            </div>
+                                        </div>
+                                        <div class="progress disk-usage-progress">
+                                            <div id="folder-skytonight-outputs-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <div class="disk-usage-meta font-monospace">
+                                            <span id="folder-skytonight-outputs-percent">0%</span>
+                                            <span data-i18n="metrics.of_root">of root</span>
+                                        </div>
+                                    </div>
+                                    <div class="disk-usage-item mb-3">
+                                        <div class="disk-usage-head">
+                                            <div class="disk-usage-path">
+                                                <i class="bi bi-hdd-stack text-muted" aria-hidden="true"></i>
+                                                <span class="font-monospace">data/skytonight/configs/</span>
+                                            </div>
+                                            <div class="disk-usage-values font-monospace">
+                                                <span id="folder-skytonight-configs-size" class="fw-semibold">-</span>
+                                                <span class="text-muted"> / <span id="folder-skytonight-configs-total">-</span></span>
+                                            </div>
+                                        </div>
+                                        <div class="progress disk-usage-progress">
+                                            <div id="folder-skytonight-configs-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <div class="disk-usage-meta font-monospace">
+                                            <span id="folder-skytonight-configs-percent">0%</span>
                                             <span data-i18n="metrics.of_root">of root</span>
                                         </div>
                                     </div>
@@ -1372,18 +1429,18 @@
                                         <div class="disk-usage-head">
                                             <div class="disk-usage-path">
                                                 <i class="bi bi-hdd-stack text-muted" aria-hidden="true"></i>
-                                                <span class="font-monospace">skytonight/outputs/</span>
+                                                <span class="font-monospace">data/skytonight/logs/</span>
                                             </div>
                                             <div class="disk-usage-values font-monospace">
-                                                <span id="folder-outputs-size" class="fw-semibold">-</span>
-                                                <span class="text-muted"> / <span id="folder-outputs-total">-</span></span>
+                                                <span id="folder-skytonight-logs-size" class="fw-semibold">-</span>
+                                                <span class="text-muted"> / <span id="folder-skytonight-logs-total">-</span></span>
                                             </div>
                                         </div>
                                         <div class="progress disk-usage-progress">
-                                            <div id="folder-outputs-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                            <div id="folder-skytonight-logs-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
                                         <div class="disk-usage-meta font-monospace">
-                                            <span id="folder-outputs-percent">0%</span>
+                                            <span id="folder-skytonight-logs-percent">0%</span>
                                             <span data-i18n="metrics.of_root">of root</span>
                                         </div>
                                     </div>
