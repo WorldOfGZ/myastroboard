@@ -139,6 +139,7 @@ class SkyTonightScheduler:
         self.current_reason = ''
         self._execution_lock = threading.Lock()
         self._scheduler_started = False
+        self.last_execution_duration_seconds: Optional[int] = None
         # Optional event set by CacheScheduler after first successful update.
         # When present, the first automatic run is delayed until caches are warm.
         self._cache_ready_event: Optional[threading.Event] = cache_ready_event
@@ -284,6 +285,10 @@ class SkyTonightScheduler:
                 append_scheduler_log(f'[{failure_time.isoformat()}] SkyTonight run failed: {error}\n')
                 logger.error(f'SkyTonight execution cycle failed: {error}')
             finally:
+                if self.execution_start_time:
+                    self.last_execution_duration_seconds = int(
+                        (datetime.now().astimezone() - self.execution_start_time).total_seconds()
+                    )
                 self.is_executing = False
                 self.execution_start_time = None
                 self._write_status()
@@ -330,6 +335,7 @@ class SkyTonightScheduler:
             'last_result': self.last_result,
             'progress': {
                 'execution_duration_seconds': execution_duration_seconds,
+                'last_execution_duration_seconds': self.last_execution_duration_seconds,
                 **calc_progress,
             },
         }
