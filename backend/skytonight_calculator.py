@@ -62,6 +62,7 @@ def _save_alttime_json(
     night_start: datetime,
     night_end: datetime,
     constraints: Dict[str, Any],
+    timezone_name: str = 'UTC',
 ) -> bool:
     """Persist altitude-time series for one target to the outputs directory.
 
@@ -79,6 +80,7 @@ def _save_alttime_json(
         payload: Dict[str, Any] = {
             'target_id': target_id,
             'name': name,
+            'timezone': timezone_name,
             'night_start': night_start.isoformat(),
             'night_end': night_end.isoformat(),
             'times_utc': times_iso,
@@ -481,6 +483,15 @@ def _compute_target_result(
     size_max = float(constraints.get('size_constraint_max', 300))
     frac_threshold = float(constraints.get('fraction_of_time_observable_threshold', 0.5))
     moon_use_illum = bool(constraints.get('moon_separation_use_illumination', True))
+    north_to_east_ccw = bool(constraints.get('north_to_east_ccw', False))
+
+    # Derive the effective altitude floor from the airmass constraint:
+    # airmass = 1 / sin(altitude)  =>  altitude = arcsin(1 / airmass)
+    # Use the stricter of the two limits.
+    airmass_constr = float(constraints.get('airmass_constraint', 2.0))
+    if airmass_constr >= 1.0:
+        alt_from_airmass = math.degrees(math.asin(min(1.0, 1.0 / airmass_constr)))
+        alt_min = max(alt_min, alt_from_airmass)
 
     # --- Size filter for DSOs ---
     if target.category == 'deep_sky' and target.size_arcmin is not None:
@@ -495,11 +506,14 @@ def _compute_target_result(
             moon.ra_deg,
             moon.dec_deg,
         )
-        # When moon_separation_use_illumination is enabled, relax the minimum
-        # separation proportionally for a dimmer moon.
+        # When moon_separation_use_illumination is enabled, the minimum
+        # separation (in degrees) equals the moon illumination percentage:
+        #   1% illumination = 1° minimum separation (overrides moon_sep_min).
+        # At new moon (phase≈0) any target is accepted; at full moon (phase=1)
+        # the threshold is 100°, providing a strong natural filter.
         effective_min_sep = moon_sep_min
         if moon_use_illum:
-            effective_min_sep = moon_sep_min * moon.phase
+            effective_min_sep = moon.phase * 100.0
         if ang_sep < effective_min_sep:
             return None
         angular_distance_moon: Optional[float] = ang_sep
@@ -534,7 +548,10 @@ def _compute_target_result(
         coord = SkyCoord(ra=ra_hours * u.hourangle, dec=dec_degrees * u.deg, frame='icrs')
         frame = AltAz(obstime=peak_time, location=location)
         peak_altaz = coord.transform_to(frame)
-        peak_az_deg = round(float(peak_altaz.az.deg[0]), 1)  # type: ignore[index]
+        az_cw = float(peak_altaz.az.deg[0])  # type: ignore[index]
+        # north_to_east_ccw: azimuth increases CCW (N top, E left)
+        # Standard astropy/altaz az increases CW (N top, E right)
+        peak_az_deg = round((360.0 - az_cw) % 360.0 if north_to_east_ccw else az_cw, 1)
     except Exception:
         pass
 
@@ -641,6 +658,15 @@ def _compute_body_result(
         return None, None
 
     alt_min = float(constraints.get('altitude_constraint_min', 30))
+    north_to_east_ccw = bool(constraints.get('north_to_east_ccw', False))
+    frac_threshold = float(constraints.get('fraction_of_time_observable_threshold', 0.5))
+
+    # Derive effective altitude floor from airmass constraint (stricter wins).
+    airmass_constr = float(constraints.get('airmass_constraint', 2.0))
+    if airmass_constr >= 1.0:
+        alt_from_airmass = math.degrees(math.asin(min(1.0, 1.0 / airmass_constr)))
+        alt_min = max(alt_min, alt_from_airmass)
+
     # Don't apply alt_max clamp for bodies — planets can reach high altitudes
     night_hours = (night_end - night_start).total_seconds() / 3600.0
     total_steps = len(alt_deg)
@@ -651,8 +677,7 @@ def _compute_body_result(
     observable_steps = int(np.sum(in_window_mask))
     observable_fraction = observable_steps / total_steps
 
-    # Bodies only need to be up for at least 10% of the night
-    if observable_fraction < 0.1:
+    if observable_fraction < frac_threshold:
         return None, None
 
     max_altitude = float(np.max(alt_deg))
@@ -661,7 +686,8 @@ def _compute_body_result(
 
     peak_idx = int(np.argmax(alt_deg))
     meridian_altitude = float(alt_deg[peak_idx])
-    peak_az_deg = round(float(az_deg[peak_idx]), 1)
+    az_cw = float(az_deg[peak_idx])
+    peak_az_deg = round((360.0 - az_cw) % 360.0 if north_to_east_ccw else az_cw, 1)
 
     observable_hours = night_hours * observable_fraction
 
@@ -894,6 +920,7 @@ def run_calculations(
                         night_start=night_start,
                         night_end=night_end,
                         constraints=constraints,
+                        timezone_name=timezone_name,
                     )
             processed_bodies += 1
             _set_progress('bodies', processed_bodies, n_bodies)
@@ -937,6 +964,7 @@ def run_calculations(
             night_start=night_start,
             night_end=night_end,
             constraints=constraints,
+            timezone_name=timezone_name,
         )
 
         if target.category == 'deep_sky':
