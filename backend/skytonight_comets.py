@@ -94,11 +94,12 @@ def _comet_ra_dec(
     peri_year: int, peri_month: int, peri_day: float,
     obs_time: datetime,
     earth_helio: Tuple[float, float, float],
-) -> Tuple[Optional[float], Optional[float]]:
-    """Compute geocentric RA (hours) and Dec (degrees) for a comet.
+) -> Tuple[Optional[float], Optional[float], Optional[float], Optional[float]]:
+    """Compute geocentric RA (hours), Dec (degrees), heliocentric distance (AU),
+    and geocentric distance (AU) for a comet.
 
-    Uses Keplerian two-body propagation.  Returns (None, None) on any
-    computational failure.
+    Uses Keplerian two-body propagation.  Returns (None, None, None, None) on
+    any computational failure.
     """
     try:
         omega = math.radians(omega_deg)
@@ -142,7 +143,7 @@ def _comet_ra_dec(
             F = _solve_kepler_hyperbolic(N_h, e)
             r = a * (e * math.cosh(F) - 1.0)
             if r <= 0:
-                return None, None
+                return None, None, None, None
             th = math.sqrt((e + 1.0) / (e - 1.0)) * math.tanh(F / 2.0)
             f = 2.0 * math.atan(th)
 
@@ -168,16 +169,16 @@ def _comet_ra_dec(
         gz = z_h - earth_helio[2]
         g_dist = math.sqrt(gx * gx + gy * gy + gz * gz)
         if g_dist < 1e-12:
-            return None, None
+            return None, None, None, None
 
         ra_rad = math.atan2(gy, gx)
         if ra_rad < 0:
             ra_rad += 2.0 * math.pi
         dec_rad = math.asin(max(-1.0, min(1.0, gz / g_dist)))
 
-        return math.degrees(ra_rad) / 15.0, math.degrees(dec_rad)
+        return math.degrees(ra_rad) / 15.0, math.degrees(dec_rad), round(r, 4), round(g_dist, 4)
     except (ValueError, ZeroDivisionError, OverflowError):
-        return None, None
+        return None, None, None, None
 
 
 def _parse_comets_txt_line(line: str) -> Optional[Dict[str, Any]]:
@@ -257,7 +258,8 @@ def _to_comet_target(row: Dict[str, Any], source: str) -> Optional[SkyTonightTar
         'source': source,
         'updated_at': datetime.now(timezone.utc).isoformat(),
     }
-    for key in ('perihelion_date', 'orbit_class', 'epoch', 'uncertainty'):
+    for key in ('perihelion_date', 'orbit_class', 'epoch', 'uncertainty',
+                 'distance_sun_au', 'distance_earth_au', 'absolute_magnitude'):
         if row.get(key) not in (None, ''):
             metadata[key] = row.get(key)
 
@@ -316,7 +318,7 @@ def fetch_mpc_comets(timeout_seconds: int = 20) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
     computed = 0
     for raw in raw_rows:
-        ra_h, dec_d = _comet_ra_dec(
+        ra_h, dec_d, dist_sun, dist_earth = _comet_ra_dec(
             raw['q'], raw['e'], raw['omega'], raw['Omega'], raw['inclination'],
             raw['perihelion_year'], raw['perihelion_month'], raw['perihelion_day'],
             obs_time, earth_helio,
@@ -324,6 +326,8 @@ def fetch_mpc_comets(timeout_seconds: int = 20) -> List[Dict[str, Any]]:
         row = dict(raw)
         row['ra_hours'] = ra_h
         row['dec_degrees'] = dec_d
+        row['distance_sun_au'] = dist_sun
+        row['distance_earth_au'] = dist_earth
         row['perihelion_date'] = (
             f"{raw['perihelion_year']:04d}-"
             f"{raw['perihelion_month']:02d}-"
