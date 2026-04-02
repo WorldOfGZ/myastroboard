@@ -1191,17 +1191,18 @@ async function showAlttimePopup(title, targetId) {
     if (!bodyElement) return;
     DOMUtils.clear(bodyElement);
 
-    // Build time labels (local display from UTC ISO strings)
-    const times = (data.times_utc || []).map(t => {
-        const d = new Date(t + 'Z');
-        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    });
+    // Format times in the observatory's configured timezone, not the browser's.
+    const obsTz = data.timezone || 'UTC';
+    const tzFmt = new Intl.DateTimeFormat([], { hour: '2-digit', minute: '2-digit', timeZone: obsTz, hour12: false });
+
+    // Build time labels from UTC ISO strings, displayed in observatory timezone.
+    const times = (data.times_utc || []).map(t => tzFmt.format(new Date(t + 'Z')));
     const altitudes = data.altitudes || [];
     const altMin = data.altitude_constraint_min ?? 30;
     const altMax = data.altitude_constraint_max ?? 80;
 
-    const nightStart = data.night_start ? new Date(data.night_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-    const nightEnd   = data.night_end   ? new Date(data.night_end  ).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+    const nightStart = data.night_start ? tzFmt.format(new Date(data.night_start)) : '';
+    const nightEnd   = data.night_end   ? tzFmt.format(new Date(data.night_end))   : '';
 
     // -----------------------------------------------------------------------
     // Build card shell matching the weather-chart style (createChartShell)
