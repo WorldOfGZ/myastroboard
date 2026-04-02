@@ -47,7 +47,9 @@ def test_build_targets_from_rows_prefers_openngc_and_deduplicates():
     assert len(targets) == 1
     target = targets[0]
     assert target.target_id == 'dso-openngc-ngc224'
-    assert target.preferred_name == 'NGC 224'
+    # CommonName takes priority in SKYTONIGHT_PREFERRED_NAME_ORDER
+    assert target.preferred_name == 'Andromeda Galaxy'
+    assert target.catalogue_names['CommonName'] == 'Andromeda Galaxy'
     assert target.catalogue_names['Messier'] == 'M 31'
     assert target.catalogue_names['OpenNGC'] == 'NGC 224'
     assert 'Andromeda Galaxy' in target.aliases
