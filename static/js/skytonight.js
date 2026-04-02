@@ -674,11 +674,9 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                     // Use ID if available, otherwise use target name for generating alttime filename
                     const alttimeSource = row['id'] || row['target name'];
                     if (alttimeSource && row['alttime_file'] != '') {
-                        //console.log('Generating alttime path for:', row['alttime_file']);
-
-                        const alttimePath = `${API_BASE}/api/skytonight/outputs/${encodeURIComponent(catalogue)}/${encodeURIComponent(row['alttime_file'])}`;
+                        const alttimeTargetId = encodeURIComponent(row['alttime_file']);
                         html += `
-                        <td style="text-align: ${col.align}" class="alttime-check" data-path="${alttimePath}" data-title="${escapeHtml(alttimeSource)} Altitude-Time">
+                        <td style="text-align: ${col.align}" class="alttime-check" data-alttime-id="${escapeHtml(row['alttime_file'])}" data-title="${escapeHtml(alttimeSource)} - ${escapeHtml(tSkyTonightCompat('altitude_time_title'))}">
                             <a href="#" class="link-underline link-underline-opacity-0 alttime-popup-link">${displayValue}</a>
                         </td>`;
                     } else {
@@ -865,11 +863,11 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                     return;
                 }
                 const title = parentCell.getAttribute('data-title') || 'Target Altitude-Time';
-                const path = parentCell.getAttribute('data-path') || '';
-                if (!path) {
+                const targetId = parentCell.getAttribute('data-alttime-id') || '';
+                if (!targetId) {
                     return;
                 }
-                showAlttimePopup(title, path);
+                showAlttimePopup(title, targetId);
             });
         });
         
@@ -1126,45 +1124,230 @@ function showPlotPopup(title, src) {
     modal.show();
 }
 
-function showAlttimePopup(title, src) {
-    // Modal modal_xl_close
+// Altitude-time Chart.js instance — stored so it can be destroyed when the modal closes.
+let _alttimeChartInstance = null;
+
+function _destroyAlttimeChart() {
+    if (_alttimeChartInstance) {
+        _alttimeChartInstance.destroy();
+        _alttimeChartInstance = null;
+    }
+}
+
+/**
+ * Show altitude vs time chart for a target in a modal popup.
+ * Fetches JSON from /api/skytonight/alttime/<targetId>, renders a Chart.js line
+ * chart inside a card shell matching the weather-chart style, and destroys the
+ * chart instance when the modal is closed.
+ *
+ * @param {string} title    - Modal title (target name)
+ * @param {string} targetId - SkyTonight target_id used to build the API URL
+ */
+async function showAlttimePopup(title, targetId) {
     const modalElement = document.getElementById('modal_xl_close');
     if (!modalElement) {
-        console.error('Modal element not found');
+        console.error('Alttime modal element not found');
         return;
     }
-    
+
+    const titleElement = document.getElementById('modal_xl_close_title');
+    const bodyElement = document.getElementById('modal_xl_close_body');
+    if (titleElement) titleElement.textContent = title;
+    if (bodyElement) {
+        DOMUtils.clear(bodyElement);
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'text-center p-3';
+        loadingDiv.textContent = i18n.t('common.loading');
+        bodyElement.appendChild(loadingDiv);
+    }
+
     const modal = new bootstrap.Modal(modalElement);
 
-    // Prepare modal content
-    const titleElement = document.getElementById('modal_xl_close_title');
-    if (titleElement) {
-        titleElement.textContent = title;
-    }
-    
-    const bodyElement = document.getElementById('modal_xl_close_body');
-    if (bodyElement) {
-        // Clear existing content safely
-        DOMUtils.clear(bodyElement);
+    // Destroy chart when modal is fully hidden to free canvas resources
+    const onHidden = () => {
+        _destroyAlttimeChart();
+        modalElement.removeEventListener('hidden.bs.modal', onHidden);
+    };
+    modalElement.addEventListener('hidden.bs.modal', onHidden);
 
-        const safeSrc = sanitizeImageSource(src);
-        if (!safeSrc) {
-            console.error('Invalid image source');
-            return;
-        }
-
-        const img = document.createElement('img');
-        img.id = 'image-display';
-        img.src = safeSrc;
-        img.alt = 'Altitude-Time Plot';
-        img.title = title;            // safe
-        img.className = 'img-fluid rounded';
-
-        bodyElement.appendChild(img);
-    }
-
-    // Show the modal
     modal.show();
+
+    let data;
+    try {
+        data = await fetchJSON(`${API_BASE}/api/skytonight/alttime/${encodeURIComponent(targetId)}`);
+        if (data && data.error) throw new Error(data.error);
+    } catch (err) {
+        console.error('Failed to load alttime data:', err);
+        if (bodyElement) {
+            DOMUtils.clear(bodyElement);
+            const errDiv = document.createElement('div');
+            errDiv.className = 'alert alert-danger';
+            errDiv.textContent = tSkyTonightCompat('altitude_time_load_error');
+            bodyElement.appendChild(errDiv);
+        }
+        return;
+    }
+
+    if (!bodyElement) return;
+    DOMUtils.clear(bodyElement);
+
+    // Build time labels (local display from UTC ISO strings)
+    const times = (data.times_utc || []).map(t => {
+        const d = new Date(t + 'Z');
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    });
+    const altitudes = data.altitudes || [];
+    const altMin = data.altitude_constraint_min ?? 30;
+    const altMax = data.altitude_constraint_max ?? 80;
+
+    const nightStart = data.night_start ? new Date(data.night_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+    const nightEnd   = data.night_end   ? new Date(data.night_end  ).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+    // -----------------------------------------------------------------------
+    // Build card shell matching the weather-chart style (createChartShell)
+    // -----------------------------------------------------------------------
+    const card = document.createElement('div');
+    card.className = 'card h-100';
+
+    // Card header
+    const cardHeader = document.createElement('div');
+    cardHeader.className = 'card-header';
+    const cardTitle = document.createElement('h5');
+    cardTitle.className = 'mb-0';
+    cardTitle.innerHTML = `<i class="bi bi-graph-up-arrow icon-inline text-primary" aria-hidden="true"></i>${escapeHtml(title)}`;
+    cardHeader.appendChild(cardTitle);
+
+    // Card body — canvas fills the full width, explicit height like weather charts
+    const cardBody = document.createElement('div');
+    cardBody.className = 'card-body';
+    const canvas = document.createElement('canvas');
+    canvas.id = 'alttime-chart-canvas';
+    canvas.style.width = '100%';
+    canvas.style.height = '300px';
+    cardBody.appendChild(canvas);
+
+    // Card footer — legend badges + night window info
+    const cardFooter = document.createElement('div');
+    cardFooter.className = 'card-footer text-muted small';
+    const footerRow = document.createElement('div');
+    footerRow.className = 'row align-items-center';
+
+    const legendDefs = [
+        { color: 'rgba(13, 110, 253, 0.9)',   label: tSkyTonightCompat('altitude_time_altitude_label') || 'Altitude (°)' },
+        { color: 'rgba(40, 167, 69, 0.45)',    label: tSkyTonightCompat('altitude_time_observable_zone') },
+    ];
+    legendDefs.forEach(item => {
+        const col = document.createElement('div');
+        col.className = 'col-auto';
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.style.backgroundColor = item.color;
+        badge.textContent = item.label;
+        col.appendChild(badge);
+        footerRow.appendChild(col);
+    });
+
+    // Night window text
+    if (nightStart && nightEnd) {
+        const col = document.createElement('div');
+        col.className = 'col-auto ms-auto';
+        const span = document.createElement('span');
+        span.className = 'text-muted';
+        span.textContent = `${tSkyTonightCompat('altitude_time_night_window')}: ${nightStart} – ${nightEnd}`;
+        col.appendChild(span);
+        footerRow.appendChild(col);
+    }
+
+    cardFooter.appendChild(footerRow);
+    card.appendChild(cardHeader);
+    card.appendChild(cardBody);
+    card.appendChild(cardFooter);
+    bodyElement.appendChild(card);
+
+    // -----------------------------------------------------------------------
+    // Render chart
+    // -----------------------------------------------------------------------
+    _destroyAlttimeChart();
+
+    const constraintBand  = altitudes.map(() => altMax);
+    const constraintFloor = altitudes.map(() => altMin);
+
+    const ctx2d = canvas.getContext('2d');
+    _alttimeChartInstance = new Chart(ctx2d, {
+        type: 'line',
+        data: {
+            labels: times,
+            datasets: [
+                {
+                    // Top of observable zone (filled down to floor dataset)
+                    label: tSkyTonightCompat('altitude_time_observable_zone'),
+                    data: constraintBand,
+                    fill: '-1',
+                    backgroundColor: 'rgba(40, 167, 69, 0.10)',
+                    borderColor: 'rgba(40, 167, 69, 0.35)',
+                    borderWidth: 1,
+                    borderDash: [4, 4],
+                    pointRadius: 0,
+                    tension: 0,
+                    order: 3,
+                },
+                {
+                    // Bottom of observable zone
+                    label: `${altMin}° (min)`,
+                    data: constraintFloor,
+                    fill: false,
+                    borderColor: 'rgba(40, 167, 69, 0.35)',
+                    borderWidth: 1,
+                    borderDash: [4, 4],
+                    pointRadius: 0,
+                    tension: 0,
+                    order: 3,
+                },
+                {
+                    label: tSkyTonightCompat('altitude_time_altitude_label') || 'Altitude (°)',
+                    data: altitudes,
+                    fill: false,
+                    borderColor: 'rgba(13, 110, 253, 0.9)',
+                    backgroundColor: 'rgba(13, 110, 253, 0.15)',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    tension: 0.4,
+                    order: 1,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            resizeDelay: 200,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label: ctx => {
+                            const label = ctx.dataset.label || '';
+                            return `${label}: ${Number(ctx.raw).toFixed(1)}°`;
+                        },
+                    },
+                },
+            },
+            scales: {
+                x: {
+                    ticks: { maxTicksLimit: 12, maxRotation: 0 },
+                    title: { display: true, text: tSkyTonightCompat('altitude_time_x_axis') || 'Time (UTC)' },
+                },
+                y: {
+                    min: 0,
+                    max: 90,
+                    ticks: { stepSize: 15 },
+                    title: { display: true, text: tSkyTonightCompat('altitude_time_y_axis') || 'Altitude (°)' },
+                },
+            },
+        },
+    });
 }
 
 function showMorePopup(popupId) {

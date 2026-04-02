@@ -1183,7 +1183,7 @@ def _build_skytonight_reports_payload(catalogue: Optional[str], user_id: str, us
                 'meridian transit': observation.get('meridian_transit'),
                 'antimeridian transit': observation.get('antimeridian_transit'),
                 'catalogue_names': calc_catalogue_names,
-                'alttime_file': '',
+                'alttime_file': calc_item.get('target_id', '') if os.path.isfile(_alttime_json_path(calc_item.get('target_id', ''))) else '',
                 'source_type': 'calculated',
                 'plan_state': plan_state,
             }
@@ -1210,7 +1210,7 @@ def _build_skytonight_reports_payload(catalogue: Optional[str], user_id: str, us
                 'declination': dec_dms,
                 'hmsdms': f"{ra_hms} / {dec_dms}" if ra_hms and dec_dms else None,
                 'observable_hours': observation.get('observable_hours'),
-                'alttime_file': '',
+                'alttime_file': calc_item.get('target_id', '') if os.path.isfile(_alttime_json_path(calc_item.get('target_id', ''))) else '',
                 'source_type': 'calculated',
                 'plan_state': plan_state,
             }
@@ -1243,7 +1243,7 @@ def _build_skytonight_reports_payload(catalogue: Optional[str], user_id: str, us
                 'declination': dec_dms,
                 'hmsdms': f"{ra_hms} / {dec_dms}" if ra_hms and dec_dms else None,
                 'observable_hours': observation.get('observable_hours'),
-                'alttime_file': '',
+                'alttime_file': calc_item.get('target_id', '') if os.path.isfile(_alttime_json_path(calc_item.get('target_id', ''))) else '',
                 'source_type': 'calculated',
                 'plan_state': plan_state,
             }
@@ -1451,6 +1451,40 @@ def get_skytonight_file_api(target, filename):
     except Exception:
         logger.exception(f"Error sending SkyTonight file {filename} for target {target}")
         return jsonify({"error": "File not found"}), 404
+
+
+_ALTTIME_ID_SAFE = re.compile(r'[^a-z0-9_-]')
+
+
+def _alttime_json_path(target_id: str) -> str:
+    """Return absolute path for a target's altitude-time JSON file."""
+    safe_id = _ALTTIME_ID_SAFE.sub('_', target_id.lower())
+    return os.path.normpath(os.path.join(OUTPUT_DIR, f'{safe_id}_alttime.json'))
+
+
+@app.route('/api/skytonight/alttime/<target_id>', methods=['GET'])
+@login_required
+def get_skytonight_alttime_api(target_id):
+    """Return altitude-time JSON data for a single target's graph popup."""
+    if not re.match(r'^[a-zA-Z0-9_-]+$', target_id):
+        return jsonify({'error': 'Invalid target identifier'}), 400
+
+    file_path = _alttime_json_path(target_id)
+    output_dir_abs = os.path.abspath(OUTPUT_DIR)
+    # Path traversal guard
+    if not file_path.startswith(output_dir_abs):
+        return jsonify({'error': 'Invalid target identifier'}), 400
+
+    if not os.path.isfile(file_path):
+        return jsonify({'error': 'Altitude-time data not available for this target'}), 404
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as fobj:
+            data = json.load(fobj)
+        return jsonify(data)
+    except Exception:
+        logger.exception(f'Error reading alttime JSON for target {target_id}')
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/api/skytonight/reports-legacy/<catalogue>', methods=['GET'])
