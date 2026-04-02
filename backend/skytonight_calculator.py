@@ -723,7 +723,14 @@ def _compute_body_result(
 
     alt_min = float(constraints.get('altitude_constraint_min', 30))
     north_to_east_ccw = bool(constraints.get('north_to_east_ccw', False))
-    frac_threshold = float(constraints.get('fraction_of_time_observable_threshold', 0.5))
+
+    # Bodies use their own minimum observable-fraction threshold that is
+    # intentionally much lower than the DSO threshold: a planet visible for
+    # even a short window during the night is worth showing.
+    # We do NOT inherit fraction_of_time_observable_threshold from the DSO
+    # constraints — showing e.g. Jupiter only for 2 h out of a 7 h night is
+    # perfectly valid and the user explicitly wants to see those bodies.
+    _BODIES_MIN_FRACTION = 0.05  # ~22 min for a 7 h night
 
     # Derive effective altitude floor from airmass constraint (stricter wins).
     airmass_constr = float(constraints.get('airmass_constraint', 2.0))
@@ -741,7 +748,7 @@ def _compute_body_result(
     observable_steps = int(np.sum(in_window_mask))
     observable_fraction = observable_steps / total_steps
 
-    if observable_fraction < frac_threshold:
+    if observable_fraction < _BODIES_MIN_FRACTION:
         return None, None
 
     max_altitude = float(np.max(alt_deg))
@@ -755,7 +762,10 @@ def _compute_body_result(
 
     observable_hours = night_hours * observable_fraction
 
-    first_obs_idx = next((i for i, v in enumerate(in_window_mask) if v), None)
+    obs_indices_b = np.nonzero(in_window_mask)[0]
+    first_obs_idx = int(obs_indices_b[0]) if len(obs_indices_b) > 0 else None
+    last_obs_idx_b = int(obs_indices_b[-1]) if len(obs_indices_b) > 0 else None
+
     window_start_hour = (
         (night_start + timedelta(minutes=first_obs_idx * _TIME_RESOLUTION_MINUTES)).hour
         if first_obs_idx is not None
@@ -768,8 +778,6 @@ def _compute_body_result(
     )
 
     # Rise / set times within the observable window
-    last_obs_reversed_b = next((i for i, v in enumerate(reversed(list(in_window_mask))) if v), None)
-    last_obs_idx_b = (total_steps - 1 - last_obs_reversed_b) if last_obs_reversed_b is not None else None
     rise_time_b = (
         (night_start + timedelta(minutes=first_obs_idx * _TIME_RESOLUTION_MINUTES)).strftime('%H:%M')
         if first_obs_idx is not None else None
