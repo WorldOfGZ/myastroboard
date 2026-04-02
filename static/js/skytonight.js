@@ -458,7 +458,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
     ];
     
     // Fields to show in "More" popup
-    let moreFields = ['meridian transit', 'antimeridian transit', 'right ascension', 'declination', 'hmsdms'];
+    let moreFields = ['catalogue_names', 'meridian transit', 'antimeridian transit', 'right ascension', 'declination', 'hmsdms'];
     
     // Select columns based on type
     let columns;
@@ -703,6 +703,24 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
             
             moreFields.forEach(field => {
                 let value = row[field];
+
+                // Special handling: catalogue names dict → one row per entry
+                if (field === 'catalogue_names') {
+                    if (value && typeof value === 'object') {
+                        const entries = Object.entries(value);
+                        if (entries.length > 0) {
+                            let sectionLabel = tSkyTonightCompat('catalogue_names');
+                            html += `<tr><td colspan="2" class="more-section-header fw-semibold text-muted small pt-2">${escapeHtml(sectionLabel)}</td></tr>`;
+                            entries.forEach(([catName, catValue]) => {
+                                if (catValue) {
+                                    html += `<tr><td class="more-label">${escapeHtml(catName)}</td><td class="more-value">${escapeHtml(String(catValue))}</td></tr>`;
+                                }
+                            });
+                        }
+                    }
+                    return;
+                }
+
                 let label = field.charAt(0).toUpperCase() + field.slice(1);
                 let labelTranslations = strToTranslateKey(label);
                 const skytonightLabelKey = `skytonight.${labelTranslations}`;

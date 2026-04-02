@@ -649,6 +649,7 @@
     "culmination_time": "tiempo de culminación",
     "absolute_magnitude": "Magnitud absoluta",
     "distance_sun_au": "Distancia Sol (AU)",
+    "catalogue_names": "Identificadores de catálogos",
     "type_galaxy": "Galaxia",
     "type_open_cluster": "Clúster abierto",
     "type_dark_nebula": "Nebulosa Oscura",

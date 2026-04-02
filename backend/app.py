@@ -1135,14 +1135,20 @@ def _build_skytonight_reports_payload(catalogue: Optional[str], user_id: str, us
                 display_name = str(calc_item.get('preferred_name', '') or '').strip()
                 source_catalogue = str(next(iter(calc_catalogue_names.keys()), 'SkyTonight'))
 
+            preferred_display_name = str(calc_item.get('preferred_name', '') or '').strip() or display_name
+            canonical_id = (
+                str(calc_catalogue_names.get('OpenNGC') or calc_catalogue_names.get('OpenIC') or '').strip()
+                or preferred_display_name
+            )
+
             observation = calc_item.get('observation', {})
             const_abbr = calc_item.get('constellation', '')
             const_full = _CONSTELLATION_ABBR_MAP.get(const_abbr, const_abbr)
             ra_hms = observation.get('ra_hms', '')
             dec_dms = observation.get('dec_dms', '')
             row: Dict[str, Any] = {
-                'id': display_name,
-                'target name': display_name,
+                'id': canonical_id,
+                'target name': preferred_display_name,
                 'type': calc_item.get('object_type', ''),
                 'constellation': const_full,
                 'mag': calc_item.get('magnitude'),

@@ -62,7 +62,8 @@ def test_get_alias_helpers_return_expected_values():
         }
     }
 
-    with patch("catalogue_aliases.load_aliases_table", return_value=aliases_table):
+    with patch("catalogue_aliases.load_aliases_table", return_value=aliases_table), \
+         patch("catalogue_aliases.skytonight_targets.get_lookup_entry", return_value={}):
         entry = get_alias_entry("Messier", "M 31")
         aliases = get_aliases_map("Messier", "M 31")
         group_id = get_group_id("Messier", "M 31")

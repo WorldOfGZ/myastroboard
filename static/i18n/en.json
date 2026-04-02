@@ -660,6 +660,7 @@
     "culmination_time": "Culmination time",
     "absolute_magnitude": "Absolute magnitude",
     "distance_sun_au": "Distance Sun (AU)",
+    "catalogue_names": "Catalogue identifiers",
     "type_galaxy": "Galaxy",
     "type_open_cluster": "Open Cluster",
     "type_dark_nebula": "Dark Nebula",
