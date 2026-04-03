@@ -21,6 +21,57 @@ function tSkyTonightType(value) {
     return value;
 }
 
+function _translatedConstellation(value) {
+    if (!value) return value;
+    const key = 'constellations.' + strToTranslateKey(value);
+    return i18n.has(key) ? i18n.t(key) : value;
+}
+
+// ── AstroScore visual helpers ─────────────────────────────────────────────────
+
+function _astroScoreBadgeClass(score) {
+    if (score >= 0.85) return 'bg-success';
+    if (score >= 0.65) return 'bg-primary';
+    if (score >= 0.45) return 'bg-warning text-dark';
+    return 'bg-danger';
+}
+
+function _astroScoreTierKey(score) {
+    if (score >= 0.85) return 'astroscore_exceptional';
+    if (score >= 0.65) return 'astroscore_good';
+    if (score >= 0.45) return 'astroscore_average';
+    return 'astroscore_poor';
+}
+
+/** Returns an HTML string: a coloured Bootstrap badge showing the score as %. */
+function _astroScoreBadgeHtml(score) {
+    if (score === null || score === undefined || score === '') return '—';
+    const num = parseFloat(score);
+    if (isNaN(num)) return escapeHtml(String(score));
+    const pct  = Math.round(num * 100);
+    const cls  = _astroScoreBadgeClass(num);
+    const tier = tSkyTonightCompat(_astroScoreTierKey(num));
+    return `<span class="badge ${cls}" title="${escapeHtml(tier)}">${pct}%</span>`;
+}
+
+/** Returns an HTML string: a compact legend row for all 4 AstroScore tiers. */
+function _astroScoreLegendHtml() {
+    const tiers = [
+        { key: 'astroscore_exceptional', cls: 'bg-success',           range: '≥ 85%' },
+        { key: 'astroscore_good',        cls: 'bg-primary',           range: '65–84%' },
+        { key: 'astroscore_average',     cls: 'bg-warning text-dark', range: '45–64%' },
+        { key: 'astroscore_poor',        cls: 'bg-danger',            range: '< 45%' },
+    ];
+    let html = `<div class="d-flex flex-wrap gap-2 mb-2 align-items-center small mt-3">`;
+    html += `<span class="text-muted fw-semibold">${escapeHtml(tSkyTonightCompat('astroscore_legend_title'))}:</span>`;
+    tiers.forEach(({ key, cls, range }) => {
+        const label = tSkyTonightCompat(key);
+        html += `<span class="badge ${cls}">${escapeHtml(range)} — ${escapeHtml(label)}</span>`;
+    });
+    html += `</div>`;
+    return html;
+}
+
 async function getSkyTonightDisplayAstrodex() {
     if (skytonightDisplayAstrodexCache !== null) {
         return skytonightDisplayAstrodexCache;
@@ -121,10 +172,11 @@ async function _renderSkyMap(reports, container) {
         const az       = tgt.az;
         const label    = String(tgt.n);
         const scoreStr = tgt.score != null ? (tgt.score * 100).toFixed(0) + '%' : '—';
+        const constLabel = tgt.constellation ? _translatedConstellation(tgt.constellation) : '';
         const tooltip  = `<b>${label}: ${escapeHtml(tgt.name)}</b><br>` +
-                         `${escapeHtml(tgt.type || tgt.category)}<br>` +
+                         `${escapeHtml(tSkyTonightType(tgt.type || tgt.category))}<br>` +
                          `AstroScore: ${scoreStr}<br>` +
-                         (tgt.constellation ? `${escapeHtml(tgt.constellation)}<br>` : '');
+                         (constLabel ? `${escapeHtml(constLabel)}<br>` : '');
 
         const r     = alt.map(a => Math.max(0, 90 - a));
         const theta = az;
@@ -164,7 +216,7 @@ async function _renderSkyMap(reports, container) {
     const plotLayout = {
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor:  'rgba(0,0,0,0)',
-        height: 480,
+        autosize: true,
         polar: {
             bgcolor: skyBg,
             radialaxis: {
@@ -367,6 +419,13 @@ async function _renderSkyMap(reports, container) {
     });
     sliderWrap.appendChild(slider);
 
+    // ── AstroScore tier legend ────────────────────────────────────────────────
+    const scoreLegendWrap = document.createElement('div');
+    scoreLegendWrap.className = 'mb-3';
+    const scoreLegendFrag = document.createRange().createContextualFragment(_astroScoreLegendHtml());
+    scoreLegendWrap.appendChild(scoreLegendFrag);
+    legendBody.appendChild(scoreLegendWrap);
+
     // ── Constellation filter ───────────────────────────────────────────────────
     const constBtnMap = {};
     if (allConstellations.length > 1) {
@@ -398,7 +457,7 @@ async function _renderSkyMap(reports, container) {
             const b = document.createElement('button');
             b.type = 'button';
             b.className = 'btn btn-sm btn-primary sky-map-filter-btn';
-            b.textContent = name;
+            b.textContent = _translatedConstellation(name);
             b.dataset.constellation = name;
             b.addEventListener('click', () => {
                 if (activeConstellations.has(name)) {
@@ -463,17 +522,29 @@ async function _renderSkyMap(reports, container) {
         tableRow.dataset.score = tgt.score != null ? tgt.score : '0';
 
         [
-            { text: tgt.n,                       colored: true },
-            { text: tgt.name,                    colored: false },
-            { text: tgt.type || tgt.category,    colored: false },
-            { text: scoreVal,                    colored: false },
-            { text: tgt.constellation || '—',    colored: false },
-        ].forEach(({ text, colored }) => {
+            { text: tgt.n,                    colored: true },
+            { text: tgt.name,                 colored: false },
+            { text: tSkyTonightType(tgt.type || tgt.category), colored: false },
+            { score: tgt.score },
+            { text: tgt.constellation ? _translatedConstellation(tgt.constellation) : '—', colored: false },
+        ].forEach(cell => {
             const td = tableRow.insertCell();
-            td.textContent = text;
-            if (colored) {
-                td.style.color = color;
-                td.style.fontWeight = 'bold';
+            if (cell.score !== undefined) {
+                if (cell.score != null) {
+                    const badge = document.createElement('span');
+                    badge.className = `badge ${_astroScoreBadgeClass(cell.score)}`;
+                    badge.textContent = Math.round(cell.score * 100) + '%';
+                    badge.title = tSkyTonightCompat(_astroScoreTierKey(cell.score));
+                    td.appendChild(badge);
+                } else {
+                    td.textContent = '—';
+                }
+            } else {
+                td.textContent = cell.text;
+                if (cell.colored) {
+                    td.style.color = color;
+                    td.style.fontWeight = 'bold';
+                }
             }
         });
 
@@ -486,7 +557,7 @@ async function _renderSkyMap(reports, container) {
         traceMap.forEach(({ arcIdx, dotIdx, target }) => {
             const show = activeCategories.has(target.category) &&
                          (target.score == null || target.score >= minScore) &&
-                         (!messierOnly || target.category !== 'deep_sky' || target.messier) &&
+                         (!messierOnly || (target.category === 'deep_sky' && target.messier)) &&
                          (allConstellations.length === 0 || !target.constellation || activeConstellations.has(target.constellation));
             visArr[arcIdx] = show;
             visArr[dotIdx] = show;
@@ -498,7 +569,7 @@ async function _renderSkyMap(reports, container) {
             const tgt  = targets[i];
             const show = activeCategories.has(tgt.category) &&
                          (tgt.score == null || tgt.score >= minScore) &&
-                         (!messierOnly || tgt.category !== 'deep_sky' || tgt.messier) &&
+                         (!messierOnly || (tgt.category === 'deep_sky' && tgt.messier)) &&
                          (allConstellations.length === 0 || !tgt.constellation || activeConstellations.has(tgt.constellation));
             tableRow.style.display = show ? '' : 'none';
             if (show) visible++;
@@ -644,7 +715,14 @@ async function _showSkyTonightSectionData(sectionKey) {
     if (!dataDiv) return;
 
     if (sectionKey === 'plot') {
-        await _renderSkyMap(null, dataDiv);
+        if (_skytSectionCache['plot']) return;  // prevent concurrent renders
+        _skytSectionCache['plot'] = true;
+        try {
+            await _renderSkyMap(null, dataDiv);
+        } catch (e) {
+            delete _skytSectionCache['plot'];   // allow retry on error
+            throw e;
+        }
         return;
     }
 
@@ -871,6 +949,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
     // Define column order and configuration for Comets type
     const cometsColumns = [
         { key: 'target name', label: tSkyTonightCompat('table_name'), align: 'left' },
+        { key: 'foto', label: tSkyTonightCompat('table_foto'), align: 'center' },
         { key: 'altitude', label: tSkyTonightCompat('table_altitude'), align: 'center', unit: '°', decimals: 2 },
         { key: 'azimuth', label: tSkyTonightCompat('table_azimuth'), align: 'center', unit: '°', decimals: 2 },
         { key: 'visual magnitude', label: tSkyTonightCompat('table_visual_magnitude'), align: 'center', decimals: 2 },
@@ -913,9 +992,8 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                 <input type="text" id="filter-${catalogue}-${type}" placeholder="${tSkyTonightCompat('search_placeholder')}" class="filter-input form-control">
             </div>`;
     
-    // Only show foto filter for report and bodies types, not for comets
-    // Use shared foto value from localStorage or default to 0.8
-    if (type !== 'comets') {
+    // Show foto filter for all table types (report, bodies, comets)
+    {
         const savedFotoValue = sanitizeFotoFilterValue(localStorage.getItem('fotoFilterValue'));
         html += `
             <div class="col-12">
@@ -924,11 +1002,11 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                     <label class="form-check-label" for="inlineFormCheck"> ${tSkyTonightCompat('search_foto')} </label>
                 </div>               
             </div>`;
-        
+
         html += `
             <div class="col-12">
                 <label for="foto-value-${catalogue}-${type}" class="visually-hidden">${tSkyTonightCompat('search_foto_score')}</label>
-                <input type="number" id="foto-value-${catalogue}-${type}" value="${savedFotoValue}" step="0.1" min="0" max="1" class="shared-foto-value form-control">
+                <input type="number" id="foto-value-${catalogue}-${type}" value="${savedFotoValue}" step="5" min="0" max="100" class="shared-foto-value form-control">
             </div>`;
     }
     
@@ -972,7 +1050,11 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
     }
     
     html += `
-        </div>
+        </div>`;
+
+    html += _astroScoreLegendHtml();
+
+    html += `
         <div class="table-responsive mt-3">
             <table class="table table-striped table-hover table-sm" id="table-${catalogue}-${type}">
                 <thead>
@@ -1062,14 +1144,17 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                         html += `<td style="text-align: ${col.align}">-</td>`;
                     }
                 }
+            } else if (col.key === 'foto') {
+                const fotoNum = (row[col.key] !== null && row[col.key] !== undefined)
+                    ? parseFloat(row[col.key]) : NaN;
+                const sortVal = isNaN(fotoNum) ? -1 : Math.round(fotoNum * 100);
+                html += `<td style="text-align: ${col.align}" data-sort-value="${sortVal}">${isNaN(fotoNum) ? '\u2014' : _astroScoreBadgeHtml(fotoNum)}</td>`;
             } else {
                 let value = row[col.key];
                 
                 // Format values
                 if (col.key === 'target name' && value) {
                     value = String(value).replace(/\s*\([^)]*\)/g, '');
-                } else if (col.key === 'foto' && typeof value === 'number') {
-                    value = value.toFixed(2);
                 } else if (col.key === 'mag' && !isNaN(value) && value !== null) {
                     value = parseFloat(value).toFixed(2);
                 } else if (col.key === 'visual magnitude' && !isNaN(value) && value !== null) {
@@ -1340,13 +1425,14 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
 // Table Filtering and Sorting
 // ======================
 
-function sanitizeFotoFilterValue(value, fallback = 0.8) {
+function sanitizeFotoFilterValue(value, fallback = 80) {
     const numericValue = Number.parseFloat(value);
     if (!Number.isFinite(numericValue)) {
         return String(fallback);
     }
-
-    const clampedValue = Math.min(1, Math.max(0, numericValue));
+    // Migrate legacy 0–1 decimal values to 0–100 percentage
+    const pctValue = numericValue <= 1.0 ? numericValue * 100 : numericValue;
+    const clampedValue = Math.min(100, Math.max(0, Math.round(pctValue)));
     return String(clampedValue);
 }
 
@@ -1382,8 +1468,8 @@ function applyDefaultSort(catalogue, type) {
         defaultColumn = 'foto';
         defaultDirection = 'desc';
     } else if (type === 'comets') {
-        defaultColumn = 'target name';
-        defaultDirection = 'asc';
+        defaultColumn = 'foto';
+        defaultDirection = 'desc';
     }
     
     if (defaultColumn) {
@@ -1417,7 +1503,7 @@ function filterTable(catalogue, type) {
     
     const filterText = filterInput ? filterInput.value.toLowerCase() : '';
     const fotoFilter = fotoCheckbox ? fotoCheckbox.checked : false;
-    const fotoThreshold = fotoValueInput ? parseFloat(sanitizeFotoFilterValue(fotoValueInput.value)) : 0.8;
+    const fotoThreshold = fotoValueInput ? parseFloat(sanitizeFotoFilterValue(fotoValueInput.value)) / 100 : 0.8;
     const constellationFilter = constellationSelect ? constellationSelect.value : '';
     const typeFilter = typeSelect ? typeSelect.value : '';
     const rows = table.querySelectorAll('tbody tr');
@@ -1480,8 +1566,10 @@ function sortTable(catalogue, column, type) {
     
     // Sort rows
     rows.sort((a, b) => {
-        const aVal = a.querySelector(`td:nth-child(${getColumnIndex(table, column)})`).textContent;
-        const bVal = b.querySelector(`td:nth-child(${getColumnIndex(table, column)})`).textContent;
+        const aCell = a.querySelector(`td:nth-child(${getColumnIndex(table, column)})`);
+        const bCell = b.querySelector(`td:nth-child(${getColumnIndex(table, column)})`);
+        const aVal = 'sortValue' in aCell.dataset ? aCell.dataset.sortValue : aCell.textContent;
+        const bVal = 'sortValue' in bCell.dataset ? bCell.dataset.sortValue : bCell.textContent;
         
         let comparison = 0;
         if (!isNaN(aVal) && !isNaN(bVal)) {

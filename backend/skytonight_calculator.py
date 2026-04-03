@@ -1013,7 +1013,7 @@ def run_calculations(
                 skymap_entries.append({
                     'id': target.target_id,
                     'name': body_result.get('preferred_name', target.target_id),
-                    'type': body_result.get('type', 'body'),
+                    'type': body_result.get('object_type', 'body'),
                     'category': 'bodies',
                     'score': body_result.get('astro_score', 0),
                     'constellation': body_result.get('constellation', ''),
@@ -1161,8 +1161,9 @@ def run_calculations(
         ]
 
         # Build a single SkyCoord array for all DSO targets
-        all_ra_h = np.array([t.coordinates.ra_hours for t in dso_targets_with_coords])
-        all_dec_d = np.array([t.coordinates.dec_degrees for t in dso_targets_with_coords])
+        # coordinates is guaranteed non-None by the dso_targets_with_coords filter above
+        all_ra_h = np.array([t.coordinates.ra_hours for t in dso_targets_with_coords])  # type: ignore[union-attr]
+        all_dec_d = np.array([t.coordinates.dec_degrees for t in dso_targets_with_coords])  # type: ignore[union-attr]
         all_dso_coords = SkyCoord(ra=all_ra_h * u.hourangle, dec=all_dec_d * u.deg, frame='icrs')
 
         # Batch AltAz: n_steps vectorised calls instead of n_dso_batch individual calls.
@@ -1177,9 +1178,9 @@ def run_calculations(
         _set_progress('deep_sky_altaz', 0, n_steps)
         for step_i in range(n_steps):
             frame = AltAz(obstime=times[step_i], location=location_obj)
-            altaz_batch = all_dso_coords.transform_to(frame)
-            alt_matrix[:, step_i] = altaz_batch.alt.deg
-            az_matrix[:, step_i] = altaz_batch.az.deg
+            altaz_batch: SkyCoord = all_dso_coords.transform_to(frame)  # type: ignore[assignment]
+            alt_matrix[:, step_i] = altaz_batch.alt.deg  # type: ignore[index]
+            az_matrix[:, step_i] = altaz_batch.az.deg  # type: ignore[index]
             _set_progress('deep_sky_altaz', step_i + 1, n_steps)
         logger.info('Batch AltAz computation complete.')
 
@@ -1207,7 +1208,7 @@ def run_calculations(
                     skymap_entries.append({
                         'id': target.target_id,
                         'name': result.get('preferred_name', target.target_id),
-                        'type': result.get('type', 'dso'),
+                        'type': result.get('object_type', 'dso'),
                         'category': 'deep_sky',
                         'score': result.get('astro_score', 0),
                         'constellation': result.get('constellation', ''),
