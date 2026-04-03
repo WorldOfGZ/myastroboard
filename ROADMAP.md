@@ -33,7 +33,6 @@ This document describes features that could potentially be integrated into MyAst
 ## Upgrade Features
 
 ### Ideas in raw
-1	Custom horizon profile      Medium      Very high — changes which targets appear
 2	Equipment FOV matching      Medium      Very high — practical astrophotography fit
 3	Bortle/SQM in AstroScore    Low	        High — corrects score_object for light pollution
 4	Solar elongation filter     Low	        Medium — correctness for planets
