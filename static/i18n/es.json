@@ -616,6 +616,7 @@
     "sky_map_col_type": "Tipo",
     "sky_map_col_score": "Puntuación",
     "sky_map_col_constellation": "Constelación",
+    "sky_map_filter_constellation": "Constelaciones",
     "loading_log_content": "Cargando contenido del registro de SkyTonight...",
     "failed_to_load_log_content": "No se pudo cargar el registro de SkyTonight",
     "no_report_available": "No hay informes disponibles para este conjunto de datos.",

@@ -268,7 +268,12 @@ async function _renderSkyMap(reports, container) {
 
     // ── Filter state ──────────────────────────────────────────────────────────
     const activeCategories = new Set(['deep_sky', 'bodies', 'comets']);
-    let minScore = 0;
+    let minScore = 0.65;
+    let messierOnly = false;
+    const allConstellations = [...new Set(
+        targets.map(t => t.constellation).filter(c => c && c.trim())
+    )].sort();
+    const activeConstellations = new Set(allConstellations);
 
     // ── Group toggle buttons ──────────────────────────────────────────────────
     const groupDefs = [
@@ -306,6 +311,30 @@ async function _renderSkyMap(reports, container) {
         });
     }
 
+    // ── Messier-only toggle (only shown when deep_sky targets are present) ────
+    const hasMessier = targets.some(t => t.category === 'deep_sky' && t.messier);
+    if (hasMessier) {
+        const messierRow = document.createElement('div');
+        messierRow.className = 'd-flex gap-2 flex-wrap mb-2';
+        legendBody.appendChild(messierRow);
+
+        const messierBtn = document.createElement('button');
+        messierBtn.type = 'button';
+        messierBtn.className = 'btn btn-sm btn-outline-secondary sky-map-filter-btn';
+        messierBtn.innerHTML = '<i class="bi bi-star icon-inline" aria-hidden="true"></i>Messier';
+        messierBtn.title = tSkyTonightCompat('sky_map_filter_dso') + ' — Messier only';
+        messierBtn.addEventListener('click', () => {
+            messierOnly = !messierOnly;
+            if (messierOnly) {
+                messierBtn.classList.replace('btn-outline-secondary', 'btn-warning');
+            } else {
+                messierBtn.classList.replace('btn-warning', 'btn-outline-secondary');
+            }
+            applyFilters();
+        });
+        messierRow.appendChild(messierBtn);
+    }
+
     // ── AstroScore slider ─────────────────────────────────────────────────────
     const sliderWrap = document.createElement('div');
     sliderWrap.className = 'mb-3';
@@ -329,13 +358,70 @@ async function _renderSkyMap(reports, container) {
     slider.min = '0';
     slider.max = '100';
     slider.step = '5';
-    slider.value = '0';
+    slider.value = '65';
+    sliderValueSpan.textContent = '65%';
     slider.addEventListener('input', () => {
         minScore = parseInt(slider.value, 10) / 100;
         sliderValueSpan.textContent = `${slider.value}%`;
         applyFilters();
     });
     sliderWrap.appendChild(slider);
+
+    // ── Constellation filter ───────────────────────────────────────────────────
+    const constBtnMap = {};
+    if (allConstellations.length > 1) {
+        const constSection = document.createElement('div');
+        constSection.className = 'mb-2';
+        legendBody.appendChild(constSection);
+
+        const constLabelRow = document.createElement('div');
+        constLabelRow.className = 'd-flex align-items-center justify-content-between mb-1';
+        constSection.appendChild(constLabelRow);
+
+        const constLabel = document.createElement('span');
+        constLabel.className = 'form-label small text-muted mb-0';
+        constLabel.textContent = tSkyTonightCompat('sky_map_filter_constellation');
+        constLabelRow.appendChild(constLabel);
+
+        const resetConstBtn = document.createElement('button');
+        resetConstBtn.type = 'button';
+        resetConstBtn.className = 'btn btn-sm btn-link p-0 text-muted';
+        resetConstBtn.title = 'Show all constellations';
+        resetConstBtn.innerHTML = '<i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>';
+        constLabelRow.appendChild(resetConstBtn);
+
+        const constBtnWrap = document.createElement('div');
+        constBtnWrap.className = 'sky-map-constellation-filter d-flex flex-wrap gap-1';
+        constSection.appendChild(constBtnWrap);
+
+        allConstellations.forEach(name => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'btn btn-sm btn-primary sky-map-filter-btn';
+            b.textContent = name;
+            b.dataset.constellation = name;
+            b.addEventListener('click', () => {
+                if (activeConstellations.has(name)) {
+                    activeConstellations.delete(name);
+                    b.classList.replace('btn-primary', 'btn-outline-secondary');
+                } else {
+                    activeConstellations.add(name);
+                    b.classList.replace('btn-outline-secondary', 'btn-primary');
+                }
+                applyFilters();
+            });
+            constBtnWrap.appendChild(b);
+            constBtnMap[name] = b;
+        });
+
+        resetConstBtn.addEventListener('click', () => {
+            allConstellations.forEach(name => {
+                activeConstellations.add(name);
+                constBtnMap[name].classList.replace('btn-outline-secondary', 'btn-primary');
+            });
+            applyFilters();
+        });
+    }
 
     // ── Legend table ──────────────────────────────────────────────────────────
     const statsLine = document.createElement('div');
@@ -399,7 +485,9 @@ async function _renderSkyMap(reports, container) {
         const visArr = new Array(traces.length).fill(true);
         traceMap.forEach(({ arcIdx, dotIdx, target }) => {
             const show = activeCategories.has(target.category) &&
-                         (target.score == null || target.score >= minScore);
+                         (target.score == null || target.score >= minScore) &&
+                         (!messierOnly || target.category !== 'deep_sky' || target.messier) &&
+                         (allConstellations.length === 0 || !target.constellation || activeConstellations.has(target.constellation));
             visArr[arcIdx] = show;
             visArr[dotIdx] = show;
         });
@@ -407,14 +495,19 @@ async function _renderSkyMap(reports, container) {
 
         let visible = 0;
         legendRows.forEach((tableRow, i) => {
-            const tgt   = targets[i];
-            const show  = activeCategories.has(tgt.category) &&
-                          (tgt.score == null || tgt.score >= minScore);
+            const tgt  = targets[i];
+            const show = activeCategories.has(tgt.category) &&
+                         (tgt.score == null || tgt.score >= minScore) &&
+                         (!messierOnly || tgt.category !== 'deep_sky' || tgt.messier) &&
+                         (allConstellations.length === 0 || !tgt.constellation || activeConstellations.has(tgt.constellation));
             tableRow.style.display = show ? '' : 'none';
             if (show) visible++;
         });
         statsLine.textContent = tSkyTonightCompat('sky_map_count', { count: visible });
     }
+
+    // Apply initial filter (default slider is 65 %)
+    applyFilters();
 }
 
 

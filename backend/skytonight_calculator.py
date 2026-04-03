@@ -1211,6 +1211,7 @@ def run_calculations(
                         'category': 'deep_sky',
                         'score': result.get('astro_score', 0),
                         'constellation': result.get('constellation', ''),
+                        'messier': bool('Messier' in (target.catalogue_names or {})),
                         'alt': [round(float(v), 1) for v in alt_matrix[idx][::2]],
                         'az': [round(float(v), 1) for v in az_matrix[idx][::2]],
                     })

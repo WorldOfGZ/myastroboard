@@ -628,6 +628,7 @@
     "sky_map_col_type": "Type",
     "sky_map_col_score": "Score",
     "sky_map_col_constellation": "Constellation",
+    "sky_map_filter_constellation": "Constellations",
     "loading_log_content": "Chargement du journal SkyTonight...",
     "failed_to_load_log_content": "Échec du chargement du journal SkyTonight",
     "no_report_available": "Aucun rapport disponible pour ce jeu de données.",

@@ -89,3 +89,9 @@
     font-size: 0.78rem;
     padding: 0.2rem 0.55rem;
 }
+
+/* ── Sky Map constellation filter pills ─────────────────────────────────── */
+.sky-map-constellation-filter {
+    max-height: 90px;
+    overflow-y: auto;
+}
