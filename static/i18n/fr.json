@@ -22,21 +22,20 @@
     "duration": "Durée : ",
     "quality": "Qualité : ",
     "time_label": "Temps",
-    "quality_scale": 
-      {
-        "unknown": "Inconnu",
-        "low": "Faible",
-        "bad": "Mauvais",
-        "poor": "Médiocre",
-        "minimal": "Minimal",
-        "medium": "Moyen",
-        "moderate": "Modéré",
-        "fair": "Passable",
-        "good": "Bon",
-        "high": "Élevé",
-        "excellent": "Excellent",
-        "critical": "Critique"
-      },
+    "quality_scale": {
+      "unknown": "Inconnu",
+      "low": "Faible",
+      "bad": "Mauvais",
+      "poor": "Médiocre",
+      "minimal": "Minimal",
+      "medium": "Moyen",
+      "moderate": "Modéré",
+      "fair": "Passable",
+      "good": "Bon",
+      "high": "Élevé",
+      "excellent": "Excellent",
+      "critical": "Critique"
+    },
     "retrying_in": "Nouvelle tentative dans {seconds}s ({attempt}/{maxAttempts})",
     "sun": "Soleil",
     "moon": "Lune",
@@ -924,12 +923,12 @@
     "unknown_container": "Conteneur inconnu détecté",
     "yes": "Oui",
     "no": "Non",
-    "no_running_in_container": "Non exécuté dans un conteneur (bare metal ou VM)"
-    ,"processes_overview": "Informations sur les processus"
-    ,"show_all_processes": "Afficher tous les processus"
-    ,"process_name": "Processus"
-    ,"docker_in_docker": "Docker in Docker"
-    ,"no_process_data": "Aucune donnée de processus disponible"
+    "no_running_in_container": "Non exécuté dans un conteneur (bare metal ou VM)",
+    "processes_overview": "Informations sur les processus",
+    "show_all_processes": "Afficher tous les processus",
+    "process_name": "Processus",
+    "docker_in_docker": "Docker in Docker",
+    "no_process_data": "Aucune donnée de processus disponible"
   },
 
   "equipment": {
