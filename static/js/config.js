@@ -120,6 +120,7 @@ async function saveConfiguration() {
                 fraction_of_time_observable_threshold: parseFloat(document.getElementById('time-threshold').value),
                 north_to_east_ccw: document.getElementById('north-ccw').checked,
                 horizon_profile: readHorizonProfile(),
+                _horizon_cleared: _horizonExplicitlyCleared,
             }
         }
     };
@@ -157,10 +158,13 @@ async function saveConfiguration() {
 // Horizon Profile Editor
 // ======================
 
+let _horizonExplicitlyCleared = false;
+
 function loadHorizonProfileTable(profile) {
     const tbody = document.getElementById('horizon-profile-tbody');
     if (!tbody) return;
     tbody.innerHTML = '';
+    _horizonExplicitlyCleared = false;
     (profile || []).forEach(pt => addHorizonRow(pt.az, pt.alt));
 }
 
@@ -178,6 +182,7 @@ function addHorizonRow(az = '', alt = '') {
 function clearHorizonProfile() {
     const tbody = document.getElementById('horizon-profile-tbody');
     if (tbody) tbody.innerHTML = '';
+    _horizonExplicitlyCleared = true;
 }
 
 function readHorizonProfile() {

@@ -624,6 +624,19 @@ def update_config_api():
                 merged_st[_k] = _v
         config['skytonight'] = merged_st
 
+    # Protect horizon_profile from accidental data-loss: only allow an empty
+    # array to overwrite a non-empty saved profile when the frontend explicitly
+    # sent the _horizon_cleared flag (user pressed the Clear button).
+    new_constraints = config['skytonight'].get('constraints', {})
+    incoming_constraints_raw = (incoming_skytonight or {}).get('constraints', {}) if isinstance(incoming_skytonight, dict) else {}
+    horizon_cleared = bool(incoming_constraints_raw.get('_horizon_cleared', False))
+    old_horizon = old_skytonight.get('constraints', {}).get('horizon_profile', [])
+    new_horizon = new_constraints.get('horizon_profile', [])
+    if not horizon_cleared and not new_horizon and old_horizon:
+        new_constraints['horizon_profile'] = old_horizon
+    # Always strip the internal flag before saving to disk
+    new_constraints.pop('_horizon_cleared', None)
+
     # Apply migrated legacy constraints when skytonight.constraints was absent
     if legacy_constraints and not config['skytonight'].get('constraints'):
         config['skytonight']['constraints'] = legacy_constraints
