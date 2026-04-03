@@ -591,6 +591,7 @@
   "skytonight": {
     "info_1": "SkyTonight calcula los mejores objetivos de observación de la noche según su ubicación, el clima y los conjuntos de datos internos.",
     "info_2": "Espere antes de cargar o revise los parámetros si falló un cálculo.",
+    "calculation_in_progress": "Cálculo en progreso — datos parciales mostrados, espere…",
     "no_data_available": "Actualmente no hay datos disponibles para SkyTonight.",
     "catalogue_results": "{catalogue} resultados",
     "plot": "Gráfico",

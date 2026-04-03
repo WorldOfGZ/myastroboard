@@ -86,12 +86,6 @@ const SkyTonightScheduler = (() => {
                     `${i18n.t('scheduler.processing')} ${p.current_index}/${p.total_catalogues}${duration}`;
                 els.detail().textContent =
                     `${i18n.t('scheduler.current')} ${p.current_catalogue}`;
-                genericMessageLoadingDiv(p.current_catalogue);
-                if (last_catalogue_executed !== null && last_catalogue_executed !== p.current_catalogue) {
-                    if (document.getElementById(`catalogue-${last_catalogue_executed}-subtab`)) {
-                        loadCatalogueResults(last_catalogue_executed);
-                    }
-                }
                 last_catalogue_executed = p.current_catalogue;
             } else {
                 els.progress().textContent =
@@ -102,9 +96,6 @@ const SkyTonightScheduler = (() => {
             _notExecutingCount++;
             if (_notExecutingCount >= 2) {
                 // Two consecutive false responses — execution genuinely finished.
-                if (document.getElementById(`catalogue-${last_catalogue_executed}-subtab`)) {
-                    loadCatalogueResults(last_catalogue_executed);
-                }
                 loadSkyTonightResultsTabs();
                 last_catalogue_executed = null;
                 state.isExecuting = false;

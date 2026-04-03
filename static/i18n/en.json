@@ -603,6 +603,7 @@
     "info_1": "SkyTonight calculates the best observation targets for the night based on your location, weather forecast, and internal datasets.",
     "info_2": "Wait before loading, or check parameters if a calculation failed.",
     "no_data_available": "Currently no data available for SkyTonight service.",
+    "calculation_in_progress": "Calculation in progress — partial data shown, please wait…",
     "catalogue_results": "{catalogue} results",
     "plot": "Plot",
     "deep_sky_objects": "Deep Sky Objects",

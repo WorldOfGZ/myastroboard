@@ -42,7 +42,7 @@ from events_aggregator import EventsAggregator
 from i18n_utils import I18nManager
 from txtconf_loader import get_repo_version
 from repo_config import load_config, save_config
-from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, CACHE_TTL, SKYTONIGHT_LOGS_DIR, CONFIG_DIR, OUTPUT_DIR, SKYTONIGHT_SKYMAP_FILE
+from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, CACHE_TTL, SKYTONIGHT_LOGS_DIR, CONFIG_DIR, OUTPUT_DIR, SKYTONIGHT_SKYMAP_FILE, SKYTONIGHT_BODIES_RESULTS_FILE, SKYTONIGHT_COMETS_RESULTS_FILE, SKYTONIGHT_DSO_RESULTS_FILE
 from logging_config import get_logger
 from version_checker import check_for_updates
 from metrics_collector import collect_metrics
@@ -68,7 +68,10 @@ from skytonight_storage import (
     get_scheduler_lock_file as get_skytonight_scheduler_lock_file,
     get_scheduler_status_file as get_skytonight_scheduler_status_file,
     get_scheduler_trigger_file as get_skytonight_scheduler_trigger_file,
+    has_bodies_results,
     has_calculation_results,
+    has_comets_results,
+    has_dso_results,
 )
 from cache_updater import (
     update_dark_window_cache,
@@ -1486,7 +1489,311 @@ def get_skytonight_skymap_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@app.route('/api/skytonight/reports-legacy/<catalogue>', methods=['GET'])
+# ---------------------------------------------------------------------------
+# Per-section reactive endpoints  (load only what the UI section needs)
+# ---------------------------------------------------------------------------
+
+def _build_bodies_section_payload(user_id: str, username: str) -> Dict[str, Any]:
+    """Build the Solar system bodies payload for the reactive UI section."""
+    plan_payload = plan_my_night.get_plan_with_timeline(user_id, username)
+    plan_state = plan_payload.get('state', 'none')
+
+    if has_bodies_results():
+        data = load_json_file(SKYTONIGHT_BODIES_RESULTS_FILE, default={})
+        rows = []
+        for calc_item in data.get('bodies', []):
+            observation = calc_item.get('observation', {})
+            ra_hms = observation.get('ra_hms', '')
+            dec_dms = observation.get('dec_dms', '')
+            row: Dict[str, Any] = {
+                'target name': calc_item.get('preferred_name', ''),
+                'type': calc_item.get('object_type', ''),
+                'visual magnitude': calc_item.get('magnitude'),
+                'foto': calc_item.get('astro_score'),
+                'altitude': observation.get('max_altitude'),
+                'azimuth': observation.get('azimuth'),
+                'max altitude time': observation.get('max_altitude_time'),
+                'meridian transit': observation.get('meridian_transit'),
+                'antimeridian transit': observation.get('antimeridian_transit'),
+                'right ascension': ra_hms,
+                'declination': dec_dms,
+                'hmsdms': f"{ra_hms} / {dec_dms}" if ra_hms and dec_dms else None,
+                'observable_hours': observation.get('observable_hours'),
+                'alttime_file': calc_item.get('target_id', '') if os.path.isfile(_alttime_json_path(calc_item.get('target_id', ''))) else '',
+                'source_type': 'calculated',
+                'plan_state': plan_state,
+            }
+            _annotate_skytonight_item(row, user_id, username, 'Bodies', plan_state)
+            rows.append(row)
+        return {
+            'bodies': rows,
+            'night_metadata': data.get('metadata', {}),
+            'available': True,
+            'in_progress': bool(data.get('metadata', {}).get('in_progress', False)),
+            'source_type': 'calculated',
+        }
+
+    # Fallback: static dataset
+    dataset = skytonight_targets.load_targets_dataset()
+    rows = []
+    for target in dataset.get('targets', []) if isinstance(dataset, dict) else []:
+        if str(_target_attr(target, 'category', '') or '') != 'bodies':
+            continue
+        preferred_name = str(_target_attr(target, 'preferred_name', '') or '')
+        row = {
+            'target name': preferred_name,
+            'type': str(_target_attr(target, 'object_type', '') or ''),
+            'visual magnitude': _target_attr(target, 'magnitude', None),
+            'foto': None,
+            'alttime_file': '',
+            'source_type': 'dataset',
+        }
+        _annotate_skytonight_item(row, user_id, username, 'Bodies', plan_state)
+        rows.append(row)
+    return {'bodies': rows, 'night_metadata': {}, 'available': bool(rows), 'in_progress': False, 'source_type': 'dataset'}
+
+
+def _build_comets_section_payload(user_id: str, username: str) -> Dict[str, Any]:
+    """Build the comets payload for the reactive UI section."""
+    plan_payload = plan_my_night.get_plan_with_timeline(user_id, username)
+    plan_state = plan_payload.get('state', 'none')
+
+    if has_comets_results():
+        data = load_json_file(SKYTONIGHT_COMETS_RESULTS_FILE, default={})
+        rows = []
+        for calc_item in data.get('comets', []):
+            observation = calc_item.get('observation', {})
+            metadata = calc_item.get('metadata', {})
+            if not isinstance(metadata, dict):
+                metadata = {}
+            ra_hms = observation.get('ra_hms', '')
+            dec_dms = observation.get('dec_dms', '')
+            row: Dict[str, Any] = {
+                'target name': calc_item.get('preferred_name', ''),
+                'type': calc_item.get('object_type', ''),
+                'visual magnitude': calc_item.get('magnitude'),
+                'absolute magnitude': metadata.get('absolute_magnitude'),
+                'q': metadata.get('perihelion_date', ''),
+                'foto': calc_item.get('astro_score'),
+                'altitude': observation.get('max_altitude'),
+                'azimuth': observation.get('azimuth'),
+                'distance earth au': metadata.get('distance_earth_au'),
+                'distance sun au': metadata.get('distance_sun_au'),
+                'rise time': observation.get('rise_time'),
+                'set time': observation.get('set_time'),
+                'meridian transit': observation.get('meridian_transit'),
+                'antimeridian transit': observation.get('antimeridian_transit'),
+                'right ascension': ra_hms,
+                'declination': dec_dms,
+                'hmsdms': f"{ra_hms} / {dec_dms}" if ra_hms and dec_dms else None,
+                'observable_hours': observation.get('observable_hours'),
+                'alttime_file': calc_item.get('target_id', '') if os.path.isfile(_alttime_json_path(calc_item.get('target_id', ''))) else '',
+                'source_type': 'calculated',
+                'plan_state': plan_state,
+            }
+            _annotate_skytonight_item(row, user_id, username, 'Comets', plan_state)
+            rows.append(row)
+        return {
+            'comets': rows,
+            'night_metadata': data.get('metadata', {}),
+            'available': True,
+            'in_progress': bool(data.get('metadata', {}).get('in_progress', False)),
+            'source_type': 'calculated',
+        }
+
+    # Fallback: static dataset
+    dataset = skytonight_targets.load_targets_dataset()
+    rows = []
+    for target in dataset.get('targets', []) if isinstance(dataset, dict) else []:
+        if str(_target_attr(target, 'category', '') or '') != 'comets':
+            continue
+        preferred_name = str(_target_attr(target, 'preferred_name', '') or '')
+        meta_t = _target_attr(target, 'metadata', {})
+        if not isinstance(meta_t, dict):
+            meta_t = {}
+        row = {
+            'target name': preferred_name,
+            'type': str(_target_attr(target, 'object_type', '') or ''),
+            'visual magnitude': _target_attr(target, 'magnitude', None),
+            'q': meta_t.get('perihelion_date', ''),
+            'foto': None,
+            'alttime_file': '',
+            'source_type': 'dataset',
+        }
+        _annotate_skytonight_item(row, user_id, username, 'Comets', plan_state)
+        rows.append(row)
+    return {'comets': rows, 'night_metadata': {}, 'available': bool(rows), 'in_progress': False, 'source_type': 'dataset'}
+
+
+def _build_dso_section_payload(catalogue: Optional[str], user_id: str, username: str) -> Dict[str, Any]:
+    """Build the deep-sky objects payload for the reactive UI section."""
+    plan_payload = plan_my_night.get_plan_with_timeline(user_id, username)
+    plan_state = plan_payload.get('state', 'none')
+    max_rows = 1000 if not catalogue else 4000
+
+    if has_dso_results():
+        data = load_json_file(SKYTONIGHT_DSO_RESULTS_FILE, default={})
+        rows = []
+        rows_added = 0
+        for calc_item in data.get('deep_sky', []):
+            if rows_added >= max_rows:
+                break
+            calc_catalogue_names: Dict[str, str] = calc_item.get('catalogue_names', {})
+            if catalogue:
+                display_name = str(calc_catalogue_names.get(catalogue, '') or '').strip()
+                if not display_name:
+                    continue
+                source_catalogue = catalogue
+            else:
+                display_name = str(calc_item.get('preferred_name', '') or '').strip()
+                source_catalogue = str(next(iter(calc_catalogue_names.keys()), 'SkyTonight'))
+
+            preferred_display_name = str(calc_item.get('preferred_name', '') or '').strip() or display_name
+            canonical_id = (
+                str(calc_catalogue_names.get('OpenNGC') or calc_catalogue_names.get('OpenIC') or '').strip()
+                or preferred_display_name
+            )
+            observation = calc_item.get('observation', {})
+            const_abbr = calc_item.get('constellation', '')
+            const_full = _CONSTELLATION_ABBR_MAP.get(const_abbr, const_abbr)
+            ra_hms = observation.get('ra_hms', '')
+            dec_dms = observation.get('dec_dms', '')
+            row: Dict[str, Any] = {
+                'id': canonical_id,
+                'target name': preferred_display_name,
+                'type': calc_item.get('object_type', ''),
+                'constellation': const_full,
+                'mag': calc_item.get('magnitude'),
+                'size': calc_item.get('size_arcmin'),
+                'foto': calc_item.get('astro_score'),
+                'fraction of time observable': observation.get('observable_fraction'),
+                'altitude': observation.get('max_altitude'),
+                'azimuth': observation.get('azimuth'),
+                'observable_hours': observation.get('observable_hours'),
+                'right ascension': ra_hms,
+                'declination': dec_dms,
+                'hmsdms': f"{ra_hms} / {dec_dms}" if ra_hms and dec_dms else None,
+                'meridian transit': observation.get('meridian_transit'),
+                'antimeridian transit': observation.get('antimeridian_transit'),
+                'catalogue_names': calc_catalogue_names,
+                'alttime_file': calc_item.get('target_id', '') if os.path.isfile(_alttime_json_path(calc_item.get('target_id', ''))) else '',
+                'source_type': 'calculated',
+                'plan_state': plan_state,
+            }
+            _annotate_skytonight_item(row, user_id, username, source_catalogue, plan_state)
+            rows.append(row)
+            rows_added += 1
+        return {
+            'report': rows,
+            'night_metadata': data.get('metadata', {}),
+            'available': True,
+            'in_progress': bool(data.get('metadata', {}).get('in_progress', False)),
+            'source_type': 'calculated',
+            'report_truncated': rows_added >= max_rows,
+            'report_limit': max_rows,
+        }
+
+    # Fallback: static dataset
+    dataset = skytonight_targets.load_targets_dataset()
+    rows = []
+    rows_added = 0
+    for target in dataset.get('targets', []) if isinstance(dataset, dict) else []:
+        if str(_target_attr(target, 'category', '') or '') != 'deep_sky':
+            continue
+        if rows_added >= max_rows:
+            break
+        catalogue_names = _target_catalogue_names(target)
+        preferred_name = str(_target_attr(target, 'preferred_name', '') or '').strip()
+        if catalogue:
+            display_name = str(catalogue_names.get(catalogue, '') or '').strip()
+            if not display_name:
+                continue
+            source_catalogue = catalogue
+        else:
+            display_name = preferred_name
+            source_catalogue = str(next(iter(catalogue_names.keys()), 'SkyTonight'))
+        const = str(_target_attr(target, 'constellation', '') or '')
+        const_full = _CONSTELLATION_ABBR_MAP.get(const, const)
+        row = {
+            'id': display_name,
+            'target name': display_name,
+            'type': str(_target_attr(target, 'object_type', '') or ''),
+            'constellation': const_full,
+            'mag': _target_attr(target, 'magnitude', None),
+            'size': _target_attr(target, 'size_arcmin', None),
+            'foto': None,
+            'alttime_file': '',
+            'source_type': 'dataset',
+            'in_astrodex': False,
+            'in_plan_my_night': False,
+            'catalogue_group_id': '',
+            'catalogue_aliases': {},
+            'plan_state': plan_state,
+        }
+        if catalogue:
+            _annotate_skytonight_item(row, user_id, username, source_catalogue, plan_state)
+        rows.append(row)
+        rows_added += 1
+    return {
+        'report': rows,
+        'night_metadata': {},
+        'available': bool(rows),
+        'in_progress': False,
+        'source_type': 'dataset',
+        'report_truncated': rows_added >= max_rows,
+        'report_limit': max_rows,
+    }
+
+
+@app.route('/api/skytonight/data/bodies', methods=['GET'])
+@login_required
+def get_skytonight_data_bodies_api():
+    """Return only Solar system body results (reactive per-section endpoint)."""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'User not authenticated'}), 401
+        return jsonify(_build_bodies_section_payload(user.user_id, user.username))
+    except Exception:
+        logger.exception('Error building bodies section payload')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/skytonight/data/comets', methods=['GET'])
+@login_required
+def get_skytonight_data_comets_api():
+    """Return only comet results (reactive per-section endpoint)."""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'User not authenticated'}), 401
+        return jsonify(_build_comets_section_payload(user.user_id, user.username))
+    except Exception:
+        logger.exception('Error building comets section payload')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/skytonight/data/dso', methods=['GET'])
+@login_required
+def get_skytonight_data_dso_api():
+    """Return only deep-sky object results (reactive per-section endpoint).
+
+    Optional query param ``catalogue`` filters to a single catalogue.
+    """
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'User not authenticated'}), 401
+        catalogue = request.args.get('catalogue', '').strip() or None
+        if catalogue and not re.match(r'^[a-zA-Z0-9_-]+$', catalogue):
+            return jsonify({'error': 'Invalid catalogue name'}), 400
+        return jsonify(_build_dso_section_payload(catalogue, user.user_id, user.username))
+    except Exception:
+        logger.exception('Error building DSO section payload')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+
 @login_required
 def get_catalogue_reports_api(catalogue):
     """Legacy alias returning SkyTonight catalogue reports payload."""

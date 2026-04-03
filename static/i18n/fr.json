@@ -603,6 +603,7 @@
   "skytonight": {
     "info_1": "SkyTonight calcule les meilleures cibles d'observation de la nuit en fonction de votre emplacement, de la météo et des jeux de données internes.",
     "info_2": "Patientez avant le chargement, ou vérifiez les paramètres en cas d'échec du calcul.",
+    "calculation_in_progress": "Calcul en cours — données partielles affichées, veuillez patienter…",
     "no_data_available": "Aucune donnée SkyTonight n'est actuellement disponible.",
     "catalogue_results": "Résultats de {catalogue}",
     "plot": "Graphique",

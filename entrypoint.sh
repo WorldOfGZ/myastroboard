@@ -18,7 +18,7 @@ rm -rf /app/data/skytonight/outputs/* || true
 rm -rf /app/data/skytonight/logs/* || true
 rm -rf /app/data/skytonight/runtime/* || true
 rm -rf /app/data/skytonight/configs/* || true
-rm -f /app/data/skytonight/calculation_results.json || true
+rm -rf /app/data/skytonight/calculations/* || true
 
 echo "[INFO] Starting application as non-root user"
 exec su appuser -c "$*"
