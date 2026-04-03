@@ -72,6 +72,7 @@ def _save_alttime_json(
     constraints: Dict[str, Any],
     timezone_name: str = 'UTC',
     precomputed_times_iso: Optional[List[str]] = None,
+    az_degrees: Optional[np.ndarray] = None,
 ) -> bool:
     """Persist altitude-time series for one target to the outputs directory.
 
@@ -100,6 +101,11 @@ def _save_alttime_json(
             'altitude_constraint_min': float(constraints.get('altitude_constraint_min', 30)),
             'altitude_constraint_max': float(constraints.get('altitude_constraint_max', 80)),
         }
+        if az_degrees is not None:
+            payload['azimuths'] = [round(float(a), 1) for a in az_degrees]
+        horizon_profile_save = constraints.get('horizon_profile', [])
+        if horizon_profile_save:
+            payload['horizon_profile'] = horizon_profile_save
         path = _alttime_json_path(target_id)
         return save_json_file(path, payload)
     except Exception as exc:
@@ -171,6 +177,28 @@ def _angular_separation_deg(ra1: float, dec1: float, ra2: float, dec2: float) ->
     # Clamp to [-1, 1] to guard against floating-point drift
     cos_val = max(-1.0, min(1.0, cos_val))
     return math.degrees(math.acos(cos_val))
+
+
+def _horizon_floor_array(az_deg: np.ndarray, profile: List[Dict[str, Any]]) -> np.ndarray:
+    """Return the custom horizon minimum altitude at each azimuth sample.
+
+    Linearly interpolates between profile points on the circular azimuth scale.
+    ``profile`` is a list of dicts with ``az`` (0–360°) and ``alt`` (0–90°) keys.
+    Returns a zero array when the profile is empty or invalid so that the caller's
+    flat ``alt_min`` acts as the sole floor.
+    """
+    if not profile:
+        return np.zeros(len(az_deg), dtype=np.float32)
+    try:
+        sorted_pts = sorted(profile, key=lambda p: float(p['az']))
+        p_az = np.array([float(p['az']) for p in sorted_pts], dtype=np.float64)
+        p_alt = np.array([float(p['alt']) for p in sorted_pts], dtype=np.float64)
+        # Extend with wrap-around copies so np.interp handles the 0°/360° seam
+        wrap_az = np.concatenate([p_az[-1:] - 360.0, p_az, p_az[:1] + 360.0])
+        wrap_alt = np.concatenate([p_alt[-1:], p_alt, p_alt[:1]])
+        return np.interp(az_deg % 360.0, wrap_az, wrap_alt).astype(np.float32)
+    except Exception:
+        return np.zeros(len(az_deg), dtype=np.float32)
 
 
 def _surface_brightness(magnitude: Optional[float], size_arcmin: Optional[float]) -> Optional[float]:
@@ -576,8 +604,13 @@ def _compute_target_result(
     if total_steps < _MIN_STEPS:
         return None
 
-    # Steps where target is within [alt_min, alt_max]
-    in_window_mask = (altaz_values >= alt_min) & (altaz_values <= alt_max)
+    # Steps where target is within [alt_min, alt_max], respecting custom horizon profile
+    horizon_profile: List[Dict[str, Any]] = constraints.get('horizon_profile', [])
+    if horizon_profile and az_values is not None:
+        horizon_floors = np.maximum(alt_min, _horizon_floor_array(az_values, horizon_profile))
+        in_window_mask = (altaz_values >= horizon_floors) & (altaz_values <= alt_max)
+    else:
+        in_window_mask = (altaz_values >= alt_min) & (altaz_values <= alt_max)
     observable_steps = int(np.sum(in_window_mask))
     observable_fraction = observable_steps / total_steps
 
@@ -751,7 +784,12 @@ def _compute_body_result(
     if total_steps < _MIN_STEPS:
         return None, None, None
 
-    in_window_mask = (alt_deg >= alt_min)
+    horizon_profile_b: List[Dict[str, Any]] = constraints.get('horizon_profile', [])
+    if horizon_profile_b:
+        horizon_floors_b = np.maximum(alt_min, _horizon_floor_array(az_deg, horizon_profile_b))
+        in_window_mask = (alt_deg >= horizon_floors_b)
+    else:
+        in_window_mask = (alt_deg >= alt_min)
     observable_steps = int(np.sum(in_window_mask))
     observable_fraction = observable_steps / total_steps
 
@@ -1030,6 +1068,7 @@ def run_calculations(
                     night_end=night_end,
                     constraints=constraints,
                     timezone_name=timezone_name,
+                    az_degrees=body_az_deg,
                 )
         processed_bodies += 1
         _set_progress('bodies', processed_bodies, n_bodies)
@@ -1083,6 +1122,7 @@ def run_calculations(
             night_end=night_end,
             lat=lat,
             lon=lon,
+            az_values=az_values_comet,
         )
         if result is not None:
             comets_results.append(result)
@@ -1105,6 +1145,7 @@ def run_calculations(
                 night_end=night_end,
                 constraints=constraints,
                 timezone_name=timezone_name,
+                az_degrees=az_values_comet,
             )
         processed_comets += 1
         _set_progress('comets', processed_comets, n_comets)
@@ -1227,6 +1268,7 @@ def run_calculations(
                         constraints,
                         timezone_name,
                         times_iso_list,
+                        az_matrix[idx],
                     )
                 processed_deep_sky += 1
                 if processed_deep_sky % _DSO_LOG_INTERVAL == 0:

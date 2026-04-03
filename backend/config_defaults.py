@@ -30,7 +30,8 @@ DEFAULT_CONSTRAINTS = {
     "moon_separation_min": 45,
     "moon_separation_use_illumination": True,
     "fraction_of_time_observable_threshold": 0.5,
-    "north_to_east_ccw": False
+    "north_to_east_ccw": False,
+    "horizon_profile": [],
 }
 
 

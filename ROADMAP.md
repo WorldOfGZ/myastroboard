@@ -30,16 +30,11 @@ This document describes features that could potentially be integrated into MyAst
 ### User profile
 - Notification (when/if available in future)
 
-### Backup & Sync Features
-**Easy backup/restore of data config**
-- Configuration backup and restore
-- Automated backup scheduling
-- Configuration & Astrodex
-
 ## Upgrade Features
 
-### Enhanced Uptonight Execution
-**Objective: Better managment, not only a cycle**
-- Currently every 6 hours with current weather
-- Idea is to launch at startup, with forecast meteo (from next x hours)
-- Second launch closer to night session with current weather
+### Ideas in raw
+1	Custom horizon profile      Medium      Very high — changes which targets appear
+2	Equipment FOV matching      Medium      Very high — practical astrophotography fit
+3	Bortle/SQM in AstroScore    Low	        High — corrects score_object for light pollution
+4	Solar elongation filter     Low	        Medium — correctness for planets
+5	Seeing forecast (7Timer)    Medium      Medium — planetary imaging only

@@ -1764,7 +1764,16 @@ def get_skytonight_skymap_api():
                 if tgt.get('category') == 'deep_sky' and 'messier' not in tgt:
                     tgt['messier'] = messier_ids.get(tgt.get('id', ''), False)
 
-        return jsonify({'targets': targets})
+        # Include constraints so the frontend can draw horizon lines on the map
+        cfg = load_config()
+        constraints = cfg.get('skytonight', {}).get('constraints', {})
+        return jsonify({
+            'targets': targets,
+            'constraints': {
+                'altitude_constraint_min': float(constraints.get('altitude_constraint_min', 30)),
+                'horizon_profile': constraints.get('horizon_profile', []),
+            },
+        })
     except Exception:
         logger.exception('Error reading skymap data file')
         return jsonify({'error': 'Internal server error'}), 500
