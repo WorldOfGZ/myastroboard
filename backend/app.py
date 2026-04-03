@@ -42,7 +42,7 @@ from events_aggregator import EventsAggregator
 from i18n_utils import I18nManager
 from txtconf_loader import get_repo_version
 from repo_config import load_config, save_config
-from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, CACHE_TTL, SKYTONIGHT_LOGS_DIR, CONFIG_DIR, OUTPUT_DIR
+from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, CACHE_TTL, SKYTONIGHT_LOGS_DIR, CONFIG_DIR, OUTPUT_DIR, SKYTONIGHT_SKYMAP_FILE
 from logging_config import get_logger
 from version_checker import check_for_updates
 from metrics_collector import collect_metrics
@@ -1468,6 +1468,21 @@ def get_skytonight_alttime_api(target_id):
         return jsonify(data)
     except Exception:
         logger.exception(f'Error reading alttime JSON for target {target_id}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/skytonight/skymap', methods=['GET'])
+@login_required
+def get_skytonight_skymap_api():
+    """Return sky map trajectory data (az/alt arrays per visible target)."""
+    if not os.path.isfile(SKYTONIGHT_SKYMAP_FILE):
+        return jsonify({'targets': []}), 200
+    try:
+        with open(SKYTONIGHT_SKYMAP_FILE, 'r', encoding='utf-8') as fobj:
+            data = json.load(fobj)
+        return jsonify(data)
+    except Exception:
+        logger.exception('Error reading skymap data file')
         return jsonify({'error': 'Internal server error'}), 500
 
 
