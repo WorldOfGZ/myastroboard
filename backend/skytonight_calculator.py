@@ -24,7 +24,14 @@ from astropy.time import Time
 
 from astroplan.moon import moon_illumination
 
-from constants import SKYTONIGHT_OUTPUT_DIR, SKYTONIGHT_RESULTS_FILE, SKYTONIGHT_SKYMAP_FILE
+from constants import (
+    SKYTONIGHT_BODIES_RESULTS_FILE,
+    SKYTONIGHT_COMETS_RESULTS_FILE,
+    SKYTONIGHT_DSO_RESULTS_FILE,
+    SKYTONIGHT_OUTPUT_DIR,
+    SKYTONIGHT_RESULTS_FILE,
+    SKYTONIGHT_SKYMAP_FILE,
+)
 from logging_config import get_logger
 from repo_config import load_config
 from skytonight_models import SkyTonightTarget
@@ -908,25 +915,23 @@ def run_calculations(
     night_window = _get_night_window(lat, lon, timezone_name)
     if night_window is None:
         logger.warning('No astronomical night found for tonight; SkyTonight calculations skipped.')
-        payload: Dict[str, Any] = {
-            'metadata': {
-                'calculated_at': datetime.now(timezone.utc).isoformat(),
-                'location_name': location_name,
-                'latitude': lat,
-                'longitude': lon,
-                'elevation': elevation,
-                'timezone': timezone_name,
-                'night_start': None,
-                'night_end': None,
-                'night_hours': 0.0,
-                'moon_phase': 0.0,
-                'counts': {'deep_sky': 0, 'bodies': 0, 'comets': 0},
-            },
-            'deep_sky': [],
-            'bodies': [],
-            'comets': [],
+        _empty_meta = {
+            'calculated_at': datetime.now(timezone.utc).isoformat(),
+            'location_name': location_name,
+            'latitude': lat,
+            'longitude': lon,
+            'elevation': elevation,
+            'timezone': timezone_name,
+            'night_start': None,
+            'night_end': None,
+            'night_hours': 0.0,
+            'moon_phase': 0.0,
+            'counts': {'deep_sky': 0, 'bodies': 0, 'comets': 0},
         }
-        save_json_file(SKYTONIGHT_RESULTS_FILE, payload)
+        save_json_file(SKYTONIGHT_BODIES_RESULTS_FILE, {'metadata': _empty_meta, 'bodies': []})
+        save_json_file(SKYTONIGHT_COMETS_RESULTS_FILE, {'metadata': _empty_meta, 'comets': []})
+        save_json_file(SKYTONIGHT_DSO_RESULTS_FILE, {'metadata': _empty_meta, 'deep_sky': []})
+        save_json_file(SKYTONIGHT_RESULTS_FILE, {'metadata': _empty_meta})
         return {'counts': {'deep_sky': 0, 'bodies': 0, 'comets': 0}, 'night_found': False}
 
     night_start, night_end = night_window
@@ -1030,8 +1035,8 @@ def run_calculations(
         _set_progress('bodies', processed_bodies, n_bodies)
 
     # Immediate partial save: bodies are available in the frontend while comets/DSOs compute
-    logger.info(f'Bodies done: {len(bodies_results)} visible. Writing partial results...')
-    save_json_file(SKYTONIGHT_RESULTS_FILE, {
+    logger.info(f'Bodies done: {len(bodies_results)} visible. Writing bodies results...')
+    save_json_file(SKYTONIGHT_BODIES_RESULTS_FILE, {
         'metadata': {
             'calculated_at': datetime.now(timezone.utc).isoformat(),
             'location_name': location_name,
@@ -1043,13 +1048,9 @@ def run_calculations(
             'night_end': night_end.isoformat(),
             'night_hours': round(night_hours, 2),
             'moon_phase': round(moon.phase, 4),
-            'counts': {'deep_sky': 0, 'bodies': len(bodies_results), 'comets': 0},
-            'constraints': constraints,
             'in_progress': True,
         },
-        'deep_sky': [],
         'bodies': bodies_results,
-        'comets': [],
     })
 
     # -----------------------------------------------------------------------
@@ -1108,9 +1109,9 @@ def run_calculations(
         processed_comets += 1
         _set_progress('comets', processed_comets, n_comets)
 
-    # Partial save: bodies + comets are available while DSOs compute
-    logger.info(f'Comets done: {len(comets_results)} visible. Writing partial results...')
-    save_json_file(SKYTONIGHT_RESULTS_FILE, {
+    # Partial save: comets are now available while DSOs compute
+    logger.info(f'Comets done: {len(comets_results)} visible. Writing comets results...')
+    save_json_file(SKYTONIGHT_COMETS_RESULTS_FILE, {
         'metadata': {
             'calculated_at': datetime.now(timezone.utc).isoformat(),
             'location_name': location_name,
@@ -1122,12 +1123,8 @@ def run_calculations(
             'night_end': night_end.isoformat(),
             'night_hours': round(night_hours, 2),
             'moon_phase': round(moon.phase, 4),
-            'counts': {'deep_sky': 0, 'bodies': len(bodies_results), 'comets': len(comets_results)},
-            'constraints': constraints,
             'in_progress': True,
         },
-        'deep_sky': [],
-        'bodies': bodies_results,
         'comets': comets_results,
     })
 
@@ -1248,27 +1245,28 @@ def run_calculations(
         'comets': len(comets_results),
     }
 
-    payload = {
-        'metadata': {
-            'calculated_at': datetime.now(timezone.utc).isoformat(),
-            'location_name': location_name,
-            'latitude': lat,
-            'longitude': lon,
-            'elevation': elevation,
-            'timezone': timezone_name,
-            'night_start': night_start.isoformat(),
-            'night_end': night_end.isoformat(),
-            'night_hours': round(night_hours, 2),
-            'moon_phase': round(moon.phase, 4),
-            'counts': counts,
-            'constraints': constraints,
-        },
-        'deep_sky': deep_sky_results,
-        'bodies': bodies_results,
-        'comets': comets_results,
+    _final_meta = {
+        'calculated_at': datetime.now(timezone.utc).isoformat(),
+        'location_name': location_name,
+        'latitude': lat,
+        'longitude': lon,
+        'elevation': elevation,
+        'timezone': timezone_name,
+        'night_start': night_start.isoformat(),
+        'night_end': night_end.isoformat(),
+        'night_hours': round(night_hours, 2),
+        'moon_phase': round(moon.phase, 4),
+        'counts': counts,
+        'constraints': constraints,
+        'in_progress': False,
     }
 
-    save_json_file(SKYTONIGHT_RESULTS_FILE, payload)
+    # Write each category to its own file (final, sorted, in_progress=False)
+    save_json_file(SKYTONIGHT_BODIES_RESULTS_FILE, {'metadata': _final_meta, 'bodies': bodies_results})
+    save_json_file(SKYTONIGHT_COMETS_RESULTS_FILE, {'metadata': _final_meta, 'comets': comets_results})
+    save_json_file(SKYTONIGHT_DSO_RESULTS_FILE, {'metadata': _final_meta, 'deep_sky': deep_sky_results})
+    # Metadata-only summary — signals that all calculations are complete
+    save_json_file(SKYTONIGHT_RESULTS_FILE, {'metadata': _final_meta})
 
     # Write skymap trajectory data sorted by AstroScore descending, numbered 1..N
     skymap_entries.sort(key=lambda e: e['score'], reverse=True)
@@ -1287,5 +1285,23 @@ def run_calculations(
 
 
 def load_calculation_results() -> Dict[str, Any]:
-    """Load the latest SkyTonight calculation cache from disk."""
-    return load_json_file(SKYTONIGHT_RESULTS_FILE, default={})
+    """Load and combine the latest SkyTonight calculation results from the split files."""
+    meta_file = load_json_file(SKYTONIGHT_RESULTS_FILE, default={})
+    dso_file = load_json_file(SKYTONIGHT_DSO_RESULTS_FILE, default={})
+    bodies_file = load_json_file(SKYTONIGHT_BODIES_RESULTS_FILE, default={})
+    comets_file = load_json_file(SKYTONIGHT_COMETS_RESULTS_FILE, default={})
+
+    # Prefer metadata from the summary file; fall back to whichever data file has it
+    metadata = (
+        meta_file.get('metadata')
+        or dso_file.get('metadata')
+        or bodies_file.get('metadata')
+        or comets_file.get('metadata')
+        or {}
+    )
+    return {
+        'metadata': metadata,
+        'deep_sky': dso_file.get('deep_sky', []),
+        'bodies': bodies_file.get('bodies', []),
+        'comets': comets_file.get('comets', []),
+    }

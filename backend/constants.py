@@ -11,8 +11,12 @@ DATA_DIR_CACHE = os.path.join(DATA_DIR, 'cache')
 SKYTONIGHT_DIR = os.environ.get('SKYTONIGHT_DIR', os.path.join(DATA_DIR, 'skytonight'))
 SKYTONIGHT_CATALOGUES_DIR = os.path.join(SKYTONIGHT_DIR, 'catalogues')
 SKYTONIGHT_DATASET_FILE = os.path.join(SKYTONIGHT_CATALOGUES_DIR, 'targets.json')
-SKYTONIGHT_RESULTS_FILE = os.path.join(SKYTONIGHT_DIR, 'calculation_results.json')
-SKYTONIGHT_SKYMAP_FILE = os.path.join(SKYTONIGHT_DIR, 'skymap_data.json')
+SKYTONIGHT_CALCULATIONS_DIR = os.path.join(SKYTONIGHT_DIR, 'calculations')
+SKYTONIGHT_RESULTS_FILE = os.path.join(SKYTONIGHT_CALCULATIONS_DIR, 'calculation_results.json')
+SKYTONIGHT_DSO_RESULTS_FILE = os.path.join(SKYTONIGHT_CALCULATIONS_DIR, 'dso_results.json')
+SKYTONIGHT_BODIES_RESULTS_FILE = os.path.join(SKYTONIGHT_CALCULATIONS_DIR, 'bodies_results.json')
+SKYTONIGHT_COMETS_RESULTS_FILE = os.path.join(SKYTONIGHT_CALCULATIONS_DIR, 'comets_results.json')
+SKYTONIGHT_SKYMAP_FILE = os.path.join(SKYTONIGHT_CALCULATIONS_DIR, 'skymap_data.json')
 
 # File paths
 CONFIG_FILE = os.path.join(DATA_DIR, 'config.json')
@@ -26,9 +30,6 @@ SKYTONIGHT_RUNTIME_DIR = os.path.join(SKYTONIGHT_DIR, 'runtime')
 SKYTONIGHT_SCHEDULER_STATUS_FILE = os.path.join(SKYTONIGHT_RUNTIME_DIR, 'scheduler_status.json')
 SKYTONIGHT_SCHEDULER_TRIGGER_FILE = os.path.join(SKYTONIGHT_RUNTIME_DIR, 'scheduler_trigger')
 SKYTONIGHT_SCHEDULER_LOCK_FILE = os.path.join(SKYTONIGHT_RUNTIME_DIR, 'scheduler.lock')
-
-# Environment configuration
-SCHEDULE_INTERVAL = int(os.environ.get('SCHEDULE_INTERVAL', '21601'))  # 6 hours in seconds (1 sec more to see it in logs immediately on startup so not set)
 
 # API/Service URLs
 URL_OPENMETEO = "https://api.open-meteo.com/v1/forecast"

@@ -225,6 +225,11 @@ function switchSubTab(parentTab, subtabName) {
         loadAndDisplayEvents();
     } else if (subtabName === 'plan-my-night') { //Astrodex tab - Plan My Night
         loadPlanMyNight();
+    } else if (subtabName.startsWith('skytonight-')) { //SkyTonight section tabs
+        const skytSection = subtabName.slice('skytonight-'.length);
+        if (typeof _showSkyTonightSectionData === 'function') {
+            _showSkyTonightSectionData(skytSection);
+        }
     }
 }
 

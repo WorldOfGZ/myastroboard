@@ -6,9 +6,13 @@ import os
 from typing import Any, Dict, Optional
 
 from constants import (
+    SKYTONIGHT_BODIES_RESULTS_FILE,
+    SKYTONIGHT_CALCULATIONS_DIR,
     SKYTONIGHT_CATALOGUES_DIR,
+    SKYTONIGHT_COMETS_RESULTS_FILE,
     SKYTONIGHT_DATASET_FILE,
     SKYTONIGHT_DIR,
+    SKYTONIGHT_DSO_RESULTS_FILE,
     SKYTONIGHT_LOGS_DIR,
     SKYTONIGHT_OUTPUT_DIR,
     SKYTONIGHT_RESULTS_FILE,
@@ -25,6 +29,7 @@ def ensure_skytonight_directories(location_name: Optional[str] = None) -> Dict[s
     directories = {
         'root': SKYTONIGHT_DIR,
         'catalogues': SKYTONIGHT_CATALOGUES_DIR,
+        'calculations': SKYTONIGHT_CALCULATIONS_DIR,
         'outputs': SKYTONIGHT_OUTPUT_DIR,
         'logs': SKYTONIGHT_LOGS_DIR,
         'runtime': SKYTONIGHT_RUNTIME_DIR,
@@ -95,5 +100,20 @@ def get_results_file() -> str:
 
 
 def has_calculation_results() -> bool:
-    """Return True if a calculation results file has been written."""
+    """Return True if all calculations are complete (metadata summary file exists)."""
     return os.path.isfile(SKYTONIGHT_RESULTS_FILE) and os.path.getsize(SKYTONIGHT_RESULTS_FILE) > 0
+
+
+def has_bodies_results() -> bool:
+    """Return True if solar body calculation results are available."""
+    return os.path.isfile(SKYTONIGHT_BODIES_RESULTS_FILE) and os.path.getsize(SKYTONIGHT_BODIES_RESULTS_FILE) > 0
+
+
+def has_comets_results() -> bool:
+    """Return True if comet calculation results are available."""
+    return os.path.isfile(SKYTONIGHT_COMETS_RESULTS_FILE) and os.path.getsize(SKYTONIGHT_COMETS_RESULTS_FILE) > 0
+
+
+def has_dso_results() -> bool:
+    """Return True if deep-sky object calculation results are available."""
+    return os.path.isfile(SKYTONIGHT_DSO_RESULTS_FILE) and os.path.getsize(SKYTONIGHT_DSO_RESULTS_FILE) > 0

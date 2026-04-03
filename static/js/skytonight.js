@@ -1,9 +1,11 @@
 ﻿// SkyTonight Results Display and Management
 
 let catalogueResults = {};
-let currentCatalogueTab = ''; // Track current catalogue for Astrodex integration
+let currentCatalogueTab = 'SkyTonight'; // Always 'SkyTonight' in the new single-section layout
 let skytonightDisplayAstrodexCache = null;
 let skytonightDisplayAstrodexPromise = null;
+let _skytCurrentSection = 'plot'; // Active section: 'plot' | 'report' | 'bodies' | 'comets' | 'log'
+let _skytSectionCache = {};       // Cached response per section key
 
 function tSkyTonightCompat(key, params = {}) {
     const skytonightKey = `skytonight.${key}`;
@@ -460,314 +462,279 @@ async function loadCatalogues() {
 }
 
 // ======================
-// SkyTonight Results Tabs
+// SkyTonight Section UI  (5 direct section buttons replacing the old subtab)
 // ======================
 
-//Load SkyTonight results tabs
+/**
+ * Main entry point — called when the SkyTonight tab is activated,
+ * after a calculation finishes, or after plan changes that need badge refresh.
+ * Builds/refreshes the 5 section buttons and ensures content wrappers exist.
+ */
 async function loadSkyTonightResultsTabs() {
-    try {
-        const outputs = [{ target: 'SkyTonight', files: [] }];
-        
-        const subtabsContainer = document.getElementById('skytonight-subtabs');
-        let  eltFirstTab = -1; // Index of the first tab to activate by default
+    // Invalidate section caches so fresh data is fetched on next view
+    _skytSectionCache = {};
+    currentCatalogueTab = 'SkyTonight';
 
-        DOMUtils.clear(subtabsContainer);
-        
-        //console.log('SkyTonight outputs:', outputs);
+    _buildSkyTonightSectionButtons();
+    // Show + load the current (or default) section
+    activateSubTab('skytonight', `skytonight-${_skytCurrentSection}`);
+    await _showSkyTonightSectionData(_skytCurrentSection);
+}
 
-        //Make the tab links for each catalogue output
-        if (outputs && outputs.length > 0) {
-            // Make an array with only output.target
-            const targets = outputs.map(output => output.target);
-            // Reorder alphabetically targets
-            targets.sort((a, b) => a.localeCompare(b));
+/**
+ * Build the 5 section navigation buttons in #skytonight-subtabs and ensure
+ * the corresponding sub-tab-content divs exist in #skytonight-tab.
+ * Follows the same pattern as other tabs (sub-tab-btn / sub-tab-content).
+ */
+function _buildSkyTonightSectionButtons() {
+    const navContainer = document.getElementById('skytonight-subtabs');
+    if (!navContainer) return;
+    DOMUtils.clear(navContainer);
 
-            targets.forEach((target, index) => {
-                if (eltFirstTab === -1) {
-                    eltFirstTab = index;
-                }
-                const li = document.createElement('li');
-                li.className = 'nav-item';
-                const a = document.createElement('a');
-                a.className = 'nav-link sub-tab-btn';
-                a.href = '#';
-                a.setAttribute('data-subtab', `catalogue-${target}`);
-                a.innerHTML = `<i class="bi bi-journal-bookmark-fill text-success icon-inline" aria-hidden="true"></i>${target}`;
-                li.appendChild(a);
-                subtabsContainer.appendChild(li);
-            });
-        } else {
-            subtabsContainer.textContent = tSkyTonightCompat('no_data_available');
+    const skytonightTab = document.getElementById('skytonight-tab');
+
+    const sections = [
+        { key: 'plot',   icon: 'bi-bar-chart-line text-success', labelKey: 'plot' },
+        { key: 'report', icon: 'bi-galaxy',                      labelKey: 'deep_sky_objects' },
+        { key: 'bodies', icon: 'bi-globe2 text-warning',         labelKey: 'bodies' },
+        { key: 'comets', icon: 'bi-comet text-warning',          labelKey: 'comets' },
+        { key: 'log',    icon: 'bi-journal-text text-danger',    labelKey: 'logs' },
+    ];
+
+    sections.forEach(sec => {
+        const subtabName = `skytonight-${sec.key}`;
+
+        // ── Nav button ──────────────────────────────────────────────────────
+        const li = document.createElement('li');
+        li.className = 'nav-item';
+        const a = document.createElement('a');
+        a.className = `nav-link sub-tab-btn${sec.key === _skytCurrentSection ? ' active' : ''}`;
+        a.href = '#';
+        a.setAttribute('data-subtab', subtabName);
+        a.innerHTML = `<i class="bi ${sec.icon} icon-inline" aria-hidden="true"></i> <span>${tSkyTonightCompat(sec.labelKey)}</span>`;
+        li.appendChild(a);
+        navContainer.appendChild(li);
+
+        // ── Content wrapper (created once, reused on re-renders) ────────────
+        if (!document.getElementById(`${subtabName}-subtab`)) {
+            const contentDiv = document.createElement('div');
+            contentDiv.id = `${subtabName}-subtab`;
+            contentDiv.className = 'sub-tab-content';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'shadow p-2 mb-3 rounded bg-sub-container';
+
+            const h2 = document.createElement('h2');
+            h2.innerHTML = `<i class="bi ${sec.icon} icon-inline" aria-hidden="true"></i> <span>${tSkyTonightCompat(sec.labelKey)}</span>`;
+            wrapper.appendChild(h2);
+
+            const dataDiv = document.createElement('div');
+            dataDiv.id = `skytonight-${sec.key}-data`;
+            wrapper.appendChild(dataDiv);
+
+            contentDiv.appendChild(wrapper);
+            skytonightTab.appendChild(contentDiv);
         }
-        
-        // Create content divs for catalogue tabs
-        const skytonightTab = document.getElementById('skytonight-tab');
-        
-        if (outputs && outputs.length > 0) {
-            outputs.forEach((output, index) => {
-                const existingDiv = document.getElementById(`catalogue-${output.target}-subtab`);
-                if (!existingDiv) {
-                    const div = document.createElement('div');
-                    div.id = `catalogue-${output.target}-subtab`;
-                    div.className = `sub-tab-content`;
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'shadow p-2 mb-3 rounded bg-sub-container';
-                    const title = document.createElement('h2');
-                    title.innerHTML = `<i class="bi bi-journal-bookmark text-success icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('catalogue_results', {catalogue: output.target})}`;
-                    const typeButtons = document.createElement('ul');
-                    typeButtons.className = 'nav nav-pills sub-tabs';
-                    typeButtons.id = `catalogue-${output.target}-type-buttons`;
-                    const content = document.createElement('div');
-                    content.id = `catalogue-${output.target}-content`;
-                    const loadingAlert = document.createElement('div');
-                    loadingAlert.className = 'alert alert-info';
-                    loadingAlert.textContent = i18n.t('common.loading');
-                    content.appendChild(loadingAlert);
-                    wrapper.appendChild(title);
-                    wrapper.appendChild(typeButtons);
-                    wrapper.appendChild(content);
-                    div.appendChild(wrapper);
-                    skytonightTab.appendChild(div);
-                    
-                    // Load catalogue data
-                    loadCatalogueResults(output.target);
+    });
+}
+
+/**
+ * Called by app.js switchSubTab when a skytonight-* subtab is activated.
+ * Loads data into the already-visible sub-tab-content div.
+ *
+ * @param {string} sectionKey  'plot' | 'report' | 'bodies' | 'comets' | 'log'
+ */
+async function _showSkyTonightSectionData(sectionKey) {
+    _skytCurrentSection = sectionKey;
+
+    const dataDiv = document.getElementById(`skytonight-${sectionKey}-data`);
+    if (!dataDiv) return;
+
+    if (sectionKey === 'plot') {
+        await _renderSkyMap(null, dataDiv);
+        return;
+    }
+
+    if (sectionKey === 'log') {
+        await _showSkyTonightLogSection(dataDiv);
+        return;
+    }
+
+    await _showSkyTonightDataSection(sectionKey, dataDiv);
+}
+
+async function _showSkyTonightLogSection(container) {
+    DOMUtils.clear(container);
+    const loading = document.createElement('div');
+    loading.className = 'alert alert-info';
+    loading.textContent = tSkyTonightCompat('loading_log_content');
+    container.appendChild(loading);
+
+    const logContent = await loadSkytonightLog();
+    DOMUtils.clear(container);
+
+    if (typeof logContent !== 'string') {
+        const err = document.createElement('div');
+        err.className = 'alert alert-danger';
+        err.textContent = tSkyTonightCompat('failed_to_load_log_content');
+        container.appendChild(err);
+        return;
+    }
+
+    const lines = logContent.trim().split('\n').filter(l => l.trim());
+    if (lines.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'alert alert-info';
+        empty.textContent = tSkyTonightCompat('no_data_available');
+        container.appendChild(empty);
+        return;
+    }
+
+    const frag = document.createDocumentFragment();
+    lines.forEach(line => {
+        let entry;
+        try { entry = JSON.parse(line); } catch {
+            const pre = document.createElement('pre');
+            pre.className = 'small text-muted my-1';
+            pre.textContent = line;
+            frag.appendChild(pre);
+            return;
+        }
+
+        const { timestamp, status, payload } = entry;
+        const isError = status && status.includes('error');
+
+        const card = document.createElement('div');
+        card.className = `card mb-2 border-${isError ? 'danger' : 'success'}`;
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'card-header d-flex align-items-center gap-2 py-1';
+
+        const badge = document.createElement('span');
+        badge.className = `badge bg-${isError ? 'danger' : 'success'}`;
+        badge.textContent = status || '?';
+        header.appendChild(badge);
+
+        const tsEl = document.createElement('small');
+        tsEl.className = 'text-muted ms-auto';
+        if (timestamp) {
+            try { tsEl.textContent = new Date(timestamp).toLocaleString(); }
+            catch { tsEl.textContent = timestamp; }
+        }
+        header.appendChild(tsEl);
+        card.appendChild(header);
+
+        // Body — key/value rows from payload
+        if (payload && typeof payload === 'object') {
+            const body = document.createElement('div');
+            body.className = 'card-body py-2 px-3 small';
+
+            Object.entries(payload).forEach(([key, value]) => {
+                const row = document.createElement('div');
+                row.className = 'd-flex gap-2 align-items-baseline border-bottom py-1';
+
+                const keyEl = document.createElement('span');
+                keyEl.className = 'fw-semibold text-nowrap';
+                keyEl.style.minWidth = '10rem';
+                keyEl.textContent = key.replace(/_/g, ' ');
+
+                const valEl = document.createElement('span');
+                valEl.className = 'text-break';
+                if (typeof value === 'object' && value !== null) {
+                    valEl.textContent = JSON.stringify(value);
+                } else if (typeof value === 'boolean') {
+                    valEl.innerHTML = value
+                        ? '<i class="bi bi-check-circle-fill text-success" aria-hidden="true"></i>'
+                        : '<i class="bi bi-x-circle-fill text-danger" aria-hidden="true"></i>';
                 } else {
-                    // Refresh existing tab data to avoid stale badges/state after plan changes.
-                    loadCatalogueResults(output.target);
+                    valEl.textContent = String(value ?? '\u2014');
                 }
+
+                row.appendChild(keyEl);
+                row.appendChild(valEl);
+                body.appendChild(row);
             });
+
+            card.appendChild(body);
         }
 
-        // Activate first available subtab once DOM is ready
-        requestAnimationFrame(() => {
-            if (outputs && outputs.length > 0) {
-                //Get data-subtab value of the first subtab button
-                const firstSubTabBtn = document.querySelector('#skytonight-subtabs > li:nth-child(1) > a');
-                const firstSubTab = firstSubTabBtn ? firstSubTabBtn.getAttribute('data-subtab') : null;
-                //console.log(`Activating first subtab: ${firstSubTab}`);
-                activateSubTab('skytonight', firstSubTab);
-
-                //console.log(`Activating first subtab: catalogue-${outputs[eltFirstTab].target}`);
-                //activateSubTab('skytonight', `catalogue-${outputs[eltFirstTab].target}`);
-            }
-        });
-                
-    } catch (error) {
-        console.error('Error loading results tabs:', error);
-    }
+        frag.appendChild(card);
+    });
+    container.appendChild(frag);
 }
 
-async function loadCatalogueResults(catalogue) {
-    //console.log(`Loading results for catalogue: ${catalogue}`);
-    currentCatalogueTab = catalogue; // Track current catalogue
-    try {
-
-        // SkyTonight is the only supported source.
-        const reportsSource = 'skytonight';
-        let reports;
-        try {
-            const isSkyTonightAggregate = catalogue === 'SkyTonight';
-            reports = await fetchJSON(isSkyTonightAggregate ? '/api/skytonight/reports' : `/api/skytonight/reports/${catalogue}`);
-            if (reports.error) {
-                throw new Error(reports.error);
-            }
-        } catch (e) {
-            console.warn(`SkyTonight reports unavailable for ${catalogue}:`, e);
-            throw e;
-        }
-        //console.log('Catalogue reports:', reports);
-        const buttonsContainer = document.getElementById(`catalogue-${catalogue}-type-buttons`);
-        const container = document.getElementById(`catalogue-${catalogue}-content`);
-        
-        if (reports.error) {
-            DOMUtils.clear(container);
-            const alert = document.createElement('div');
-            alert.className = 'alert alert-danger';
-            alert.textContent = reports.error;
-            container.appendChild(alert);
-            return;
-        }
-        
-        // Create buttons for available data types
-        const hasReport = reports.report && reports.report.length > 0;
-        const hasBodies = reports.bodies && reports.bodies.length > 0;
-        const hasComets = reports.comets && reports.comets.length > 0;
-        const hasAnyData = !!(hasReport || hasBodies || hasComets);
-        // Interactive sky map is always available when there is any data
-        const hasPlot = hasAnyData;
-
-        const renderButtons = (buttonItems) => {
-            DOMUtils.clear(buttonsContainer);
-            buttonItems.forEach((buttonItem) => {
-                const li = document.createElement('li');
-                li.className = 'nav-item';
-                const link = document.createElement('a');
-                link.className = `nav-link catalogue-type-btn${buttonItem.active ? ' active' : ''}`;
-                link.href = '#';
-                link.innerHTML = buttonItem.label;
-                link.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    showCatalogueType(catalogue, buttonItem.type);
-                });
-                li.appendChild(link);
-                buttonsContainer.appendChild(li);
-            });
-        };
-        
-        // Determine first available type for default selection
-        let firstType = null;
-        
-        // Add buttons in order: Plot, Deep sky objects (Report), Bodies, Comets
-        const buttonItems = [];
-        if (hasPlot) {
-            buttonItems.push({ type: 'plot', label: `<i class="bi bi-bar-chart-line text-success icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('plot')}`, active: !firstType });
-            if (!firstType) firstType = 'plot';
-        }
-        if (hasReport) {
-            buttonItems.push({ type: 'report', label: `<i class="bi bi-galaxy icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('deep_sky_objects')}`, active: !firstType });
-            if (!firstType) firstType = 'report';
-        }
-        if (hasBodies) {
-            buttonItems.push({ type: 'bodies', label: `<i class="bi bi-globe2 text-warning icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('bodies')}`, active: !firstType });
-            if (!firstType) firstType = 'bodies';
-        }
-        if (hasComets) {
-            buttonItems.push({ type: 'comets', label: `<i class="bi bi-comet text-warning icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('comets')}`, active: !firstType });
-            if (!firstType) firstType = 'comets';
-        }
-        if (reportsSource === 'skytonight') {
-            buttonItems.push({ type: 'log', label: `<i class="bi bi-journal-text text-danger icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('logs')}`, active: !firstType });
-            if (!firstType && hasAnyData) firstType = 'log';
-        }
-        
-        renderButtons(buttonItems);
-        
-        // Store the reports data for switching between types
-        window.catalogueReports = window.catalogueReports || {};
-        window.catalogueReportSources = window.catalogueReportSources || {};
-        window.catalogueReports[catalogue] = reports;
-        window.catalogueReportSources[catalogue] = reportsSource;
-        window.catalogueReportsAvailability = window.catalogueReportsAvailability || {};
-        window.catalogueReportsAvailability[catalogue] = {};
-
-        // Show a clear empty state instead of forcing an empty log-error view.
-        if (!hasAnyData) {
-            DOMUtils.clear(container);
-            const emptyAlert = document.createElement('div');
-            emptyAlert.className = 'alert alert-info mt-3';
-            emptyAlert.textContent = tSkyTonightCompat('no_data_available');
-            container.appendChild(emptyAlert);
-            return;
-        }
-
-        // Show default (first available) view
-        if (firstType) {
-            showCatalogueType(catalogue, firstType);
-        }
-
-        //throw new Error('Simulated error in loadCatalogueResults'); // Simulate an error to test error handling
-
-    } catch (error) {
-        console.error('Error loading catalogue results:', error);
-        const container = document.getElementById(`catalogue-${catalogue}-content`);
-        DOMUtils.clear(container);
-        const alert = document.createElement('div');
-        alert.className = 'alert alert-danger';
-        alert.textContent = tSkyTonightCompat('failed_to_load_catalogue_results');
-        container.appendChild(alert);
-    }
-}
-
-async function showCatalogueType(catalogue, type) {
+async function _showSkyTonightDataSection(sectionKey, container) {
     const displayAstrodex = await getSkyTonightDisplayAstrodex();
 
-    const reports = window.catalogueReports[catalogue];
-    const reportSource = window.catalogueReportSources?.[catalogue] || 'skytonight';
-    if (!reports) return;
+    DOMUtils.clear(container);
+    // Show loading indicator
+    const loading = document.createElement('div');
+    loading.className = 'alert alert-info';
+    loading.textContent = i18n.t('common.loading');
+    container.appendChild(loading);
 
-    // Update active button
-    const buttons = document.querySelectorAll(`#catalogue-${catalogue}-type-buttons .catalogue-type-btn`);
-    buttons.forEach(btn => {
-        btn.classList.remove('active');
-        let btnType = '';
-        switch(type) {
-            case 'plot': btnType = tSkyTonightCompat('plot'); break;
-            case 'report': btnType = tSkyTonightCompat('deep_sky_objects'); break;
-            case 'bodies': btnType = tSkyTonightCompat('bodies'); break;
-            case 'comets': btnType = tSkyTonightCompat('comets'); break;
-            case 'log': btnType = tSkyTonightCompat('logs'); break;
-            case 'reports': btnType = tSkyTonightCompat('reports'); break;
-            default: console.warn(`Unknown catalogue type: ${type}`); return;
-        }
-        if (btn.textContent.includes(btnType)) btn.classList.add('active');
-    });
+    try {
+        let data;
+        if (_skytSectionCache[sectionKey]) {
+            data = _skytSectionCache[sectionKey];
+        } else {
+            const endpoint = {
+                report: '/api/skytonight/data/dso',
+                bodies: '/api/skytonight/data/bodies',
+                comets: '/api/skytonight/data/comets',
+            }[sectionKey];
+            data = await fetchJSON(endpoint);
+            if (data.error) throw new Error(data.error);
+            _skytSectionCache[sectionKey] = data;
 
-    const container = document.getElementById(`catalogue-${catalogue}-content`);
-    DOMUtils.clear(container); // Clear previous content
-
-    // --- Interactive Sky Map ---
-    if (type === 'plot') {
-        _renderSkyMap(reports, container);
-        return;
-    }
-
-    // --- Log ---
-    if (type === 'log') {
-        const loading = document.createElement('div');
-        loading.className = 'loading';
-        loading.textContent = tSkyTonightCompat('loading_log_content');
-        container.appendChild(loading);
-
-        const loadLogPromise = loadSkytonightLog();
-
-        loadLogPromise.then(logContent => {
-            DOMUtils.clear(container);
-            const logContainer = document.createElement('div');
-            logContainer.className = 'logs-container mt-3 rounded';
-
-            if (typeof logContent === 'string') {
-                const pre = document.createElement('pre');
-                if (logContent.trim().length === 0) {
-                    pre.textContent = tSkyTonightCompat('no_data_available');
-                } else {
-                    pre.textContent = logContent; // safe
-                }
-                logContainer.appendChild(pre);
-            } else {
-                const error = document.createElement('div');
-                error.className = 'error-box';
-                error.textContent = tSkyTonightCompat('failed_to_load_log_content');
-                logContainer.appendChild(error);
+            // Keep window.catalogueReports in sync for badge update functions
+            window.catalogueReports = window.catalogueReports || {};
+            window.catalogueReportSources = window.catalogueReportSources || {};
+            if (!window.catalogueReports['SkyTonight']) {
+                window.catalogueReports['SkyTonight'] = { report: [], bodies: [], comets: [] };
             }
+            if (sectionKey === 'report') window.catalogueReports['SkyTonight'].report = data.report || [];
+            if (sectionKey === 'bodies') window.catalogueReports['SkyTonight'].bodies = data.bodies || [];
+            if (sectionKey === 'comets') window.catalogueReports['SkyTonight'].comets = data.comets || [];
+            window.catalogueReportSources['SkyTonight'] = 'skytonight';
+        }
 
-            container.appendChild(logContainer);
-        });
-        return;
-    }
-
-    // --- Reports ---
-    if (type === 'reports') {
-        const alert = document.createElement('div');
-        alert.className = 'alert alert-info mt-3';
-        alert.textContent = tSkyTonightCompat('no_report_available');
-        container.appendChild(alert);
-        return;
-    }
-
-    // --- Tables ---
-    let tableHtml = '';
-    if (type === 'report' && reports.report) tableHtml = generateReportTable(reports.report, catalogue, 'report', displayAstrodex);
-    else if (type === 'bodies' && reports.bodies) tableHtml = generateReportTable(reports.bodies, catalogue, 'bodies', displayAstrodex);
-    else if (type === 'comets' && reports.comets) tableHtml = generateReportTable(reports.comets, catalogue, 'comets', displayAstrodex);
-
-    if (tableHtml) {
         DOMUtils.clear(container);
+
+        // Banner when a calculation is still running
+        if (data.in_progress) {
+            const banner = document.createElement('div');
+            banner.className = 'alert alert-warning d-flex align-items-center gap-2 mb-2';
+            banner.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>${tSkyTonightCompat('calculation_in_progress')}`;
+            container.appendChild(banner);
+        }
+
+        const dataKey = { report: 'report', bodies: 'bodies', comets: 'comets' }[sectionKey];
+        const tableData = data[dataKey];
+
+        if (!tableData || tableData.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'alert alert-info mt-3';
+            empty.textContent = data.available
+                ? tSkyTonightCompat('no_target_in_report')
+                : tSkyTonightCompat('no_data_available');
+            container.appendChild(empty);
+            return;
+        }
+
+        const tableType = sectionKey === 'report' ? 'report' : sectionKey;
+        const tableHtml = generateReportTable(tableData, 'SkyTonight', tableType, displayAstrodex);
         const fragment = document.createRange().createContextualFragment(tableHtml);
         container.appendChild(fragment);
-    } else {
-        const p = document.createElement('p');
-        p.textContent = tSkyTonightCompat('failed_to_load_report_content');
-        container.appendChild(p);
+
+    } catch (err) {
+        console.error(`Error loading SkyTonight ${sectionKey} section:`, err);
+        DOMUtils.clear(container);
+        const errAlert = document.createElement('div');
+        errAlert.className = 'alert alert-danger mt-3';
+        errAlert.textContent = tSkyTonightCompat('failed_to_load_catalogue_results');
+        container.appendChild(errAlert);
     }
 }
 

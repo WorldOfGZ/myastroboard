@@ -591,6 +591,7 @@
   "skytonight": {
     "info_1": "SkyTonight berechnet die besten Beobachtungsziele der Nacht basierend auf Standort, Wetter und internen Datensatzen.",
     "info_2": "Bitte warten Sie vor dem Laden oder prüfen Sie die Parameter, wenn eine Berechnung fehlgeschlagen ist.",
+    "calculation_in_progress": "Berechnung läuft — Teildaten werden angezeigt, bitte warten…",
     "no_data_available": "Derzeit sind keine SkyTonight-Daten verfügbar.",
     "catalogue_results": "{catalogue} Ergebnisse",
     "plot": "Grafik",
