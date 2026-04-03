@@ -5,6 +5,7 @@ import csv
 import json
 import os
 import shutil
+import threading
 import uuid
 import io
 from datetime import datetime, timedelta
@@ -15,6 +16,19 @@ from constants import DATA_DIR
 from logging_config import get_logger
 
 logger = get_logger(__name__)
+
+# Per-user write locks to prevent race conditions on concurrent saves
+_user_plan_locks: Dict[str, threading.Lock] = {}
+_user_plan_locks_mutex = threading.Lock()
+
+
+def _get_user_plan_lock(user_id: str) -> threading.Lock:
+    """Get or create a per-user lock for serializing plan file writes."""
+    with _user_plan_locks_mutex:
+        if user_id not in _user_plan_locks:
+            _user_plan_locks[user_id] = threading.Lock()
+        return _user_plan_locks[user_id]
+
 
 PLAN_DIR = os.path.join(DATA_DIR, 'projects')
 
@@ -141,6 +155,19 @@ def save_user_plan(user_id: str, payload: Dict, username: Optional[str] = None) 
     file_path = get_user_plan_file(user_id)
     temp_path = file_path + '.tmp'
     backup_path = file_path + '.backup'
+
+    with _get_user_plan_lock(user_id):
+        return _save_user_plan_locked(user_id, payload, username, file_path, temp_path, backup_path)
+
+
+def _save_user_plan_locked(
+    user_id: str,
+    payload: Dict,
+    username: Optional[str],
+    file_path: str,
+    temp_path: str,
+    backup_path: str,
+) -> bool:
     backup_created = False
 
     try:
