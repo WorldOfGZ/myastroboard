@@ -928,7 +928,26 @@
     "show_all_processes": "Afficher tous les processus",
     "process_name": "Processus",
     "docker_in_docker": "Docker in Docker",
-    "no_process_data": "Aucune donnée de processus disponible"
+    "no_process_data": "Aucune donnée de processus disponible",
+    "skytonight_scheduler": "Planificateur SkyTonight",
+    "scheduler_status": "Statut",
+    "scheduler_timing": "Programmation",
+    "scheduler_last_result": "Dernier résultat",
+    "scheduler_enabled": "Activé",
+    "scheduler_running": "En cours",
+    "scheduler_executing": "En exécution",
+    "scheduler_mode": "Mode",
+    "scheduler_timezone": "Fuseau horaire",
+    "scheduler_last_run": "Dernière exécution",
+    "scheduler_next_run": "Prochaine exécution",
+    "scheduler_reason": "Raison",
+    "scheduler_last_duration": "Durée dernière exéc.",
+    "scheduler_last_error": "Dernière erreur",
+    "scheduler_night_start": "Début de nuit",
+    "scheduler_night_end": "Fin de nuit",
+    "scheduler_dso_count": "Objets ciel profond",
+    "scheduler_bodies_count": "Corps célestes",
+    "scheduler_comets_count": "Comètes"
   },
 
   "equipment": {
