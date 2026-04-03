@@ -209,4 +209,97 @@ async function exportConfiguration() {
     }
 }
 
+// ======================
+// Backup / Restore
+// ======================
 
+function downloadBackup() {
+    window.location.href = `${API_BASE}/api/backup/download`;
+    showMessage('success', i18n.t('settings.backup_started'));
+}
+
+async function restoreBackup() {
+    const fileInput = document.getElementById('restore-file-input');
+    const msgEl = document.getElementById('backup-restore-message');
+
+    if (!fileInput || !fileInput.files.length) {
+        _showInlineMessage(msgEl, 'warning', i18n.t('settings.restore_no_file'));
+        return;
+    }
+
+    const confirmed = window.confirm(i18n.t('settings.restore_confirm'));
+    if (!confirmed) return;
+
+    const btn = document.getElementById('backup-restore-btn');
+    if (btn) btn.disabled = true;
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    try {
+        const resp = await fetch(`${API_BASE}/api/backup/restore`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await resp.json();
+
+        if (resp.ok && data.status === 'success') {
+            _showInlineMessage(msgEl, 'success', data.message || i18n.t('settings.restore_success'));
+        } else {
+            _showInlineMessage(msgEl, 'danger', data.error || i18n.t('settings.restore_failed'));
+        }
+    } catch (error) {
+        console.error('Error restoring backup:', error);
+        _showInlineMessage(msgEl, 'danger', i18n.t('settings.restore_failed'));
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+function _showInlineMessage(el, type, text) {
+    if (!el) return;
+    el.className = `alert alert-${type}`;
+    el.textContent = text;
+    el.style.display = '';
+}
+
+// ======================
+// Log Export
+// ======================
+
+function downloadLogExport() {
+    window.location.href = `${API_BASE}/api/logs/export`;
+    showMessage('success', i18n.t('settings.log_export_started'));
+}
+
+async function loadLogLevel() {
+    const badge = document.getElementById('log-export-current-level');
+    if (!badge) return;
+    try {
+        const data = await fetchJSON('/api/logs/level');
+        const level = data.level || '–';
+        badge.textContent = level;
+        // Color the badge per level
+        const colorMap = {
+            DEBUG:    'bg-secondary',
+            INFO:     'bg-info text-dark',
+            WARNING:  'bg-warning text-dark',
+            ERROR:    'bg-danger',
+            CRITICAL: 'bg-danger'
+        };
+        badge.className = `badge fs-6 ${colorMap[level] || 'bg-secondary'}`;
+    } catch (err) {
+        console.error('Could not load log level:', err);
+        badge.textContent = '–';
+    }
+}
+
+// Enable/disable the restore button based on file selection
+function initRestoreFileInput() {
+    const fileInput = document.getElementById('restore-file-input');
+    const btn = document.getElementById('backup-restore-btn');
+    if (!fileInput || !btn) return;
+    fileInput.addEventListener('change', () => {
+        btn.disabled = !fileInput.files.length;
+    });
+}
