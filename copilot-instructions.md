@@ -4,23 +4,25 @@ This document provides comprehensive guidance for GitHub Copilot (or other AI as
 
 ## Project Overview
 
-MyAstroBoard is a web-based astronomy observation planning system that integrates with the [mawinkler/uptonight](https://github.com/mawinkler/uptonight) Docker container to provide automated observation planning with a user-friendly dashboard.
+MyAstroBoard is a web-based astronomy observation planning system with a fully built-in observability engine called **SkyTonight** that provides automated observation planning with a user-friendly dashboard — no external container dependency required.
 
 ### Core Concept
-- Users configure their location and select target catalogues via web dashboard
-- System automatically runs uptonight Docker container every 6 hours
-- Each selected target gets its own uptonight execution (each executed in a queue between targets)
-- Generated outputs (plots, reports) are stored and displayed in the dashboard
+- Users configure their location via web dashboard
+- **SkyTonight** internally computes all targets from international catalogues (OpenNGC, Messier, Caldwell, comets, planets) using Astropy/Astroplan
+- Scheduler runs at 1 hour after astronomical dawn local time + 1 hour before astronomical dusk (falls back to every 6 hours when clock is untrusted)
+- Results (DSO, bodies, comets, sky map, altitude-time data) are cached as JSON and served through a REST API
+- **Plan My Night** lets users build a private observation timeline from SkyTonight targets
 
 ## Architecture
 
 ### Technology Stack
 - **Backend**: Python 3.11 + Flask
 - **Frontend**: Vanilla HTML/CSS/JavaScript
-- **Astronomy**: Astropy for calculations
-- **Visualization**: Matplotlib for plots
+- **Astronomy**: Astropy + Astroplan for calculations; Skyfield (`de421.bsp`) for planet/body ephemeris
+- **Catalogues**: PyOngc (OpenNGC/OpenIC), Minor Planet Center / JPL SBDB (comets), built-in solar system bodies
+- **Visualization**: Chart.js (interactive, browser-side)
 - **Containerization**: Docker + Docker Compose
-- **Scheduler**: Custom Python threading-based scheduler
+- **Scheduler**: Custom Python threading-based scheduler (no Docker SDK dependency)
 - **CI/CD**: GitHub Actions for image publishing
 
 ### Directory Structure
@@ -35,10 +37,9 @@ myastroboard/
 │   ├── cache_scheduler.py           # Periodic cache scheduler
 │   ├── cache_store.py               # Shared cache persistence
 │   ├── cache_updater.py             # Cache refresh orchestration
-│   ├── catalogue_aliases.json       # Generated catalogue alias table
-│   ├── catalogue_aliases.py         # Catalogue alias helpers
+│   ├── catalogue_aliases.py         # Catalogue alias helpers (legacy, kept for astrodex cross-reference)
 │   ├── config_defaults.py           # Default config values
-│   ├── constants.py                 # Shared constants
+│   ├── constants.py                 # Shared constants (paths, URLs, timeouts)
 │   ├── equipment_profiles.py        # Equipment profiles API helpers
 │   ├── events_aggregator.py         # Unified upcoming events data
 │   ├── horizon_graph.py             # Horizon graph generation
@@ -50,18 +51,25 @@ myastroboard/
 │   ├── moon_eclipse.py              # Lunar eclipse calculations
 │   ├── moon_phases.py               # Moon phase calculations
 │   ├── moon_planner.py              # Moon planner over date ranges
+│   ├── plan_my_night.py             # Plan My Night storage and business logic
 │   ├── planetary_events.py          # Planetary events cache service
 │   ├── repo_config.py               # Config file load/save helpers
 │   ├── sidereal_time.py             # Sidereal time service
+│   ├── skytonight_bodies.py         # SkyTonight: solar-system body target records
+│   ├── skytonight_calculator.py     # SkyTonight: observability + AstroScore calculator
+│   ├── skytonight_catalogue_builder.py # SkyTonight: dataset builder (PyOngc + comets + bodies)
+│   ├── skytonight_comets.py         # SkyTonight: comet ingestion (MPC primary, JPL fallback)
+│   ├── skytonight_models.py         # SkyTonight: data models (SkyTonightTarget, SkyTonightCoordinates)
+│   ├── skytonight_scheduler.py      # SkyTonight: scheduler (smart time + 6h fallback)
+│   ├── skytonight_storage.py        # SkyTonight: filesystem helpers for runtime state
+│   ├── skytonight_targets.py        # SkyTonight: dataset access, name resolution, lookup table
 │   ├── solar_system_events.py       # Solar system events cache service
 │   ├── special_phenomena.py         # Special phenomena cache service
 │   ├── sun_eclipse.py               # Solar eclipse calculations
 │   ├── sun_phases.py                # Sun phase calculations
 │   ├── txtconf_loader.py            # txtconf loader
-│   ├── uptonight_parser.py          # UpTonight JSON parser
-│   ├── uptonight_scheduler.py       # UpTonight scheduler
+│   ├── utils.py                     # Common backend utility functions (includes slugify_location_name)
 │   ├── version_checker.py           # GitHub release checks
-│   ├── utils.py                     # Common backend utility functions
 │   ├── weather_astro.py             # Astro weather analysis
 │   ├── weather_openmeteo.py         # Open-Meteo adapter
 │   └── weather_utils.py             # Weather utility helpers
@@ -72,6 +80,7 @@ myastroboard/
 │   ├── equipments/                  # Equipment profile JSON files
 │   ├── myastroboard.log             # Application log file
 │   ├── projects/                    # User project data
+│   ├── skytonight/                  # SkyTonight runtime data (see below)
 │   └── users.json                   # User accounts + preferences
 ├── docs/                            # Project documentation
 │   ├── img/                         # Documentation images
@@ -84,34 +93,45 @@ myastroboard/
 │   ├── 7.TRANSLATIONS.md            # Translation contribution guide
 │   ├── API_ENDPOINTS.md             # API endpoint inventory
 │   ├── CACHE_SYSTEM.md              # Cache architecture documentation
+│   ├── PLAN_MY_NIGHT.md             # Plan My Night documentation
 │   ├── README.md                    # Documentation index
+│   ├── SKYTONIGHT.md                # SkyTonight architecture + AstroScore documentation
 │   └── VISUAL_TOUR.md               # Visual tour of the application
 ├── scripts/
-│   ├── analyse_catalogues.py        # Catalogue analysis and maintenance helper
+│   ├── build_skytonight_catalogue.py # Offline dataset builder (generates data/skytonight/catalogues/targets.json)
+│   ├── minify_static.py             # Static file minifier
 │   ├── translate_checker.py         # Translation consistency checker
-│   ├── translate_i18n_values.py     # i18n value translation helper
-│   └── translate_uptonight_types.py # UpTonight type translation helper
+│   └── translate_i18n_values.py     # i18n value translation helper
 ├── static/
 │   ├── css/                         # Stylesheets
-│   ├── i18n/                        # Frontend translation dictionaries
+│   ├── i18n/                        # Frontend translation dictionaries (en.json, fr.json)
 │   ├── ico/                         # Platform-specific app icons
 │   ├── img/                         # UI images and illustrations
 │   ├── js/                          # Frontend JavaScript modules
+│   │   ├── app.js                   # Main tab/subtab routing + startup
+│   │   ├── astrodex.js              # Astrodex UI
+│   │   ├── config.js                # Configuration UI
+│   │   ├── domUtils.js              # Safe DOM helpers (DOMUtils)
+│   │   ├── equipment.js             # Equipment profiles UI
+│   │   ├── events_alerts.js         # Events & alerts UI
+│   │   ├── horizon_graph.js         # Horizon chart
+│   │   ├── i18n.js                  # Global i18n manager (loads early)
+│   │   ├── language-selector.js     # Language dropdown handler
+│   │   ├── lunar_eclipse.js         # Lunar eclipse chart
+│   │   ├── metrics.js               # System metrics UI
+│   │   ├── moon.js                  # Moon phase UI
+│   │   ├── plan_my_night.js         # Plan My Night UI
+│   │   ├── skytonight.js            # SkyTonight UI (tables, sky map, alttime popup)
+│   │   ├── skytonightScheduler.js   # SkyTonight scheduler status UI
+│   │   ├── solar_eclipse.js         # Solar eclipse chart
+│   │   ├── weather.js               # Weather forecast charts
+│   │   ├── weather_alerts.js        # Weather alert banners
+│   │   └── weather_astro.js         # Astrophotography weather charts
 │   ├── favicon.ico                  # Browser favicon (ICO)
 │   ├── favicon.svg                  # Browser favicon (SVG)
 │   ├── manifest.webmanifest         # PWA manifest
 │   ├── offline.html                 # Offline fallback page
 │   └── sw.js                        # Service worker
-├── targets/
-│   ├── GaryImm.yaml                 # Gary Imm target catalogue
-│   ├── Herschel400.yaml             # Herschel 400 target catalogue
-│   ├── LBN.yaml                     # LBN target catalogue
-│   ├── LDN.yaml                     # LDN target catalogue
-│   ├── Messier.yaml                 # Messier target catalogue
-│   ├── OpenIC.yaml                  # OpenIC target catalogue
-│   ├── OpenNGC.yaml                 # OpenNGC target catalogue
-│   ├── Pensack500.yaml              # Pensack 500 target catalogue
-│   └── README.md                    # Target catalogue notes
 ├── templates/
 │   ├── index.html                   # Main dashboard page
 │   └── login.html                   # Login page
@@ -136,14 +156,17 @@ myastroboard/
 │   ├── test_logging_config.py       # Logging configuration tests
 │   ├── test_moon_eclipse.py         # Moon eclipse tests
 │   ├── test_new_event_services.py   # New event services tests
+│   ├── test_plan_my_night_api.py    # Plan My Night API tests
+│   ├── test_skytonight_api.py       # SkyTonight API tests
+│   ├── test_skytonight_bodies.py    # SkyTonight bodies builder tests
+│   ├── test_skytonight_catalogue_builder.py # Dataset builder tests
+│   ├── test_skytonight_comets.py    # Comet ingestion tests
+│   ├── test_skytonight_scheduler.py # SkyTonight scheduler tests
+│   ├── test_skytonight_targets.py   # Target dataset access tests
 │   ├── test_txtconf_loader.py       # txtconf loader tests
-│   ├── test_uptonight_parser.py     # UpTonight parser tests
 │   ├── test_utils.py                # Shared utility tests
 │   ├── test_version_checker.py      # Version checker tests
 │   └── test_weather_utils.py        # Weather utility tests
-├── uptonight/
-│   ├── configs/                     # Generated UpTonight configs
-│   └── outputs/                     # Generated UpTonight outputs
 ├── CODEOWNERS                       # Repository ownership rules
 ├── CODE_OF_CONDUCT.md               # Community code of conduct
 ├── CONTRIBUTING.md                  # Contribution guidelines
@@ -153,7 +176,7 @@ myastroboard/
 ├── docker-compose.yml               # Production deployment
 ├── Dockerfile                       # Container build definition
 ├── entrypoint.sh                    # Container startup script
-├── feature.md                       # Feature planning notes
+├── feature.md                       # Feature planning notes (not tracked in git)
 ├── LICENSE                          # Project license
 ├── pytest.ini                       # Pytest configuration
 ├── README.md                        # Main project documentation
@@ -162,6 +185,27 @@ myastroboard/
 ├── ROADMAP.md                       # Product roadmap
 ├── SECURITY.md                      # Security policy
 └── VERSION                          # Application version
+```
+
+### SkyTonight data directory layout (`data/skytonight/`)
+```
+skytonight/
+├── calculations/
+│   ├── calculation_results.json     # Metadata-only "all done" signal (written last)
+│   ├── dso_results.json             # DSO results sorted by AstroScore desc
+│   ├── bodies_results.json          # Solar-system body results
+│   ├── comets_results.json          # Comet results
+│   └── skymap_data.json             # Sky map trajectory data (az/alt per target)
+├── catalogues/
+│   └── targets.json                 # Built dataset (OpenNGC + Messier + Caldwell + comets + bodies)
+├── logs/
+│   └── last_calculation.log         # Last run log lines (JSONL)
+├── outputs/
+│   └── <target_id>_alttime.json     # Altitude-vs-time series (15-min resolution, popup chart data)
+└── runtime/
+    ├── scheduler_status.json        # Scheduler state, progress, last duration
+    ├── scheduler_trigger            # Manual trigger file
+    └── scheduler.lock               # File lock (prevents multiple workers running simultaneously)
 ```
 
 ## Code Style & Conventions
@@ -251,7 +295,7 @@ except Exception as e:
 
 #### Existing Security Baseline (Do Not Regress)
 - `innerHTML` has been removed from `static/js/**`.
-- Major modules (`auth`, `app`, `astrodex`, `weather`, `weather_astro`, `equipment`, `moon`, `sun`, `iss`, `horizon_graph`, `aurora`, `solar_eclipse`, `lunar_eclipse`, `uptonightScheduler`) now follow node-based DOM updates.
+- Major modules (`auth`, `app`, `astrodex`, `weather`, `weather_astro`, `equipment`, `moon`, `sun`, `iss`, `horizon_graph`, `aurora`, `solar_eclipse`, `lunar_eclipse`, `skytonight`, `skytonightScheduler`, `plan_my_night`) now follow node-based DOM updates.
 - Any change reintroducing HTML sinks should be treated as a regression and rewritten.
 
 ### File Organization
@@ -264,17 +308,13 @@ except Exception as e:
 ### 1. Configuration Management
 - **Pattern**: JSON file-based configuration with environment variable overrides
 - **Location**: `data/config.json`
-- **Structure**: Hierarchical with new sections:
-  - `location`: Name, latitude (supports DMS format), longitude, elevation, timezone
-  - `features`: Boolean flags for horizon, objects, bodies, comets, alttime (all default true)
-  - `constraints`: Altitude, airmass, size, moon separation, observability thresholds
-  - `bucket_list`: Targets to always include
-  - `done_list`: Targets to never show
-  - `custom_targets`: User-defined targets in YAML format
-  - `horizon`: Custom horizon profile with anchor points
-  - `output_datestamp`: Boolean for timestamped outputs
+- **Structure**: Hierarchical with sections:
+  - `location`: Name, latitude, longitude, elevation, timezone
+  - `constraints`: Altitude (min/max), airmass, size (min/max), moon separation, observability threshold, azimuth convention
+  - `skytonight`: Enabled flag, constraints_always_enabled, preferred_name_order, scheduler state, dataset sources
+  - `astrodex`: Private flag
+- **Default values**: Managed by `backend/config_defaults.py` (`DEFAULT_CONFIG`, `DEFAULT_CONSTRAINTS`, `DEFAULT_SKYTONIGHT`)
 - **Persistence**: Stored in Docker volume, survives container rebuilds
-- **Validation**: At least one catalogue must be selected (Messier by default)
 - **Why**: Simple, human-readable, easy to backup/restore, flexible
 
 ### 1.1. User Management
@@ -313,49 +353,52 @@ except Exception as e:
   - On language change, re-render dynamic preference labels/options
 - **Why**: Personalized UX without compromising role boundaries or data integrity
 
-### 2. Uptonight Docker Version Management
-- **Pattern**: Version file configuration for release management
-- **File**: `UPTONIGHT_VERSION` in repository root (contains version tag, e.g., "2.5")
-- **Usage**: Read at runtime by scheduler to construct image name `mawinkler/uptonight:{version}`
-- **Why**: Centralized version control for releases, no user configuration needed
+### 2. SkyTonight Target Dataset
+- **Source catalogues**: OpenNGC + OpenIC (via PyOngc), Messier (subset of OpenNGC), Caldwell (cross-referenced), comets (MPC primary + JPL enrichment), solar-system bodies (Skyfield `de421.bsp`)
+- **Dataset file**: `data/skytonight/catalogues/targets.json` — generated offline by `scripts/build_skytonight_catalogue.py` or rebuilt on-demand via API
+- **Model**: `SkyTonightTarget` dataclass (`skytonight_models.py`) — immutable, with `target_id`, `category`, `object_type`, `preferred_name`, `catalogue_names` (dict), `coordinates`, `magnitude`, `size_arcmin`, `source_catalogues`
+- **Preferred name order**: `CommonName → Messier → OpenNGC → OpenIC → Caldwell` (defined in `constants.SKYTONIGHT_PREFERRED_NAME_ORDER`)
+- **No duplicates**: Objects identifiable across catalogues are merged into one record with all `catalogue_names` entries
+- **Stable IDs**: `target_id` is derived deterministically from catalogue identifiers (never changes between regenerations)
+- **Why**: Stable, offline-capable, no per-request recalculation, extensible for more catalogues
 
-### 3. Coordinate Format Conversion
-- **Pattern**: DMS (Degrees Minutes Seconds) to Decimal conversion
-- **Format**: Accepts formats like "48d38m36.16s" or "48°38'36.16\""
-- **API**: `/api/convert-coordinates` endpoint with validation
-- **Frontend**: Real-time conversion with error display
-- **Why**: User-friendly input for astronomers familiar with DMS notation
+### 3. SkyTonight Scheduler
+- **Pattern**: Threading-based in-process scheduler
+- **Smart schedule**: 06:00 local time + 1 hour before astronomical dusk + first startup (requires valid system clock)
+- **Fallback**: Every 6 hours when `year < 2024` or timezone is untrusted
+- **Multi-worker safety**: File lock at `data/skytonight/runtime/scheduler.lock` (one worker runs at a time)
+- **Manual trigger**: Admin can write trigger file via `POST /api/skytonight/scheduler/trigger`
+- **Constant**: `SKYTONIGHT_FALLBACK_INTERVAL_SECONDS = 21600` in `skytonight_scheduler.py`
+- **Why**: No external dependencies, survives across container restarts, clock-aware
 
-### 2. Target Catalogue Loading
-- **Pattern**: Remote-first with local caching
-- **Flow**: GitHub API → Download YAML → Parse → Cache locally → Serve
-- **Sorting**: Catalogues are alphabetically sorted in UI
-- **Default**: Messier catalogue selected by default
-- **Validation**: Prevents saving without at least one catalogue selected
-- **Why**: Always up-to-date catalogues, works offline after first load, better UX
-
-### 3. Scheduler
-- **Pattern**: Threading-based scheduler in-process
-- **Mechanism**: Daemon thread with configurable interval
-- **Image Version**: Read from UPTONIGHT_VERSION file for release management
-- **Why**: Simple, no external dependencies, survives across requests, version controlled
-
-### 4. Docker-in-Docker
-- **Pattern**: Mount host Docker socket into container
-- **Access**: `/var/run/docker.sock` volume mount
-- **Security**: Requires privileged mode
-- **Why**: Allows spawning sibling containers for uptonight execution
+### 4. AstroScore
+- **Purpose**: Dimensionless [0, 1] ranking of astrophotography suitability for the configured location
+- **Calculation**: Weighted sum of 4 sub-scores — visibility (0.40), sky quality (0.25), object brightness (0.25), comfort (0.10)
+- **Bonuses**: +0.20 for planet at opposition, +0.05 for Messier objects; final value clamped to [0.0, 1.0]
+- **Full documentation**: `docs/SKYTONIGHT.md`
+- **Implementation**: `backend/skytonight_calculator.py`
 
 ### 5. API Design
 - **Pattern**: RESTful JSON API with role-based access control
 - **Endpoint Coverage**:
-  - Routes are defined in `backend/app.py` and grouped by domain: auth, users, config, logs/metrics, scheduler, uptonight, weather, astronomy, events, astrodex, and equipment.
+  - Routes are defined in `backend/app.py` and grouped by domain: auth, users, config, logs/metrics, scheduler, skytonight, weather, astronomy, events, astrodex, plan-my-night, and equipment.
   - The current endpoint inventory is maintained in `docs/API_ENDPOINTS.md` and should be updated whenever a route is added, removed, or renamed.
   - Key security constraints:
     - Most `/api/*` routes require login (`@login_required`).
     - Admin-only routes use `@admin_required` (users CRUD, config write/export, logs clear, metrics, scheduler trigger).
     - User update/delete route is `/api/users/<user_id>` (not `<username>`).
     - Self-service endpoints include `/api/auth/change-password` and `/api/auth/preferences`.
+- **SkyTonight endpoints** (all `@login_required`):
+  - `GET /api/skytonight/scheduler/status`
+  - `POST /api/skytonight/scheduler/trigger` (`@admin_required`)
+  - `GET /api/skytonight/dataset/status`
+  - `POST /api/skytonight/dataset/rebuild` (`@admin_required`)
+  - `GET /api/skytonight/data/dso`
+  - `GET /api/skytonight/data/bodies`
+  - `GET /api/skytonight/data/comets`
+  - `GET /api/skytonight/alttime/<id>`
+  - `GET /api/skytonight/skymap`
+  - `GET /api/skytonight/log`
 - **Error Handling**: Return appropriate HTTP status codes with JSON error objects
   - 401 Unauthorized - Not authenticated
   - 403 Forbidden - Insufficient permissions (not admin)
@@ -369,90 +412,75 @@ except Exception as e:
 - **Why**: Clear separation, security through authentication, role-based access control
 
 ### 6. Modern UI/UX
-- **Pattern**: Tab-based interface with sections
-- **Tabs**: 
-  - Dashboard (overview)
-  - Configuration (basic + advanced settings)
-  - Results (dynamic tabs per catalogue + weather)
-- **Features**:
-  - DMS coordinate converter with real-time validation
-  - Timezone dropdown selector
-  - Sortable/filterable result tables
-  - Image popups for plots
-  - Log viewer with filtering
-  - Responsive design
+- **Pattern**: Tab-based interface (main tabs + sub-tabs)
+- **Main tabs**: Dashboard, SkyTonight, Plan My Night, Astrodex, Equipment, Weather, Configuration, Parameters
+- **SkyTonight sub-tabs**:
+  - **Plot**: Interactive sky map (azimuth/altitude polar projection, target trajectories, click-to-inspect)
+  - **Deep Sky Objects**: Filterable/sortable table with AstroScore, magnitude, altitude, FOV score, add to Astrodex / Plan My Night
+  - **Bodies**: Solar-system bodies table
+  - **Comets**: Comets table
+  - **Logs**: Last calculation log viewer
+  - **Reports**: Formatted target reports
+- **Altitude-vs-time popup**: Opens per-target modal with Chart.js line chart (astronomical night window, observable zone band); data fetched from `/api/skytonight/alttime/<id>`; chart destroyed on modal close
 - **Styling**: Modern gradient design, smooth animations, accessibility-compliant
 - **Why**: Professional appearance, better UX, easier navigation
 
 ## Important Implementation Details
 
-### Uptonight Version Management
-The uptonight Docker image version is managed via the `UPTONIGHT_VERSION` file in the repository root:
-- **File Location**: `UPTONIGHT_VERSION` (repository root)
-- **Content**: Version tag only (e.g., `2.5`)
-- **Usage**: Read at runtime to construct `mawinkler/uptonight:{version}`
-- **Purpose**: Centralized version control for repository releases
-
-To update for a new release:
-```bash
-echo "2.6" > UPTONIGHT_VERSION
+### SkyTonight Calculation Flow
 ```
-
-### Environment Configuration
-Key environment variables (set in docker-compose.yml or .env):
-- **DATA_DIR**: Configuration storage (default: `/app/data`)
-- **UPTONIGHT_DIR**: Results storage (default: `/app/uptonight`)
-- **LOG_LEVEL**: File logging level - DEBUG, INFO, WARNING, ERROR, CRITICAL (default: INFO)
-- **CONSOLE_LOG_LEVEL**: Console logging level - DEBUG, INFO, WARNING, ERROR, CRITICAL (default: WARNING)
-
-#### Logging Environment Setup Example
-```yaml
-# docker-compose.yml
-environment:
-  - LOG_LEVEL=INFO          # Standard logging to file
-  - CONSOLE_LOG_LEVEL=WARNING # Minimal console noise
-  
-# For debugging
-environment:
-  - LOG_LEVEL=DEBUG         # Detailed logging to file  
-  - CONSOLE_LOG_LEVEL=INFO  # More console output
+Scheduler trigger (startup / smart schedule / manual)
+  ├─ ensure_skytonight_directories()
+  ├─ run_calculations() ← skytonight_calculator.py
+  │     ├─ load_targets_dataset()  → DSOs (targets.json)
+  │     ├─ load_comets_dataset()   → MPC comets
+  │     ├─ build_body_targets()    → planets / Moon
+  │     ├─ For each target:
+  │     │    ├─ Compute alt/az time series (15-min steps, Astropy AltAz)
+  │     │    ├─ Check observability constraints (altitude, airmass, size, moon sep, fraction)
+  │     │    ├─ Compute AstroScore (4 sub-scores + bonuses)
+  │     │    └─ Write <target_id>_alttime.json if target passes constraints
+  │     ├─ Write dso_results.json, bodies_results.json, comets_results.json
+  │     ├─ Write skymap_data.json
+  │     └─ Write calculation_results.json (signals completion)
+  └─ API reads from JSON files (never re-runs heavy calculation per request)
 ```
-
-See `.env.example` for full list and documentation.
 
 ### Scheduler Behavior
 ```python
-# Runs immediately on startup
-# Then every 6 hours (SKYTONIGHT_FALLBACK_INTERVAL_SECONDS in skytonight_scheduler.py)
-# For each target:
-#   1. Generate uptonight config YAML
-#   2. Run uptonight Docker container
-#   3. Wait until completion
-#   4. Proceed to next target
+# Runs immediately on first startup
+# Smart mode (valid clock): 1 h after astronomical dawn + 1 h before astronomical dusk
+# Fallback mode (invalid/untrusted clock): every 6 h
+# Constant: SKYTONIGHT_FALLBACK_INTERVAL_SECONDS = 21600
+# Multi-worker safety: file lock at data/skytonight/runtime/scheduler.lock
 ```
 
+### Location Name Sanitization
+- `utils.slugify_location_name(name)` → URL-safe slug (e.g., `"Marnes la Coquette"` → `"marnes-la-coquette"`)
+- Used for any per-location sub-directory inside `data/skytonight/`
+- **Always use this function** when constructing location-specific paths; do not roll your own sanitizer
+
 ### Coordinate Format Conversion
-- **Input** (from uptonight catalogues): `"5 34 30"` and `"+22 1 0"`
-- **Internal** (Astropy): `"05h34m30s"` and `"+22d01m00s"`
-- **Output** (to uptonight): `"5 34 30"` and `"+22 1 0"`
-- **Critical**: Use regex parsing, not simple string replace (to handle edge cases)
+- **Input / storage**: decimal degrees (float) in `SkyTonightCoordinates.ra_hours` / `dec_degrees`
+- **API**: `/api/convert-coordinates` endpoint with DMS validation
+- **Frontend**: Real-time conversion with error display
+- **Why**: User-friendly input for astronomers familiar with DMS notation
 
-### Target Selection
-- User selects catalogues (not individual targets)
-- All targets from selected catalogues are processed
-- Each target runs independently in uptonight
-- Outputs stored in separate directories per target
+### Chart.js Usage
+- **Never** use `resizeDelay` option — it schedules a `requestAnimationFrame → setTimeout` chain that crashes if `chart.destroy()` is called before it resolves (e.g., on tab switch)
+- Always call `chart.destroy()` before recreating a chart on the same canvas
+- Use `cleanupTransientCharts()` in `app.js` which is already called on every tab / sub-tab switch
 
-### Uptonight Output Files
-
-For each target, uptonight generates:
-- **uptonight-report.json**: Main objects/targets report (celestial objects)
-- **uptonight-comets-report.json**: Comets report (if comets feature enabled)
-- **uptonight-bodies-report.json**: Solar system bodies (planets, moon)
-- **uptonight-plot.png**: Altitude plot visualization
-- **uptonight-moon.png**: Moon position/phase plot
-
-All files are stored in: `uptonight/outputs/{target_name}/`
+### Environment Configuration
+Key environment variables (set in docker-compose.yml or .env):
+- **DATA_DIR**: Configuration and data storage (default: `/app/data`)
+- **SKYTONIGHT_DIR**: SkyTonight runtime data (default: `$DATA_DIR/skytonight`)
+- **LOG_LEVEL**: File logging level - DEBUG, INFO, WARNING, ERROR, CRITICAL (default: INFO)
+- **CONSOLE_LOG_LEVEL**: Console logging level - DEBUG, INFO, WARNING, ERROR, CRITICAL (default: WARNING)
+- **TZ**: Container timezone
+- **SECRET_KEY**: Flask session secret key (should be a random 64-character hex string)
+- **TRUST_PROXY_HEADERS**: Set `true` when behind a reverse proxy with HTTPS termination
+- **SESSION_COOKIE_SECURE**: Set `true` for HTTPS-only deployments
 
 ## Common Tasks
 
@@ -461,6 +489,7 @@ All files are stored in: `uptonight/outputs/{target_name}/`
 1. Define route in `backend/app.py`:
 ```python
 @app.route('/api/new-endpoint', methods=['GET'])
+@login_required
 def new_endpoint():
     """Brief description"""
     try:
@@ -471,61 +500,59 @@ def new_endpoint():
         return jsonify({'error': 'Internal server error'}), 500
 ```
 
-2. Add corresponding JavaScript in `static/app.js`:
+2. Add corresponding JavaScript in the relevant `static/js/*.js` file:
 ```javascript
 async function callNewEndpoint() {
-    const response = await fetch(`${API_BASE}/api/new-endpoint`);
-    const data = await response.json();
+    const response = await fetchJSON(`${API_BASE}/api/new-endpoint`);
     // Handle data
 }
 ```
 
-3. Update API documentation in `docs/api.md`
+3. Update API documentation in `docs/API_ENDPOINTS.md`
 
 ### Adding a New Configuration Parameter
 
-1. Update default config in `backend/app.py` `load_config()`:
+1. Update default config in `backend/config_defaults.py`:
 ```python
-"new_parameter": default_value
+DEFAULT_CONFIG["section"]["new_parameter"] = default_value
 ```
 
 2. Add form field in `templates/index.html`:
 ```html
 <div class="form-group">
-    <label>New Parameter:</label>
+    <label data-i18n="section.new_parameter_label"></label>
     <input type="text" id="new-parameter">
 </div>
 ```
 
-3. Update save/load in `static/app.js`:
+3. Update save/load in the relevant JS config file using DOM APIs (no innerHTML):
 ```javascript
 // In saveConfiguration()
 new_parameter: document.getElementById('new-parameter').value
-
 // In loadConfiguration()
-document.getElementById('new-parameter').value = config.new_parameter
+document.getElementById('new-parameter').value = config.section.new_parameter
 ```
 
-4. Update config generation in `uptonight_scheduler.py` if needed for uptonight
+### Rebuilding the SkyTonight Dataset
 
-### Adding a New Target Catalogue
-
-Catalogues are loaded automatically from the uptonight repository. To add a custom catalogue:
-
-1. Create YAML file in `targets/` directory
-2. Follow uptonight format:
-```yaml
-- name: Object Name
-  ra: 5 34 30
-  dec: +22 1 0
-  type: Galaxy
-  constellation: Taurus
-  size: 10.5
-  mag: 8.4
+The target dataset is pre-built by an offline script and stored in `data/skytonight/catalogues/targets.json`:
+```bash
+# From project root (with PyOngc and dependencies installed)
+python scripts/build_skytonight_catalogue.py
 ```
-3. It will appear automatically in the catalogues list
+Or trigger via API (admin only):
+```
+POST /api/skytonight/dataset/rebuild
+```
 
-### Updating the Version
+### Triggering a SkyTonight Recalculation
+```bash
+# Via API (admin required)
+curl -X POST http://localhost:5000/api/skytonight/scheduler/trigger
+```
+Or set `SKYTONIGHT_FALLBACK_INTERVAL_SECONDS` to a shorter value in `backend/skytonight_scheduler.py` for testing.
+
+### Updating the Application Version
 
 1. Edit `VERSION` file: `1.0.0` → `1.1.0`
 2. Commit and push to main branch
@@ -536,11 +563,12 @@ Catalogues are loaded automatically from the uptonight repository. To add a cust
 
 ### Manual Testing Checklist
 - [ ] Configuration save/load works
-- [ ] Target catalogues load from GitHub
+- [ ] SkyTonight scheduler triggers and completes
+- [ ] DSO / bodies / comets results appear in the UI tables
+- [ ] Sky map polar chart renders with target trajectories
+- [ ] Altitude-vs-time popup opens and Chart.js renders without console errors
+- [ ] Plan My Night adds, reorders, and clears targets correctly
 - [ ] Weather API integration functions
-- [ ] Scheduler starts and triggers
-- [ ] Uptonight containers execute successfully
-- [ ] Outputs are generated and accessible
 - [ ] Version endpoint returns correct version
 - [ ] Health endpoint responds
 
@@ -558,27 +586,26 @@ docker logs -f myastroboard
 # Test API
 curl http://localhost:5000/health
 curl http://localhost:5000/api/version
-curl http://localhost:5000/api/catalogues
+curl http://localhost:5000/api/skytonight/scheduler/status
 
 # Stop
 docker compose down
 ```
 
-### Testing Scheduler (Without Waiting 6 Hours)
-Set the `SKYTONIGHT_FALLBACK_INTERVAL_SECONDS` constant in `backend/skytonight_scheduler.py` to a shorter value (e.g. 300 for 5 minutes) and rebuild.
+### Testing Scheduler (Without Waiting)
+Set `SKYTONIGHT_FALLBACK_INTERVAL_SECONDS` in `backend/skytonight_scheduler.py` to a shorter value (e.g. 300 for 5 minutes), or use the manual trigger API endpoint.
 
 ## Security Considerations
 
-### Docker Socket Access
-- **Risk**: Container has full Docker access
-- **Mitigation**: Document requirement, warn users
-- **Alternative**: None practical for Docker-in-Docker pattern
+### No Docker Socket Access
+- SkyTonight performs all calculations in-process (Python/Astropy) — no Docker-in-Docker, no privileged mode required
+- `docker-compose.yml` runs with `privileged: false`
 
 ### Input Validation
 - Always validate user input before:
   - Saving to config
-  - Passing to subprocess
-  - Using in file paths
+  - Using in file paths (use `slugify_location_name` for location-derived paths)
+  - Returning in API responses
 
 ### Dependency Security
 - Keep dependencies updated
@@ -588,14 +615,14 @@ Set the `SKYTONIGHT_FALLBACK_INTERVAL_SECONDS` constant in `backend/skytonight_s
 ## Performance Considerations
 
 ### Scheduler Efficiency
-- One thread, sequential execution
-- Acceptable for personal use (< 100 targets)
+- One thread, sequential execution; file lock prevents multi-worker duplication
+- Acceptable for personal use (thousands of targets processed in a single pass)
 - For large deployments, consider async or queue-based approach
 
 ### Memory Usage
-- Matplotlib plots held in memory briefly
-- Clear figures after generating images
-- Astropy calculations are efficient
+- SkyTonight calculations are done in-process (Astropy/NumPy); objects are released after each run
+- Chart.js charts are created on-demand and destroyed on modal close or tab switch
+- Astropy + Skyfield ephemeris loaded once and reused across calculations
 
 ## Debugging Tips
 
@@ -603,53 +630,49 @@ Set the `SKYTONIGHT_FALLBACK_INTERVAL_SECONDS` constant in `backend/skytonight_s
 
 **Scheduler not starting**
 - Check logs: `docker logs myastroboard`
-- Verify scheduler initialization in app.py
-- Check for exceptions during startup
+- Verify scheduler initialization in `app.py`
+- Check `data/skytonight/runtime/scheduler_status.json` for last error
 
-**Targets not loading**
-- Test GitHub API access: `curl https://api.github.com/repos/mawinkler/uptonight/contents/targets`
-- Check network connectivity from container
-- Verify YAML parsing
+**SkyTonight results missing**
+- Check `data/skytonight/logs/last_calculation.log` for calculation errors
+- Verify `data/skytonight/catalogues/targets.json` exists (rebuild if missing)
+- Check `data/skytonight/calculations/calculation_results.json` exists (signals all files complete)
 
-**Uptonight containers failing**
-- Check Docker socket mount: `ls -l /var/run/docker.sock`
-- Verify privileged mode in docker-compose.yml
-- Test manual uptonight execution
+**Altitude-time popup crashes with "Cannot read properties of null (reading 'addEventListener')"**
+- This is caused by `resizeDelay` in Chart.js options — **never** add `resizeDelay` to any Chart.js config
+- The delayed resize fires after `chart.destroy()` is called on tab switch, accessing a null canvas
+
+**Targets not loading in UI**
+- Check browser console for API errors
+- Test `GET /api/skytonight/data/dso` directly
+- Verify constraints are not filtering out all targets (e.g., `size_constraint_min` too large)
 
 **Coordinate conversion errors**
-- Check regex patterns in uptonight_scheduler.py
-- Validate input format matches expected
-- Add logging for coordinate parsing
+- Check coordinates are stored as decimal degrees (not DMS) in config
+- Validate using `GET /api/convert-coordinates`
 
 ### Enable Debug Logging
-Set environment variables to increase logging verbosity:
 ```bash
 # In docker-compose.yml or .env file
 LOG_LEVEL=DEBUG              # Enable debug logging to file
 CONSOLE_LOG_LEVEL=DEBUG      # Enable debug logging to console
-
-# Or temporarily via Docker
-docker compose down
-LOG_LEVEL=DEBUG CONSOLE_LOG_LEVEL=INFO docker compose up -d
 ```
 
 #### Dynamic Log Level Control
 ```python
 from logging_config import set_global_log_level, get_current_log_level
 
-# Check current level
 current_level = get_current_log_level()
-
-# Change level at runtime (affects all loggers)
 set_global_log_level('DEBUG')
 ```
 
 ### Useful Log Locations
 - **Application Log**: `data/myastroboard.log` (mounted volume in `/app/data/`)
+- **SkyTonight Calculation Log**: `data/skytonight/logs/last_calculation.log`
 - **Docker Logs**: `docker logs myastroboard` (shows console output)
-- **Container Logs**: `docker-compose logs -f myastroboard`
+- **Container Logs**: `docker compose logs -f myastroboard`
 - **Log Rotation**: Check `myastroboard.log.1`, `myastroboard.log.2`, etc. for older logs
-- **Scheduler Events**: Look for module `uptonight_scheduler` in logs
+- **Scheduler Events**: Look for module `skytonight_scheduler` in logs
 - **Cache Updates**: Look for module `cache_updater` and `cache_scheduler` in logs
 - **Weather API**: Look for module `weather_openmeteo` in logs
 
@@ -809,6 +832,8 @@ function renderMyChart(data) {
 - `weather.js`: cloudConditionsChart, seeingConditionsChart
 - `solar_eclipse.js`: solar-eclipse-altitude-chart
 - `lunar_eclipse.js`: lunar-eclipse-altitude-chart
+- `skytonight.js`: alttime-chart-canvas (altitude-vs-time popup chart)
+- `horizon_graph.js`: horizonCanvas
 
 ## Internationalization (i18n) & Translations
 
@@ -1107,37 +1132,43 @@ return jsonify({
 
 ## Resources & References
 
-
 ### Astronomy
 - [Astropy Documentation](https://docs.astropy.org/)
+- [Astroplan Documentation](https://astroplan.readthedocs.io/)
 - [Coordinate Systems](https://docs.astropy.org/en/stable/coordinates/)
 - [Time Handling](https://docs.astropy.org/en/stable/time/)
+- [Skyfield Documentation](https://rhodesmill.org/skyfield/)
 
-### Uptonight
-- [Uptonight Repository](https://github.com/mawinkler/uptonight)
-- [Uptonight Docker Hub](https://hub.docker.com/r/mawinkler/uptonight)
-- [Config Format](https://github.com/mawinkler/uptonight/blob/main/config.yaml.sample)
+### Catalogues
+- [PyOngc (OpenNGC)](https://github.com/mattiaverga/PyOngc)
+- [Minor Planet Center](https://minorplanetcenter.net/)
+- [JPL Small-Body Database](https://ssd.jpl.nasa.gov/tools/sbdb_lookup.html)
+
+### SkyTonight Documentation
+- [SkyTonight Architecture & AstroScore](docs/SKYTONIGHT.md)
+- [Plan My Night](docs/PLAN_MY_NIGHT.md)
+- [API Endpoints](docs/API_ENDPOINTS.md)
+- [Cache System](docs/CACHE_SYSTEM.md)
 
 ### Docker
-- [Docker-in-Docker](https://jpetazzo.github.io/2015/09/03/do-not-use-docker-in-docker-for-ci/)
-- [Docker Socket Mounting](https://docs.docker.com/engine/reference/commandline/dockerd/#daemon-socket-option)
+- [Docker Documentation](https://docs.docker.com/)
 
 ### Web Development
 - [Flask Documentation](https://flask.palletsprojects.com/)
+- [Chart.js Documentation](https://www.chartjs.org/docs/)
 - [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
 
 ## Contact & Support
 
 - **GitHub Issues**: https://github.com/WorldOfGZ/myastroboard/issues
-- **Uptonight Discussions**: https://github.com/mawinkler/uptonight/discussions
 - **Documentation**: https://github.com/WorldOfGZ/myastroboard/tree/main/docs
 
 ## License
 
-AGPL-3.0 License - See LICENSE file for details
+AGPL-3.0 License — See LICENSE file for details
 
 ---
 
-**Last Updated**: 2026-01-24
-**Version**: 1.0.0
+**Last Updated**: 2026-04-03
+**Version**: SkyTonight implementation
 **Maintainer**: WorldOfGZ
