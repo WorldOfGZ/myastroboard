@@ -1814,33 +1814,58 @@ async function showAlttimePopup(title, targetId) {
     const constraintBand  = altitudes.map(() => altMax);
     const constraintFloor = altitudes.map(() => altMin);
 
+    // Add 5° of breathing room when altMax is near or at the top of the chart
+    const yMax = altMax >= 85 ? altMax + 5 : 90;
+
+    // Plugin: shade areas outside the observable zone with a darker overlay
+    const observableBgPlugin = {
+        id: 'alttime_observable_bg',
+        beforeDatasetsDraw(chart) {
+            const { ctx, chartArea, scales } = chart;
+            if (!chartArea) return;
+            const yScale = scales.y;
+            const { left, right, top, bottom } = chartArea;
+            const yMinPx = Math.min(bottom, Math.max(top, yScale.getPixelForValue(altMin)));
+            const yMaxPx = Math.min(bottom, Math.max(top, yScale.getPixelForValue(altMax)));
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.07)';
+            if (yMaxPx > top) {
+                ctx.fillRect(left, top, right - left, yMaxPx - top);
+            }
+            if (yMinPx < bottom) {
+                ctx.fillRect(left, yMinPx, right - left, bottom - yMinPx);
+            }
+            ctx.restore();
+        },
+    };
+
     const ctx2d = canvas.getContext('2d');
     _alttimeChartInstance = new Chart(ctx2d, {
         type: 'line',
+        plugins: [observableBgPlugin],
         data: {
             labels: times,
             datasets: [
                 {
-                    // Top of observable zone (filled down to floor dataset)
+                    // Top bound of observable zone
                     label: tSkyTonightCompat('altitude_time_observable_zone'),
                     data: constraintBand,
-                    fill: '-1',
-                    backgroundColor: 'rgba(40, 167, 69, 0.10)',
-                    borderColor: 'rgba(40, 167, 69, 0.35)',
-                    borderWidth: 1,
-                    borderDash: [4, 4],
+                    fill: false,
+                    borderColor: 'rgba(20, 110, 40, 0.8)',
+                    borderWidth: 2,
+                    borderDash: [5, 4],
                     pointRadius: 0,
                     tension: 0,
                     order: 3,
                 },
                 {
-                    // Bottom of observable zone
+                    // Bottom bound of observable zone
                     label: `${altMin}° (min)`,
                     data: constraintFloor,
                     fill: false,
-                    borderColor: 'rgba(40, 167, 69, 0.35)',
-                    borderWidth: 1,
-                    borderDash: [4, 4],
+                    borderColor: 'rgba(20, 110, 40, 0.8)',
+                    borderWidth: 2,
+                    borderDash: [5, 4],
                     pointRadius: 0,
                     tension: 0,
                     order: 3,
@@ -1878,11 +1903,11 @@ async function showAlttimePopup(title, targetId) {
             scales: {
                 x: {
                     ticks: { maxTicksLimit: 12, maxRotation: 0 },
-                    title: { display: true, text: tSkyTonightCompat('altitude_time_x_axis') || 'Time (UTC)' },
+                    title: { display: true, text: `${tSkyTonightCompat('altitude_time_x_axis')} (${obsTz})` },
                 },
                 y: {
                     min: 0,
-                    max: 90,
+                    max: yMax,
                     ticks: { stepSize: 15 },
                     title: { display: true, text: tSkyTonightCompat('altitude_time_y_axis') || 'Altitude (°)' },
                 },
