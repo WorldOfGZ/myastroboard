@@ -33,11 +33,18 @@ This page lists the HTTP routes currently declared in `backend/app.py`.
 - `POST /api/config`
 - `GET /api/config/export`
 
+## Backup & Restore
+
+- `GET /api/backup/download` — Download a ZIP archive (config.json, users.json, astrodex/, equipments/)
+- `POST /api/backup/restore` — Restore from a previously created backup ZIP (`multipart/form-data`, field `file`)
+
 ## Platform & Utility
 
 - `GET /api/metrics`
 - `GET /api/logs`
+- `GET /api/logs/level`
 - `POST /api/logs/clear`
+- `GET /api/logs/export` — Download a ZIP archive of all log files (myastroboard.log + skytonight/logs/)
 - `POST /api/convert-coordinates`
 - `GET /api/timezones`
 - `GET /api/health`

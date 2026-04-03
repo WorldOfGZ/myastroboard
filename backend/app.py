@@ -16,6 +16,7 @@ import re
 import json
 import uuid
 import io
+import zipfile
 import sys
 from datetime import datetime, timedelta
 from dataclasses import asdict
@@ -684,6 +685,261 @@ def export_config_api():
     except Exception as e:
         logger.error(f"Error exporting config: {e}")
         return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/backup/download', methods=['GET'])
+@admin_required
+def backup_download_api():
+    """
+    Create and stream a ZIP archive containing key user data files:
+      - data/config.json
+      - data/users.json
+      - data/astrodex/  (full directory)
+      - data/equipments/ (full directory)
+    The archive is built in memory so no temporary file is left on disk.
+    """
+    # Evolutive list: each entry is (source_path, archive_name, is_dir)
+    BACKUP_ENTRIES = [
+        (os.path.join(DATA_DIR, 'config.json'),  'config.json',   False),
+        (os.path.join(DATA_DIR, 'users.json'),   'users.json',    False),
+        (os.path.join(DATA_DIR, 'astrodex'),     'astrodex',      True),
+        (os.path.join(DATA_DIR, 'equipments'),   'equipments',    True),
+    ]
+    try:
+        buf = io.BytesIO()
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        zip_filename = f"myastroboard_backup_{timestamp}.zip"
+
+        with zipfile.ZipFile(buf, mode='w', compression=zipfile.ZIP_DEFLATED) as zf:
+            for source_path, arc_name, is_dir in BACKUP_ENTRIES:
+                if is_dir:
+                    if os.path.isdir(source_path):
+                        for root, _dirs, files in os.walk(source_path):
+                            for fname in files:
+                                full_path = os.path.join(root, fname)
+                                rel = os.path.relpath(full_path, os.path.dirname(source_path))
+                                zf.write(full_path, rel)
+                else:
+                    if os.path.isfile(source_path):
+                        zf.write(source_path, arc_name)
+
+        buf.seek(0)
+        logger.info(f"Backup archive created: {zip_filename}")
+        return send_file(
+            buf,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=zip_filename
+        )
+    except Exception as e:
+        logger.error(f"Error creating backup archive: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/backup/restore', methods=['POST'])
+@admin_required
+def backup_restore_api():
+    """
+    Restore user data from a previously created backup ZIP archive.
+    The ZIP must contain the files/folders produced by /api/backup/download.
+    Supported top-level entries: config.json, users.json, astrodex/, equipments/
+    Unknown entries are silently ignored (forward-compatible).
+
+    Validation performed before any write:
+      1. Extension must be .zip
+      2. Must be a valid ZIP magic
+      3. Must contain at least one recognised entry
+      4. JSON files (config.json, users.json) must be valid JSON
+
+    No size cap is enforced: Astrodex portfolios containing many large
+    astrophotography images can legitimately exceed hundreds of MB.  The
+    endpoint is admin-only and operates on the user's own data.
+
+    Restore is atomic per directory:
+      - astrodex/ and equipments/ are cleared before the new files are written
+        so stale files from the previous state do not survive the restore.
+      - config.json and users.json are written directly (they are complete files).
+    """
+    # Evolutive allow-list: archive paths that are accepted during restore
+    # Format: normalized_prefix -> destination base path
+    # Entries whose value is a directory will have that directory cleared first.
+    RESTORE_ALLOWED_PREFIXES = {
+        'config.json':  os.path.join(DATA_DIR, 'config.json'),
+        'users.json':   os.path.join(DATA_DIR, 'users.json'),
+        'astrodex':     os.path.join(DATA_DIR, 'astrodex'),
+        'equipments':   os.path.join(DATA_DIR, 'equipments'),
+    }
+    # Directories that must be cleared before restoring their contents
+    RESTORE_CLEAR_DIRS = {'astrodex', 'equipments'}
+    # JSON files whose content must be valid JSON
+    RESTORE_VALIDATE_JSON = {'config.json', 'users.json'}
+
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file uploaded'}), 400
+
+    upload = request.files['file']
+    if not upload.filename or not upload.filename.lower().endswith('.zip'):
+        return jsonify({'error': 'Uploaded file must be a .zip archive'}), 400
+
+    try:
+        raw = upload.read()
+        buf = io.BytesIO(raw)
+        if not zipfile.is_zipfile(buf):
+            return jsonify({'error': 'File is not a valid ZIP archive'}), 400
+        buf.seek(0)
+
+        # --- Phase 1: validation (no writes yet) ---
+        recognised_entries = []   # (info, dest_path, top_prefix)
+        json_blobs = {}            # arc_path -> bytes  (only for JSON-validated files)
+
+        with zipfile.ZipFile(buf, 'r') as zf:
+            for info in zf.infolist():
+                arc_path = info.filename.replace('\\', '/').lstrip('/')
+
+                if arc_path.endswith('/'):
+                    continue  # directory entry
+
+                # Match against allow-list
+                dest_path = None
+                top_prefix = None
+                for prefix, base_dest in RESTORE_ALLOWED_PREFIXES.items():
+                    if arc_path == prefix or arc_path.startswith(prefix + '/'):
+                        rel = arc_path[len(prefix):]
+                        dest_path = os.path.normpath(os.path.join(base_dest, rel.lstrip('/')))
+                        # Strict path traversal guard
+                        if not dest_path.startswith(os.path.normpath(DATA_DIR) + os.sep) and \
+                           dest_path != os.path.normpath(base_dest):
+                            dest_path = None
+                        else:
+                            top_prefix = prefix
+                        break
+
+                if dest_path is None:
+                    continue  # silently skip unrecognised entries
+
+                # Validate JSON content before accepting
+                if arc_path in RESTORE_VALIDATE_JSON:
+                    blob = zf.read(info.filename)
+                    try:
+                        json.loads(blob)
+                    except Exception:
+                        return jsonify({
+                            'error': f'{arc_path} is not valid JSON — archive may be corrupt'
+                        }), 400
+                    json_blobs[arc_path] = blob
+
+                recognised_entries.append((info, dest_path, top_prefix))
+
+        if not recognised_entries:
+            return jsonify({
+                'error': 'Archive contains no recognised backup entries '
+                         '(expected config.json, users.json, astrodex/ or equipments/)'
+            }), 400
+
+        # --- Phase 2: clear target directories ---
+        buf.seek(0)
+        cleared_dirs = set()
+        for _info, _dest, top_prefix in recognised_entries:
+            if top_prefix in RESTORE_CLEAR_DIRS and top_prefix not in cleared_dirs:
+                target_dir = os.path.join(DATA_DIR, top_prefix)
+                if os.path.isdir(target_dir):
+                    shutil.rmtree(target_dir)
+                os.makedirs(target_dir, exist_ok=True)
+                cleared_dirs.add(top_prefix)
+                logger.info(f"Restore: cleared directory {target_dir}")
+
+        # --- Phase 3: write files ---
+        restored_files = []
+        skipped_files = []
+
+        with zipfile.ZipFile(buf, 'r') as zf:
+            for info, dest_path, top_prefix in recognised_entries:
+                arc_path = info.filename.replace('\\', '/').lstrip('/')
+                os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+
+                if arc_path in json_blobs:
+                    # Already read and validated — write directly
+                    with open(dest_path, 'wb') as dst:
+                        dst.write(json_blobs[arc_path])
+                else:
+                    with zf.open(info) as src, open(dest_path, 'wb') as dst:
+                        shutil.copyfileobj(src, dst)
+                restored_files.append(arc_path)
+
+        logger.info(
+            f"Backup restore completed: {len(restored_files)} files restored, "
+            f"{len(skipped_files)} skipped, dirs cleared: {sorted(cleared_dirs)}"
+        )
+        return jsonify({
+            'status': 'success',
+            'restored': len(restored_files),
+            'skipped': len(skipped_files),
+            'message': f'{len(restored_files)} file(s) restored successfully'
+        })
+
+    except Exception as e:
+        logger.error(f"Error restoring backup: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/logs/export', methods=['GET'])
+@admin_required
+def logs_export_api():
+    """
+    Create and stream a ZIP archive of log files:
+      - data/myastroboard.log (and rotated variants *.log.1 … *.log.5)
+      - data/skytonight/logs/ (full directory)
+    Built in memory — no temporary file left on disk.
+    """
+    # Evolutive list: each entry is (source_path, archive_folder, is_dir)
+    LOG_EXPORT_ENTRIES = [
+        (os.path.join(DATA_DIR, 'myastroboard.log'),  'logs',               False),
+        (SKYTONIGHT_LOGS_DIR,                         'skytonight/logs',    True),
+    ]
+    try:
+        buf = io.BytesIO()
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        zip_filename = f"myastroboard_logs_{timestamp}.zip"
+
+        with zipfile.ZipFile(buf, mode='w', compression=zipfile.ZIP_DEFLATED) as zf:
+            for source_path, arc_folder, is_dir in LOG_EXPORT_ENTRIES:
+                if is_dir:
+                    if os.path.isdir(source_path):
+                        for root, _dirs, files in os.walk(source_path):
+                            for fname in files:
+                                full_path = os.path.join(root, fname)
+                                rel = os.path.relpath(full_path, source_path)
+                                zf.write(full_path, os.path.join(arc_folder, rel))
+                else:
+                    # Include rotated log files (e.g. myastroboard.log.1 … .5)
+                    base_dir = os.path.dirname(source_path)
+                    base_name = os.path.basename(source_path)
+                    candidates = [source_path] + [
+                        os.path.join(base_dir, f"{base_name}.{i}") for i in range(1, 6)
+                    ]
+                    for candidate in candidates:
+                        if os.path.isfile(candidate):
+                            zf.write(candidate, os.path.join(arc_folder, os.path.basename(candidate)))
+
+        buf.seek(0)
+        logger.info(f"Log export archive created: {zip_filename}")
+        return send_file(
+            buf,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=zip_filename
+        )
+    except Exception as e:
+        logger.error(f"Error creating log export archive: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/logs/level', methods=['GET'])
+@admin_required
+def get_log_level_api():
+    """Return the current active log level for the file handler"""
+    from logging_config import get_current_log_level
+    return jsonify({'level': get_current_log_level()})
 
 
 @app.route('/api/logs', methods=['GET'])

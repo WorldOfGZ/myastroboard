@@ -916,6 +916,16 @@
                             <i class="bi bi-graph-up text-secondary icon-inline" aria-hidden="true"></i> <span data-i18n="settings.metrics">Metrics</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="backup-restore">
+                            <i class="bi bi-archive text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="settings.backup_restore">Backup / Restore</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="log-export">
+                            <i class="bi bi-file-zip text-danger icon-inline" aria-hidden="true"></i> <span data-i18n="settings.log_export">Log Export</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
 
@@ -1007,12 +1017,6 @@
                         </button>
                         <button id="run-now" class="btn btn-success mb-2">
                             <i class="bi bi-play-circle icon-inline" aria-hidden="true"></i> <span data-i18n="scheduler.run_now">Run SkyTonight Now</span>
-                        </button>
-                        <button id="view-config-main" class="btn btn-secondary mb-2">
-                            <i class="bi bi-eye icon-inline" aria-hidden="true"></i> <span data-i18n="settings.view_skytonight_configs">View generated configs</span>
-                        </button>
-                        <button id="export-config-main" class="btn btn-secondary mb-2">
-                            <i class="bi bi-download icon-inline" aria-hidden="true"></i> <span data-i18n="settings.export_general_config">Export General Config</span>
                         </button>
                     </div>
                 </div>
@@ -1647,6 +1651,108 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Backup / Restore Sub-tab -->
+            <div id="backup-restore-subtab" class="sub-tab-content">
+
+                <!-- Backup section -->
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>
+                        <i class="bi bi-cloud-download text-warning icon-inline" aria-hidden="true"></i>
+                        <span data-i18n="settings.backup_title">Backup</span>
+                    </h2>
+                    <div class="alert alert-info" role="alert" data-i18n="settings.backup_info">
+                        Download a ZIP archive of your personal data. The archive includes configuration, user accounts, Astrodex entries and equipment profiles.
+                    </div>
+
+                    <p class="mb-2 fw-semibold" data-i18n="settings.backup_includes_label">Included in the archive:</p>
+                    <ul class="list-unstyled ms-2 mb-3" id="backup-includes-list">
+                        <li><i class="bi bi-file-earmark-text text-muted icon-inline" aria-hidden="true"></i> <code>data/config.json</code></li>
+                        <li><i class="bi bi-file-earmark-person text-muted icon-inline" aria-hidden="true"></i> <code>data/users.json</code></li>
+                        <li><i class="bi bi-folder text-muted icon-inline" aria-hidden="true"></i> <code>data/astrodex/</code></li>
+                        <li><i class="bi bi-folder text-muted icon-inline" aria-hidden="true"></i> <code>data/equipments/</code></li>
+                    </ul>
+
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button id="backup-download-btn" class="btn btn-warning">
+                            <i class="bi bi-download icon-inline" aria-hidden="true"></i>
+                            <span data-i18n="settings.backup_download">Download Backup</span>
+                        </button>
+                        <button id="export-config-main" class="btn btn-secondary">
+                            <i class="bi bi-file-earmark-arrow-down icon-inline" aria-hidden="true"></i>
+                            <span data-i18n="settings.export_general_config">Export General Config</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Restore section -->
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>
+                        <i class="bi bi-cloud-upload text-primary icon-inline" aria-hidden="true"></i>
+                        <span data-i18n="settings.restore_title">Restore</span>
+                    </h2>
+                    <div class="alert alert-warning" role="alert" data-i18n="settings.restore_warning">
+                        Restoring a backup will overwrite the current configuration, users, Astrodex and equipment data with the contents of the archive. This action cannot be undone.
+                    </div>
+
+                    <div id="backup-restore-message" class="alert" role="alert" style="display:none;"></div>
+
+                    <div class="mb-3">
+                        <label for="restore-file-input" class="form-label" data-i18n="settings.restore_select_file">Select backup archive (.zip):</label>
+                        <input class="form-control" type="file" id="restore-file-input" accept=".zip">
+                    </div>
+
+                    <button id="backup-restore-btn" class="btn btn-danger" disabled>
+                        <i class="bi bi-arrow-counterclockwise icon-inline" aria-hidden="true"></i>
+                        <span data-i18n="settings.restore_button">Restore Backup</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Log Export Sub-tab -->
+            <div id="log-export-subtab" class="sub-tab-content">
+
+                <!-- Current log level info -->
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>
+                        <i class="bi bi-info-circle text-info icon-inline" aria-hidden="true"></i>
+                        <span data-i18n="settings.log_level_title">Current Log Level</span>
+                    </h2>
+                    <div class="alert alert-info" role="alert" data-i18n="settings.log_level_info">
+                        The log level controls how much detail is written to the log files. To capture the most detail for troubleshooting, set the level to <strong>DEBUG</strong> via the <code>LOG_LEVEL</code> environment variable, restart the application, reproduce the issue, then export the logs below.
+                    </div>
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <span data-i18n="settings.log_current_level">Active file log level:</span>
+                        <span id="log-export-current-level" class="badge bg-secondary fs-6">–</span>
+                    </div>
+                    <p class="text-muted small mb-0">
+                        <code>LOG_LEVEL=DEBUG</code> &nbsp;·&nbsp; <span data-i18n="settings.log_level_env_hint">Set in docker-compose.yml or .env, then restart the container.</span>
+                    </p>
+                </div>
+
+                <!-- Log export section -->
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>
+                        <i class="bi bi-file-zip text-danger icon-inline" aria-hidden="true"></i>
+                        <span data-i18n="settings.log_export_title">Export Logs</span>
+                    </h2>
+                    <div class="alert alert-info" role="alert" data-i18n="settings.log_export_info">
+                        Download a ZIP archive of all log files. Share this archive when reporting an issue to help with diagnostics.
+                    </div>
+
+                    <p class="mb-2 fw-semibold" data-i18n="settings.log_export_includes_label">Included in the archive:</p>
+                    <ul class="list-unstyled ms-2 mb-3">
+                        <li><i class="bi bi-file-earmark-text text-muted icon-inline" aria-hidden="true"></i> <code>data/myastroboard.log</code> <span class="text-muted small" data-i18n="settings.log_export_and_rotated">(+ rotated files if any)</span></li>
+                        <li><i class="bi bi-folder text-muted icon-inline" aria-hidden="true"></i> <code>data/skytonight/logs/</code></li>
+                    </ul>
+
+                    <button id="log-export-btn" class="btn btn-danger">
+                        <i class="bi bi-download icon-inline" aria-hidden="true"></i>
+                        <span data-i18n="settings.log_export_download">Download Log Archive</span>
+                    </button>
+                </div>
+            </div>
+
         </div>
 
 

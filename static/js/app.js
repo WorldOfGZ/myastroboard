@@ -225,6 +225,8 @@ function switchSubTab(parentTab, subtabName) {
         loadAndDisplayEvents();
     } else if (subtabName === 'plan-my-night') { //Astrodex tab - Plan My Night
         loadPlanMyNight();
+    } else if (subtabName === 'log-export') { //Parameters tab - Log Export
+        loadLogLevel();
     } else if (subtabName.startsWith('skytonight-')) { //SkyTonight section tabs
         const skytSection = subtabName.slice('skytonight-'.length);
         if (typeof _showSkyTonightSectionData === 'function') {
@@ -296,6 +298,14 @@ function setupEventListeners() {
     document.getElementById('save-config')?.addEventListener('click', saveConfiguration);
     document.getElementById('save-advanced')?.addEventListener('click', saveConfiguration);
     document.getElementById('export-config-main')?.addEventListener('click', exportConfiguration);
+
+    // Backup / Restore
+    document.getElementById('backup-download-btn')?.addEventListener('click', downloadBackup);
+    document.getElementById('backup-restore-btn')?.addEventListener('click', restoreBackup);
+    initRestoreFileInput();
+
+    // Log Export
+    document.getElementById('log-export-btn')?.addEventListener('click', downloadLogExport);
     
     // Run Now button
     document.getElementById('run-now')
