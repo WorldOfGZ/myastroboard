@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 import os
 import time
 
+import json
 import requests
 import astropy.units as u
 from astropy.time import Time as AstroTime
@@ -30,8 +31,17 @@ os.makedirs(SKYFIELD_CACHE_DIR, exist_ok=True)
 SKYFIELD_LOADER = Loader(SKYFIELD_CACHE_DIR)
 logger.info(f"Skyfield cache directory: {SKYFIELD_CACHE_DIR}")
 
-CELESTRAK_ISS_TLE_URLS = [
+# TLE sources in priority order.  Celestrak is authoritative but sources 2-3 are
+# independent aggregators that remain reachable when a Celestrak IP-block occurs.
+# They are placed early so a Celestrak timeout does not cost 30 extra seconds.
+ISS_TLE_URLS = [
+    # Primary: Celestrak GP catalog (most specific, JSON-capable via FORMAT=TLE)
     "https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE",
+    # Alternative 1: independent aggregator – returns JSON {line1, line2}
+    "https://tle.ivanstanojevic.me/api/tle/25544",
+    # Alternative 2: wheretheiss.at – returns JSON {line1, line2}
+    "https://api.wheretheiss.at/v1/satellites/25544/tles",
+    # Celestrak group / legacy fallbacks
     "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle",
     "https://celestrak.org/NORAD/elements/stations.txt",
     "https://www.celestrak.com/NORAD/elements/stations.txt",
@@ -187,7 +197,7 @@ class ISSPassService:
 
         last_error: Optional[Exception] = None
 
-        for tle_url in CELESTRAK_ISS_TLE_URLS:
+        for tle_url in ISS_TLE_URLS:
             try:
                 response = requests.get(tle_url, timeout=REQUEST_TIMEOUT_SECONDS)
                 response.raise_for_status()
@@ -210,7 +220,19 @@ class ISSPassService:
         raise RuntimeError(f"Failed to fetch ISS TLE from all sources: {last_error}")
 
     def _parse_iss_tle_from_response(self, response_text: str) -> Tuple[str, str]:
-        """Extract ISS TLE pair from plain-text response payload."""
+        """Extract ISS TLE pair from a response payload (JSON or plain-text)."""
+        # Attempt JSON first – tle.ivanstanojevic.me and wheretheiss.at return
+        # {"line1": "1 25544...", "line2": "2 25544..."}
+        try:
+            data = json.loads(response_text)
+            line1 = str(data.get("line1") or "").strip()
+            line2 = str(data.get("line2") or "").strip()
+            if line1.startswith("1 ") and line2.startswith("2 "):
+                return line1, line2
+        except (json.JSONDecodeError, AttributeError, TypeError):
+            pass
+
+        # Fall back to plain-text TLE format (Celestrak)
         lines = [line.strip() for line in response_text.splitlines() if line.strip()]
         first_tle_pair: Optional[Tuple[str, str]] = None
 
