@@ -13,11 +13,13 @@ Scheduler (skytonight_scheduler.py)
        ├─ load_targets_dataset()       ← DSOs (OpenNGC / OpenIC / Caldwell / Messier)
        ├─ load_comets_dataset()        ← MPC / JPL comets (auto-updated)
        ├─ Solar-system bodies          ← Skyfield ephemeris (de421.bsp)
-       └─ Writes per-location JSON to /data/skytonight/<location>/
-              results_dso.json
-              results_bodies.json
-              results_comets.json
-              alttime/<target_id>.json   ← altitude-vs-time graph data
+       └─ Writes shared JSON to /data/skytonight/
+              calculations/dso_results.json
+              calculations/bodies_results.json
+              calculations/comets_results.json
+              calculations/skymap_data.json
+              calculations/calculation_results.json   ← metadata-only "all done" signal
+              outputs/<target_id>_alttime.json        ← altitude-vs-time graph data
 ```
 
 The API (`app.py`) reads these JSON files; it never re-runs the heavy calculation per request.
@@ -162,14 +164,18 @@ The final value is clamped to **[0.0, 1.0]** and rounded to 4 decimal places.
 
 All outputs are written under `/data/skytonight/<sanitized_location>/`.
 
+All paths are relative to `/data/skytonight/`.
+
 | File | Description |
 |---|---|
-| `results_dso.json` | Deep-sky objects passing all constraints, sorted by AstroScore desc |
-| `results_bodies.json` | Solar-system bodies (planets, Moon, etc.) |
-| `results_comets.json` | Comets from MPC |
-| `alttime/<id>.json` | Altitude-vs-time series for the popup chart (15-min resolution) |
-| `scheduler_status.json` | Scheduler run state, progress, last duration |
-| `calculation.log` | Last run log lines |
+| `calculations/dso_results.json` | Deep-sky objects passing all constraints, sorted by AstroScore desc |
+| `calculations/bodies_results.json` | Solar-system bodies (planets, Moon, etc.) |
+| `calculations/comets_results.json` | Comets from MPC |
+| `calculations/skymap_data.json` | Sky map trajectory data (az/alt arrays per visible target) |
+| `calculations/calculation_results.json` | Metadata-only file written last; signals that all calculation files are complete |
+| `outputs/<id>_alttime.json` | Altitude-vs-time series for the popup chart (15-min resolution) |
+| `runtime/scheduler_status.json` | Scheduler run state, progress, last duration |
+| `logs/last_calculation.log` | Last run log lines (JSONL format: one entry per phase) |
 
 ---
 
@@ -177,12 +183,16 @@ All outputs are written under `/data/skytonight/<sanitized_location>/`.
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/skytonight/status` | Scheduler status, progress, last run time |
-| `GET` | `/api/skytonight/results/dso` | Deep-sky results |
-| `GET` | `/api/skytonight/results/bodies` | Bodies results |
-| `GET` | `/api/skytonight/results/comets` | Comets results |
+| `GET` | `/api/skytonight/scheduler/status` | Scheduler status, progress, last run time |
+| `POST` | `/api/skytonight/scheduler/trigger` | Manually trigger a recalculation (admin) |
+| `GET` | `/api/skytonight/dataset/status` | Dataset build status and catalogue counts |
+| `POST` | `/api/skytonight/dataset/rebuild` | Force a dataset rebuild |
+| `GET` | `/api/skytonight/data/dso` | Deep-sky results for the UI (reactive, per-section) — optional `?catalogue=` filter |
+| `GET` | `/api/skytonight/data/bodies` | Solar-system body results (reactive, per-section) |
+| `GET` | `/api/skytonight/data/comets` | Comet results (reactive, per-section) |
 | `GET` | `/api/skytonight/alttime/<id>` | Altitude-time data for one target |
-| `POST` | `/api/skytonight/trigger` | Manually trigger a recalculation (admin) |
+| `GET` | `/api/skytonight/skymap` | Sky map trajectory data |
+| `GET` | `/api/skytonight/log` | Last calculation log content (JSONL) |
 
 Full parameter details: [API_ENDPOINTS.md](API_ENDPOINTS.md)
 

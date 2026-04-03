@@ -400,7 +400,6 @@ echo "2.6" > UPTONIGHT_VERSION
 
 ### Environment Configuration
 Key environment variables (set in docker-compose.yml or .env):
-- **SCHEDULE_INTERVAL**: Uptonight execution interval in seconds (default: 21600)
 - **DATA_DIR**: Configuration storage (default: `/app/data`)
 - **UPTONIGHT_DIR**: Results storage (default: `/app/uptonight`)
 - **LOG_LEVEL**: File logging level - DEBUG, INFO, WARNING, ERROR, CRITICAL (default: INFO)
@@ -412,7 +411,6 @@ Key environment variables (set in docker-compose.yml or .env):
 environment:
   - LOG_LEVEL=INFO          # Standard logging to file
   - CONSOLE_LOG_LEVEL=WARNING # Minimal console noise
-  - SCHEDULE_INTERVAL=21600  # 6 hours
   
 # For debugging
 environment:
@@ -425,7 +423,7 @@ See `.env.example` for full list and documentation.
 ### Scheduler Behavior
 ```python
 # Runs immediately on startup
-# Then every SCHEDULE_INTERVAL seconds (default: 21600 = 6 hours)
+# Then every 6 hours (SKYTONIGHT_FALLBACK_INTERVAL_SECONDS in skytonight_scheduler.py)
 # For each target:
 #   1. Generate uptonight config YAML
 #   2. Run uptonight Docker container
@@ -567,11 +565,7 @@ docker compose down
 ```
 
 ### Testing Scheduler (Without Waiting 6 Hours)
-Set environment variable for shorter interval:
-```bash
-docker compose down
-SCHEDULE_INTERVAL=300 docker compose up -d  # 5 minutes
-```
+Set the `SKYTONIGHT_FALLBACK_INTERVAL_SECONDS` constant in `backend/skytonight_scheduler.py` to a shorter value (e.g. 300 for 5 minutes) and rebuild.
 
 ## Security Considerations
 
