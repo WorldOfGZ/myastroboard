@@ -747,7 +747,12 @@
     "altitude_time_observable_zone": "Beobachtbarer Bereich",
     "altitude_time_altitude_label": "Höhe (°)",
     "altitude_time_x_axis": "Zeit (UTC)",
-    "altitude_time_y_axis": "Höhe (°)"
+    "altitude_time_y_axis": "Höhe (°)",
+    "astroscore_legend_title": "AstroScore",
+    "astroscore_exceptional": "Ausgezeichnet",
+    "astroscore_good": "Gut",
+    "astroscore_average": "Mittel",
+    "astroscore_poor": "Schwach"
   },
   "plan_my_night": {
     "section_intro": "Erstellen Sie direkt aus SkyTonight-Zielen eine private Zeitplanung für die heutige Nacht.",

@@ -44,6 +44,7 @@
 /* ── Interactive Sky Map (Plotly polar chart) ─────────────────────────────── */
 .sky-map-plotly {
     width: 100%;
+    height: min(calc(100vh - 220px), 780px);
     min-height: 420px;
     border-radius: var(--border-radius-half);
     overflow: hidden;
@@ -55,7 +56,8 @@
 
 /* ── Sky Map legend card ─────────────────────────────────────────────────── */
 .sky-map-legend-wrap {
-    max-height: 380px;
+    max-height: calc(min(100vh - 220px, 780px) - 180px);
+    min-height: 220px;
     overflow-y: auto;
     border-radius: var(--border-radius-half);
 }

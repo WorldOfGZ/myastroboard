@@ -758,7 +758,12 @@
     "altitude_time_observable_zone": "Zone observable",
     "altitude_time_altitude_label": "Altitude (°)",
     "altitude_time_x_axis": "Heure (UTC)",
-    "altitude_time_y_axis": "Altitude (°)"
+    "altitude_time_y_axis": "Altitude (°)",
+    "astroscore_legend_title": "AstroScore",
+    "astroscore_exceptional": "Exceptionnel",
+    "astroscore_good": "Bon",
+    "astroscore_average": "Moyen",
+    "astroscore_poor": "Faible"
   },
 
   "plan_my_night": {
