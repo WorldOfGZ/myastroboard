@@ -26,6 +26,7 @@ Welcome to the comprehensive documentation for MyAstroBoard, the integrated astr
 - [API Endpoints](API_ENDPOINTS.md) - Complete route inventory from backend/app.py
 - [Plan My Night](PLAN_MY_NIGHT.md) - Night planning workflow and permissions
 - [Cache System](CACHE_SYSTEM.md) - Understanding the caching architecture
+- [SkyTonight](SKYTONIGHT.md) - Skytonight calculation & astroscore description
 - [Visual Tour](VISUAL_TOUR.md) - Screenshots and feature walkthrough
 
 ## 🚀 Quick Links

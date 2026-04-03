@@ -4,6 +4,9 @@ MyAstroBoard is a self-hosted astronomy dashboard with Docker-first deployment.
 It combines weather and astronomical conditions, automated SkyTonight execution,
 and planning tools for observation and astrophotography sessions.
 
+This project is inspired by `mawinkler/uptonight`. Previously this project run UpTonight in Docker CLI to generate data.
+Now MyAStroBoard removed all dependancies to UpTonight to use exactly what project need, and have the full hand on display & calculation.
+
 ## Features
 
 - SkyTonight integration with automated runs and report/log browsing
@@ -26,12 +29,13 @@ and planning tools for observation and astrophotography sessions.
 
 ## SkyTonight Data Model
 
-SkyTonight data is stored under `data/skytonight/`:
+SkyTonight data is stored under `data/skytonight/`
 
-- `configs/`: generated runtime configuration files
-- `outputs/`: generated SkyTonight reports and artifacts
+Execution is done 2 times by day:
+- 1 hour after last astronic night
+- 1 hour previous next astronimic night
 
-MyAstroBoard does not require legacy `targets/*.yaml` catalog files.
+Data generated (table of objects, altitude vs time graph, interactive plot, ...) are based on user location and constrainst.
 Deep-sky data is produced from the current SkyTonight/PyOngc pipeline.
 
 ## Requirements

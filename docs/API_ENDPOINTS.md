@@ -9,6 +9,7 @@ This page lists the HTTP routes currently declared in `backend/app.py`.
 - `GET /manifest.webmanifest`
 - `GET /sw.js`
 - `GET /offline.html`
+- `GET /robots.txt`
 
 ## Authentication
 
@@ -53,13 +54,24 @@ This page lists the HTTP routes currently declared in `backend/app.py`.
 
 ## SkyTonight
 
-- `GET /api/skytonight/outputs`
-- `GET /api/skytonight/outputs/<catalogue>/<filename>`
+- `GET /api/skytonight/scheduler/status`
+- `POST /api/skytonight/scheduler/trigger`
+- `GET /api/skytonight/dataset/status`
+- `POST /api/skytonight/dataset/rebuild`
+- `GET /api/skytonight/log`
+- `GET /api/skytonight/reports`
 - `GET /api/skytonight/reports/<catalogue>`
+- `GET /api/skytonight/reports/<catalogue>/available`
+- `GET /api/skytonight/reports/<catalogue>/<report_type>`
+- `GET /api/skytonight/outputs`
+- `GET /api/skytonight/outputs/<target>/<filename>`
+- `GET /api/skytonight/alttime/<target_id>`
+- `GET /api/skytonight/skymap`
+- `GET /api/skytonight/data/dso`
+- `GET /api/skytonight/data/bodies`
+- `GET /api/skytonight/data/comets`
 - `GET /api/skytonight/logs/<catalogue>`
 - `GET /api/skytonight/logs/<catalogue>/exists`
-- `GET /api/skytonight/reports/<catalogue>/<report_type>`
-- `GET /api/skytonight/reports/<catalogue>/available`
 
 ## Weather, Moon, Sun, and Astronomy
 
