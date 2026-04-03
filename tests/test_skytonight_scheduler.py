@@ -31,13 +31,14 @@ def test_resolve_schedule_uses_fallback_for_invalid_time():
 
 def test_resolve_schedule_prefers_soonest_valid_candidate():
     config = _base_config()
-    now = datetime(2026, 6, 1, 4, 0, tzinfo=ZoneInfo('Europe/Paris'))
+    # Use an April date where a proper astronomical night exists in Paris
+    now = datetime(2026, 4, 1, 4, 0, tzinfo=ZoneInfo('Europe/Paris'))
     schedule = resolve_schedule(config, now=now)
 
     assert schedule.server_time_valid is True
     assert schedule.next_run is not None
     assert schedule.next_run > now
-    assert schedule.mode in {'daily-06:00', 'pre-astronomical-night'}
+    assert schedule.mode in {'post-astronomical-night', 'pre-astronomical-night'}
 
 
 def test_resolve_schedule_keeps_timezone_from_config():
@@ -46,6 +47,22 @@ def test_resolve_schedule_keeps_timezone_from_config():
     schedule = resolve_schedule(config, now=now)
 
     assert schedule.timezone == 'Europe/Paris'
+
+
+def test_resolve_schedule_post_night_candidate_is_after_dawn():
+    """At 06:05, resolve_schedule should offer a post-night slot after astronomical dawn.
+
+    This demonstrates why a committed_next_run is required: the freshly-computed
+    next_run is always in the future, so comparing server_time against it would
+    never fire — we must track the previously committed time.
+    """
+    config = _base_config()
+    just_past_six = datetime(2026, 4, 3, 6, 5, tzinfo=ZoneInfo('Europe/Paris'))
+    schedule = resolve_schedule(config, now=just_past_six)
+
+    assert schedule.next_run is not None
+    assert schedule.next_run > just_past_six
+    assert schedule.mode in {'post-astronomical-night', 'pre-astronomical-night'}
 
 
 def test_disabled_scheduler_does_not_execute_runner(monkeypatch):

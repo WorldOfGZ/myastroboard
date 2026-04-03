@@ -25,8 +25,8 @@ from sun_phases import SunService
 logger = get_logger(__name__)
 
 SKYTONIGHT_FALLBACK_INTERVAL_SECONDS = 6 * 60 * 60
-SKYTONIGHT_MORNING_RUN_HOUR = 6
 SKYTONIGHT_PRE_NIGHT_OFFSET = timedelta(hours=1)
+SKYTONIGHT_POST_NIGHT_OFFSET = timedelta(hours=1)
 
 
 @dataclass(frozen=True)
@@ -80,21 +80,20 @@ def resolve_schedule(config: Dict[str, Any], now: Optional[datetime] = None) -> 
 
     candidates = []
 
-    morning_candidate = current_time.replace(
-        hour=SKYTONIGHT_MORNING_RUN_HOUR,
-        minute=0,
-        second=0,
-        microsecond=0,
-    )
-    if morning_candidate <= current_time:
-        morning_candidate += timedelta(days=1)
-    candidates.append(('daily-06:00', morning_candidate, 'Next daily 06:00 local run.'))
-
     latitude = location.get('latitude')
     longitude = location.get('longitude')
     if latitude is not None and longitude is not None:
         sun_service = SunService(latitude=latitude, longitude=longitude, timezone=timezone_name)
         for report in (sun_service.get_today_report(), sun_service.get_tomorrow_report()):
+            # Post-astronomical-night run: 1 hour after astronomical dawn
+            dawn_time = _parse_local_datetime(report.astronomical_dawn, timezone_name)
+            if dawn_time is not None:
+                candidate = dawn_time + SKYTONIGHT_POST_NIGHT_OFFSET
+                if candidate > current_time:
+                    candidates.append(
+                        ('post-astronomical-night', candidate, 'One hour after astronomical night ends.'),
+                    )
+            # Pre-astronomical-night run: 1 hour before astronomical dusk
             dusk_time = _parse_local_datetime(report.astronomical_dusk, timezone_name)
             if dusk_time is None:
                 continue
@@ -103,6 +102,14 @@ def resolve_schedule(config: Dict[str, Any], now: Optional[datetime] = None) -> 
                 candidates.append(
                     ('pre-astronomical-night', candidate, 'One hour before astronomical night.'),
                 )
+
+    if not candidates:
+        # Fallback if location is not configured or no dawn/dusk times are available
+        candidates.append((
+            'fallback-6h',
+            current_time + timedelta(seconds=SKYTONIGHT_FALLBACK_INTERVAL_SECONDS),
+            'No astronomical times available; using 6-hour fallback cadence.',
+        ))
 
     selected_mode, selected_time, reason = min(candidates, key=lambda item: item[1])
     return SkyTonightSchedule(
@@ -173,6 +180,19 @@ class SkyTonightScheduler:
         self._write_status()
 
     def _run_loop(self):
+        # Seed the committed next_run from the persisted status file so a
+        # scheduled run is not missed across loop iterations (resolve_schedule
+        # always returns a *future* time, so comparing server_time against the
+        # freshly-computed next_run would never fire).
+        _committed_next_run: Optional[datetime] = None
+        stored = load_scheduler_status(default={})
+        nr_text = str(stored.get('next_run') or '').strip()
+        if nr_text:
+            try:
+                _committed_next_run = datetime.fromisoformat(nr_text)
+            except ValueError:
+                pass
+
         while self.running:
             config = self.config_loader()
             skytonight_config = config.get('skytonight', {}) if isinstance(config, dict) else {}
@@ -204,8 +224,18 @@ class SkyTonightScheduler:
                     'triggering run regardless of last_run timestamp.'
                 )
                 should_run = True
-            if not should_run and schedule.next_run is not None:
-                should_run = schedule.server_time >= schedule.next_run
+            # Use the committed next_run (set in a previous iteration when it
+            # was still in the future) instead of the freshly-computed one so
+            # the comparison can actually become True once time advances past it.
+            if not should_run and _committed_next_run is not None:
+                should_run = (
+                    schedule.server_time >= _committed_next_run
+                    and (self.last_run is None or self.last_run < _committed_next_run)
+                )
+
+            # Advance the committed run time to the next scheduled future slot.
+            if schedule.next_run is not None:
+                _committed_next_run = schedule.next_run
 
             if should_run and not self._execution_lock.locked():
                 # On the first automatic run, wait for the cache scheduler to finish
