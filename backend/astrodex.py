@@ -6,6 +6,7 @@ import copy
 import json
 import os
 import re
+import threading
 import uuid
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -15,6 +16,19 @@ import catalogue_aliases
 import skytonight_targets
 
 logger = get_logger(__name__)
+
+# Per-user write locks to prevent race conditions on concurrent saves
+_user_save_locks: Dict[str, threading.Lock] = {}
+_user_save_locks_mutex = threading.Lock()
+
+
+def _get_user_save_lock(user_id: str) -> threading.Lock:
+    """Get or create a per-user lock for serializing file writes."""
+    with _user_save_locks_mutex:
+        if user_id not in _user_save_locks:
+            _user_save_locks[user_id] = threading.Lock()
+        return _user_save_locks[user_id]
+
 
 # Astrodex data directory
 ASTRODEX_DIR = os.path.join(os.environ.get('DATA_DIR', '/app/data'), 'astrodex')
@@ -505,10 +519,22 @@ def save_user_astrodex(user_id: str, astrodex_data: Dict, username: Optional[str
     file_path = get_user_astrodex_file(user_id)
     temp_path = file_path + '.tmp'
     backup_path = file_path + '.backup'
-    
+
+    with _get_user_save_lock(user_id):
+        return _save_user_astrodex_locked(user_id, username, astrodex_data, file_path, temp_path, backup_path)
+
+
+def _save_user_astrodex_locked(
+    user_id: str,
+    username: Optional[str],
+    astrodex_data: Dict,
+    file_path: str,
+    temp_path: str,
+    backup_path: str,
+) -> bool:
     # Track if we created a backup (for cleanup)
     backup_created = False
-    
+
     try:
         astrodex_data['updated_at'] = datetime.now().isoformat()
         astrodex_data['user_id'] = user_id
