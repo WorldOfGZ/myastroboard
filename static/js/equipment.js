@@ -36,29 +36,33 @@ async function initializeEquipment() {
 function setupEquipmentEventListeners() {
     // Main equipment buttons
     document.addEventListener('click', (e) => {
+        // Resolve the actual button even when clicking an inner icon element
+        const btn = e.target.closest('button');
+        if (!btn) return;
+
         // New equipment buttons
-        if (e.target.classList.contains('btn-new-telescope')) showTelescopeModal();
-        if (e.target.classList.contains('btn-new-camera')) showCameraModal();
-        if (e.target.classList.contains('btn-new-mount')) showMountModal();
-        if (e.target.classList.contains('btn-new-filter')) showFilterModal();
-        if (e.target.classList.contains('btn-new-accessory')) showAccessoryModal();
-        if (e.target.classList.contains('btn-new-combination')) showCombinationModal();
-        
+        if (btn.classList.contains('btn-new-telescope')) showTelescopeModal();
+        if (btn.classList.contains('btn-new-camera')) showCameraModal();
+        if (btn.classList.contains('btn-new-mount')) showMountModal();
+        if (btn.classList.contains('btn-new-filter')) showFilterModal();
+        if (btn.classList.contains('btn-new-accessory')) showAccessoryModal();
+        if (btn.classList.contains('btn-new-combination')) showCombinationModal();
+
         // Edit buttons
-        if (e.target.classList.contains('btn-edit-telescope')) showTelescopeModal(e.target.dataset.id);
-        if (e.target.classList.contains('btn-edit-camera')) showCameraModal(e.target.dataset.id);
-        if (e.target.classList.contains('btn-edit-mount')) showMountModal(e.target.dataset.id);
-        if (e.target.classList.contains('btn-edit-filter')) showFilterModal(e.target.dataset.id);
-        if (e.target.classList.contains('btn-edit-accessory')) showAccessoryModal(e.target.dataset.id);
-        if (e.target.classList.contains('btn-edit-combination')) showCombinationModal(e.target.dataset.id);
-        
+        if (btn.classList.contains('btn-edit-telescope')) showTelescopeModal(btn.dataset.id);
+        if (btn.classList.contains('btn-edit-camera')) showCameraModal(btn.dataset.id);
+        if (btn.classList.contains('btn-edit-mount')) showMountModal(btn.dataset.id);
+        if (btn.classList.contains('btn-edit-filter')) showFilterModal(btn.dataset.id);
+        if (btn.classList.contains('btn-edit-accessory')) showAccessoryModal(btn.dataset.id);
+        if (btn.classList.contains('btn-edit-combination')) showCombinationModal(btn.dataset.id);
+
         // Delete buttons
-        if (e.target.classList.contains('btn-delete-telescope')) deleteEquipment('telescopes', e.target.dataset.id);
-        if (e.target.classList.contains('btn-delete-camera')) deleteEquipment('cameras', e.target.dataset.id);
-        if (e.target.classList.contains('btn-delete-mount')) deleteEquipment('mounts', e.target.dataset.id);
-        if (e.target.classList.contains('btn-delete-filter')) deleteEquipment('filters', e.target.dataset.id);
-        if (e.target.classList.contains('btn-delete-accessory')) deleteEquipment('accessories', e.target.dataset.id);
-        if (e.target.classList.contains('btn-delete-combination')) deleteEquipment('combinations', e.target.dataset.id);
+        if (btn.classList.contains('btn-delete-telescope')) deleteEquipment('telescopes', btn.dataset.id);
+        if (btn.classList.contains('btn-delete-camera')) deleteEquipment('cameras', btn.dataset.id);
+        if (btn.classList.contains('btn-delete-mount')) deleteEquipment('mounts', btn.dataset.id);
+        if (btn.classList.contains('btn-delete-filter')) deleteEquipment('filters', btn.dataset.id);
+        if (btn.classList.contains('btn-delete-accessory')) deleteEquipment('accessories', btn.dataset.id);
+        if (btn.classList.contains('btn-delete-combination')) deleteEquipment('combinations', btn.dataset.id);
     });
 }
 
