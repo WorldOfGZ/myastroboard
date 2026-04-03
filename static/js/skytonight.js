@@ -40,6 +40,383 @@ async function getSkyTonightDisplayAstrodex() {
 }
 
 // ======================
+// Interactive Sky Map (Plotly scatterpolar)
+// ======================
+
+/**
+ * Render an interactive polar sky-dome chart into `container`.
+ *
+ * Coordinate mapping:
+ *   r     = 90 - altitude  →  centre = zenith (alt 90°), edge = horizon (alt 0°)
+ *   theta = azimuth (CW from N)  →  N at top, E at right, matching compass convention
+ *
+ * All targets (DSOs, bodies, comets) are plotted at their peak-altitude position
+ * for tonight, sized by AstroScore and coloured by object type.
+ */
+async function _renderSkyMap(reports, container) {
+    DOMUtils.clear(container);
+
+    if (typeof Plotly === 'undefined') {
+        const w = document.createElement('div');
+        w.className = 'alert alert-warning mt-3';
+        w.textContent = tSkyTonightCompat('no_data_available');
+        container.appendChild(w);
+        return;
+    }
+
+    // ── fetch trajectory data from backend ───────────────────────────────────
+    let skymap;
+    try {
+        skymap = await fetchJSON('/api/skytonight/skymap');
+    } catch (_) {
+        const err = document.createElement('div');
+        err.className = 'alert alert-danger mt-3';
+        err.textContent = tSkyTonightCompat('no_data_available');
+        container.appendChild(err);
+        return;
+    }
+
+    const targets = (skymap && skymap.targets) || [];
+    if (targets.length === 0) {
+        const info = document.createElement('div');
+        info.className = 'alert alert-info mt-3';
+        info.textContent = tSkyTonightCompat('no_data_available');
+        container.appendChild(info);
+        return;
+    }
+
+    // ── colour palette (cycling) ────────────────────────────────────────────
+    const PALETTE = [
+        '#4dabf7','#ffd43b','#51cf66','#ff8c00','#f783ac',
+        '#a9e34b','#74c0fc','#ff6b6b','#cc5de8','#20c997',
+        '#fd7e14','#748ffc','#e599f7','#94d82d','#63e6be',
+        '#ff922b','#339af0','#f06595','#a9e34b','#845ef7',
+    ];
+
+    // ── category → marker symbol for the numbered start dot ─────────────────
+    const CAT_SYMBOL = {
+        'Galaxy': 'circle',
+        'Nebula': 'diamond',
+        'Planetary Nebula': 'diamond',
+        'Star Cluster': 'square',
+        'Open Cluster': 'square',
+        'Globular Cluster': 'circle',
+    };
+
+    // ── theme ────────────────────────────────────────────────────────────────
+    const isDark  = document.documentElement.getAttribute('data-bs-theme') !== 'light';
+    const skyBg   = isDark ? '#07101f' : '#d9eaf7';
+    const gridClr = isDark ? 'rgba(180,210,255,0.12)' : 'rgba(40,60,120,0.15)';
+    const tickClr = isDark ? '#9ab0cc' : '#334466';
+
+    // ── build traces, keeping an index map per target ────────────────────────
+    const traces = [];
+    const traceMap = []; // [{arcIdx, dotIdx, target}] in same order as targets[]
+
+    targets.forEach((tgt, i) => {
+        const color    = PALETTE[i % PALETTE.length];
+        const alt      = tgt.alt;
+        const az       = tgt.az;
+        const label    = String(tgt.n);
+        const scoreStr = tgt.score != null ? (tgt.score * 100).toFixed(0) + '%' : '—';
+        const tooltip  = `<b>${label}: ${escapeHtml(tgt.name)}</b><br>` +
+                         `${escapeHtml(tgt.type || tgt.category)}<br>` +
+                         `AstroScore: ${scoreStr}<br>` +
+                         (tgt.constellation ? `${escapeHtml(tgt.constellation)}<br>` : '');
+
+        const r     = alt.map(a => Math.max(0, 90 - a));
+        const theta = az;
+
+        const arcIdx = traces.length;
+        traces.push({
+            type: 'scatterpolar', mode: 'lines',
+            name: `${label}: ${tgt.name}`,
+            r, theta,
+            line: { color, width: 1.8 },
+            hoverinfo: 'skip',
+            showlegend: false,
+        });
+
+        const dotSymbol = CAT_SYMBOL[tgt.type] || (tgt.category === 'bodies' ? 'star' : 'x');
+        const dotIdx = traces.length;
+        traces.push({
+            type: 'scatterpolar', mode: 'markers+text',
+            name: `${label}: ${tgt.name}`,
+            r: [r[0]], theta: [theta[0]],
+            text: [label],
+            textposition: 'top center',
+            textfont: { color, size: 9 },
+            hovertext: [tooltip],
+            hoverinfo: 'text',
+            marker: {
+                symbol: dotSymbol, color, size: 8, opacity: 0.95,
+                line: { color: isDark ? '#111' : '#fff', width: 1 },
+            },
+            showlegend: false,
+        });
+
+        traceMap.push({ arcIdx, dotIdx, target: tgt });
+    });
+
+    // ── Plotly layout ─────────────────────────────────────────────────────────
+    const plotLayout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor:  'rgba(0,0,0,0)',
+        height: 480,
+        polar: {
+            bgcolor: skyBg,
+            radialaxis: {
+                range: [0, 90],
+                tickvals:  [0, 30, 60, 90],
+                ticktext:  ['90°', '60°', '30°', '0°'],
+                tickfont:  { size: 9, color: tickClr },
+                gridcolor: gridClr, linecolor: gridClr, showline: true,
+            },
+            angularaxis: {
+                direction: 'clockwise', rotation: 90,
+                tickvals:  [0, 45, 90, 135, 180, 225, 270, 315],
+                ticktext:  ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'],
+                tickfont:  { size: 11, color: tickClr },
+                gridcolor: gridClr,
+            },
+        },
+        showlegend: false,
+        margin: { t: 10, r: 10, b: 10, l: 10 },
+        font:   { color: tickClr },
+    };
+
+    const plotConfig = {
+        responsive:             true,
+        displaylogo:            false,
+        modeBarButtonsToRemove: ['sendDataToCloud', 'toImage'],
+    };
+
+    // ── DOM: outer row ────────────────────────────────────────────────────────
+    const row = document.createElement('div');
+    row.className = 'row g-3 mt-1';
+    container.appendChild(row);
+
+    // ── Left column: chart card ───────────────────────────────────────────────
+    const colChart = document.createElement('div');
+    colChart.className = 'col-12 col-xl-8';
+    row.appendChild(colChart);
+
+    const chartCard = document.createElement('div');
+    chartCard.className = 'card h-100';
+    colChart.appendChild(chartCard);
+
+    const chartHeader = document.createElement('div');
+    chartHeader.className = 'card-header d-flex justify-content-between align-items-center';
+
+    const chartTitle = document.createElement('span');
+    chartTitle.className = 'fw-semibold';
+    chartTitle.innerHTML = `<i class="bi bi-globe2 icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('sky_map_title')}`;
+
+    const resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'btn btn-sm btn-outline-secondary';
+    resetBtn.innerHTML = `<i class="bi bi-arrows-fullscreen icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('sky_map_reset_view')}`;
+
+    chartHeader.appendChild(chartTitle);
+    chartHeader.appendChild(resetBtn);
+    chartCard.appendChild(chartHeader);
+
+    const chartBody = document.createElement('div');
+    chartBody.className = 'card-body p-2';
+    chartCard.appendChild(chartBody);
+
+    const hint = document.createElement('div');
+    hint.className = 'text-muted small mb-2';
+    hint.innerHTML = `<i class="bi bi-info-circle icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('sky_map_hint')}`;
+    chartBody.appendChild(hint);
+
+    const mapDiv = document.createElement('div');
+    mapDiv.className = 'sky-map-plotly';
+    chartBody.appendChild(mapDiv);
+
+    Plotly.newPlot(mapDiv, traces, plotLayout, plotConfig);
+
+    resetBtn.addEventListener('click', () => {
+        Plotly.relayout(mapDiv, {
+            'polar.radialaxis.range': [0, 90],
+            'polar.radialaxis.autorange': false,
+        });
+    });
+
+    const ro = new ResizeObserver(() => Plotly.Plots.resize(mapDiv));
+    ro.observe(mapDiv);
+
+    // ── Right column: filters + legend card ──────────────────────────────────
+    const colLegend = document.createElement('div');
+    colLegend.className = 'col-12 col-xl-4';
+    row.appendChild(colLegend);
+
+    const legendCard = document.createElement('div');
+    legendCard.className = 'card h-100';
+    colLegend.appendChild(legendCard);
+
+    const legendHeader = document.createElement('div');
+    legendHeader.className = 'card-header fw-semibold';
+    legendHeader.innerHTML = `<i class="bi bi-funnel icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('sky_map_legend_title')}`;
+    legendCard.appendChild(legendHeader);
+
+    const legendBody = document.createElement('div');
+    legendBody.className = 'card-body p-2';
+    legendCard.appendChild(legendBody);
+
+    // ── Filter state ──────────────────────────────────────────────────────────
+    const activeCategories = new Set(['deep_sky', 'bodies', 'comets']);
+    let minScore = 0;
+
+    // ── Group toggle buttons ──────────────────────────────────────────────────
+    const groupDefs = [
+        { cat: 'deep_sky', key: 'sky_map_filter_dso' },
+        { cat: 'bodies',   key: 'sky_map_filter_bodies' },
+        { cat: 'comets',   key: 'sky_map_filter_comets' },
+    ];
+
+    // Only show group buttons for categories that actually have targets
+    const presentCats = new Set(targets.map(t => t.category));
+    const visibleGroups = groupDefs.filter(g => presentCats.has(g.cat));
+
+    if (visibleGroups.length > 1) {
+        const groupRow = document.createElement('div');
+        groupRow.className = 'd-flex gap-2 flex-wrap mb-2';
+        legendBody.appendChild(groupRow);
+
+        visibleGroups.forEach(({ cat, key }) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-sm btn-primary sky-map-filter-btn';
+            btn.dataset.cat = cat;
+            btn.textContent = tSkyTonightCompat(key);
+            btn.addEventListener('click', () => {
+                if (activeCategories.has(cat)) {
+                    activeCategories.delete(cat);
+                    btn.classList.replace('btn-primary', 'btn-outline-secondary');
+                } else {
+                    activeCategories.add(cat);
+                    btn.classList.replace('btn-outline-secondary', 'btn-primary');
+                }
+                applyFilters();
+            });
+            groupRow.appendChild(btn);
+        });
+    }
+
+    // ── AstroScore slider ─────────────────────────────────────────────────────
+    const sliderWrap = document.createElement('div');
+    sliderWrap.className = 'mb-3';
+    legendBody.appendChild(sliderWrap);
+
+    const sliderLabel = document.createElement('label');
+    sliderLabel.className = 'form-label small text-muted mb-1';
+    const sliderLabelText = document.createTextNode(
+        `${tSkyTonightCompat('sky_map_min_score')}: `
+    );
+    const sliderValueSpan = document.createElement('span');
+    sliderValueSpan.className = 'fw-semibold';
+    sliderValueSpan.textContent = '0%';
+    sliderLabel.appendChild(sliderLabelText);
+    sliderLabel.appendChild(sliderValueSpan);
+    sliderWrap.appendChild(sliderLabel);
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'form-range';
+    slider.min = '0';
+    slider.max = '100';
+    slider.step = '5';
+    slider.value = '0';
+    slider.addEventListener('input', () => {
+        minScore = parseInt(slider.value, 10) / 100;
+        sliderValueSpan.textContent = `${slider.value}%`;
+        applyFilters();
+    });
+    sliderWrap.appendChild(slider);
+
+    // ── Legend table ──────────────────────────────────────────────────────────
+    const statsLine = document.createElement('div');
+    statsLine.className = 'text-muted small text-end mb-1';
+    statsLine.textContent = tSkyTonightCompat('sky_map_count', { count: targets.length });
+    legendBody.appendChild(statsLine);
+
+    const tblWrap = document.createElement('div');
+    tblWrap.className = 'sky-map-legend-wrap';
+    legendBody.appendChild(tblWrap);
+
+    const tbl = document.createElement('table');
+    tbl.className = 'table table-sm table-hover table-borderless sky-map-legend mb-0';
+    tblWrap.appendChild(tbl);
+
+    const thead = tbl.createTHead();
+    const hr = thead.insertRow();
+    [
+        tSkyTonightCompat('sky_map_col_rank'),
+        tSkyTonightCompat('sky_map_col_name'),
+        tSkyTonightCompat('sky_map_col_type'),
+        tSkyTonightCompat('sky_map_col_score'),
+        tSkyTonightCompat('sky_map_col_constellation'),
+    ].forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        th.scope = 'col';
+        hr.appendChild(th);
+    });
+
+    const tbody = tbl.createTBody();
+    const legendRows = [];
+
+    targets.forEach((tgt, i) => {
+        const color    = PALETTE[i % PALETTE.length];
+        const scoreVal = tgt.score != null ? Math.round(tgt.score * 100) + '%' : '—';
+        const tableRow = tbody.insertRow();
+        tableRow.dataset.cat   = tgt.category;
+        tableRow.dataset.score = tgt.score != null ? tgt.score : '0';
+
+        [
+            { text: tgt.n,                       colored: true },
+            { text: tgt.name,                    colored: false },
+            { text: tgt.type || tgt.category,    colored: false },
+            { text: scoreVal,                    colored: false },
+            { text: tgt.constellation || '—',    colored: false },
+        ].forEach(({ text, colored }) => {
+            const td = tableRow.insertCell();
+            td.textContent = text;
+            if (colored) {
+                td.style.color = color;
+                td.style.fontWeight = 'bold';
+            }
+        });
+
+        legendRows.push(tableRow);
+    });
+
+    // ── Filter logic ──────────────────────────────────────────────────────────
+    function applyFilters() {
+        const visArr = new Array(traces.length).fill(true);
+        traceMap.forEach(({ arcIdx, dotIdx, target }) => {
+            const show = activeCategories.has(target.category) &&
+                         (target.score == null || target.score >= minScore);
+            visArr[arcIdx] = show;
+            visArr[dotIdx] = show;
+        });
+        Plotly.restyle(mapDiv, { visible: visArr });
+
+        let visible = 0;
+        legendRows.forEach((tableRow, i) => {
+            const tgt   = targets[i];
+            const show  = activeCategories.has(tgt.category) &&
+                          (tgt.score == null || tgt.score >= minScore);
+            tableRow.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        statsLine.textContent = tSkyTonightCompat('sky_map_count', { count: visible });
+    }
+}
+
+
+// ======================
 // Catalogue Management
 // ======================
 
@@ -212,11 +589,12 @@ async function loadCatalogueResults(catalogue) {
         }
         
         // Create buttons for available data types
-        const hasPlot = reports.plot_image;
         const hasReport = reports.report && reports.report.length > 0;
         const hasBodies = reports.bodies && reports.bodies.length > 0;
         const hasComets = reports.comets && reports.comets.length > 0;
-        const hasAnyData = !!(hasPlot || hasReport || hasBodies || hasComets);
+        const hasAnyData = !!(hasReport || hasBodies || hasComets);
+        // Interactive sky map is always available when there is any data
+        const hasPlot = hasAnyData;
 
         const renderButtons = (buttonItems) => {
             DOMUtils.clear(buttonsContainer);
@@ -327,24 +705,9 @@ async function showCatalogueType(catalogue, type) {
     const container = document.getElementById(`catalogue-${catalogue}-content`);
     DOMUtils.clear(container); // Clear previous content
 
-    // --- Plot ---
-    if (type === 'plot' && reports.plot_image) {
-        const plotDiv = document.createElement('div');
-        plotDiv.className = 'plot-container mt-3';
-
-        const img = document.createElement('img');
-        img.src = `${API_BASE}/api/skytonight/outputs/${encodeURIComponent(catalogue)}/${encodeURIComponent(reports.plot_image)}`;
-        img.alt = `${catalogue} plot`;
-        img.className = 'img-fluid rounded';
-        img.onclick = () => showPlotPopup(`${catalogue} Plot`, img.src);
-
-        const info = document.createElement('div');
-        info.className = 'text-muted small mt-2';
-        info.textContent = tSkyTonightCompat('skytonight_credit');
-
-        plotDiv.appendChild(img);
-        plotDiv.appendChild(info);
-        container.appendChild(plotDiv);
+    // --- Interactive Sky Map ---
+    if (type === 'plot') {
+        _renderSkyMap(reports, container);
         return;
     }
 

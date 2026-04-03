@@ -24,7 +24,7 @@ from astropy.time import Time
 
 from astroplan.moon import moon_illumination
 
-from constants import SKYTONIGHT_OUTPUT_DIR, SKYTONIGHT_RESULTS_FILE
+from constants import SKYTONIGHT_OUTPUT_DIR, SKYTONIGHT_RESULTS_FILE, SKYTONIGHT_SKYMAP_FILE
 from logging_config import get_logger
 from repo_config import load_config
 from skytonight_models import SkyTonightTarget
@@ -238,12 +238,12 @@ def _compute_altaz_series(
     dec_degrees: float,
     times: Any,
     location: EarthLocation,
-) -> np.ndarray:
-    """Return array of altitude values (degrees) for the target over 'times'."""
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Return (alt_deg, az_deg) arrays for the target over 'times'."""
     coord = SkyCoord(ra=ra_hours * u.hourangle, dec=dec_degrees * u.deg, frame='icrs')
     frame = AltAz(obstime=times, location=location)
     altaz = coord.transform_to(frame)
-    return altaz.alt.deg  # type: ignore[return-value]
+    return altaz.alt.deg, altaz.az.deg  # type: ignore[return-value]
 
 
 def _compute_body_altaz_series(
@@ -700,10 +700,10 @@ def _compute_body_result(
     night_end: datetime,
     lat: float,
     lon: float,
-) -> Tuple[Optional[Dict[str, Any]], Optional[np.ndarray]]:
+) -> Tuple[Optional[Dict[str, Any]], Optional[np.ndarray], Optional[np.ndarray]]:
     """Compute visibility for a solar system body using live ephemeris positions.
 
-    Returns a tuple of (result_dict, alt_deg_array).  Both elements are None
+    Returns a tuple of (result_dict, alt_deg_array, az_deg_array).  All elements are None
     when the body is not observable tonight.  The alt_deg array is used by the
     caller to persist the altitude-time graph JSON for the frontend chart.
 
@@ -719,7 +719,7 @@ def _compute_body_result(
         )
     except Exception as exc:
         logger.debug(f'Body AltAz computation failed for {body_name}: {exc}')
-        return None, None
+        return None, None, None
 
     alt_min = float(constraints.get('altitude_constraint_min', 30))
     north_to_east_ccw = bool(constraints.get('north_to_east_ccw', False))
@@ -742,18 +742,18 @@ def _compute_body_result(
     night_hours = (night_end - night_start).total_seconds() / 3600.0
     total_steps = len(alt_deg)
     if total_steps < _MIN_STEPS:
-        return None, None
+        return None, None, None
 
     in_window_mask = (alt_deg >= alt_min)
     observable_steps = int(np.sum(in_window_mask))
     observable_fraction = observable_steps / total_steps
 
     if observable_fraction < _BODIES_MIN_FRACTION:
-        return None, None
+        return None, None, None
 
     max_altitude = float(np.max(alt_deg))
     if max_altitude < alt_min:
-        return None, None
+        return None, None, None
 
     peak_idx = int(np.argmax(alt_deg))
     meridian_altitude = float(alt_deg[peak_idx])
@@ -842,7 +842,7 @@ def _compute_body_result(
         'moon_angular_distance': round(angular_distance_moon, 1) if angular_distance_moon is not None else None,
         'source_catalogues': target.source_catalogues,
         'metadata': target.metadata,
-    }, alt_deg
+    }, alt_deg, az_deg
 
 
 def _hours_to_hms(hours: float) -> str:
@@ -979,6 +979,7 @@ def run_calculations(
     processed_deep_sky = 0
     processed_bodies = 0
     processed_comets = 0
+    skymap_entries: List[Dict[str, Any]] = []  # accumulates trajectory data for sky map
     # Clear altitude-time JSON files from the previous calculation run so stale
     # files are never served after a recalculation for a different night.
     _clear_alttime_files()
@@ -990,7 +991,7 @@ def run_calculations(
     for target in all_targets:
         if target.category != 'bodies':
             continue
-        body_result, body_alt_deg = _compute_body_result(
+        body_result, body_alt_deg, body_az_deg = _compute_body_result(
             target=target,
             times=times,
             location=location_obj,
@@ -1003,6 +1004,17 @@ def run_calculations(
         )
         if body_result is not None:
             bodies_results.append(body_result)
+            if body_alt_deg is not None and body_az_deg is not None:
+                skymap_entries.append({
+                    'id': target.target_id,
+                    'name': body_result.get('preferred_name', target.target_id),
+                    'type': body_result.get('type', 'body'),
+                    'category': 'bodies',
+                    'score': body_result.get('astro_score', 0),
+                    'constellation': body_result.get('constellation', ''),
+                    'alt': [round(float(v), 1) for v in body_alt_deg[::2]],
+                    'az': [round(float(v), 1) for v in body_az_deg[::2]],
+                })
             if body_alt_deg is not None:
                 _save_alttime_json(
                     target_id=target.target_id,
@@ -1050,7 +1062,7 @@ def run_calculations(
         if target.coordinates is None:
             continue
         try:
-            altaz_values = _compute_altaz_series(
+            altaz_values, az_values_comet = _compute_altaz_series(
                 ra_hours=target.coordinates.ra_hours,
                 dec_degrees=target.coordinates.dec_degrees,
                 times=times,
@@ -1073,6 +1085,16 @@ def run_calculations(
         )
         if result is not None:
             comets_results.append(result)
+            skymap_entries.append({
+                'id': target.target_id,
+                'name': result.get('preferred_name', target.target_id),
+                'type': 'comet',
+                'category': 'comets',
+                'score': result.get('astro_score', 0),
+                'constellation': result.get('constellation', ''),
+                'alt': [round(float(v), 1) for v in altaz_values[::2]],
+                'az': [round(float(v), 1) for v in az_values_comet[::2]],
+            })
             _save_alttime_json(
                 target_id=target.target_id,
                 name=result.get('preferred_name', target.target_id),
@@ -1185,6 +1207,16 @@ def run_calculations(
                 )
                 if result is not None:
                     deep_sky_results.append(result)
+                    skymap_entries.append({
+                        'id': target.target_id,
+                        'name': result.get('preferred_name', target.target_id),
+                        'type': result.get('type', 'dso'),
+                        'category': 'deep_sky',
+                        'score': result.get('astro_score', 0),
+                        'constellation': result.get('constellation', ''),
+                        'alt': [round(float(v), 1) for v in alt_matrix[idx][::2]],
+                        'az': [round(float(v), 1) for v in az_matrix[idx][::2]],
+                    })
                     alttime_pool.submit(
                         _save_alttime_json,
                         target.target_id,
@@ -1237,6 +1269,13 @@ def run_calculations(
     }
 
     save_json_file(SKYTONIGHT_RESULTS_FILE, payload)
+
+    # Write skymap trajectory data sorted by AstroScore descending, numbered 1..N
+    skymap_entries.sort(key=lambda e: e['score'], reverse=True)
+    for rank, entry in enumerate(skymap_entries, start=1):
+        entry['n'] = rank
+    save_json_file(SKYTONIGHT_SKYMAP_FILE, {'targets': skymap_entries})
+
     _calculation_progress.clear()
 
     logger.info(

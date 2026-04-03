@@ -40,3 +40,52 @@
     letter-spacing: 0.02em;
     white-space: nowrap;
 }
+
+/* ── Interactive Sky Map (Plotly polar chart) ─────────────────────────────── */
+.sky-map-plotly {
+    width: 100%;
+    min-height: 420px;
+    border-radius: var(--border-radius-half);
+    overflow: hidden;
+}
+
+.sky-map-plotly .js-plotly-plot {
+    border-radius: var(--border-radius-half);
+}
+
+/* ── Sky Map legend card ─────────────────────────────────────────────────── */
+.sky-map-legend-wrap {
+    max-height: 380px;
+    overflow-y: auto;
+    border-radius: var(--border-radius-half);
+}
+
+.sky-map-legend {
+    font-size: 0.75rem;
+    width: 100%;
+}
+
+.sky-map-legend thead th {
+    position: sticky;
+    top: 0;
+    background: var(--surface-card);
+    z-index: 1;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 0.3rem 0.4rem;
+}
+
+.sky-map-legend tbody td {
+    padding: 0.2rem 0.4rem;
+    vertical-align: middle;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Sky Map filter buttons ─────────────────────────────────────────────── */
+.sky-map-filter-btn {
+    font-size: 0.78rem;
+    padding: 0.2rem 0.55rem;
+}

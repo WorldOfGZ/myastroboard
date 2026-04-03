@@ -12,6 +12,7 @@ SKYTONIGHT_DIR = os.environ.get('SKYTONIGHT_DIR', os.path.join(DATA_DIR, 'skyton
 SKYTONIGHT_CATALOGUES_DIR = os.path.join(SKYTONIGHT_DIR, 'catalogues')
 SKYTONIGHT_DATASET_FILE = os.path.join(SKYTONIGHT_CATALOGUES_DIR, 'targets.json')
 SKYTONIGHT_RESULTS_FILE = os.path.join(SKYTONIGHT_DIR, 'calculation_results.json')
+SKYTONIGHT_SKYMAP_FILE = os.path.join(SKYTONIGHT_DIR, 'skymap_data.json')
 
 # File paths
 CONFIG_FILE = os.path.join(DATA_DIR, 'config.json')
