@@ -173,6 +173,78 @@ class TestISSPassServiceTleFallback:
         assert line1.startswith("1 25544")
         assert line2.startswith("2 25544")
 
+    def test_parse_iss_tle_from_json_response(self):
+        """Parser handles JSON bodies returned by tle.ivanstanojevic.me and wheretheiss.at."""
+        import json as _json
+        service = ISSPassService(45.5, -73.5, 30, "America/Montreal")
+
+        line1_str = "1 25544U 98067A   26100.00000000  .00010000  00000+0  18000-3 0  9991"
+        line2_str = "2 25544  51.6400 120.0000 0005000 200.0000 160.0000 15.50000000000000"
+
+        # tle.ivanstanojevic.me-style payload
+        payload_ivan = _json.dumps({
+            "@type": "TleModel",
+            "name": "ISS (ZARYA)",
+            "date": "2026-04-10T00:00:00+00:00",
+            "line1": line1_str,
+            "line2": line2_str,
+        })
+        l1, l2 = service._parse_iss_tle_from_response(payload_ivan)
+        assert l1 == line1_str
+        assert l2 == line2_str
+
+        # wheretheiss.at-style payload
+        payload_wheretheiss = _json.dumps({
+            "name": "ISS (ZARYA)",
+            "satelliteId": 25544,
+            "line1": line1_str,
+            "line2": line2_str,
+            "requestedAt": "2026-04-10T00:00:00.000Z",
+            "source": "celestrak",
+        })
+        l1, l2 = service._parse_iss_tle_from_response(payload_wheretheiss)
+        assert l1 == line1_str
+        assert l2 == line2_str
+
+    def test_fetch_iss_tle_uses_alternative_source_when_celestrak_blocked(self, monkeypatch):
+        """Alternative JSON sources are tried after Celestrak timeout/block."""
+        import json as _json
+        import iss_passes as iss_module
+        service = ISSPassService(45.5, -73.5, 30, "America/Montreal")
+
+        line1_str = "1 25544U 98067A   26100.00000000  .00010000  00000+0  18000-3 0  9991"
+        line2_str = "2 25544  51.6400 120.0000 0005000 200.0000 160.0000 15.50000000000000"
+
+        monkeypatch.setattr("iss_passes._get_cached_tle", lambda max_age_seconds=None: None)
+        monkeypatch.setattr("iss_passes._in_tle_failure_cooldown", lambda: False)
+        monkeypatch.setattr("iss_passes._set_tle_error_timestamp", lambda: None)
+        monkeypatch.setattr("iss_passes._set_cached_tle", lambda l1, l2: None)
+
+        calls = []
+
+        class _TimeoutError(Exception):
+            pass
+
+        def _mock_get(url, **kwargs):
+            calls.append(url)
+            if "celestrak" in url:
+                raise _TimeoutError("Connection timed out")
+            # First non-Celestrak URL returns JSON TLE
+            return type("R", (), {
+                "text": _json.dumps({"line1": line1_str, "line2": line2_str}),
+                "raise_for_status": lambda self: None,
+            })()
+
+        monkeypatch.setattr("iss_passes.requests.get", _mock_get)
+
+        l1, l2 = service._fetch_iss_tle()
+
+        assert l1 == line1_str
+        assert l2 == line2_str
+        # The first Celestrak URL is tried and fails; the first alternative succeeds
+        assert calls[0] == iss_module.ISS_TLE_URLS[0]
+        assert "celestrak" not in calls[-1]
+
 
 class TestISSCalendarAggregation:
     """Test ISS event integration in event aggregation payload."""
