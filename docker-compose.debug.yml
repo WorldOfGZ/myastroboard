@@ -14,7 +14,6 @@ services:
     environment:
       FLASK_DEBUG: 1
       FLASK_ENV: development
-      SCHEDULE_INTERVAL: 21600 #300 to test scheduler more frequently
       # Keep sessions stable across debug reloads/restarts
       SECRET_KEY: ${SECRET_KEY:-dev-insecure-secret-change-me-0123456789abcdef0123456789abcdef}
       # Enable Flask auto-reload for Python files
