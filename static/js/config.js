@@ -84,7 +84,10 @@ async function loadConfiguration() {
         if (moonIllumination) moonIllumination.checked = constraints.moon_separation_use_illumination !== false;
         
         const northCCW = document.getElementById('north-ccw');
-        if (northCCW) northCCW.checked = constraints.north_to_east_ccw === true;              
+        if (northCCW) northCCW.checked = constraints.north_to_east_ccw === true;
+
+        // Horizon profile
+        loadHorizonProfileTable(constraints.horizon_profile || []);
                 
     } catch (error) {
         console.error('Error loading configuration:', error);
@@ -115,7 +118,8 @@ async function saveConfiguration() {
                 moon_separation_min: parseFloat(document.getElementById('moon-sep').value),
                 moon_separation_use_illumination: document.getElementById('moon-illumination').checked,
                 fraction_of_time_observable_threshold: parseFloat(document.getElementById('time-threshold').value),
-                north_to_east_ccw: document.getElementById('north-ccw').checked
+                north_to_east_ccw: document.getElementById('north-ccw').checked,
+                horizon_profile: readHorizonProfile(),
             }
         }
     };
@@ -137,6 +141,46 @@ async function saveConfiguration() {
         console.error('Error saving configuration:', error);
         showMessage('error', i18n.t('settings.failed_to_save_config'));
     }
+}
+
+// ======================
+// Horizon Profile Editor
+// ======================
+
+function loadHorizonProfileTable(profile) {
+    const tbody = document.getElementById('horizon-profile-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    (profile || []).forEach(pt => addHorizonRow(pt.az, pt.alt));
+}
+
+function addHorizonRow(az = '', alt = '') {
+    const tbody = document.getElementById('horizon-profile-tbody');
+    if (!tbody) return;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><input type="number" class="form-control form-control-sm horizon-az" value="${az}" min="0" max="360" step="1" placeholder="0–360"></td>
+        <td><input type="number" class="form-control form-control-sm horizon-alt" value="${alt}" min="0" max="90" step="1" placeholder="0–90"></td>
+        <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()"><i class="bi bi-x-lg" aria-hidden="true"></i></button></td>`;
+    tbody.appendChild(tr);
+}
+
+function clearHorizonProfile() {
+    const tbody = document.getElementById('horizon-profile-tbody');
+    if (tbody) tbody.innerHTML = '';
+}
+
+function readHorizonProfile() {
+    const rows = document.querySelectorAll('#horizon-profile-tbody tr');
+    const profile = [];
+    rows.forEach(row => {
+        const az = parseFloat(row.querySelector('.horizon-az')?.value);
+        const alt = parseFloat(row.querySelector('.horizon-alt')?.value);
+        if (!isNaN(az) && !isNaN(alt) && az >= 0 && az <= 360 && alt >= 0 && alt <= 90) {
+            profile.push({ az, alt });
+        }
+    });
+    return profile;
 }
 
 // ======================

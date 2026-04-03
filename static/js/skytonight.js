@@ -130,6 +130,7 @@ async function _renderSkyMap(reports, container) {
     }
 
     const targets = (skymap && skymap.targets) || [];
+    const mapConstraints = (skymap && skymap.constraints) || {};
     if (targets.length === 0) {
         const info = document.createElement('div');
         info.className = 'alert alert-info mt-3';
@@ -288,6 +289,39 @@ async function _renderSkyMap(reports, container) {
     mapDiv.className = 'sky-map-plotly';
     chartBody.appendChild(mapDiv);
 
+    // ── Horizon boundary lines (dashed) on sky map ───────────────────────────
+    const altMin = mapConstraints.altitude_constraint_min ?? 30;
+    const horizonProfile = mapConstraints.horizon_profile || [];
+    const horizonGridClr = isDark ? 'rgba(20, 140, 50, 0.55)' : 'rgba(10, 110, 30, 0.65)';
+
+    // Flat alt_min circle: r = 90 - alt_min at every azimuth
+    const circleTheta = Array.from({ length: 361 }, (_, i) => i);
+    const circleR     = circleTheta.map(() => 90 - altMin);
+    traces.push({
+        type: 'scatterpolar', mode: 'lines',
+        name: `${altMin}° min`,
+        r: circleR, theta: circleTheta,
+        line: { color: horizonGridClr, width: 1.5, dash: 'dash' },
+        hoverinfo: 'skip', showlegend: false,
+    });
+
+    // Custom horizon profile polygon: r = 90 - horizon_alt_at(az)
+    if (horizonProfile.length > 0) {
+        // Densify the profile to a point per degree for a smooth polygon
+        const customTheta = Array.from({ length: 361 }, (_, i) => i);
+        const customR = customTheta.map(az => {
+            const alt = _horizonAltAtAz(az, horizonProfile);
+            return alt !== null ? 90 - alt : 90 - altMin;
+        });
+        traces.push({
+            type: 'scatterpolar', mode: 'lines',
+            name: tSkyTonightCompat('horizon_custom_line') || 'Custom Horizon',
+            r: customR, theta: customTheta,
+            line: { color: 'rgba(200, 80, 0, 0.70)', width: 1.5, dash: 'dot' },
+            hoverinfo: 'skip', showlegend: false,
+        });
+    }
+
     Plotly.newPlot(mapDiv, traces, plotLayout, plotConfig);
 
     resetBtn.addEventListener('click', () => {
@@ -299,6 +333,55 @@ async function _renderSkyMap(reports, container) {
 
     const ro = new ResizeObserver(() => Plotly.Plots.resize(mapDiv));
     ro.observe(mapDiv);
+
+    // ── Sky map card footer: horizon line legend ──────────────────────────────
+    const skyMapFooter = document.createElement('div');
+    skyMapFooter.className = 'card-footer text-muted small';
+    const skyMapFooterRow = document.createElement('div');
+    skyMapFooterRow.className = 'd-flex flex-wrap gap-2 align-items-center';
+
+    const skyMapLegendItems = [
+        {
+            color: isDark ? 'rgba(20, 140, 50, 0.75)' : 'rgba(10, 110, 30, 0.85)',
+            dash: '6px 4px',
+            label: `${tSkyTonightCompat('sky_map_horizon_min') || 'Min altitude'} (${altMin}°)`,
+        },
+        ...(horizonProfile.length > 0 ? [{
+            color: 'rgba(200, 80, 0, 0.85)',
+            dash: '2px 3px',
+            label: tSkyTonightCompat('horizon_custom_line') || 'Custom Horizon',
+        }] : []),
+    ];
+
+    skyMapLegendItems.forEach(item => {
+        const col = document.createElement('div');
+        col.className = 'col-auto d-flex align-items-center gap-1';
+
+        // Dashed line swatch using a short SVG
+        const swatch = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        swatch.setAttribute('width', '28');
+        swatch.setAttribute('height', '10');
+        swatch.setAttribute('aria-hidden', 'true');
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', '0');
+        line.setAttribute('y1', '5');
+        line.setAttribute('x2', '28');
+        line.setAttribute('y2', '5');
+        line.setAttribute('stroke', item.color);
+        line.setAttribute('stroke-width', '2');
+        line.setAttribute('stroke-dasharray', item.dash);
+        swatch.appendChild(line);
+
+        const lbl = document.createElement('span');
+        lbl.textContent = item.label;
+
+        col.appendChild(swatch);
+        col.appendChild(lbl);
+        skyMapFooterRow.appendChild(col);
+    });
+
+    skyMapFooter.appendChild(skyMapFooterRow);
+    chartCard.appendChild(skyMapFooter);
 
     // ── Right column: filters + legend card ──────────────────────────────────
     const colLegend = document.createElement('div');
@@ -1676,6 +1759,36 @@ function _destroyAlttimeChart() {
 }
 
 /**
+ * Linearly interpolate the custom horizon minimum altitude at a given azimuth.
+ * Profile is an array of {az, alt} objects sorted or unsorted.
+ * Returns null when the profile is empty.
+ */
+function _horizonAltAtAz(az, profile) {
+    if (!profile || profile.length === 0) return null;
+    const sorted = [...profile].sort((a, b) => a.az - b.az);
+    const azNorm = ((az % 360) + 360) % 360;
+    const idx = sorted.findIndex(p => p.az > azNorm);
+    if (idx === -1) {
+        // azNorm is beyond all profile points — interpolate between last and first (wrapped)
+        const p0 = sorted[sorted.length - 1];
+        const p1 = { az: sorted[0].az + 360, alt: sorted[0].alt };
+        const t = (azNorm - p0.az) / (p1.az - p0.az);
+        return p0.alt + t * (p1.alt - p0.alt);
+    }
+    if (idx === 0) {
+        // azNorm is before all profile points — interpolate between last (wrapped back) and first
+        const p0 = { az: sorted[sorted.length - 1].az - 360, alt: sorted[sorted.length - 1].alt };
+        const p1 = sorted[0];
+        const t = (azNorm - p0.az) / (p1.az - p0.az);
+        return p0.alt + t * (p1.alt - p0.alt);
+    }
+    const p0 = sorted[idx - 1];
+    const p1 = sorted[idx];
+    const t = (azNorm - p0.az) / (p1.az - p0.az);
+    return p0.alt + t * (p1.alt - p0.alt);
+}
+
+/**
  * Show altitude vs time chart for a target in a modal popup.
  * Fetches JSON from /api/skytonight/alttime/<targetId>, renders a Chart.js line
  * chart inside a card shell matching the weather-chart style, and destroys the
@@ -1739,8 +1852,11 @@ async function showAlttimePopup(title, targetId) {
     // Build time labels from UTC ISO strings, displayed in observatory timezone.
     const times = (data.times_utc || []).map(t => tzFmt.format(new Date(t + 'Z')));
     const altitudes = data.altitudes || [];
+    const azimuths = data.azimuths || [];
     const altMin = data.altitude_constraint_min ?? 30;
     const altMax = data.altitude_constraint_max ?? 80;
+    const horizonProfile = data.horizon_profile || [];
+    const hasCustomHorizon = horizonProfile.length > 0 && azimuths.length === altitudes.length;
 
     const nightStart = data.night_start ? tzFmt.format(new Date(data.night_start)) : '';
     const nightEnd   = data.night_end   ? tzFmt.format(new Date(data.night_end))   : '';
@@ -1778,6 +1894,9 @@ async function showAlttimePopup(title, targetId) {
         { color: 'rgba(13, 110, 253, 0.9)',   label: tSkyTonightCompat('altitude_time_altitude_label') || 'Altitude (°)' },
         { color: 'rgba(40, 167, 69, 0.45)',    label: tSkyTonightCompat('altitude_time_observable_zone') },
     ];
+    if (hasCustomHorizon) {
+        legendDefs.push({ color: 'rgba(200, 80, 0, 0.75)', label: tSkyTonightCompat('horizon_custom_line') || 'Custom Horizon' });
+    }
     legendDefs.forEach(item => {
         const col = document.createElement('div');
         col.className = 'col-auto';
@@ -1813,6 +1932,11 @@ async function showAlttimePopup(title, targetId) {
 
     const constraintBand  = altitudes.map(() => altMax);
     const constraintFloor = altitudes.map(() => altMin);
+
+    // Build custom horizon curve: per-step altitude derived from azimuth + profile
+    const customHorizonData = hasCustomHorizon
+        ? azimuths.map(az => _horizonAltAtAz(az, horizonProfile))
+        : null;
 
     // Add 5° of breathing room when altMax is near or at the top of the chart
     const yMax = altMax >= 85 ? altMax + 5 : 90;
@@ -1870,6 +1994,17 @@ async function showAlttimePopup(title, targetId) {
                     tension: 0,
                     order: 3,
                 },
+                ...(customHorizonData ? [{
+                    label: tSkyTonightCompat('horizon_custom_line') || 'Custom Horizon',
+                    data: customHorizonData,
+                    fill: false,
+                    borderColor: 'rgba(200, 80, 0, 0.75)',
+                    borderWidth: 1.5,
+                    borderDash: [4, 3],
+                    pointRadius: 0,
+                    tension: 0.2,
+                    order: 2,
+                }] : []),
                 {
                     label: tSkyTonightCompat('altitude_time_altitude_label') || 'Altitude (°)',
                     data: altitudes,
