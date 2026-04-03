@@ -22,21 +22,20 @@
     "duration": "Duration: ",
     "quality": "Quality: ",
     "time_label": "Time",
-    "quality_scale": 
-      {
-        "unknown": "Unknown",
-        "low": "Low",
-        "bad": "Bad",
-        "poor": "Poor",
-        "minimal": "Minimal",
-        "medium": "Medium",
-        "moderate": "Moderate",
-        "fair": "Fair",
-        "good": "Good",
-        "high": "High",
-        "excellent": "Excellent",
-        "critical": "Critical"
-      },
+    "quality_scale": {
+      "unknown": "Unknown",
+      "low": "Low",
+      "bad": "Bad",
+      "poor": "Poor",
+      "minimal": "Minimal",
+      "medium": "Medium",
+      "moderate": "Moderate",
+      "fair": "Fair",
+      "good": "Good",
+      "high": "High",
+      "excellent": "Excellent",
+      "critical": "Critical"
+    },
     "retrying_in": "Retrying in {seconds}s ({attempt}/{maxAttempts})",
     "sun": "Sun",
     "moon": "Moon",
@@ -923,12 +922,12 @@
     "unknown_container": "Unknown container detected",
     "yes": "Yes",
     "no": "No",
-    "no_running_in_container": "Not running in container (bare metal or VM)"
-    ,"processes_overview": "Process Information"
-    ,"show_all_processes": "Show all processes"
-    ,"process_name": "Process"
-    ,"docker_in_docker": "Docker in Docker"
-    ,"no_process_data": "No process data available"
+    "no_running_in_container": "Not running in container (bare metal or VM)",
+    "processes_overview": "Process Information",
+    "show_all_processes": "Show all processes",
+    "process_name": "Process",
+    "docker_in_docker": "Docker in Docker",
+    "no_process_data": "No process data available"
   },
 
   "equipment": {

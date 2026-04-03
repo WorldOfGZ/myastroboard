@@ -909,12 +909,12 @@
     "unknown_container": "Unbekannter Container erkannt",
     "yes": "Ja",
     "no": "NEIN",
-    "no_running_in_container": "Läuft nicht im Container (Bare Metal oder VM)"
-    ,"processes_overview": "Prozessinformationen"
-    ,"show_all_processes": "Alle Prozesse anzeigen"
-    ,"process_name": "Prozess"
-    ,"docker_in_docker": "Docker in Docker"
-    ,"no_process_data": "Keine Prozessdaten verfügbar"
+    "no_running_in_container": "Läuft nicht im Container (Bare Metal oder VM)",
+    "processes_overview": "Prozessinformationen",
+    "show_all_processes": "Alle Prozesse anzeigen",
+    "process_name": "Prozess",
+    "docker_in_docker": "Docker in Docker",
+    "no_process_data": "Keine Prozessdaten verfügbar"
   },
   "equipment": {
     "combinations": "Kombinationen",
