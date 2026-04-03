@@ -80,35 +80,43 @@ def temp_file():
 
 @pytest.fixture
 def sample_config():
-    """Return a sample configuration dictionary"""
+    """Return a sample configuration dictionary matching the current DEFAULT_CONFIG structure."""
     return {
         "location": {
             "name": "Test Location",
             "latitude": 45.5,
             "longitude": -73.5,
             "elevation": 50,
-            "timezone": "America/Montreal"
+            "timezone": "America/Montreal",
         },
-        "selected_catalogues": ["Messier", "Herschel400"],
-        "min_altitude": 30,
-        "use_constraints": True,
-        "features": {
-            "horizon": False,
-            "objects": True,
-            "bodies": True,
-            "comets": True,
-            "alttime": True
-        },
+        "min_altitude": 25,
+        "astrodex": {"private": False},
         "skytonight": {
+            "enabled": True,
+            "constraints_always_enabled": True,
+            "preferred_name_order": ["OpenNGC", "Messier"],
             "constraints": {
-                "altitude_constraint_min": 30,
-                "altitude_constraint_max": 80,
+                "altitude_constraint_min": 25,
+                "altitude_constraint_max": 75,
                 "airmass_constraint": 2,
                 "size_constraint_min": 10,
                 "size_constraint_max": 300,
-                "moon_separation_min": 45
-            }
-        }
+                "moon_separation_min": 30,
+                "moon_separation_use_illumination": True,
+                "fraction_of_time_observable_threshold": 0.5,
+                "north_to_east_ccw": False,
+            },
+            "scheduler": {
+                "mode": "fallback-6h",
+                "server_time_valid": False,
+                "next_run": None,
+                "last_run": None,
+            },
+            "datasets": {
+                "catalogues": {"deep_sky": True, "bodies": True, "comets": True},
+                "comets": {"source": "mpc+jpl", "auto_update": True},
+            },
+        },
     }
 
 
