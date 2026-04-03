@@ -746,7 +746,7 @@
     "altitude_time_night_window": "Noche astronómica",
     "altitude_time_observable_zone": "Zona observable",
     "altitude_time_altitude_label": "Altitud (°)",
-    "altitude_time_x_axis": "Hora (UTC)",
+    "altitude_time_x_axis": "Hora",
     "altitude_time_y_axis": "Altitud (°)",
     "astroscore_legend_title": "AstroScore",
     "astroscore_exceptional": "Excepcional",
