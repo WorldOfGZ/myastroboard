@@ -616,6 +616,7 @@
     "sky_map_col_type": "Typ",
     "sky_map_col_score": "Score",
     "sky_map_col_constellation": "Sternbild",
+    "sky_map_filter_constellation": "Sternbilder",
     "loading_log_content": "SkyTonight-Protokollinhalt wird geladen...",
     "failed_to_load_log_content": "SkyTonight-Protokollinhalt konnte nicht geladen werden",
     "no_report_available": "Für diesen Datensatz sind keine Berichte verfügbar.",

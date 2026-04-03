@@ -43,6 +43,7 @@ from i18n_utils import I18nManager
 from txtconf_loader import get_repo_version
 from repo_config import load_config, save_config
 from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, CACHE_TTL, SKYTONIGHT_LOGS_DIR, CONFIG_DIR, OUTPUT_DIR, SKYTONIGHT_SKYMAP_FILE, SKYTONIGHT_BODIES_RESULTS_FILE, SKYTONIGHT_COMETS_RESULTS_FILE, SKYTONIGHT_DSO_RESULTS_FILE
+from utils import load_json_file
 from logging_config import get_logger
 from version_checker import check_for_updates
 from metrics_collector import collect_metrics
@@ -1483,7 +1484,31 @@ def get_skytonight_skymap_api():
     try:
         with open(SKYTONIGHT_SKYMAP_FILE, 'r', encoding='utf-8') as fobj:
             data = json.load(fobj)
-        return jsonify(data)
+        targets = data.get('targets', [])
+
+        # Translate 3-letter constellation abbreviations to full names
+        for tgt in targets:
+            abbr = tgt.get('constellation', '')
+            if abbr:
+                tgt['constellation'] = _CONSTELLATION_ABBR_MAP.get(abbr, abbr)
+
+        # Backfill the messier flag for skymap files written before this field was added.
+        # Cross-reference against dso_results.json (already loaded; O(n) pass).
+        needs_enrichment = any(
+            tgt.get('category') == 'deep_sky' and 'messier' not in tgt
+            for tgt in targets
+        )
+        if needs_enrichment and os.path.isfile(SKYTONIGHT_DSO_RESULTS_FILE):
+            dso_data = load_json_file(SKYTONIGHT_DSO_RESULTS_FILE, default={})
+            messier_ids = {
+                item.get('target_id', ''): bool('Messier' in (item.get('catalogue_names') or {}))
+                for item in dso_data.get('deep_sky', [])
+            }
+            for tgt in targets:
+                if tgt.get('category') == 'deep_sky' and 'messier' not in tgt:
+                    tgt['messier'] = messier_ids.get(tgt.get('id', ''), False)
+
+        return jsonify({'targets': targets})
     except Exception:
         logger.exception('Error reading skymap data file')
         return jsonify({'error': 'Internal server error'}), 500
