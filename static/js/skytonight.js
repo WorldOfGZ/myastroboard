@@ -1774,7 +1774,6 @@ async function showAlttimePopup(title, targetId) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            resizeDelay: 200,
             interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: { display: false },

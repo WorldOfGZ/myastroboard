@@ -275,7 +275,6 @@ function renderLunarEclipseAltitudeChart(altitudeData) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            resizeDelay: 200,
             plugins: {
                 legend: {
                     display: false

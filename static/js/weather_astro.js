@@ -446,7 +446,6 @@ function renderSeeingTransparencyChart(labels, data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            resizeDelay: 200,
             interaction: {
                 mode: 'index',
                 intersect: false,
@@ -556,7 +555,6 @@ function renderCloudLayersChart(labels, data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            resizeDelay: 200,
             interaction: {
                 mode: 'index',
                 intersect: false,
@@ -657,7 +655,6 @@ function renderDewTrackingChart(labels, data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            resizeDelay: 200,
             interaction: {
                 mode: 'index',
                 intersect: false,

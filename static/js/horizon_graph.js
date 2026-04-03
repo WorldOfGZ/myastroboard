@@ -247,7 +247,6 @@ function renderHorizonChart(horizonData) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            resizeDelay: 200,
             interaction: {
                 mode: 'index',
                 intersect: false,
