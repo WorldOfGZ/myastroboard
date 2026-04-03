@@ -393,7 +393,6 @@ async function loadAstronomicalCharts() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                resizeDelay: 200,
                 interaction: {
                     mode: 'index',
                     intersect: false,
@@ -545,7 +544,6 @@ async function loadAstronomicalCharts() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                resizeDelay: 200,
                 interaction: {
                     mode: 'index',
                     intersect: false,
