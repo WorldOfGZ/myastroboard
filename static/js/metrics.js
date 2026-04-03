@@ -90,19 +90,81 @@ async function loadSystemMetrics() {
     } catch (error) {
         console.error('Error loading system metrics:', error);
     }
+    
+    // Scheduler status is fetched from a separate endpoint
+    updateSchedulerMetrics();
+}
+
+async function updateSchedulerMetrics() {
+    const setText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text ?? '-';
+    };
+    const setBadge = (id, text, colorClass) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = text;
+        el.className = `badge ${colorClass}`;
+    };
+    const formatDt = (iso) => {
+        if (!iso) return '-';
+        try {
+            return new Date(iso).toLocaleString();
+        } catch (_) { return iso; }
+    };
+    const formatSecs = (secs) => {
+        if (secs == null || !Number.isFinite(Number(secs))) return '-';
+        const s = Number(secs);
+        if (s < 60) return `${s.toFixed(1)}s`;
+        const m = Math.floor(s / 60);
+        const rem = (s % 60).toFixed(0).padStart(2, '0');
+        return `${m}m ${rem}s`;
+    };
+    try {
+        const data = await fetchJSON('/api/skytonight/scheduler/status');
+        if (!data) return;
+
+        // Status badges
+        setBadge('sched-enabled',   data.enabled   ? i18n.t('metrics.yes') : i18n.t('metrics.no'),   data.enabled   ? 'badge bg-success' : 'badge bg-secondary');
+        setBadge('sched-running',   data.running    ? i18n.t('metrics.yes') : i18n.t('metrics.no'),   data.running    ? 'badge bg-success' : 'badge bg-secondary');
+        setBadge('sched-executing', data.is_executing ? i18n.t('metrics.yes') : i18n.t('metrics.no'), data.is_executing ? 'badge bg-warning text-dark' : 'badge bg-secondary');
+        setBadge('sched-mode',      data.mode ?? '-', 'badge bg-info');
+
+        setText('sched-timezone',      data.timezone ?? '-');
+        setText('sched-last-run',      formatDt(data.last_run));
+        setText('sched-next-run',      formatDt(data.next_run));
+        setText('sched-reason',        data.reason ?? '-');
+        setText('sched-last-duration', formatSecs(data.progress?.last_execution_duration_seconds));
+        setText('sched-last-error',    data.last_error ?? '-');
+
+        const lr = data.last_result;
+        if (lr) {
+            setText('sched-night-start',  formatDt(lr.calculation?.night_start));
+            setText('sched-night-end',    formatDt(lr.calculation?.night_end));
+            setText('sched-dso-count',    lr.counts?.deep_sky     ?? '-');
+            setText('sched-bodies-count', lr.counts?.bodies        ?? '-');
+            setText('sched-comets-count', lr.counts?.comets        ?? '-');
+        } else {
+            ['sched-night-start','sched-night-end','sched-dso-count','sched-bodies-count','sched-comets-count']
+                .forEach(id => setText(id, '-'));
+        }
+    } catch (error) {
+        console.warn('Error loading scheduler metrics:', error);
+    }
 }
 
 function updateFolderMetrics(folders, rootTotalBytes = null) {
     const folderMap = {
         'data': 'data',
-        'data/cache': 'cache',
         'data/astrodex': 'astrodex',
+        'data/cache': 'cache',
         'data/equipments': 'equipments',
+        'data/projects': 'projects',
         'data/skytonight': 'skytonight',
+        'data/skytonight/calculations': 'skytonight-calculations',
         'data/skytonight/catalogues': 'skytonight-catalogues',
-        'data/skytonight/outputs': 'skytonight-outputs',
-        'data/skytonight/configs': 'skytonight-configs',
         'data/skytonight/logs': 'skytonight-logs',
+        'data/skytonight/runtime': 'skytonight-runtime',
     };
     
     for (const [folderPath, folderKey] of Object.entries(folderMap)) {
