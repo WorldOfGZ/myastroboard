@@ -1725,6 +1725,14 @@ def get_skytonight_alttime_api(target_id):
     try:
         with open(file_path, 'r', encoding='utf-8') as fobj:
             data = json.load(fobj)
+        # Always inject the current horizon profile from config so the chart
+        # reflects the live profile even for alttime files pre-dating the profile.
+        cfg = load_config()
+        current_horizon = cfg.get('skytonight', {}).get('constraints', {}).get('horizon_profile', [])
+        if current_horizon:
+            data['horizon_profile'] = current_horizon
+        elif 'horizon_profile' not in data:
+            data['horizon_profile'] = []
         return jsonify(data)
     except Exception:
         logger.exception(f'Error reading alttime JSON for target {target_id}')

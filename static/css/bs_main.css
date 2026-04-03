@@ -646,3 +646,41 @@ body.density-compact .alert {
     transform: var(--hover-lift-sm);
 }
 
+/* ── Custom Horizon Profile table ───────────────────────────────── */
+#horizon-profile-table {
+    width: 100%;
+    max-width: 480px;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--surface-border-strong);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+#horizon-profile-table thead th {
+    background-color: var(--accent-soft);
+    color: var(--text-color);
+    font-weight: var(--font-semibold);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 2px solid var(--surface-border-strong);
+    padding: 0.45rem 0.65rem;
+    border-top: none;
+}
+
+#horizon-profile-table td {
+    border-top: 1px solid var(--surface-border);
+    border-bottom: none;
+    padding: 0.3rem 0.5rem;
+    vertical-align: middle;
+}
+
+#horizon-profile-table tbody tr:first-child td {
+    border-top: none;
+}
+
+#horizon-profile-table tbody tr:hover td {
+    background-color: var(--surface-hover);
+}
+
