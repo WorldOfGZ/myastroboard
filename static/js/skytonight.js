@@ -1920,6 +1920,22 @@ async function showAlttimePopup(title, targetId) {
     }
 
     cardFooter.appendChild(footerRow);
+
+    // Stale-data notice: profile configured but azimuths not in cached file
+    if (horizonProfile.length > 0 && !hasCustomHorizon) {
+        const staleRow = document.createElement('div');
+        staleRow.className = 'mt-1';
+        const staleIcon = document.createElement('i');
+        staleIcon.className = 'bi bi-exclamation-triangle-fill text-warning me-1';
+        staleIcon.setAttribute('aria-hidden', 'true');
+        const staleText = document.createElement('span');
+        staleText.className = 'text-warning';
+        staleText.textContent = tSkyTonightCompat('altitude_time_horizon_stale');
+        staleRow.appendChild(staleIcon);
+        staleRow.appendChild(staleText);
+        cardFooter.appendChild(staleRow);
+    }
+
     card.appendChild(cardHeader);
     card.appendChild(cardBody);
     card.appendChild(cardFooter);
@@ -1997,8 +2013,9 @@ async function showAlttimePopup(title, targetId) {
                 ...(customHorizonData ? [{
                     label: tSkyTonightCompat('horizon_custom_line') || 'Custom Horizon',
                     data: customHorizonData,
-                    fill: false,
+                    fill: 'origin',
                     borderColor: 'rgba(200, 80, 0, 0.75)',
+                    backgroundColor: 'rgba(200, 80, 0, 0.07)',
                     borderWidth: 1.5,
                     borderDash: [4, 3],
                     pointRadius: 0,

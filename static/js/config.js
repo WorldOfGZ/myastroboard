@@ -123,7 +123,17 @@ async function saveConfiguration() {
             }
         }
     };
-    
+
+    // Coherence check: validate horizon profile before saving
+    const horizonCheck = validateHorizonProfile();
+    if (!horizonCheck.valid) {
+        showMessage('error', horizonCheck.errors.join(' '));
+        return;
+    }
+    if (horizonCheck.warnings.length > 0) {
+        showMessage('warning', horizonCheck.warnings.join(' '));
+    }
+
     try {
         const result = await fetchJSON('/api/config', {
             method: 'POST',
@@ -181,6 +191,56 @@ function readHorizonProfile() {
         }
     });
     return profile;
+}
+
+/**
+ * Validate horizon profile rows before saving.
+ * Returns { errors: string[], warnings: string[], valid: boolean }
+ * - errors:   blocking issues (must be fixed before saving)
+ * - warnings: non-blocking notices (row skipped, too few points)
+ */
+function validateHorizonProfile() {
+    const rows = document.querySelectorAll('#horizon-profile-tbody tr');
+    let invalidCount = 0;
+    const validPoints = [];
+
+    rows.forEach(row => {
+        const azRaw  = row.querySelector('.horizon-az')?.value  ?? '';
+        const altRaw = row.querySelector('.horizon-alt')?.value ?? '';
+        // Completely empty rows are ignored silently
+        if (azRaw === '' && altRaw === '') return;
+        const az  = parseFloat(azRaw);
+        const alt = parseFloat(altRaw);
+        if (isNaN(az) || isNaN(alt) || az < 0 || az > 360 || alt < 0 || alt > 90) {
+            invalidCount++;
+        } else {
+            validPoints.push({ az, alt });
+        }
+    });
+
+    const errors   = [];
+    const warnings = [];
+
+    if (invalidCount > 0) {
+        warnings.push(i18n.t('settings.horizon_profile_warn_invalid_rows', { count: invalidCount }));
+    }
+
+    // Detect duplicate azimuth values (0° and 360° are allowed to coexist as loop-close convention)
+    const azCounts = {};
+    validPoints.forEach(p => { azCounts[p.az] = (azCounts[p.az] || 0) + 1; });
+    const dupAz = Object.entries(azCounts)
+        .filter(([, n]) => n > 1)
+        .map(([az]) => parseFloat(az))
+        .sort((a, b) => a - b);
+    if (dupAz.length > 0) {
+        errors.push(i18n.t('settings.horizon_profile_err_duplicate_az', { list: dupAz.join(', ') }));
+    }
+
+    if (validPoints.length === 1) {
+        warnings.push(i18n.t('settings.horizon_profile_warn_too_few'));
+    }
+
+    return { errors, warnings, valid: errors.length === 0 };
 }
 
 // ======================
