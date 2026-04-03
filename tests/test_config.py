@@ -1,353 +1,269 @@
 """
 Unit tests for configuration management (repo_config.py, config_defaults.py)
 """
-import pytest
-import os
 import json
-import tempfile
+import os
 
+import pytest
 
-# Import modules to test
-from repo_config import load_config, save_config
+from repo_config import load_config, save_config, _merge_defaults
 from config_defaults import (
     DEFAULT_LOCATION,
-    DEFAULT_FEATURES,
+    DEFAULT_ASTRODEX,
     DEFAULT_CONSTRAINTS,
-    DEFAULT_HORIZON,
     DEFAULT_SKYTONIGHT,
-    DEFAULT_CONFIG
+    DEFAULT_SKYTONIGHT_SCHEDULER,
+    DEFAULT_SKYTONIGHT_DATASETS,
+    DEFAULT_CONFIG,
 )
 
 
+def _set_config_file(monkeypatch, path):
+    """Patch CONFIG_FILE in both constants and repo_config modules."""
+    import constants
+    import repo_config
+    monkeypatch.setattr(constants, "CONFIG_FILE", path)
+    monkeypatch.setattr(repo_config, "CONFIG_FILE", path)
+
+
 class TestDefaultConfig:
-    """Test default configuration constants"""
-    
+    """Test default configuration constants."""
+
     def test_default_location_structure(self):
-        """Test DEFAULT_LOCATION has required fields"""
-        assert "name" in DEFAULT_LOCATION
-        assert "latitude" in DEFAULT_LOCATION
-        assert "longitude" in DEFAULT_LOCATION
-        assert "elevation" in DEFAULT_LOCATION
-        assert "timezone" in DEFAULT_LOCATION
-    
+        for key in ("name", "latitude", "longitude", "elevation", "timezone"):
+            assert key in DEFAULT_LOCATION
+
     def test_default_location_values(self):
-        """Test DEFAULT_LOCATION has valid values"""
         assert isinstance(DEFAULT_LOCATION["name"], str)
         assert isinstance(DEFAULT_LOCATION["latitude"], (int, float))
         assert isinstance(DEFAULT_LOCATION["longitude"], (int, float))
         assert isinstance(DEFAULT_LOCATION["elevation"], (int, float))
         assert isinstance(DEFAULT_LOCATION["timezone"], str)
-        
-        # Validate coordinate ranges
         assert -90 <= DEFAULT_LOCATION["latitude"] <= 90
         assert -180 <= DEFAULT_LOCATION["longitude"] <= 180
-    
-    def test_default_features_structure(self):
-        """Test DEFAULT_FEATURES has expected fields"""
-        expected_features = ["horizon", "objects", "bodies", "comets", "alttime"]
-        for feature in expected_features:
-            assert feature in DEFAULT_FEATURES
-            assert isinstance(DEFAULT_FEATURES[feature], bool)
-    
+
     def test_default_constraints_structure(self):
-        """Test DEFAULT_CONSTRAINTS has required fields"""
-        expected_constraints = [
+        expected = [
             "altitude_constraint_min",
             "altitude_constraint_max",
             "airmass_constraint",
             "size_constraint_min",
             "size_constraint_max",
-            "moon_separation_min"
+            "moon_separation_min",
+            "moon_separation_use_illumination",
+            "fraction_of_time_observable_threshold",
+            "north_to_east_ccw",
         ]
-        for constraint in expected_constraints:
-            assert constraint in DEFAULT_CONSTRAINTS
-    
+        for key in expected:
+            assert key in DEFAULT_CONSTRAINTS, f"Missing constraint key: {key}"
+
     def test_default_constraints_valid_ranges(self):
-        """Test constraint values are in valid ranges"""
         assert 0 <= DEFAULT_CONSTRAINTS["altitude_constraint_min"] <= 90
         assert 0 <= DEFAULT_CONSTRAINTS["altitude_constraint_max"] <= 90
         assert DEFAULT_CONSTRAINTS["altitude_constraint_min"] < DEFAULT_CONSTRAINTS["altitude_constraint_max"]
         assert DEFAULT_CONSTRAINTS["airmass_constraint"] > 0
         assert DEFAULT_CONSTRAINTS["size_constraint_min"] < DEFAULT_CONSTRAINTS["size_constraint_max"]
         assert 0 <= DEFAULT_CONSTRAINTS["moon_separation_min"] <= 180
-    
-    def test_default_horizon_structure(self):
-        """Test DEFAULT_HORIZON structure"""
-        assert "step_size" in DEFAULT_HORIZON
-        assert "anchor_points" in DEFAULT_HORIZON
-        assert isinstance(DEFAULT_HORIZON["step_size"], (int, float))
-        assert isinstance(DEFAULT_HORIZON["anchor_points"], list)
-    
-    def test_default_config_complete(self):
-        """Test DEFAULT_CONFIG has all required top-level keys"""
-        expected_keys = [
-            "location",
-            "selected_catalogues",
-            "min_altitude",
-            "use_constraints",
-            "features",
-            "constraints",
-            "bucket_list",
-            "done_list",
-            "custom_targets",
-            "horizon",
-            "output_datestamp",
-            "skytonight",
-        ]
-        for key in expected_keys:
-            assert key in DEFAULT_CONFIG, f"Missing key: {key}"
-    
-    def test_default_config_references_other_defaults(self):
-        """Test that DEFAULT_CONFIG uses the other default constants"""
-        assert DEFAULT_CONFIG["location"] == DEFAULT_LOCATION
-        assert DEFAULT_CONFIG["features"] == DEFAULT_FEATURES
-        assert DEFAULT_CONFIG["constraints"] == DEFAULT_CONSTRAINTS
-        assert DEFAULT_CONFIG["horizon"] == DEFAULT_HORIZON
-        assert DEFAULT_CONFIG["skytonight"] == DEFAULT_SKYTONIGHT
 
     def test_default_skytonight_structure(self):
-        """Test SkyTonight defaults expose scheduler and dataset controls"""
         assert DEFAULT_SKYTONIGHT["constraints_always_enabled"] is True
-        assert DEFAULT_SKYTONIGHT["datasets"]["catalogues"]["deep_sky"] is True
-        assert DEFAULT_SKYTONIGHT["datasets"]["comets"]["source"] == "mpc+jpl"
-        assert DEFAULT_SKYTONIGHT["scheduler"]["mode"] == "fallback-6h"
+        for key in ("enabled", "constraints", "scheduler", "datasets", "preferred_name_order"):
+            assert key in DEFAULT_SKYTONIGHT, f"Missing skytonight key: {key}"
+
+    def test_default_skytonight_scheduler(self):
+        sched = DEFAULT_SKYTONIGHT["scheduler"]
+        assert sched["mode"] == "fallback-6h"
+        assert "next_run" in sched
+        assert "last_run" in sched
+
+    def test_default_skytonight_datasets(self):
+        ds = DEFAULT_SKYTONIGHT["datasets"]
+        assert ds["catalogues"]["deep_sky"] is True
+        assert ds["comets"]["source"] == "mpc+jpl"
+
+    def test_default_skytonight_contains_constraints_copy(self):
+        """constraints nested in skytonight must equal but be independent of DEFAULT_CONSTRAINTS."""
+        assert DEFAULT_SKYTONIGHT["constraints"] == DEFAULT_CONSTRAINTS
+        assert DEFAULT_SKYTONIGHT["constraints"] is not DEFAULT_CONSTRAINTS
+
+    def test_default_config_top_level_keys(self):
+        for key in ("location", "min_altitude", "astrodex", "skytonight"):
+            assert key in DEFAULT_CONFIG, f"Missing key: {key}"
+
+    def test_default_config_no_legacy_keys(self):
+        """Keys removed in the config refactor must not appear in DEFAULT_CONFIG."""
+        legacy = [
+            "selected_catalogues", "use_constraints", "features",
+            "constraints", "bucket_list", "done_list",
+            "custom_targets", "horizon", "output_datestamp",
+        ]
+        for key in legacy:
+            assert key not in DEFAULT_CONFIG, f"Legacy key still present: {key}"
+
+    def test_default_config_references_other_defaults(self):
+        assert DEFAULT_CONFIG["location"] == DEFAULT_LOCATION
+        assert DEFAULT_CONFIG["astrodex"] == DEFAULT_ASTRODEX
+        assert DEFAULT_CONFIG["skytonight"] == DEFAULT_SKYTONIGHT
+
+
+class TestMergeDefaults:
+    """Unit tests for the _merge_defaults helper."""
+
+    def test_empty_config_gets_all_defaults(self):
+        defaults = {"a": 1, "b": {"c": 2}}
+        assert _merge_defaults({}, defaults) == defaults
+
+    def test_existing_keys_are_preserved(self):
+        result = _merge_defaults({"a": 99}, {"a": 1, "b": 2})
+        assert result["a"] == 99
+        assert result["b"] == 2
+
+    def test_missing_keys_filled_from_defaults(self):
+        result = _merge_defaults({"a": 10}, {"a": 1, "b": 2, "c": 3})
+        assert result["b"] == 2
+        assert result["c"] == 3
+
+    def test_nested_dicts_merged_recursively(self):
+        defaults = {"nested": {"x": 1, "y": 2}}
+        result = _merge_defaults({"nested": {"x": 99}}, defaults)
+        assert result["nested"]["x"] == 99
+        assert result["nested"]["y"] == 2
+
+    def test_non_dict_config_returns_copy_of_defaults(self):
+        defaults = {"a": 1}
+        assert _merge_defaults("not-a-dict", defaults) == defaults
+
+    def test_non_dict_defaults_returns_copy_of_defaults(self):
+        """When defaults itself is not a dict, a deepcopy of it is returned."""
+        result = _merge_defaults({"a": 1}, "scalar-default")
+        assert result == "scalar-default"
+
+    def test_list_values_not_merged(self):
+        """List values in config replace the default entirely."""
+        defaults = {"items": [1, 2, 3]}
+        assert _merge_defaults({"items": [4, 5]}, defaults)["items"] == [4, 5]
+
+    def test_result_is_independent_copy(self):
+        """Mutating the result must not affect the original defaults dict."""
+        defaults = {"nested": {"a": 1}}
+        result = _merge_defaults({}, defaults)
+        result["nested"]["a"] = 999
+        assert defaults["nested"]["a"] == 1
 
 
 class TestConfigLoading:
-    """Test configuration loading functionality"""
-    
-    def test_load_config_nonexistent_file(self, temp_dir):
-        """Test loading config when file doesn't exist returns defaults"""
-        # Temporarily override CONFIG_FILE to ensure clean test
-        import constants
-        import repo_config
-        original_config_file_const = constants.CONFIG_FILE
-        original_config_file_repo = repo_config.CONFIG_FILE
-        test_config_file = os.path.join(temp_dir, "load_test_nonexistent.json")
-        
-        try:
-            constants.CONFIG_FILE = test_config_file
-            repo_config.CONFIG_FILE = test_config_file
-            
-            config = load_config()
-            assert isinstance(config, dict)
-            # Should return default config
-            assert "location" in config
-            assert "selected_catalogues" in config
-        finally:
-            constants.CONFIG_FILE = original_config_file_const
-            repo_config.CONFIG_FILE = original_config_file_repo
-    
+    """Test load_config behavior."""
+
     def test_load_config_returns_dict(self):
-        """Test load_config always returns a dictionary"""
+        assert isinstance(load_config(), dict)
+
+    def test_load_config_nonexistent_file_returns_defaults(self, temp_dir, monkeypatch):
+        _set_config_file(monkeypatch, os.path.join(temp_dir, "nonexistent.json"))
         config = load_config()
         assert isinstance(config, dict)
-    
-    def test_load_config_has_required_fields(self, temp_dir):
-        """Test loaded config has required fields"""
-        import constants
-        import repo_config
-        original_config_file_const = constants.CONFIG_FILE
-        original_config_file_repo = repo_config.CONFIG_FILE
-        test_config_file = os.path.join(temp_dir, "load_test_required.json")
-        
-        try:
-            constants.CONFIG_FILE = test_config_file
-            repo_config.CONFIG_FILE = test_config_file
-            
-            config = load_config()
-            required_fields = ["location", "selected_catalogues", "features", "constraints"]
-            for field in required_fields:
-                assert field in config
-        finally:
-            constants.CONFIG_FILE = original_config_file_const
-            repo_config.CONFIG_FILE = original_config_file_repo
+        assert "location" in config
+        assert "skytonight" in config
 
-    def test_load_config_merges_new_skytonight_defaults(self, temp_dir):
-        """Test legacy configs receive missing SkyTonight defaults on load"""
-        import constants
-        import repo_config
-        original_config_file_const = constants.CONFIG_FILE
-        original_config_file_repo = repo_config.CONFIG_FILE
-        test_config_file = os.path.join(temp_dir, "load_test_legacy.json")
+    def test_load_config_has_required_fields(self, temp_dir, monkeypatch):
+        _set_config_file(monkeypatch, os.path.join(temp_dir, "required.json"))
+        config = load_config()
+        for field in ("location", "min_altitude", "astrodex", "skytonight"):
+            assert field in config
 
-        legacy_config = {
-            "location": {
-                "name": "Legacy",
-                "latitude": 40.0,
-                "longitude": -3.0,
-                "elevation": 100,
-                "timezone": "Europe/Madrid"
-            },
-            "constraints": {
-                "altitude_constraint_min": 35,
-            }
-        }
+    def test_load_config_strips_legacy_top_level_constraints(self, temp_dir, monkeypatch):
+        """A file with a top-level 'constraints' key must have it removed on load."""
+        path = os.path.join(temp_dir, "legacy.json")
+        with open(path, "w", encoding="utf-8") as fp:
+            json.dump({"location": DEFAULT_LOCATION, "constraints": {"altitude_constraint_min": 20}}, fp)
+        _set_config_file(monkeypatch, path)
+        config = load_config()
+        assert "constraints" not in config
 
-        with open(test_config_file, 'w', encoding='utf-8') as file_obj:
-            json.dump(legacy_config, file_obj)
+    def test_load_config_merges_partial_skytonight(self, temp_dir, monkeypatch):
+        """Partial skytonight blocks are completed with defaults on load."""
+        path = os.path.join(temp_dir, "partial.json")
+        with open(path, "w", encoding="utf-8") as fp:
+            json.dump({
+                "location": {
+                    "name": "Legacy", "latitude": 40.0, "longitude": -3.0,
+                    "elevation": 100, "timezone": "Europe/Madrid",
+                },
+                "skytonight": {"constraints": {"altitude_constraint_min": 35}},
+            }, fp)
+        _set_config_file(monkeypatch, path)
 
-        try:
-            constants.CONFIG_FILE = test_config_file
-            repo_config.CONFIG_FILE = test_config_file
+        config = load_config()
+        assert config["location"]["name"] == "Legacy"
+        assert config["skytonight"]["constraints"]["altitude_constraint_min"] == 35
+        assert config["skytonight"]["constraints"]["airmass_constraint"] == DEFAULT_CONSTRAINTS["airmass_constraint"]
+        assert config["skytonight"]["scheduler"]["mode"] == "fallback-6h"
+        assert "datasets" in config["skytonight"]
 
-            config = load_config()
-            assert config["location"]["name"] == "Legacy"
-            assert config["constraints"]["altitude_constraint_min"] == 35
-            assert config["constraints"]["airmass_constraint"] == DEFAULT_CONSTRAINTS["airmass_constraint"]
-            assert "skytonight" in config
-            assert config["skytonight"]["scheduler"]["mode"] == "fallback-6h"
-        finally:
-            constants.CONFIG_FILE = original_config_file_const
-            repo_config.CONFIG_FILE = original_config_file_repo
+    def test_load_config_preserves_custom_location(self, temp_dir, monkeypatch):
+        path = os.path.join(temp_dir, "custom_loc.json")
+        with open(path, "w", encoding="utf-8") as fp:
+            json.dump({"location": {"name": "Tokyo", "latitude": 35.6, "longitude": 139.7, "elevation": 40, "timezone": "Asia/Tokyo"}}, fp)
+        _set_config_file(monkeypatch, path)
+        config = load_config()
+        assert config["location"]["name"] == "Tokyo"
+        assert config["location"]["latitude"] == 35.6
 
 
 class TestConfigSaving:
-    """Test configuration saving functionality"""
-    
-    def test_save_config_success(self, temp_dir, sample_config):
-        """Test saving configuration successfully"""
-        # Temporarily override CONFIG_FILE in both constants and repo_config
-        import constants
-        import repo_config
-        original_config_file_const = constants.CONFIG_FILE
-        original_config_file_repo = repo_config.CONFIG_FILE
-        test_config_file = os.path.join(temp_dir, "save_test_config.json")
-        
-        try:
-            # Update in both modules
-            constants.CONFIG_FILE = test_config_file
-            repo_config.CONFIG_FILE = test_config_file
-            
-            result = save_config(sample_config)
-            assert result is True
-            assert os.path.exists(test_config_file)
-            
-            # Verify saved content
-            with open(test_config_file, 'r') as f:
-                saved_config = json.load(f)
-            assert saved_config == sample_config
-        finally:
-            constants.CONFIG_FILE = original_config_file_const
-            repo_config.CONFIG_FILE = original_config_file_repo
-    
-    def test_save_config_creates_parent_directory(self, temp_dir, sample_config):
-        """Test that save_config creates parent directory if needed"""
-        import constants
-        import repo_config
-        original_config_file_const = constants.CONFIG_FILE
-        original_config_file_repo = repo_config.CONFIG_FILE
-        test_config_file = os.path.join(temp_dir, "nested", "dir", "save_nested_config.json")
-        
-        try:
-            constants.CONFIG_FILE = test_config_file
-            repo_config.CONFIG_FILE = test_config_file
-            
-            result = save_config(sample_config)
-            assert result is True
-            assert os.path.exists(test_config_file)
-        finally:
-            constants.CONFIG_FILE = original_config_file_const
-            repo_config.CONFIG_FILE = original_config_file_repo
-    
-    def test_save_and_load_roundtrip(self, temp_dir, sample_config):
-        """Test saving and loading config preserves data"""
-        import constants
-        import repo_config
-        original_config_file_const = constants.CONFIG_FILE
-        original_config_file_repo = repo_config.CONFIG_FILE
-        test_config_file = os.path.join(temp_dir, "roundtrip_config.json")
-        
-        try:
-            constants.CONFIG_FILE = test_config_file
-            repo_config.CONFIG_FILE = test_config_file
-            
-            # Save config
-            save_result = save_config(sample_config)
-            assert save_result is True
-            
-            # Load it back
-            loaded_config = load_config()
-            for key, value in sample_config['location'].items():
-                assert loaded_config['location'][key] == value
-            for key, value in sample_config['features'].items():
-                assert loaded_config['features'][key] == value
-            for key, value in sample_config['constraints'].items():
-                assert loaded_config['constraints'][key] == value
-            assert loaded_config['selected_catalogues'] == sample_config['selected_catalogues']
-            assert loaded_config['min_altitude'] == sample_config['min_altitude']
-            assert loaded_config['use_constraints'] == sample_config['use_constraints']
-            assert 'skytonight' in loaded_config
-        finally:
-            constants.CONFIG_FILE = original_config_file_const
-            repo_config.CONFIG_FILE = original_config_file_repo
-    
-    def test_save_config_with_unicode(self, temp_dir):
-        """Test saving config with unicode characters"""
-        import constants
-        import repo_config
-        original_config_file_const = constants.CONFIG_FILE
-        original_config_file_repo = repo_config.CONFIG_FILE
-        test_config_file = os.path.join(temp_dir, "unicode_config.json")
-        
-        unicode_config = {
-            "location": {
-                "name": "Montréal",
-                "latitude": 45.5,
-                "longitude": -73.5,
-                "timezone": "America/Montreal"
-            }
-        }
-        
-        try:
-            constants.CONFIG_FILE = test_config_file
-            repo_config.CONFIG_FILE = test_config_file
-            
-            result = save_config(unicode_config)
-            assert result is True
-            
-            loaded = load_config()
-            assert loaded["location"]["name"] == "Montréal"
-        finally:
-            constants.CONFIG_FILE = original_config_file_const
-            repo_config.CONFIG_FILE = original_config_file_repo
+    """Test save_config behavior."""
+
+    def test_save_config_success(self, temp_dir, sample_config, monkeypatch):
+        path = os.path.join(temp_dir, "saved.json")
+        _set_config_file(monkeypatch, path)
+        assert save_config(sample_config) is True
+        assert os.path.exists(path)
+        with open(path, "r", encoding="utf-8") as fp:
+            assert json.load(fp) == sample_config
+
+    def test_save_config_creates_parent_directory(self, temp_dir, sample_config, monkeypatch):
+        path = os.path.join(temp_dir, "nested", "dir", "config.json")
+        _set_config_file(monkeypatch, path)
+        assert save_config(sample_config) is True
+        assert os.path.exists(path)
+
+    def test_save_and_load_roundtrip(self, temp_dir, sample_config, monkeypatch):
+        path = os.path.join(temp_dir, "roundtrip.json")
+        _set_config_file(monkeypatch, path)
+        assert save_config(sample_config) is True
+        loaded = load_config()
+        assert loaded["location"] == sample_config["location"]
+        assert loaded["min_altitude"] == sample_config["min_altitude"]
+        assert loaded["skytonight"]["constraints"]["altitude_constraint_min"] == (
+            sample_config["skytonight"]["constraints"]["altitude_constraint_min"]
+        )
+        assert "skytonight" in loaded
+
+    def test_save_config_with_unicode(self, temp_dir, monkeypatch):
+        path = os.path.join(temp_dir, "unicode.json")
+        _set_config_file(monkeypatch, path)
+        cfg = {"location": {"name": "Montréal", "latitude": 45.5, "longitude": -73.5, "elevation": 0, "timezone": "America/Montreal"}}
+        assert save_config(cfg) is True
+        assert load_config()["location"]["name"] == "Montréal"
 
 
 class TestConfigIntegration:
-    """Integration tests for config loading and saving"""
-    
-    def test_modify_and_save_config(self, temp_dir):
-        """Test loading, modifying, and saving config"""
-        import constants
-        import repo_config
-        import utils
-        
-        original_config_file_const = constants.CONFIG_FILE
-        original_config_file_repo = repo_config.CONFIG_FILE
-        test_config_file = os.path.join(temp_dir, "integration_config.json")
-        
-        try:
-            constants.CONFIG_FILE = test_config_file
-            repo_config.CONFIG_FILE = test_config_file
-            
-            # Load default config
-            config = load_config()
-            
-            # Modify it
-            config["location"]["name"] = "Modified Location"
-            config["min_altitude"] = 25
-            
-            # Save it
-            save_config(config)
-            
-            # Load again and verify changes
-            reloaded = load_config()
-            assert reloaded["location"]["name"] == "Modified Location"
-            assert reloaded["min_altitude"] == 25
-        finally:
-            # Restore originals
-            constants.CONFIG_FILE = original_config_file_const
-            repo_config.CONFIG_FILE = original_config_file_repo
-            # Cleanup the test config file
-            if os.path.exists(test_config_file):
-                os.remove(test_config_file)
+    """Integration tests for config load/save cycle."""
+
+    def test_modify_and_save_config(self, temp_dir, monkeypatch):
+        _set_config_file(monkeypatch, os.path.join(temp_dir, "integration.json"))
+        config = load_config()
+        config["location"]["name"] = "Modified Location"
+        config["min_altitude"] = 25
+        save_config(config)
+        reloaded = load_config()
+        assert reloaded["location"]["name"] == "Modified Location"
+        assert reloaded["min_altitude"] == 25
+
+    def test_skytonight_constraints_survive_roundtrip(self, temp_dir, monkeypatch):
+        _set_config_file(monkeypatch, os.path.join(temp_dir, "st_roundtrip.json"))
+        config = load_config()
+        config["skytonight"]["constraints"]["altitude_constraint_min"] = 42
+        save_config(config)
+        reloaded = load_config()
+        assert reloaded["skytonight"]["constraints"]["altitude_constraint_min"] == 42
+        assert "airmass_constraint" in reloaded["skytonight"]["constraints"]
