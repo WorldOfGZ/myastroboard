@@ -956,6 +956,20 @@ def run_calculations(
     logger.info(f'SkyTonight calculations starting for location: {location_name}')
     _set_progress('night_window')
 
+    # Mark RESULTS_FILE as in-progress immediately so that:
+    # - has_calculation_results() returns False while the run is executing,
+    #   preventing the scheduler from treating stale results as complete on
+    #   restart;
+    # - if this run crashes before the final write, the flag stays True and
+    #   the next startup correctly triggers a fresh calculation.
+    save_json_file(SKYTONIGHT_RESULTS_FILE, {
+        'metadata': {
+            'calculated_at': datetime.now(timezone.utc).isoformat(),
+            'location_name': location_name,
+            'in_progress': True,
+        }
+    })
+
     # --- Determine astronomical night window ---
     night_window = _get_night_window(lat, lon, timezone_name)
     if night_window is None:
