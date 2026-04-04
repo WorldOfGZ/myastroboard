@@ -43,7 +43,7 @@ from events_aggregator import EventsAggregator
 from i18n_utils import I18nManager
 from txtconf_loader import get_repo_version
 from repo_config import load_config, save_config
-from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, CACHE_TTL, SKYTONIGHT_LOGS_DIR, CONFIG_DIR, OUTPUT_DIR, SKYTONIGHT_SKYMAP_FILE, SKYTONIGHT_BODIES_RESULTS_FILE, SKYTONIGHT_COMETS_RESULTS_FILE, SKYTONIGHT_DSO_RESULTS_FILE
+from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, CACHE_TTL, SKYTONIGHT_LOGS_DIR, CONFIG_DIR, OUTPUT_DIR, SKYTONIGHT_SCHEDULER_STATUS_FILE, SKYTONIGHT_SKYMAP_FILE, SKYTONIGHT_BODIES_RESULTS_FILE, SKYTONIGHT_COMETS_RESULTS_FILE, SKYTONIGHT_DSO_RESULTS_FILE
 from utils import load_json_file
 from logging_config import get_logger
 from version_checker import check_for_updates
@@ -908,6 +908,7 @@ def logs_export_api():
     LOG_EXPORT_ENTRIES = [
         (os.path.join(DATA_DIR, 'myastroboard.log'),  'logs',               False),
         (SKYTONIGHT_LOGS_DIR,                         'skytonight/logs',    True),
+        (SKYTONIGHT_SCHEDULER_STATUS_FILE,            'skytonight/runtime', False),
     ]
     try:
         buf = io.BytesIO()
