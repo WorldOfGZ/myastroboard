@@ -193,30 +193,41 @@ class SkyTonightScheduler:
             except ValueError:
                 pass
 
-        # Missed-run recovery: if the app was restarted while a run was executing,
-        # the status file holds the *advanced* next_run (e.g. tonight 21:05) even
-        # though the triggered run never completed.  Detect this by recomputing
-        # what the schedule was at last_run time; if that slot is strictly earlier
-        # than the persisted committed time, restore it so the first loop iteration
-        # sees the missed window and fires immediately.
+        # Missed-run recovery: if the app was restarted (or the status file was
+        # corrupted by the write-race now fixed) while a post-astronomical-night
+        # run was in flight, the status file already holds the *advanced*
+        # next_run (e.g. tonight 21:05) while last_run was never updated.
+        # Detect this by computing the expected post-night slot from the actual
+        # night_end stored in last_result.calculation.  If that slot is in the
+        # past AND last_run < missed_slot < committed_next_run, restore it so
+        # the very first loop iteration sees server_time >= committed and fires.
+        # NOTE: we intentionally avoid calling resolve_schedule here because
+        # SunService.get_today_report() uses the real system date, not a
+        # back-dated "now", which makes the computed slot unreliable.
         if self.last_run is not None and _committed_next_run is not None:
             try:
-                startup_config = self.config_loader()
-                schedule_at_last_run = resolve_schedule(startup_config, now=self.last_run)
-                if (
-                    schedule_at_last_run.next_run is not None
-                    and self.last_run < schedule_at_last_run.next_run < _committed_next_run
-                ):
-                    logger.info(
-                        'Missed run detected on startup: expected slot %s was skipped '
-                        '(committed=%s, last_run=%s). Restoring missed slot.',
-                        schedule_at_last_run.next_run.isoformat(),
-                        _committed_next_run.isoformat(),
-                        self.last_run.isoformat(),
-                    )
-                    _committed_next_run = schedule_at_last_run.next_run
+                startup_now = datetime.now().astimezone()
+                last_result = stored.get('last_result') or {}
+                calculation = last_result.get('calculation') or {}
+                night_end_str = str(calculation.get('night_end') or '').strip()
+                if night_end_str:
+                    night_end_dt = datetime.fromisoformat(night_end_str)
+                    missed_slot = night_end_dt + SKYTONIGHT_POST_NIGHT_OFFSET
+                    if (
+                        self.last_run < missed_slot
+                        and missed_slot < startup_now
+                        and missed_slot < _committed_next_run
+                    ):
+                        logger.info(
+                            'Missed post-night run detected on startup: expected slot %s '
+                            'is in the past (committed=%s, last_run=%s). Restoring missed slot.',
+                            missed_slot.isoformat(),
+                            _committed_next_run.isoformat(),
+                            self.last_run.isoformat(),
+                        )
+                        _committed_next_run = missed_slot
             except Exception as exc:
-                logger.warning('Could not check for missed run on startup: %s', exc)
+                logger.warning('Could not check for missed post-night run on startup: %s', exc)
 
         while self.running:
             config = self.config_loader()
