@@ -129,9 +129,10 @@ const SkyTonightScheduler = (() => {
             const status = await fetchStatus();
             render(status);
         } catch (e) {
-            console.error('SkyTonight scheduler polling error', e);
-            stopPolling();
-            resetUI();
+            // Keep polling — a transient error (server restart, brief network
+            // hiccup) must not permanently kill the interval and leave the
+            // banner stuck hidden for the rest of the page session.
+            console.warn('SkyTonight scheduler poll failed (will retry):', e);
         }
     }
 
@@ -173,6 +174,10 @@ const SkyTonightScheduler = (() => {
     }
 
     function init() {
+        // Poll immediately so the banner appears at once if a scheduled run
+        // is already executing when the page loads, without waiting 3 seconds
+        // for the first interval tick.
+        poll();
         startPolling(3000); // Detect scheduled runs
     }
 

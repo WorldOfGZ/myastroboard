@@ -370,21 +370,43 @@ def _fetch_jpl_comet_snapshot(name: str, timeout_seconds: int = 8) -> Dict[str, 
 
 def enrich_with_jpl_fallback(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Fill missing fields from JPL when possible, preserving MPC rows as primary."""
+    # Only these fields are worth fetching from JPL — and MPC already provides
+    # them for virtually all comets.  Skip the HTTP call entirely when all of
+    # them are already present so we don't make hundreds of unnecessary requests.
+    _JPL_FILLS = ('absolute_magnitude', 'orbit_class')
+    # Safety cap: never make more than this many JPL requests per build cycle.
+    _MAX_JPL_REQUESTS = 50
+
+    jpl_requests_made = 0
     enriched: List[Dict[str, Any]] = []
     for row in rows:
         if not isinstance(row, dict):
             continue
         current = dict(row)
         name = str(current.get('name') or current.get('designation') or '').strip()
-        if not name:
-            continue
-        snapshot = _fetch_jpl_comet_snapshot(name)
-        if snapshot:
-            for key, value in snapshot.items():
-                if current.get(key) in (None, '') and value not in (None, ''):
-                    current[key] = value
-            current.setdefault('enrichment_source', 'JPL')
+
+        needs_jpl = (
+            name
+            and jpl_requests_made < _MAX_JPL_REQUESTS
+            and any(current.get(key) in (None, '') for key in _JPL_FILLS)
+        )
+
+        if needs_jpl:
+            snapshot = _fetch_jpl_comet_snapshot(name)
+            jpl_requests_made += 1
+            if snapshot:
+                for key, value in snapshot.items():
+                    if current.get(key) in (None, '') and value not in (None, ''):
+                        current[key] = value
+                current.setdefault('enrichment_source', 'JPL')
+
         enriched.append(current)
+
+    if jpl_requests_made:
+        logger.info(f'JPL enrichment: {jpl_requests_made} requests made for comets with missing fields')
+    else:
+        logger.debug('JPL enrichment: all comets already had complete MPC data, no requests needed')
+
     return enriched
 
 
