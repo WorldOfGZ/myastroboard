@@ -13,12 +13,9 @@ find /app/data -type f \( \
   -name "scheduler_status.json" \
 \) -delete || true
 rm -rf /app/data/cache/* || true # Clear cache directory
-# Clear skytonight transient data but preserve the catalogue (targets.json takes time to build)
-rm -rf /app/data/skytonight/outputs/* || true
+# Clear skytonight logs but keep the directory itself
+# We kept data as we have a fallback mechanism 
 rm -rf /app/data/skytonight/logs/* || true
-rm -rf /app/data/skytonight/runtime/* || true
-rm -rf /app/data/skytonight/configs/* || true
-rm -rf /app/data/skytonight/calculations/* || true
 
 echo "[INFO] Starting application as non-root user"
 exec su appuser -c "$*"
