@@ -144,6 +144,8 @@ class SkyTonightScheduler:
         self.is_executing = False
         self.current_mode = 'idle'
         self.current_reason = ''
+        self._triggered_mode: Optional[str] = None
+        self._triggered_reason: Optional[str] = None
         self._execution_lock = threading.Lock()
         self._scheduler_started = False
         self.last_execution_duration_seconds: Optional[int] = None
@@ -298,6 +300,12 @@ class SkyTonightScheduler:
                 # status file never shows is_executing=False during pending start.
                 self.is_executing = True
                 self.execution_start_time = datetime.now().astimezone()
+                # Preserve the mode/reason that triggered this run so the status
+                # file continues to show it while the calculation runs (the loop
+                # calls resolve_schedule every 5 s and would otherwise overwrite
+                # mode with whatever the NEXT schedule is).
+                self._triggered_mode = 'manual' if manual_trigger else schedule.mode
+                self._triggered_reason = 'Manually triggered.' if manual_trigger else schedule.reason
                 threading.Thread(
                     target=self._execute_cycle,
                     kwargs={'manual_trigger': manual_trigger},
@@ -340,6 +348,8 @@ class SkyTonightScheduler:
                 self.last_result = result if isinstance(result, dict) else {'result': result}
                 self.last_run = datetime.now().astimezone()
                 self.current_mode = 'manual' if manual_trigger else 'scheduled'
+                self._triggered_mode = None
+                self._triggered_reason = None
                 append_scheduler_log(
                     f"[{self.last_run.isoformat()}] SkyTonight run completed: {self.last_result}\n"
                 )
@@ -357,6 +367,8 @@ class SkyTonightScheduler:
                     )
                 self.is_executing = False
                 self.execution_start_time = None
+                self._triggered_mode = None
+                self._triggered_reason = None
                 self._write_status()
 
     def _write_status(self, schedule: Optional[SkyTonightSchedule] = None):
@@ -392,8 +404,11 @@ class SkyTonightScheduler:
             'last_run': self.last_run.isoformat() if self.last_run else None,
             'next_run': schedule.next_run.isoformat() if schedule.next_run else None,
             'is_executing': self.is_executing,
-            'mode': schedule.mode,
-            'reason': schedule.reason,
+            # While a run is executing, report the mode/reason that *triggered*
+            # it rather than the freshly-computed next schedule (which drifts to
+            # the following slot as soon as the triggered time passes).
+            'mode': self._triggered_mode if self.is_executing and self._triggered_mode else schedule.mode,
+            'reason': self._triggered_reason if self.is_executing and self._triggered_reason else schedule.reason,
             'server_time_valid': schedule.server_time_valid,
             'server_time': schedule.server_time.isoformat(),
             'timezone': schedule.timezone,
