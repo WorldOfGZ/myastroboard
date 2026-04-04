@@ -764,6 +764,12 @@ def _compute_body_result(
     alt_min = float(constraints.get('altitude_constraint_min', 30))
     north_to_east_ccw = bool(constraints.get('north_to_east_ccw', False))
 
+    # The Moon is always included regardless of observability: its phase and
+    # rise/set window affect every other target, so users need it even when
+    # it is below the horizon all night (e.g. a new-moon night where the Moon
+    # sets before astronomical dusk).
+    is_moon = (target.object_type or '').lower() == 'moon'
+
     # Bodies use their own minimum observable-fraction threshold that is
     # intentionally much lower than the DSO threshold: a planet visible for
     # even a short window during the night is worth showing.
@@ -793,11 +799,11 @@ def _compute_body_result(
     observable_steps = int(np.sum(in_window_mask))
     observable_fraction = observable_steps / total_steps
 
-    if observable_fraction < _BODIES_MIN_FRACTION:
+    if not is_moon and observable_fraction < _BODIES_MIN_FRACTION:
         return None, None, None
 
     max_altitude = float(np.max(alt_deg))
-    if max_altitude < alt_min:
+    if not is_moon and max_altitude < alt_min:
         return None, None, None
 
     peak_idx = int(np.argmax(alt_deg))
@@ -885,6 +891,7 @@ def _compute_body_result(
         },
         'astro_score': astro_score,
         'moon_angular_distance': round(angular_distance_moon, 1) if angular_distance_moon is not None else None,
+        'lunar_phase': round(moon.phase, 4) if is_moon else None,
         'source_catalogues': target.source_catalogues,
         'metadata': target.metadata,
     }, alt_deg, az_deg

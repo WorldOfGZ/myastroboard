@@ -1,6 +1,6 @@
 """Tests for SkyTonight scheduler schedule resolution."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from skytonight_scheduler import SkyTonightScheduler, resolve_schedule
@@ -107,18 +107,32 @@ def test_missed_run_recovery_on_startup(monkeypatch):
 
     Scenario mirrors the real incident:
       - last_run  = 2026-04-03 23:14 (previous night's run)
-      - persisted next_run = 2026-04-04 21:05 (tonight's pre-night, advanced
-        when the morning run was triggered but the app crashed mid-execution)
-      - server restarts at 2026-04-04 07:40
-      - expected: _committed_next_run is restored to the missed ~06:20 slot so
-        the loop check (server_time >= committed) fires immediately.
+      - last_result.calculation.night_end = 2026-04-04T05:20:00+02:00
+        → expected post-night slot = night_end + 1h = 06:20 April 4
+      - persisted next_run = 2026-04-04 21:05 (tonight's pre-night, already
+        advanced when the morning run was triggered mid-execution)
+      - server restarts at current time (past 06:20)
+      - expected: _committed_next_run is restored to 06:20 so the loop check
+        (server_time >= committed) fires immediately.
     """
     import threading
-    from zoneinfo import ZoneInfo
+    from datetime import timezone as _tz
+
+    # The missed slot is 30 seconds in the past so the recovery check fires.
+    past_slot = datetime.now(ZoneInfo('Europe/Paris')) - timedelta(seconds=30)
+    night_end = past_slot - timedelta(hours=1)  # night_end = missed_slot - 1h
+    # next_run in the status is 4 hours in the future (well past the missed slot)
+    future_next_run = datetime.now(ZoneInfo('Europe/Paris')) + timedelta(hours=4)
+    last_run = past_slot - timedelta(hours=6)   # comfortably before the missed slot
 
     stored_status = {
-        'last_run': '2026-04-03T23:14:53.097410+02:00',
-        'next_run': '2026-04-04T21:05:00+02:00',
+        'last_run': last_run.isoformat(),
+        'next_run': future_next_run.isoformat(),
+        'last_result': {
+            'calculation': {
+                'night_end': night_end.isoformat(),
+            }
+        },
     }
     run_calls = []
 
@@ -130,7 +144,7 @@ def test_missed_run_recovery_on_startup(monkeypatch):
         return dict(stored_status) if stored_status else (default or {})
 
     def _has_results():
-        return True  # pretend April 3 results exist (no forced re-run)
+        return True  # pretend previous results exist (no forced re-run)
 
     def _ensure_dirs():
         pass
@@ -171,6 +185,6 @@ def test_missed_run_recovery_on_startup(monkeypatch):
 
     assert fired, (
         'Missed-run recovery did not trigger the run within 15 s. '
-        'The post-night slot (06:20) should have been restored and fired immediately on startup.'
+        'The post-night slot should have been restored and fired immediately on startup.'
     )
     assert run_calls, 'Runner was never called despite missed-run recovery.'
