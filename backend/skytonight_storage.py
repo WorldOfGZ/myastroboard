@@ -100,8 +100,11 @@ def get_results_file() -> str:
 
 
 def has_calculation_results() -> bool:
-    """Return True if all calculations are complete (metadata summary file exists)."""
-    return os.path.isfile(SKYTONIGHT_RESULTS_FILE) and os.path.getsize(SKYTONIGHT_RESULTS_FILE) > 0
+    """Return True if all calculations are complete (metadata summary file exists and not in-progress)."""
+    if not (os.path.isfile(SKYTONIGHT_RESULTS_FILE) and os.path.getsize(SKYTONIGHT_RESULTS_FILE) > 0):
+        return False
+    data = load_json_file(SKYTONIGHT_RESULTS_FILE, default={})
+    return not bool(data.get('metadata', {}).get('in_progress', False))
 
 
 def has_bodies_results() -> bool:
