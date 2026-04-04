@@ -140,8 +140,12 @@ def save_json_file(file_path: str, data: dict) -> bool:
     """
     try:
         ensure_directory_exists(os.path.dirname(file_path))
-        with open(file_path, 'w', encoding='utf-8') as f:
+        # Write to a sibling temp file then atomically rename so concurrent
+        # readers never see a truncated/empty file mid-write.
+        tmp_path = file_path + '.tmp'
+        with open(tmp_path, 'w', encoding='utf-8') as f:
             json.dump(_sanitize_for_json(data), f, indent=2, ensure_ascii=False, cls=_NumpySafeEncoder)
+        os.replace(tmp_path, file_path)
         return True
     except Exception as exc:
         import logging

@@ -193,6 +193,31 @@ class SkyTonightScheduler:
             except ValueError:
                 pass
 
+        # Missed-run recovery: if the app was restarted while a run was executing,
+        # the status file holds the *advanced* next_run (e.g. tonight 21:05) even
+        # though the triggered run never completed.  Detect this by recomputing
+        # what the schedule was at last_run time; if that slot is strictly earlier
+        # than the persisted committed time, restore it so the first loop iteration
+        # sees the missed window and fires immediately.
+        if self.last_run is not None and _committed_next_run is not None:
+            try:
+                startup_config = self.config_loader()
+                schedule_at_last_run = resolve_schedule(startup_config, now=self.last_run)
+                if (
+                    schedule_at_last_run.next_run is not None
+                    and self.last_run < schedule_at_last_run.next_run < _committed_next_run
+                ):
+                    logger.info(
+                        'Missed run detected on startup: expected slot %s was skipped '
+                        '(committed=%s, last_run=%s). Restoring missed slot.',
+                        schedule_at_last_run.next_run.isoformat(),
+                        _committed_next_run.isoformat(),
+                        self.last_run.isoformat(),
+                    )
+                    _committed_next_run = schedule_at_last_run.next_run
+            except Exception as exc:
+                logger.warning('Could not check for missed run on startup: %s', exc)
+
         while self.running:
             config = self.config_loader()
             skytonight_config = config.get('skytonight', {}) if isinstance(config, dict) else {}
