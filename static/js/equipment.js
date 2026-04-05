@@ -787,6 +787,7 @@ async function saveTelescope(id) {
         await loadEquipmentType('telescopes');
         await loadEquipmentType('combinations');
         renderTelescopesTab();
+        renderFOVCalculatorTab();
         renderCombinationsTab();
         showMessage('success', id ? i18n.t('equipment.telescope_updated') : i18n.t('equipment.telescope_created'));
     } catch (error) {
@@ -907,6 +908,7 @@ async function saveCamera(id) {
         await loadEquipmentType('cameras');
         await loadEquipmentType('combinations');
         renderCamerasTab();
+        renderFOVCalculatorTab();
         renderCombinationsTab();
         showMessage('success', id ? i18n.t('equipment.camera_updated') : i18n.t('equipment.camera_created'));
     } catch (error) {
@@ -1366,9 +1368,11 @@ async function deleteEquipment(type, id) {
         
         if (type === 'telescopes') {
             renderTelescopesTab();
+            renderFOVCalculatorTab();
             renderCombinationsTab();
         } else if (type === 'cameras') {
             renderCamerasTab();
+            renderFOVCalculatorTab();
             renderCombinationsTab();
         } else if (type === 'mounts') {
             renderMountsTab();
