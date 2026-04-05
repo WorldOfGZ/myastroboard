@@ -59,7 +59,7 @@ Compute informations to predict aurora borealis
 ### ISS Passes
 Want to observe ISS? We provide lot of usesull informations regarding your location.
 
-![ISS](img/astrophoto_aurora.png)
+![ISS](img/astrophoto_iss.png)
 
 ### Celestar events
 Because there is lot of thinks in the deep sky, this page indicate you lot of futures events, with some usefull parameters.
@@ -103,7 +103,7 @@ Explore celestial bodies with detailed information, ratings, and observation rec
 
 ![Bodies](img/skytonight_bodies.png)
 
-### Cometss View
+### Comets View
 Explore comets with detailed information, ratings, and observation recommendations.
 
 ![Bodies](img/skytonight_comets.png)

@@ -162,8 +162,6 @@ The final value is clamped to **[0.0, 1.0]** and rounded to 4 decimal places.
 
 ## Output files
 
-All outputs are written under `/data/skytonight/<sanitized_location>/`.
-
 All paths are relative to `/data/skytonight/`.
 
 | File | Description |
