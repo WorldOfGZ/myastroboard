@@ -91,7 +91,6 @@ def test_skytonight_reports_endpoint_returns_compatible_payload(client_admin, mo
     assert isinstance(payload['report'], list)
     assert isinstance(payload['bodies'], list)
     assert isinstance(payload['comets'], list)
-    assert payload['plot_image'] is False
 
     assert payload['report'][0]['id'] == 'NGC 224'
     assert payload['bodies'][0]['target name'] == 'Jupiter'

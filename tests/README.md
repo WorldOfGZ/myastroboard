@@ -4,31 +4,33 @@ This directory contains comprehensive unit tests for the MyAstroBoard applicatio
 
 ## Test Coverage
 
-The test suite includes **152 tests** covering:
+The test suite includes **317 tests** covering:
 
 - **Astronomical Calculations** (`test_astronomical.py`): Moon and sun phase calculations, twilight times, dark sky windows
-- **Cache Management** (`test_cache_store.py`): Cache data structures and initialization
+- **Astrodex** (`test_astrodex.py`, `test_astrodex_api.py`): Collection management and API endpoints
+- **Authentication** (`test_auth.py`): Login, logout, password change, session handling
+- **Cache Management** (`test_cache_store.py`, `test_cache_scheduler.py`): Cache data structures, TTL, and scheduler
+- **Catalogue Aliases** (`test_catalogue_aliases.py`): Cross-catalogue name resolution
 - **Configuration** (`test_config.py`): Configuration loading, saving, and validation
 - **Constants** (`test_constants.py`): Application constants and environment variables
-- **Parser** (`test_uptonight_parser.py`): UpTonight JSON report parsing
+- **Equipment Profiles** (`test_equipment_profiles.py`): Telescope, camera, mount, filter, accessory, combination management
+- **Events** (`test_new_event_services.py`): Planetary events, phenomena, solar system events
+- **Horizon Graph** (`test_horizon_graph.py`): Custom horizon profile and graph data
+- **i18n** (`test_i18n_utils.py`): Translation loading and key resolution
+- **ISS Passes** (`test_iss_passes.py`): ISS pass prediction
+- **Logging** (`test_logging_config.py`): Logger configuration
+- **Moon Eclipse** (`test_moon_eclipse.py`): Lunar eclipse calculations
+- **Plan My Night** (`test_plan_my_night_api.py`): Observation plan CRUD and timeline
+- **SkyTonight API** (`test_skytonight_api.py`): SkyTonight HTTP endpoints
+- **SkyTonight Bodies** (`test_skytonight_bodies.py`): Solar-system body target building
+- **SkyTonight Catalogue Builder** (`test_skytonight_catalogue_builder.py`): Dataset assembly from PyOngc rows
+- **SkyTonight Comets** (`test_skytonight_comets.py`): Comet target loading
+- **SkyTonight Scheduler** (`test_skytonight_scheduler.py`): Schedule resolution and missed-run recovery
+- **SkyTonight Targets** (`test_skytonight_targets.py`): Target dataset loading and storage
 - **Text Configuration** (`test_txtconf_loader.py`): Catalogue and version file loading
 - **Utilities** (`test_utils.py`): File operations, coordinate conversion, JSON handling
+- **Version Checker** (`test_version_checker.py`): Update check logic and caching
 - **Weather** (`test_weather_utils.py`): Weather API client creation
-
-### Coverage Summary
-
-Tested modules achieve the following coverage:
-- `cache_store.py`: 100%
-- `config_defaults.py`: 100%
-- `constants.py`: 100%
-- `repo_config.py`: 100%
-- `weather_utils.py`: 100%
-- `uptonight_parser.py`: 97%
-- `sun_phases.py`: 97%
-- `utils.py`: 96%
-- `moon_phases.py`: 93%
-- `txtconf_loader.py`: 82%
-- `logging_config.py`: 81%
 
 ## Running Tests
 
@@ -130,9 +132,6 @@ Tests can be integrated into CI/CD pipelines:
 
 - name: Run tests
   run: python -m pytest tests/ -v --cov=backend --cov-report=xml
-
-- name: Upload coverage
-  uses: codecov/codecov-action@v3
 ```
 
 ## Writing New Tests
@@ -203,13 +202,3 @@ When adding new backend functionality:
 2. Ensure all tests pass: `python -m pytest tests/`
 3. Check coverage: `python -m pytest tests/ --cov=backend`
 4. Aim for >80% coverage on new code
-
-## Future Enhancements
-
-Potential areas for additional tests:
-- API endpoint tests (app.py)
-- Scheduler tests (uptonight_scheduler.py, cache_scheduler.py)
-- Weather integration tests (weather_openmeteo.py, weather_astro.py)
-- Authentication tests (auth.py)
-- Cache updater tests (cache_updater.py)
-- Integration tests with real UpTonight outputs
