@@ -30,7 +30,7 @@ The API (`app.py`) reads these JSON files; it never re-runs the heavy calculatio
 
 | Condition | Schedule |
 |---|---|
-| System clock is valid (NTP / correct date-time) | 06:00 local + 1 hour before astronomical dusk + on first startup |
+| System clock is valid (NTP / correct date-time) | 1 hour after astronomical dawn + 1 hour before astronomical dusk + on first startup |
 | System clock is invalid / unknown | Every 6 hours |
 
 Multiple Gunicorn workers are protected by a file-level lock so only one worker runs the calculator at a time.
