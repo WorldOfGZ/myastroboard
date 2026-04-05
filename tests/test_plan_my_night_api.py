@@ -33,14 +33,12 @@ def client_admin(monkeypatch):
         astrodex.ensure_astrodex_directories()
 
         now = datetime.now().replace(second=0, microsecond=0)
-        dark_window = {
-            'next_dark_night': {
-                'start': (now + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M'),
-                'end': (now + timedelta(hours=7)).strftime('%Y-%m-%d %H:%M'),
-                'duration_hours': 6.0,
-            }
+        astro_night = {
+            'start': (now + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M'),
+            'end': (now + timedelta(hours=7)).strftime('%Y-%m-%d %H:%M'),
+            'duration_hours': 6.0,
         }
-        monkeypatch.setattr(app_module, '_resolve_dark_window_for_plan', lambda: dark_window)
+        monkeypatch.setattr(app_module, '_resolve_astronomical_night_for_plan', lambda: astro_night)
 
         with app.test_client() as test_client:
             user = user_manager.get_user_by_username('admin')

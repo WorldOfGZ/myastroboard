@@ -2893,22 +2893,25 @@ def best_window_api():
 # ============================================================
 
 
-def _resolve_dark_window_for_plan() -> Optional[dict]:
-    """Return dark window payload to anchor the active plan timeline."""
+def _resolve_astronomical_night_for_plan() -> Optional[dict]:
+    """Return the full astronomical night window from SkyTonight calculation metadata."""
     try:
-        if cache_store.is_cache_valid(cache_store._dark_window_report_cache, CACHE_TTL):
-            return cache_store._dark_window_report_cache.get('data')
-
-        if cache_store.sync_cache_from_shared('dark_window', cache_store._dark_window_report_cache):
-            if cache_store.is_cache_valid(cache_store._dark_window_report_cache, CACHE_TTL):
-                return cache_store._dark_window_report_cache.get('data')
-
-        update_dark_window_cache()
-        if cache_store.is_cache_valid(cache_store._dark_window_report_cache, CACHE_TTL):
-            return cache_store._dark_window_report_cache.get('data')
+        calc = load_calculation_results()
+        metadata = calc.get('metadata') or {}
+        night_start = metadata.get('night_start')
+        night_end = metadata.get('night_end')
+        if not night_start or not night_end:
+            return None
+        start_dt = datetime.fromisoformat(night_start)
+        end_dt = datetime.fromisoformat(night_end)
+        duration_hours = (end_dt - start_dt).total_seconds() / 3600.0
+        return {
+            'start': night_start,
+            'end': night_end,
+            'duration_hours': round(duration_hours, 2),
+        }
     except Exception as error:
-        logger.error(f'Error resolving dark window for plan: {error}')
-
+        logger.error(f'Error resolving astronomical night for plan: {error}')
     return None
 
 
@@ -3060,11 +3063,10 @@ def add_target_to_plan_my_night():
         if not catalogue:
             return jsonify({'error': 'Catalogue is required'}), 400
 
-        dark_window = _resolve_dark_window_for_plan()
-        next_dark_night = dark_window.get('next_dark_night', {}) if isinstance(dark_window, dict) else {}
-        start_value = next_dark_night.get('start')
-        end_value = next_dark_night.get('end')
-        duration_hours = next_dark_night.get('duration_hours', 0.0)
+        astro_night = _resolve_astronomical_night_for_plan()
+        start_value = astro_night.get('start') if astro_night else None
+        end_value = astro_night.get('end') if astro_night else None
+        duration_hours = astro_night.get('duration_hours', 0.0) if astro_night else 0.0
 
         if not start_value or not end_value:
             return jsonify({'error': 'Night window unavailable'}), 409
