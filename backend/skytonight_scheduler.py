@@ -224,6 +224,10 @@ class SkyTonightScheduler:
                             self.last_run.isoformat(),
                         )
                         self._committed_next_run = missed_slot
+                        logger.debug(
+                            'next_run changed (startup missed-run recovery): %s',
+                            self._committed_next_run.isoformat(),
+                        )
             except Exception as exc:
                 logger.warning('Could not check for missed post-night run on startup: %s', exc)
 
@@ -279,7 +283,15 @@ class SkyTonightScheduler:
                     self.last_run is not None
                     and self.last_run >= self._committed_next_run
                 ):
+                    previous_next_run = self._committed_next_run
                     self._committed_next_run = schedule.next_run
+                    if previous_next_run != self._committed_next_run:
+                        logger.debug(
+                            'next_run changed: %s -> %s (mode=%s)',
+                            previous_next_run.isoformat() if previous_next_run else 'None',
+                            self._committed_next_run.isoformat(),
+                            schedule.mode,
+                        )
 
             if should_run and not self._execution_lock.locked():
                 # On the first automatic run, wait for the cache scheduler to finish
