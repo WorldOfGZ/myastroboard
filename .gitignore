@@ -25,9 +25,6 @@ data/
 *.db
 *.sqlite
 
-# Uptonight outputs
-uptonight/
-
 # IDE
 .vscode/
 .idea/
