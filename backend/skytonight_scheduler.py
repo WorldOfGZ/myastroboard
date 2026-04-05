@@ -153,6 +153,9 @@ class SkyTonightScheduler:
         # When present, the first automatic run is delayed until caches are warm.
         self._cache_ready_event: Optional[threading.Event] = cache_ready_event
         self._cache_ready_waited = False
+        # The next scheduled run time that the loop commits to.  Persisted to
+        # the status file so it survives restarts and is shown in the UI.
+        self._committed_next_run: Optional[datetime] = None
         ensure_skytonight_directories()
 
         stored_status = load_scheduler_status(default={})
@@ -162,6 +165,12 @@ class SkyTonightScheduler:
                 self.last_run = datetime.fromisoformat(last_run_text)
             except ValueError:
                 self.last_run = None
+        next_run_text = str(stored_status.get('next_run') or '').strip()
+        if next_run_text:
+            try:
+                self._committed_next_run = datetime.fromisoformat(next_run_text)
+            except ValueError:
+                pass
 
     def start(self):
         if self._scheduler_started:
@@ -182,33 +191,20 @@ class SkyTonightScheduler:
         self._write_status()
 
     def _run_loop(self):
-        # Seed the committed next_run from the persisted status file so a
-        # scheduled run is not missed across loop iterations (resolve_schedule
-        # always returns a *future* time, so comparing server_time against the
-        # freshly-computed next_run would never fire).
-        _committed_next_run: Optional[datetime] = None
-        stored = load_scheduler_status(default={})
-        nr_text = str(stored.get('next_run') or '').strip()
-        if nr_text:
-            try:
-                _committed_next_run = datetime.fromisoformat(nr_text)
-            except ValueError:
-                pass
+        # _committed_next_run is now an instance variable initialised in
+        # __init__ from the persisted status file.  Use a local alias for
+        # readability; writes go back through self._committed_next_run so that
+        # _write_status always has access to the real committed value.
 
-        # Missed-run recovery: if the app was restarted (or the status file was
-        # corrupted by the write-race now fixed) while a post-astronomical-night
-        # run was in flight, the status file already holds the *advanced*
-        # next_run (e.g. tonight 21:05) while last_run was never updated.
-        # Detect this by computing the expected post-night slot from the actual
-        # night_end stored in last_result.calculation.  If that slot is in the
-        # past AND last_run < missed_slot < committed_next_run, restore it so
-        # the very first loop iteration sees server_time >= committed and fires.
-        # NOTE: we intentionally avoid calling resolve_schedule here because
-        # SunService.get_today_report() uses the real system date, not a
-        # back-dated "now", which makes the computed slot unreliable.
-        if self.last_run is not None and _committed_next_run is not None:
+        # Missed-run recovery: if the app was restarted while a
+        # post-astronomical-night run was pending (status file holds the
+        # *evening* next_run that was written after midnight when
+        # resolve_schedule stopped seeing the morning dawn), detect the skipped
+        # morning slot via last_result.calculation.night_end and restore it.
+        if self.last_run is not None and self._committed_next_run is not None:
             try:
                 startup_now = datetime.now().astimezone()
+                stored = load_scheduler_status(default={})
                 last_result = stored.get('last_result') or {}
                 calculation = last_result.get('calculation') or {}
                 night_end_str = str(calculation.get('night_end') or '').strip()
@@ -218,16 +214,16 @@ class SkyTonightScheduler:
                     if (
                         self.last_run < missed_slot
                         and missed_slot < startup_now
-                        and missed_slot < _committed_next_run
+                        and missed_slot < self._committed_next_run
                     ):
                         logger.info(
                             'Missed post-night run detected on startup: expected slot %s '
                             'is in the past (committed=%s, last_run=%s). Restoring missed slot.',
                             missed_slot.isoformat(),
-                            _committed_next_run.isoformat(),
+                            self._committed_next_run.isoformat(),
                             self.last_run.isoformat(),
                         )
-                        _committed_next_run = missed_slot
+                        self._committed_next_run = missed_slot
             except Exception as exc:
                 logger.warning('Could not check for missed post-night run on startup: %s', exc)
 
@@ -265,15 +261,25 @@ class SkyTonightScheduler:
             # Use the committed next_run (set in a previous iteration when it
             # was still in the future) instead of the freshly-computed one so
             # the comparison can actually become True once time advances past it.
-            if not should_run and _committed_next_run is not None:
+            if not should_run and self._committed_next_run is not None:
                 should_run = (
-                    schedule.server_time >= _committed_next_run
-                    and (self.last_run is None or self.last_run < _committed_next_run)
+                    schedule.server_time >= self._committed_next_run
+                    and (self.last_run is None or self.last_run < self._committed_next_run)
                 )
 
-            # Advance the committed run time to the next scheduled future slot.
+            # Advance the committed run time only once the previous run has
+            # actually fired (last_run has reached the committed slot).
+            # Advancing unconditionally every iteration would overwrite a
+            # pending morning post-night slot with the evening pre-night slot
+            # whenever the calendar date rolls over at midnight: the dawn slot
+            # lives in the previous day's noon-noon computation window and
+            # disappears from resolve_schedule results after midnight.
             if schedule.next_run is not None:
-                _committed_next_run = schedule.next_run
+                if self._committed_next_run is None or (
+                    self.last_run is not None
+                    and self.last_run >= self._committed_next_run
+                ):
+                    self._committed_next_run = schedule.next_run
 
             if should_run and not self._execution_lock.locked():
                 # On the first automatic run, wait for the cache scheduler to finish
@@ -402,7 +408,15 @@ class SkyTonightScheduler:
             'running': self.running,
             'enabled': enabled,
             'last_run': self.last_run.isoformat() if self.last_run else None,
-            'next_run': schedule.next_run.isoformat() if schedule.next_run else None,
+            # Use the committed next_run (the actual slot the loop will fire on)
+            # rather than the freshly-computed schedule.next_run, which can
+            # diverge after midnight when the dawn slot leaves the computation
+            # window.  Fall back to schedule.next_run when no commit exists yet.
+            'next_run': (
+                self._committed_next_run.isoformat()
+                if self._committed_next_run is not None
+                else (schedule.next_run.isoformat() if schedule.next_run else None)
+            ),
             'is_executing': self.is_executing,
             # While a run is executing, report the mode/reason that *triggered*
             # it rather than the freshly-computed next schedule (which drifts to
