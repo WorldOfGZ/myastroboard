@@ -1293,7 +1293,7 @@ def run_calculations(
                     )
                 processed_deep_sky += 1
                 if processed_deep_sky % _DSO_LOG_INTERVAL == 0:
-                    logger.info(
+                    logger.debug(
                         f'SkyTonight progress: DSO {processed_deep_sky}/{n_dso_batch}'
                     )
                 _set_progress('deep_sky', processed_deep_sky, n_dso_batch)
