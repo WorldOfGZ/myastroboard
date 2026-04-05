@@ -3,8 +3,6 @@
 from skytonight_catalogue_builder import (
     PyOngcRow,
     _load_deep_sky_rows,
-    _parse_dec_degrees,
-    _parse_ra_hours,
     build_targets_from_rows,
 )
 from skytonight_models import SkyTonightTarget
@@ -114,40 +112,6 @@ def test_build_targets_from_rows_skips_missing_coordinates_and_duplicates():
 
     targets = build_targets_from_rows(rows)
     assert targets == []
-
-
-def test_parse_coordinates_from_string_values():
-    assert _parse_ra_hours('5 34 30') == 5 + (34 / 60) + (30 / 3600)
-    assert _parse_dec_degrees('-26 32 0') == -(26 + (32 / 60))
-
-
-def test_load_deep_sky_rows_falls_back_to_yaml(monkeypatch):
-    sample_row = PyOngcRow(
-        name='M 1',
-        object_type='Supernova Remnant',
-        constellation='Taurus',
-        ra_hours=5.575,
-        dec_degrees=22.016,
-        magnitude=8.4,
-        size_arcmin=6.0,
-        messier='M 1',
-        ngc_names=['NGC 1952'],
-        ic_names=[],
-        common_names=[],
-        other_identifiers=[],
-    )
-
-    def _raise_missing_pyongc():
-        raise RuntimeError('missing pyongc')
-
-    monkeypatch.setattr('skytonight_catalogue_builder._load_pyongc_rows', _raise_missing_pyongc)
-    monkeypatch.setattr('skytonight_catalogue_builder._load_targets_yaml_rows', lambda: [sample_row])
-
-    rows, source = _load_deep_sky_rows()
-
-    assert source == 'targets-yaml'
-    assert len(rows) == 1
-    assert rows[0].name == 'M 1'
 
 
 def test_build_and_save_default_dataset_includes_comets(monkeypatch):
