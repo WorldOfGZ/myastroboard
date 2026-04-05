@@ -97,3 +97,25 @@
     max-height: 90px;
     overflow-y: auto;
 }
+
+/* ── Table pagination bar ─────────────────────────────────────────────────── */
+.skyt-pagination-bar {
+    border-top-color: var(--surface-border) !important;
+}
+
+.skyt-pagination-count {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.skyt-pagination-bar .pagination .page-link {
+    border-radius: var(--border-radius-half);
+    line-height: 1.2;
+    padding: 0.3rem 0.55rem;
+}
+
+.skyt-pagination-bar .pagination .page-item.active .page-link {
+    background-color: var(--accent-1);
+    border-color: var(--accent-1);
+    color: #fff;
+}

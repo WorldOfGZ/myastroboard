@@ -256,6 +256,18 @@ def _entry_matches(entry: Dict, catalogue: str, name: str) -> bool:
     return False
 
 
+def is_target_in_entries(plan_entries: list, catalogue: str, name: str) -> bool:
+    """Check if a target matches any of the given pre-loaded plan entries.
+
+    Avoids repeated disk reads when checking many items against the same plan
+    (e.g. annotating 1 000 DSO rows in a single API call).
+    """
+    for entry in plan_entries:
+        if _entry_matches(entry, catalogue, name):
+            return True
+    return False
+
+
 def is_target_in_current_plan(user_id: str, username: str, catalogue: str, name: str) -> bool:
     payload = load_user_plan(user_id, username)
     plan = payload.get('plan')

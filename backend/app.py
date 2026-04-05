@@ -1334,11 +1334,40 @@ def _target_catalogue_names(target: object) -> Dict[str, str]:
     return value if isinstance(value, dict) else {}
 
 
-def _annotate_skytonight_item(item: Dict[str, Any], user_id: str, username: str, source_catalogue: str, plan_state: str):
+def _annotate_skytonight_item(
+    item: Dict[str, Any],
+    user_id: str,
+    username: str,
+    source_catalogue: str,
+    plan_state: str,
+    _preloaded_astrodex: Optional[Dict[str, Any]] = None,
+    _preloaded_plan_entries: Optional[list] = None,
+):
+    """Annotate a single item with astrodex / plan-my-night presence flags.
+
+    When *_preloaded_astrodex* and *_preloaded_plan_entries* are supplied the
+    function uses those already-loaded structures instead of reading the user
+    files from disk again, which is critical for batch annotation (e.g. 1 000
+    DSO rows in one API call).
+    """
     item_name = str(item.get('id') or item.get('target name') or item.get('name') or '').strip()
     if item_name:
-        item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name, source_catalogue)
-        item['in_plan_my_night'] = plan_my_night.is_target_in_current_plan(user_id, username, source_catalogue, item_name)
+        if _preloaded_astrodex is not None:
+            item['in_astrodex'] = astrodex.is_item_in_preloaded_astrodex(
+                _preloaded_astrodex, item_name, source_catalogue
+            )
+        else:
+            item['in_astrodex'] = astrodex.is_item_in_astrodex(user_id, item_name, source_catalogue)
+
+        if _preloaded_plan_entries is not None:
+            item['in_plan_my_night'] = plan_my_night.is_target_in_entries(
+                _preloaded_plan_entries, source_catalogue, item_name
+            )
+        else:
+            item['in_plan_my_night'] = plan_my_night.is_target_in_current_plan(
+                user_id, username, source_catalogue, item_name
+            )
+
         group_id, aliases = _get_catalogue_alias_payload(source_catalogue, item_name)
         item['catalogue_group_id'] = group_id
         item['catalogue_aliases'] = aliases
@@ -1810,6 +1839,15 @@ def _build_bodies_section_payload(user_id: str, username: str) -> Dict[str, Any]
     plan_payload = plan_my_night.get_plan_with_timeline(user_id, username)
     plan_state = plan_payload.get('state', 'none')
 
+    # Pre-load user data once to avoid N×file-reads inside the per-item annotation loop.
+    _preloaded_astrodex = astrodex.load_user_astrodex(user_id)
+    _plan_obj = plan_payload.get('plan')
+    _preloaded_plan_entries: list = (
+        _plan_obj.get('entries', []) or []
+        if isinstance(_plan_obj, dict) and plan_state == 'current'
+        else []
+    )
+
     if has_bodies_results():
         data = load_json_file(SKYTONIGHT_BODIES_RESULTS_FILE, default={})
         rows = []
@@ -1835,7 +1873,11 @@ def _build_bodies_section_payload(user_id: str, username: str) -> Dict[str, Any]
                 'source_type': 'calculated',
                 'plan_state': plan_state,
             }
-            _annotate_skytonight_item(row, user_id, username, 'Bodies', plan_state)
+            _annotate_skytonight_item(
+                row, user_id, username, 'Bodies', plan_state,
+                _preloaded_astrodex=_preloaded_astrodex,
+                _preloaded_plan_entries=_preloaded_plan_entries,
+            )
             rows.append(row)
         return {
             'bodies': rows,
@@ -1860,7 +1902,11 @@ def _build_bodies_section_payload(user_id: str, username: str) -> Dict[str, Any]
             'alttime_file': '',
             'source_type': 'dataset',
         }
-        _annotate_skytonight_item(row, user_id, username, 'Bodies', plan_state)
+        _annotate_skytonight_item(
+            row, user_id, username, 'Bodies', plan_state,
+            _preloaded_astrodex=_preloaded_astrodex,
+            _preloaded_plan_entries=_preloaded_plan_entries,
+        )
         rows.append(row)
     return {'bodies': rows, 'night_metadata': {}, 'available': bool(rows), 'in_progress': False, 'source_type': 'dataset'}
 
@@ -1869,6 +1915,15 @@ def _build_comets_section_payload(user_id: str, username: str) -> Dict[str, Any]
     """Build the comets payload for the reactive UI section."""
     plan_payload = plan_my_night.get_plan_with_timeline(user_id, username)
     plan_state = plan_payload.get('state', 'none')
+
+    # Pre-load user data once to avoid N×file-reads inside the per-item annotation loop.
+    _preloaded_astrodex = astrodex.load_user_astrodex(user_id)
+    _plan_obj = plan_payload.get('plan')
+    _preloaded_plan_entries: list = (
+        _plan_obj.get('entries', []) or []
+        if isinstance(_plan_obj, dict) and plan_state == 'current'
+        else []
+    )
 
     if has_comets_results():
         data = load_json_file(SKYTONIGHT_COMETS_RESULTS_FILE, default={})
@@ -1903,7 +1958,11 @@ def _build_comets_section_payload(user_id: str, username: str) -> Dict[str, Any]
                 'source_type': 'calculated',
                 'plan_state': plan_state,
             }
-            _annotate_skytonight_item(row, user_id, username, 'Comets', plan_state)
+            _annotate_skytonight_item(
+                row, user_id, username, 'Comets', plan_state,
+                _preloaded_astrodex=_preloaded_astrodex,
+                _preloaded_plan_entries=_preloaded_plan_entries,
+            )
             rows.append(row)
         return {
             'comets': rows,
@@ -1932,7 +1991,11 @@ def _build_comets_section_payload(user_id: str, username: str) -> Dict[str, Any]
             'alttime_file': '',
             'source_type': 'dataset',
         }
-        _annotate_skytonight_item(row, user_id, username, 'Comets', plan_state)
+        _annotate_skytonight_item(
+            row, user_id, username, 'Comets', plan_state,
+            _preloaded_astrodex=_preloaded_astrodex,
+            _preloaded_plan_entries=_preloaded_plan_entries,
+        )
         rows.append(row)
     return {'comets': rows, 'night_metadata': {}, 'available': bool(rows), 'in_progress': False, 'source_type': 'dataset'}
 
@@ -1942,6 +2005,15 @@ def _build_dso_section_payload(catalogue: Optional[str], user_id: str, username:
     plan_payload = plan_my_night.get_plan_with_timeline(user_id, username)
     plan_state = plan_payload.get('state', 'none')
     max_rows = 1000 if not catalogue else 4000
+
+    # Pre-load user data once to avoid N×file-reads inside the per-item annotation loop.
+    _preloaded_astrodex = astrodex.load_user_astrodex(user_id)
+    _plan_obj = plan_payload.get('plan')
+    _preloaded_plan_entries: list = (
+        _plan_obj.get('entries', []) or []
+        if isinstance(_plan_obj, dict) and plan_state == 'current'
+        else []
+    )
 
     if has_dso_results():
         data = load_json_file(SKYTONIGHT_DSO_RESULTS_FILE, default={})
@@ -1992,7 +2064,11 @@ def _build_dso_section_payload(catalogue: Optional[str], user_id: str, username:
                 'source_type': 'calculated',
                 'plan_state': plan_state,
             }
-            _annotate_skytonight_item(row, user_id, username, source_catalogue, plan_state)
+            _annotate_skytonight_item(
+                row, user_id, username, source_catalogue, plan_state,
+                _preloaded_astrodex=_preloaded_astrodex,
+                _preloaded_plan_entries=_preloaded_plan_entries,
+            )
             rows.append(row)
             rows_added += 1
         return {
@@ -2043,7 +2119,11 @@ def _build_dso_section_payload(catalogue: Optional[str], user_id: str, username:
             'plan_state': plan_state,
         }
         if catalogue:
-            _annotate_skytonight_item(row, user_id, username, source_catalogue, plan_state)
+            _annotate_skytonight_item(
+                row, user_id, username, source_catalogue, plan_state,
+                _preloaded_astrodex=_preloaded_astrodex,
+                _preloaded_plan_entries=_preloaded_plan_entries,
+            )
         rows.append(row)
         rows_added += 1
     return {
