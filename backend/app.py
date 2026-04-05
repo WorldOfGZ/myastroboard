@@ -43,7 +43,7 @@ from events_aggregator import EventsAggregator
 from i18n_utils import I18nManager
 from txtconf_loader import get_repo_version
 from repo_config import load_config, save_config
-from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, CACHE_TTL, SKYTONIGHT_LOGS_DIR, CONFIG_DIR, OUTPUT_DIR, SKYTONIGHT_SCHEDULER_STATUS_FILE, SKYTONIGHT_SKYMAP_FILE, SKYTONIGHT_BODIES_RESULTS_FILE, SKYTONIGHT_COMETS_RESULTS_FILE, SKYTONIGHT_DSO_RESULTS_FILE
+from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, CACHE_TTL, SKYTONIGHT_LOGS_DIR, OUTPUT_DIR, SKYTONIGHT_SCHEDULER_STATUS_FILE, SKYTONIGHT_SKYMAP_FILE, SKYTONIGHT_BODIES_RESULTS_FILE, SKYTONIGHT_COMETS_RESULTS_FILE, SKYTONIGHT_DSO_RESULTS_FILE
 from utils import load_json_file
 from logging_config import get_logger
 from version_checker import check_for_updates
@@ -1379,20 +1379,6 @@ def _annotate_skytonight_item(
     item['plan_state'] = plan_state
 
 
-def _resolve_skytonight_plot_image() -> str:
-    """Return the available SkyTonight plot filename in priority order."""
-    output_root = os.path.join(OUTPUT_DIR, 'SkyTonight')
-    candidate_filenames = (
-        'skytonight-plot.png',
-        'uptonight-plot.png',  # legacy compatibility
-    )
-
-    for filename in candidate_filenames:
-        if os.path.isfile(os.path.join(output_root, filename)):
-            return filename
-    return ''
-
-
 def _build_skytonight_reports_payload(catalogue: Optional[str], user_id: str, username: str) -> Dict[str, Any]:
     """Build the SkyTonight reports payload served to the frontend.
 
@@ -1407,10 +1393,8 @@ def _build_skytonight_reports_payload(catalogue: Optional[str], user_id: str, us
     """
     plan_payload = plan_my_night.get_plan_with_timeline(user_id, username)
     plan_state = plan_payload.get('state', 'none')
-    plot_image_filename = _resolve_skytonight_plot_image()
 
     base_result: Dict[str, Any] = {
-        'plot_image': plot_image_filename if plot_image_filename else False,
         'report': [],
         'bodies': [],
         'comets': [],
@@ -1662,82 +1646,6 @@ def get_skytonight_catalogue_reports_api(catalogue):
     except Exception as e:
         logger.error(f'Error getting SkyTonight catalogue reports: {e}')
         return jsonify({'error': 'Internal server error'}), 500
-
-
-@app.route('/api/skytonight/outputs', methods=['GET'])
-@login_required
-def get_skytonight_outputs_api():
-    """Get list of legacy image output directories safely."""
-    try:
-        outputs = []
-
-        if not os.path.exists(OUTPUT_DIR):
-            return jsonify([])
-
-        OUTPUT_DIR_ABS = os.path.abspath(OUTPUT_DIR)
-
-        for target_dir in os.listdir(OUTPUT_DIR):
-            # Normalize path and confine
-            target_path = os.path.normpath(os.path.join(OUTPUT_DIR_ABS, target_dir))
-            if not target_path.startswith(OUTPUT_DIR_ABS):
-                continue  # skip invalid path
-
-            if os.path.isdir(target_path):
-                files = []
-                for filename in os.listdir(target_path):
-                    # Only allow safe filename characters
-                    if not re.match(r"^[a-zA-Z0-9_.\-']+$", filename):
-                        continue
-
-                    file_path = os.path.join(target_path, filename)
-                    if os.path.isfile(file_path):
-                        files.append({
-                            'name': filename,
-                            'size': os.path.getsize(file_path),
-                            'modified': datetime.fromtimestamp(os.path.getmtime(file_path)).isoformat()
-                        })
-
-                outputs.append({
-                    'target': target_dir,
-                    'files': files
-                })
-
-        return jsonify(outputs)
-
-    except Exception:
-        logger.exception("Error getting SkyTonight outputs")
-        return jsonify({'error': 'Internal server error'}), 500
-
-
-@app.route('/api/skytonight/outputs/<target>/<filename>', methods=['GET'])
-@login_required
-def get_skytonight_file_api(target, filename):
-    """Download a specific legacy output file safely."""
-    # Validate target and filename
-    if not re.match(r'^[a-zA-Z0-9_-]+$', target):
-        logger.warning(f"Invalid target name: {target}")
-        return jsonify({"error": "Invalid target name"}), 400
-    if not re.match(r"^[a-zA-Z0-9_.\-\(\)']+$", filename):
-        logger.warning(f"Invalid filename: {filename} for target: {target}")
-        return jsonify({"error": "Invalid filename"}), 400
-
-    try:
-        # Normalize and confine target_dir
-        target_dir = os.path.normpath(os.path.join(OUTPUT_DIR, target))
-        if not target_dir.startswith(os.path.abspath(OUTPUT_DIR)):
-            return jsonify({"error": "Invalid path"}), 400
-
-        # Normalize filename to prevent traversal
-        safe_file_path = os.path.normpath(os.path.join(target_dir, filename))
-        if not safe_file_path.startswith(target_dir):
-            return jsonify({"error": "Invalid file path"}), 400
-
-        # Send file
-        return send_from_directory(target_dir, filename, as_attachment=True)
-
-    except Exception:
-        logger.exception(f"Error sending SkyTonight file {filename} for target {target}")
-        return jsonify({"error": "File not found"}), 404
 
 
 _ALTTIME_ID_SAFE = re.compile(r'[^a-z0-9_-]')
@@ -2185,26 +2093,6 @@ def get_skytonight_data_dso_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-
-@login_required
-def get_catalogue_reports_api(catalogue):
-    """Legacy alias returning SkyTonight catalogue reports payload."""
-    try:
-        user = get_current_user()
-        user_id = user.user_id if user else None
-        if not user_id or not user:
-            return jsonify({'error': 'User not authenticated'}), 401
-
-        if not re.match(r'^[a-zA-Z0-9_-]+$', catalogue):
-            logger.warning(f"Invalid catalogue name: {catalogue}")
-            return jsonify({'error': 'Invalid catalogue name'}), 400
-            
-        return jsonify(_build_skytonight_reports_payload(catalogue, user_id, user.username))
-    except Exception as e:
-        logger.error(f"Error getting catalogue reports: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-
 @app.route('/api/skytonight/logs/<catalogue>', methods=['GET'])
 @login_required
 def get_catalogue_log(catalogue):
@@ -2263,38 +2151,6 @@ def check_catalogue_log_exists(catalogue):
     except Exception:
         logger.exception("Error checking if catalogue log exists")
         return jsonify({'error': 'Internal server error'}), 500
-
-
-@app.route('/api/skytonight/reports/<catalogue>/<report_type>', methods=['GET'])
-@login_required
-def get_catalogue_report_text(catalogue, report_type):
-    """Legacy text-report endpoint is deprecated for SkyTonight."""
-    # Validate catalogue name
-    if not re.match(r'^[a-zA-Z0-9_-]+$', catalogue):
-        logger.warning(f"Invalid catalogue name: {catalogue}")
-        return jsonify({"error": "Invalid catalogue name"}), 400
-
-    return jsonify({"error": "SkyTonight does not generate text report artifacts"}), 404
-
-
-@app.route('/api/skytonight/reports/<catalogue>/available', methods=['GET'])
-@login_required
-def check_catalogue_reports_available(catalogue):
-    """SkyTonight does not generate text report artifacts."""
-    # Validate catalogue name
-    if not re.match(r'^[a-zA-Z0-9_-]+$', catalogue):
-        logger.warning(f"Invalid catalogue name: {catalogue}")
-        return jsonify({"error": "Invalid catalogue name"}), 400
-
-    return jsonify({
-        "catalogue": catalogue,
-        "available": {
-            "general": False,
-            "bodies": False,
-            "comets": False,
-        },
-        "has_any": False,
-    })
 
 
 # ============================================================

@@ -17,20 +17,20 @@ This document describes features that could potentially be integrated into MyAst
 - Each location can be attributed to individual users
 - Location are stored in uuid
 - Limit to X location (check with weather api limit call)
-- Cache scheduler & Uptonight scheduler by location
-- Switch to select location on main page with persistant selection between main-tabs (astro, weather, uptonight)
+- Cache scheduler & SkyTonight scheduler by location
+- Switch to select location on main page with persistant selection between main-tabs (astro, weather, SkyTonight)
 - Add location field to astrodex
 - User can order as he want location on it's profile
-
-### PWA application
-**Objective: Real PWA application for mobile**
-- PWA notifications for improving conditions (weather, ... ?)
-- Shortcuts from app: Astrodex, Plan My Night, Weather
 
 ### User profile
 - Notification (when/if available in future)
 
 ## Upgrade Features
+
+### PWA application
+**Objective: Real PWA application for mobile**
+- PWA notifications for improving conditions (weather, ... ?)
+- Shortcuts from app: Astrodex, Plan My Night, Weather (need entrypoint events)
 
 ### Ideas in raw
 2	Equipment FOV matching      Medium      Very high — practical astrophotography fit

@@ -5,7 +5,7 @@ It combines weather and astronomical conditions, automated SkyTonight execution,
 and planning tools for observation and astrophotography sessions.
 
 This project is inspired by `mawinkler/uptonight`. Previously this project run UpTonight in Docker CLI to generate data.
-Now MyAStroBoard removed all dependancies to UpTonight to use exactly what project need, and have the full hand on display & calculation.
+Now MyAstroBoard has removed its dependency on UpTonight to better meet its needs and gain full control over display and calculations.
 
 ![Demo MyAstroBoard](docs/img/overview.gif)
 

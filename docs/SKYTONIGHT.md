@@ -1,7 +1,6 @@
 # SkyTonight
 
-SkyTonight is the built-in observability calculator that replaces the external uptonight dependency.
-It computes, for every target in the dataset, which objects are worth imaging tonight — ranked by **AstroScore** — and exposes the results through a cached JSON API.
+SkyTonight is the built-in observability calculator. It computes, for every target in the dataset, which objects are worth imaging tonight — ranked by **AstroScore** — and exposes the results through a cached JSON API.
 
 ---
 

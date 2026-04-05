@@ -20,12 +20,6 @@ MyAstroBoard is designed as a **self-hosted application** intended to run on:
 
 ### Architecture Security Considerations
 
-#### Docker-in-Docker
-- MyAstroBoard uses Docker-in-Docker to run uptonight containers
-- Requires access to `/var/run/docker.sock`
-- This is a privileged operation that should only be used on trusted networks
-- **Never expose MyAstroBoard directly to the public internet without proper authentication**
-
 #### Authentication
 - Built-in user authentication system with password hashing
 - User credentials stored in `data/users.json` with bcrypt hashed passwords
@@ -169,17 +163,7 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 ### Intentional Design Choices
 
-#### 1. Docker Socket Access
-- **Risk**: Container has access to Docker daemon
-- **Mitigation**: Intended for trusted private networks only
-- **Alternative**: Use dedicated Docker host or containerd
-
-#### 2. Privileged Operations
-- **Risk**: Container runs with elevated privileges
-- **Mitigation**: Required for Docker-in-Docker functionality
-- **Alternative**: Manual uptonight execution without automation
-
-#### 3. Session Management
+#### 1. Session Management
 - **Risk**: Flask session-based authentication
 - **Mitigation**: Use HTTPS, secure secret keys, short session timeouts
 - **Enhancement**: Consider adding 2FA for sensitive deployments
@@ -188,7 +172,6 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 MyAstroBoard relies on:
 - **Python packages** (see `requirements.txt`)
-- **Docker images** (uptonight, base images)
 - **External APIs** (Open-Meteo for weather)
 
 Security considerations:
@@ -239,7 +222,6 @@ The following are out of scope:
 - **Physical security** of the host system
 - **Social engineering** attacks
 - **Vulnerabilities in third-party services** (Open-Meteo API, Docker Hub)
-- **Issues in uptonight** container (report to mawinkler/uptonight)
 - **Brute force attacks** (mitigate with firewall/fail2ban)
 
 ## Security Resources

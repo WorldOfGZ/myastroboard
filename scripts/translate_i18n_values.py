@@ -24,7 +24,7 @@ SOURCE_FILE = I18N_DIR / "en.json"
 PROTECTED_TERMS = [
     "MyAstroBoard",
     "Astrodex",
-    "UpTonight",
+    "SkyTonight",
     "ISS",
     "NOAA",
     "Kp",
