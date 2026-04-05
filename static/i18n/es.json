@@ -595,6 +595,7 @@
     "filters": "Filtros",
     "filters_placeholder": "por ejemplo, LRGB, Ha-OIII",
     "custom_filters": "O ingrese filtros personalizados",
+    "custom_filters_placeholder": "ej. LRGB, Ha-OIII",
     "iso": "ISO",
     "number_of_frames": "Número de cuadros",
     "upload_photo": "Subir foto",
