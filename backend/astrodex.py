@@ -939,6 +939,65 @@ def is_item_in_astrodex(user_id: str, item_name: str, catalogue: str = '') -> bo
     return is_item_in_astrodex_with_catalogue(user_id, item_name, catalogue)
 
 
+def is_item_in_preloaded_astrodex(astrodex_data: dict, item_name: str, catalogue: str = '') -> bool:
+    """Same logic as is_item_in_astrodex_with_catalogue but uses pre-loaded data.
+
+    Avoids repeated disk reads when checking many items against the same
+    astrodex (e.g. annotating 1 000 DSO rows in a single API call).
+    """
+    items = astrodex_data.get('items', []) if isinstance(astrodex_data, dict) else []
+
+    requested_candidates = _extract_name_candidates(item_name)
+    requested_normalized_names = {
+        _normalize_name(candidate)
+        for candidate in requested_candidates
+        if _normalize_name(candidate)
+    }
+
+    requested_group_ids: set = set()
+    requested_alias_names: set = set()
+    for candidate in requested_candidates or [item_name]:
+        group_id, aliases = _get_alias_metadata(catalogue, candidate)
+        if group_id:
+            requested_group_ids.add(group_id)
+        if aliases:
+            requested_alias_names.update(
+                _normalize_name(value)
+                for value in aliases.values()
+                if value
+            )
+
+    requested_alias_names.discard('')
+
+    for item in items:
+        existing_name_normalized = _normalize_name(item.get('name', ''))
+        if existing_name_normalized and existing_name_normalized in requested_normalized_names:
+            return True
+
+        existing_group_id, existing_aliases = _get_item_alias_metadata(item)
+
+        if existing_group_id and existing_group_id in requested_group_ids:
+            return True
+
+        if requested_alias_names:
+            existing_alias_names = {
+                _normalize_name(value)
+                for value in existing_aliases.values()
+                if value
+            }
+            if existing_alias_names and (requested_alias_names & existing_alias_names):
+                return True
+            if existing_name_normalized in requested_alias_names:
+                return True
+
+        if catalogue and existing_aliases:
+            alias_name = _get_alias_for_catalogue(existing_aliases, catalogue)
+            if alias_name and _normalize_name(alias_name) in requested_normalized_names:
+                return True
+
+    return False
+
+
 def enrich_item_with_catalogue_aliases(item: Dict) -> Dict:
     """Attach aliases metadata at runtime (not persisted)."""
     return catalogue_aliases.merge_item_with_alias_entry(item)

@@ -6,6 +6,11 @@ let skytonightDisplayAstrodexCache = null;
 let skytonightDisplayAstrodexPromise = null;
 let _skytCurrentSection = 'plot'; // Active section: 'plot' | 'report' | 'bodies' | 'comets' | 'log'
 let _skytSectionCache = {};       // Cached response per section key
+const SKYT_PAGE_SIZE = 100;       // Rows rendered per page in the DSO/bodies/comets tables
+let _skytCurrentPages = {};       // sectionKey -> current page number
+let _skytMoreRowData = {};        // moreKey -> { type, moreFields, row } for lazy popup
+let _skytFilteredData = {};       // sectionKey -> filtered row array (null = no active filter)
+let _skytFilterState = {};        // sectionKey -> saved filter values for cross-page persistence
 
 function tSkyTonightCompat(key, params = {}) {
     const skytonightKey = `skytonight.${key}`;
@@ -107,9 +112,11 @@ async function getSkyTonightDisplayAstrodex() {
  * for tonight, sized by AstroScore and coloured by object type.
  */
 async function _renderSkyMap(reports, container) {
-    DOMUtils.clear(container);
+    // NOTE: do NOT clear 'container' here — the caller already inserted a loading indicator.
+    // We clear it only once we have data (or an error) to show.
 
     if (typeof Plotly === 'undefined') {
+        DOMUtils.clear(container);
         const w = document.createElement('div');
         w.className = 'alert alert-warning mt-3';
         w.textContent = tSkyTonightCompat('no_data_available');
@@ -122,12 +129,15 @@ async function _renderSkyMap(reports, container) {
     try {
         skymap = await fetchJSON('/api/skytonight/skymap');
     } catch (_) {
+        DOMUtils.clear(container);
         const err = document.createElement('div');
         err.className = 'alert alert-danger mt-3';
         err.textContent = tSkyTonightCompat('no_data_available');
         container.appendChild(err);
         return;
     }
+
+    DOMUtils.clear(container); // loading indicator has served its purpose
 
     const targets = (skymap && skymap.targets) || [];
     const mapConstraints = (skymap && skymap.constraints) || {};
@@ -946,6 +956,9 @@ async function _showSkyTonightDataSection(sectionKey, container) {
             data = await fetchJSON(endpoint);
             if (data.error) throw new Error(data.error);
             _skytSectionCache[sectionKey] = data;
+            _skytCurrentPages[sectionKey] = 0; // reset to first page when loading fresh data
+            _skytFilteredData[sectionKey] = null; // clear any previous filter
+            delete _skytFilterState[sectionKey];  // clear saved filter state
 
             // Keep window.catalogueReports in sync for badge update functions
             window.catalogueReports = window.catalogueReports || {};
@@ -983,7 +996,8 @@ async function _showSkyTonightDataSection(sectionKey, container) {
         }
 
         const tableType = sectionKey === 'report' ? 'report' : sectionKey;
-        const tableHtml = generateReportTable(tableData, 'SkyTonight', tableType, displayAstrodex);
+        const currentPage = _skytCurrentPages[sectionKey] || 0;
+        const tableHtml = generateReportTable(tableData, 'SkyTonight', tableType, displayAstrodex, currentPage);
         const fragment = document.createRange().createContextualFragment(tableHtml);
         container.appendChild(fragment);
 
@@ -1001,7 +1015,252 @@ async function _showSkyTonightDataSection(sectionKey, container) {
 // Report Table Generation
 // ======================
 
-function generateReportTable(report, catalogue, type, displayAstrodex = true) {
+/**
+ * Build Bootstrap 5.3 pagination bar for a table section.
+ * Renders a footer row: item count on the left, icon-based page buttons on the right.
+ */
+function _buildPaginationHtml(catalogue, type, page, totalPages, totalItems) {
+    const startItem = page * SKYT_PAGE_SIZE + 1;
+    const endItem   = Math.min((page + 1) * SKYT_PAGE_SIZE, totalItems);
+    const atFirst   = page === 0;
+    const atLast    = page >= totalPages - 1;
+    const esc       = escapeHtml;
+
+    const btn = (iconClass, targetPage, disabled, ariaLabel) =>
+        `<li class="page-item${disabled ? ' disabled' : ''}">` +
+        `<a class="page-link skyt-page-btn" href="#" aria-label="${esc(ariaLabel)}" ` +
+        `data-catalogue="${esc(catalogue)}" data-type="${esc(type)}" data-page="${targetPage}">` +
+        `<i class="bi ${esc(iconClass)}" aria-hidden="true"></i>` +
+        `</a></li>`;
+
+    // Numbered page buttons: show up to 5 pages centred around the current page
+    const WIN = 2;
+    const rangeStart = Math.max(0, Math.min(page - WIN, totalPages - 2 * WIN - 1));
+    const rangeEnd   = Math.min(totalPages - 1, rangeStart + 2 * WIN);
+    let pageButtons  = '';
+    for (let p = rangeStart; p <= rangeEnd; p++) {
+        pageButtons +=
+            `<li class="page-item${p === page ? ' active' : ''}">` +
+            `<a class="page-link skyt-page-btn" href="#" ` +
+            `data-catalogue="${esc(catalogue)}" data-type="${esc(type)}" data-page="${p}">${p + 1}</a></li>`;
+    }
+
+    const countLabel =
+        `<span class="skyt-pagination-count text-muted small">` +
+        `${startItem}\u2013${endItem} <span class="opacity-50">/</span> ${totalItems}</span>`;
+
+    return (
+        `<div class="skyt-pagination-bar d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 pt-2 border-top">` +
+        countLabel +
+        `<nav aria-label="${esc(tSkyTonightCompat('table_pagination') || 'Pagination')}">` +
+        `<ul class="pagination pagination-sm mb-0 gap-1">` +
+        btn('bi-chevron-double-left',  0,              atFirst, 'First') +
+        btn('bi-chevron-left',         page - 1,       atFirst, 'Previous') +
+        pageButtons +
+        btn('bi-chevron-right',        page + 1,       atLast,  'Next') +
+        btn('bi-chevron-double-right', totalPages - 1, atLast,  'Last') +
+        `</ul></nav>` +
+        `</div>`
+    );
+}
+
+/**
+ * Lazily build and show the "More" popup from pre-stored row data
+ * (replaces the old pre-generated hidden-div approach).
+ */
+function showMorePopupFromRowData(moreData) {
+    const { type, moreFields, row } = moreData;
+
+    const titleEl = document.getElementById('modal_lg_close_title');
+    if (titleEl) titleEl.textContent = tSkyTonightCompat('more_info');
+
+    const contentEl = document.getElementById('modal_lg_close_body');
+    if (!contentEl) return;
+    DOMUtils.clear(contentEl);
+
+    const tableDiv = document.createElement('div');
+    tableDiv.className = 'table-responsive';
+    const table = document.createElement('table');
+    table.className = 'table table-striped';
+    const tbody = document.createElement('tbody');
+
+    moreFields.forEach(field => {
+        let value = row[field];
+
+        // Special handling: catalogue_names dict → one row per entry
+        if (field === 'catalogue_names') {
+            if (value && typeof value === 'object') {
+                const entries = Object.entries(value);
+                if (entries.length > 0) {
+                    const headerTr = document.createElement('tr');
+                    const headerTd = document.createElement('td');
+                    headerTd.colSpan = 2;
+                    headerTd.className = 'more-section-header fw-semibold text-muted small pt-2';
+                    headerTd.textContent = tSkyTonightCompat('catalogue_names');
+                    headerTr.appendChild(headerTd);
+                    tbody.appendChild(headerTr);
+                    entries.forEach(([catName, catValue]) => {
+                        if (catValue) {
+                            const tr = document.createElement('tr');
+                            const td1 = document.createElement('td');
+                            td1.className = 'more-label';
+                            td1.textContent = catName;
+                            const td2 = document.createElement('td');
+                            td2.className = 'more-value';
+                            td2.textContent = String(catValue);
+                            tr.appendChild(td1);
+                            tr.appendChild(td2);
+                            tbody.appendChild(tr);
+                        }
+                    });
+                }
+            }
+            return;
+        }
+
+        let label = field.charAt(0).toUpperCase() + field.slice(1);
+        const labelKey = 'skytonight.' + strToTranslateKey(label);
+        if (i18n.has(labelKey)) {
+            label = i18n.t(labelKey);
+        } else {
+            console.warn(`Missing translation for: ${labelKey}`);
+        }
+
+        const hasValue = value !== null && value !== undefined && value !== '';
+        let displayValue = hasValue ? String(value) : '–';
+
+        // Comet-specific field formatting
+        if (type === 'comets') {
+            if (field === 'absolute magnitude' && hasValue && !isNaN(value)) {
+                displayValue = parseFloat(value).toFixed(2);
+            } else if (field === 'distance sun au') {
+                label = tSkyTonightCompat('distance_sun');
+                if (hasValue && !isNaN(value)) displayValue = parseFloat(value).toFixed(2) + ' au';
+            } else if (field === 'distance earth au') {
+                if (hasValue && !isNaN(value)) displayValue = parseFloat(value).toFixed(2) + ' au';
+            }
+        }
+
+        const tr = document.createElement('tr');
+        const td1 = document.createElement('td');
+        td1.className = 'more-label';
+        td1.textContent = label;
+        const td2 = document.createElement('td');
+        td2.className = 'more-value';
+        td2.textContent = displayValue;
+        tr.appendChild(td1);
+        tr.appendChild(td2);
+        tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    tableDiv.appendChild(table);
+    contentEl.appendChild(tableDiv);
+
+    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
+        backdrop: 'static', focus: true, keyboard: true
+    });
+    bs_modal.show();
+}
+
+/**
+ * Apply filters to the full cached dataset for a SkyTonight section, then re-render.
+ * Falls back to the standard DOM row-hide filterTable() for non-paginated sections.
+ */
+function _skytApplyFilter(catalogue, type) {
+    if (catalogue !== 'SkyTonight' || !_skytSectionCache[type]) {
+        filterTable(catalogue, type);
+        return;
+    }
+
+    const filterInput        = document.getElementById(`filter-${catalogue}-${type}`);
+    const fotoCheckbox       = document.getElementById(`foto-filter-${catalogue}-${type}`);
+    const fotoValueInput     = document.getElementById(`foto-value-${catalogue}-${type}`);
+    const constellationSelect = document.getElementById(`constellation-filter-${catalogue}-${type}`);
+    const typeSelect         = document.getElementById(`type-filter-${catalogue}-${type}`);
+
+    const filterText   = (filterInput        ? filterInput.value        : '').trim().toLowerCase();
+    const fotoEnabled  =  fotoCheckbox       ? fotoCheckbox.checked     : false;
+    const fotoThreshold = fotoValueInput     ? parseFloat(sanitizeFotoFilterValue(fotoValueInput.value)) / 100 : 0.8;
+    const constellation = constellationSelect ? constellationSelect.value : '';
+    const typeVal       = typeSelect          ? typeSelect.value          : '';
+
+    // Persist state so it survives the pagination re-render
+    _skytFilterState[type] = { filterText, fotoEnabled, fotoThreshold, constellation, typeVal };
+
+    const hasFilter = filterText || fotoEnabled || constellation || typeVal;
+    const fullData  = _skytSectionCache[type][type];
+    if (!Array.isArray(fullData)) return;
+
+    if (!hasFilter) {
+        _skytFilteredData[type] = null;
+        _skytCurrentPages[type] = 0;
+        _reRenderTablePage(type, 0);
+        return;
+    }
+
+    _skytFilteredData[type] = fullData.filter(row => {
+        if (filterText) {
+            let haystack = Object.entries(row)
+                .filter(([k]) => k !== 'catalogue_names')
+                .map(([, v]) => (v !== null && v !== undefined ? String(v) : ''))
+                .join(' ')
+                .toLowerCase();
+            const catNames = row.catalogue_names;
+            if (catNames && typeof catNames === 'object') {
+                haystack += ' ' + Object.values(catNames).filter(Boolean).join(' ').toLowerCase();
+            }
+            if (!haystack.includes(filterText)) return false;
+        }
+        if (fotoEnabled) {
+            const fotoVal = parseFloat(row['foto'] ?? row['fraction of time observable'] ?? 0);
+            if (isNaN(fotoVal) || fotoVal < fotoThreshold) return false;
+        }
+        if (constellation && (row.constellation || '') !== constellation) return false;
+        if (typeVal       && (row.type          || '') !== typeVal)        return false;
+        return true;
+    });
+
+    _skytCurrentPages[type] = 0;
+    _reRenderTablePage(type, 0);
+}
+
+/**
+ * Re-render a tabular section at the given page number.
+ * Used by pagination buttons after the initial render.
+ */
+async function _reRenderTablePage(sectionKey, page) {
+    const dataDiv = document.getElementById(`skytonight-${sectionKey}-data`);
+    if (!dataDiv) return;
+
+    const cachedData = _skytSectionCache[sectionKey];
+    if (!cachedData) return;
+
+    const displayAstrodex = await getSkyTonightDisplayAstrodex();
+    // Use filtered data if a filter is active, otherwise the full cached array
+    const tableData = (_skytFilteredData[sectionKey] !== null && _skytFilteredData[sectionKey] !== undefined)
+        ? _skytFilteredData[sectionKey]
+        : cachedData[sectionKey];
+    if (!Array.isArray(tableData) || tableData.length === 0) return;
+
+    DOMUtils.clear(dataDiv);
+
+    if (cachedData.in_progress) {
+        const banner = document.createElement('div');
+        banner.className = 'alert alert-warning d-flex align-items-center gap-2 mb-2';
+        banner.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>${tSkyTonightCompat('calculation_in_progress')}`;
+        dataDiv.appendChild(banner);
+    }
+
+    const tableType = sectionKey === 'report' ? 'report' : sectionKey;
+    const fragment = document.createRange().createContextualFragment(
+        generateReportTable(tableData, 'SkyTonight', tableType, displayAstrodex, page, true)
+    );
+    dataDiv.appendChild(fragment);
+    dataDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function generateReportTable(report, catalogue, type, displayAstrodex = true, page = 0, isRerender = false) {
     if (!report || report.length === 0) return `<p>${tSkyTonightCompat('no_target_in_report')}</p>`;
     
     // Define column order and configuration for Report type
@@ -1069,7 +1328,13 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
         }));
     }
     
-    // Extract unique values for constellation and type filters
+    // Pagination: compute the row slice for the current page
+    const _totalItems = report.length;
+    const _totalPages = Math.ceil(_totalItems / SKYT_PAGE_SIZE);
+    const _startIdx   = page * SKYT_PAGE_SIZE;
+    const _pageRows   = report.slice(_startIdx, Math.min(_startIdx + SKYT_PAGE_SIZE, _totalItems));
+
+    // Extract unique values for constellation and type filters (from the FULL dataset for complete filter lists)
     const constellations = [...new Set(report.map(r => r.constellation).filter(c => c))].sort();
     const types = [...new Set(report.map(r => r.type).filter(t => t))].sort();
     
@@ -1160,16 +1425,18 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
     
     html += `</tr></thead><tbody class="table-group-divider">`;
     
-    // Generate table rows
-    report.forEach((row, idx) => {
+    // Generate table rows (current page slice only)
+    _pageRows.forEach((row, _pageIdx) => {
+        const idx = _startIdx + _pageIdx; // absolute row index across all pages
         const fotoValue = row['foto'] || row['fraction of time observable'] || 0;
         html += `<tr data-foto="${fotoValue}" data-constellation="${escapeHtml(row.constellation || '')}" data-type="${escapeHtml(row.type || '')}">`;
         
         columns.forEach(col => {
             if (col.key === 'more') {
-                // Generate More link that opens a popup
-                const popupId = `more-popup-${catalogue}-${type}-${idx}`;
-                html += `<td style="text-align: ${col.align}"><a href="#" onclick="showMorePopup('${popupId}'); return false;" class="link-underline link-underline-opacity-0"><i class="bi bi-clipboard-data icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('table_more')}</a></td>`;
+                // Lazy more popup: store row data by key, referenced via data attribute
+                const moreKey = `${catalogue}-${type}-${idx}`;
+                _skytMoreRowData[moreKey] = { type, moreFields, row };
+                html += `<td style="text-align: ${col.align}"><a href="#" class="skyt-more-link link-underline link-underline-opacity-0" data-more-key="${escapeHtml(moreKey)}"><i class="bi bi-clipboard-data icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('table_more')}</a></td>`;
             } else if (col.key === 'astrodex') {
                 // Generate Astrodex action button
                 const itemName = row['id'] || row['target name'];
@@ -1295,72 +1562,12 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
     });
     
     html += `</tbody></table>`;
-    
-    // Create all hidden popups AFTER the table (for report, bodies, and comets types)
-    if (type === 'report' || type === 'bodies' || type === 'comets') {
-        report.forEach((row, idx) => {
-            html += `
-                <div id="more-popup-${catalogue}-${type}-${idx}" style="display: none;">
-                    <div class="table-responsive">
-                        <table class="table table-striped"><tbody>`;
-            
-            moreFields.forEach(field => {
-                let value = row[field];
 
-                // Special handling: catalogue names dict → one row per entry
-                if (field === 'catalogue_names') {
-                    if (value && typeof value === 'object') {
-                        const entries = Object.entries(value);
-                        if (entries.length > 0) {
-                            let sectionLabel = tSkyTonightCompat('catalogue_names');
-                            html += `<tr><td colspan="2" class="more-section-header fw-semibold text-muted small pt-2">${escapeHtml(sectionLabel)}</td></tr>`;
-                            entries.forEach(([catName, catValue]) => {
-                                if (catValue) {
-                                    html += `<tr><td class="more-label">${escapeHtml(catName)}</td><td class="more-value">${escapeHtml(String(catValue))}</td></tr>`;
-                                }
-                            });
-                        }
-                    }
-                    return;
-                }
-
-                let label = field.charAt(0).toUpperCase() + field.slice(1);
-                let labelTranslations = strToTranslateKey(label);
-                const skytonightLabelKey = `skytonight.${labelTranslations}`;
-                if (i18n.has(skytonightLabelKey)) {
-                    label = i18n.t(skytonightLabelKey);
-                } else {
-                    console.warn(`Missing translation for: ${skytonightLabelKey}`);
-                }
-                const hasValue = value !== null && value !== undefined && value !== '';
-                let displayValue = hasValue ? String(value) : '–';
-
-                // Apply special formatting for comets fields
-                if (type === 'comets') {
-                    if (field === 'absolute magnitude' && hasValue && !isNaN(value)) {
-                        displayValue = parseFloat(value).toFixed(2);
-                    } else if (field === 'distance sun au') {
-                        label = tSkyTonightCompat('distance_sun');
-                        if (hasValue && !isNaN(value)) {
-                            displayValue = parseFloat(value).toFixed(2) + ' au';
-                        }
-                    } else if (field === 'distance earth au') {
-                        if (hasValue && !isNaN(value)) {
-                            displayValue = parseFloat(value).toFixed(2) + ' au';
-                        }
-                    }
-                }
-
-                html += `<tr><td class="more-label">${escapeHtml(label)}</td><td class="more-value">${escapeHtml(displayValue)}</td></tr>`;
-            });
-            
-            html += `
-                        </tbody></table>
-                    </div>
-                </div>`;
-        });
+    // Pagination bar (only when the dataset spans more than one page)
+    if (_totalPages > 1) {
+        html += _buildPaginationHtml(catalogue, type, page, _totalPages, _totalItems);
     }
-    
+
     html += `</div>`;
     
     // Add event listeners for filtering
@@ -1379,15 +1586,25 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
             }
         }
         
+        // Restore any persisted filter state (set by a previous render of this same section)
+        const _savedFilter = _skytFilterState[type];
+        if (_savedFilter && catalogue === 'SkyTonight') {
+            if (filterInput)         filterInput.value          = _savedFilter.filterText;
+            if (fotoCheckbox)        fotoCheckbox.checked       = _savedFilter.fotoEnabled;
+            if (fotoValueInput)      fotoValueInput.value       = String(Math.round(_savedFilter.fotoThreshold * 100));
+            if (constellationSelect) constellationSelect.value  = _savedFilter.constellation;
+            if (typeSelect)          typeSelect.value           = _savedFilter.typeVal;
+        }
+
         if (filterInput) {
-            filterInput.addEventListener('input', () => filterTable(catalogue, type));
+            filterInput.addEventListener('input', () => _skytApplyFilter(catalogue, type));
         }
         if (fotoCheckbox) {
             fotoCheckbox.addEventListener('change', () => {
                 // Save checkbox state to localStorage and sync across all tables
                 localStorage.setItem('fotoFilterEnabled', fotoCheckbox.checked);
                 syncFotoCheckboxes(fotoCheckbox.checked);
-                filterTable(catalogue, type);
+                _skytApplyFilter(catalogue, type);
             });
         }
         if (fotoValueInput) {
@@ -1397,14 +1614,14 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
                 fotoValueInput.value = normalizedFotoValue;
                 localStorage.setItem('fotoFilterValue', normalizedFotoValue);
                 syncFotoValues(normalizedFotoValue);
-                filterTable(catalogue, type);
+                _skytApplyFilter(catalogue, type);
             });
         }
         if (constellationSelect) {
-            constellationSelect.addEventListener('change', () => filterTable(catalogue, type));
+            constellationSelect.addEventListener('change', () => _skytApplyFilter(catalogue, type));
         }
         if (typeSelect) {
-            typeSelect.addEventListener('change', () => filterTable(catalogue, type));
+            typeSelect.addEventListener('change', () => _skytApplyFilter(catalogue, type));
         }
         
         // Add event listeners for Astrodex "Add" buttons
@@ -1500,10 +1717,33 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true) {
         // Apply default sorting based on table type
         applyDefaultSort(catalogue, type);
         
-        // Apply filter if checkbox was checked
-        if (fotoCheckbox && fotoCheckbox.checked) {
-            filterTable(catalogue, type);
+        // Apply filter on initial render only (not on pagination/filter re-renders to avoid loops).
+        // Re-renders already display the correct filtered slice; just restore the input values above.
+        if (!isRerender && ((fotoCheckbox && fotoCheckbox.checked) || _skytFilterState[type])) {
+            _skytApplyFilter(catalogue, type);
         }
+
+        // Lazy "More" popup: delegate via data-more-key attribute
+        document.querySelectorAll('.skyt-more-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const moreKey = link.getAttribute('data-more-key');
+                const moreData = _skytMoreRowData[moreKey];
+                if (moreData) showMorePopupFromRowData(moreData);
+            });
+        });
+
+        // Pagination buttons
+        document.querySelectorAll('.skyt-page-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                if (btn.closest('.page-item')?.classList.contains('disabled')) return;
+                const tp = btn.getAttribute('data-type');
+                const newPage = parseInt(btn.getAttribute('data-page'), 10);
+                _skytCurrentPages[tp] = newPage;
+                await _reRenderTablePage(tp, newPage);
+            });
+        });
     }, 100);
     
     return html;
