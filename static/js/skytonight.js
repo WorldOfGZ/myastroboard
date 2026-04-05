@@ -800,6 +800,11 @@ async function _showSkyTonightSectionData(sectionKey) {
     if (sectionKey === 'plot') {
         if (_skytSectionCache['plot']) return;  // prevent concurrent renders
         _skytSectionCache['plot'] = true;
+        DOMUtils.clear(dataDiv);
+        const plotLoading = document.createElement('div');
+        plotLoading.className = 'alert alert-info';
+        plotLoading.textContent = i18n.t('common.loading');
+        dataDiv.appendChild(plotLoading);
         try {
             await _renderSkyMap(null, dataDiv);
         } catch (e) {
