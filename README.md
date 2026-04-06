@@ -9,6 +9,8 @@ Now MyAstroBoard has removed its dependency on UpTonight to better meet its need
 
 ![Demo MyAstroBoard](docs/img/overview.gif)
 
+If you want see more, maybe look at the [visual tour](docs/VISUAL_TOUR.md).
+
 ## Features
 
 - SkyTonight integration with automated runs and report/log browsing
@@ -22,12 +24,12 @@ Now MyAstroBoard has removed its dependency on UpTonight to better meet its need
 
 ## Quick Start
 
-- Installation: docs/1.INSTALLATION.md
-- Quick Start: docs/2.QUICKSTART.md
-- Update Guide: docs/3.UPDATE.md
-- Reverse Proxy: docs/6.REVERSE_PROXY.md
-- API Endpoints: docs/API_ENDPOINTS.md
-- Visual Tour: docs/VISUAL_TOUR.md
+- Installation: [docs/1.INSTALLATION.md](docs/1.INSTALLATION.md)
+- Quick Start: [docs/2.QUICKSTART.md](docs/2.QUICKSTART.md)
+- Update Guide: [docs/3.UPDATE.md](docs/3.UPDATE.md)
+- Reverse Proxy: [docs/6.REVERSE_PROXY.md](docs/6.REVERSE_PROXY.md)
+- API Endpoints: [docs/API_ENDPOINTS.md](docs/API_ENDPOINTS.md)
+- Visual Tour: [docs/VISUAL_TOUR.md](docs/VISUAL_TOUR.md)
 
 ## SkyTonight Data Model
 
