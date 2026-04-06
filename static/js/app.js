@@ -51,12 +51,16 @@ function applyUserStartupPreferences(force = false) {
     window.__myastroboardStartupApplied = true;
 }
 
-// Initialize the application
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize the application — called by auth.js once authentication is confirmed.
+// This prevents any authenticated API calls (e.g. scheduler status) from firing
+// before the session is validated, which would generate spurious 401 warnings.
+function initializeAuthenticatedApp() {
     initializeApp();
     handleHashNavigation();
     window.addEventListener('hashchange', handleHashNavigation);
-});
+}
+
+window.initializeAuthenticatedApp = initializeAuthenticatedApp;
 // ======================
 // Hash Navigation Support for PWA Shortcuts
 // ======================
