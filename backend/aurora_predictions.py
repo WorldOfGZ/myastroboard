@@ -54,18 +54,25 @@ class AuroraService:
             response = requests.get(NOAA_KP_API, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()
             data = response.json()
-            
-            if isinstance(data, list) and len(data) > 1:
-                # Get the most recent entry (skip header)
+
+            if isinstance(data, list) and len(data) > 0:
                 latest = data[-1]
-                if isinstance(latest, list) and len(latest) > 1:
+                # New format: list of dicts with key 'Kp'
+                if isinstance(latest, dict):
+                    raw = latest.get('Kp')
+                # Legacy format: list of lists, Kp at index 1
+                elif isinstance(latest, list) and len(latest) > 1:
+                    raw = latest[1]
+                else:
+                    raw = None
+
+                if raw is not None:
                     try:
-                        kp_value = float(latest[1])
+                        kp_value = float(raw)
                         logger.debug(f"Fetched current Kp index: {kp_value}")
                         return kp_value
                     except (ValueError, TypeError):
                         logger.warning(f"Could not parse Kp value from {latest}")
-                        return None
             return None
         except requests.RequestException as e:
             logger.debug(f"Failed to fetch current Kp index from NOAA: {e}")
@@ -87,12 +94,25 @@ class AuroraService:
             data = response.json()
             
             forecast_data = []
-            
-            # Expected list format with header row
-            if isinstance(data, list) and len(data) > 1 and isinstance(data[0], list):
+
+            # New format: list of dicts (key 'kp' lowercase)
+            if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict):
+                for row in data:
+                    raw_kp = row.get('kp')
+                    if raw_kp is None:
+                        continue
+                    try:
+                        forecast_data.append({
+                            'timestamp': row.get('time_tag', ''),
+                            'kp': float(raw_kp)
+                        })
+                    except (TypeError, ValueError):
+                        continue
+            # Legacy format: list of lists with header row
+            elif isinstance(data, list) and len(data) > 1 and isinstance(data[0], list):
                 header = data[0]
                 time_idx = header.index('time_tag') if 'time_tag' in header else None
-                kp_idx = header.index('kp') if 'kp' in header else None
+                kp_idx = next((i for i, h in enumerate(header) if str(h).lower() == 'kp'), None)
 
                 if kp_idx is not None:
                     for row in data[1:]:
@@ -102,15 +122,10 @@ class AuroraService:
                             kp_value = float(row[kp_idx])
                         except (TypeError, ValueError):
                             continue
-
                         timestamp = ''
                         if time_idx is not None and len(row) > time_idx:
                             timestamp = row[time_idx]
-
-                        forecast_data.append({
-                            'timestamp': timestamp,
-                            'kp': kp_value
-                        })
+                        forecast_data.append({'timestamp': timestamp, 'kp': kp_value})
             
             logger.debug(f"Fetched Kp forecast: {len(forecast_data)} entries")
             return forecast_data if forecast_data else None
