@@ -448,6 +448,7 @@ body.density-compact .alert {
 
 .sub-tab-content.active {
     display: block;
+    min-height: 70vh;
 }
 
 .sub-tab-content h2 {
