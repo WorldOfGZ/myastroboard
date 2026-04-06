@@ -633,7 +633,7 @@
     "sky_map_count": "{count} objetivos representados",
     "sky_map_title": "Mapa del cielo",
     "sky_map_reset_view": "Restablecer vista",
-    "sky_map_filter_dso": "ODP",
+    "sky_map_filter_dso": "DSO",
     "sky_map_filter_bodies": "Sistema solar",
     "sky_map_filter_comets": "Cometas",
     "sky_map_min_score": "AstroScore mín.",
