@@ -854,7 +854,8 @@ def backup_restore_api():
         cleared_dirs = set()
         for _info, _dest, top_prefix in recognised_entries:
             if top_prefix in RESTORE_CLEAR_DIRS and top_prefix not in cleared_dirs:
-                target_dir = os.path.join(DATA_DIR, top_prefix)
+                # Derive target_dir from the static allowlist (breaks the user-data taint chain)
+                target_dir = os.path.abspath(RESTORE_ALLOWED_PREFIXES[top_prefix])
                 if os.path.isdir(target_dir):
                     shutil.rmtree(target_dir)
                 os.makedirs(target_dir, exist_ok=True)
@@ -865,17 +866,24 @@ def backup_restore_api():
         restored_files = []
         skipped_files = []
 
+        data_dir_abs = os.path.abspath(DATA_DIR)
         with zipfile.ZipFile(buf, 'r') as zf:
             for info, dest_path, top_prefix in recognised_entries:
                 arc_path = info.filename.replace('\\', '/').lstrip('/')
-                os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+                # Re-validate dest_path is confined to DATA_DIR (local guard for static analysis)
+                safe_dest = os.path.abspath(dest_path)
+                if not (safe_dest.startswith(data_dir_abs + os.sep) or safe_dest == data_dir_abs):
+                    logger.warning(f"Restore: rejected out-of-bounds path: {dest_path}")
+                    skipped_files.append(arc_path)
+                    continue
+                os.makedirs(os.path.dirname(safe_dest), exist_ok=True)
 
                 if arc_path in json_blobs:
                     # Already read and validated — write directly
-                    with open(dest_path, 'wb') as dst:
+                    with open(safe_dest, 'wb') as dst:
                         dst.write(json_blobs[arc_path])
                 else:
-                    with zf.open(info) as src, open(dest_path, 'wb') as dst:
+                    with zf.open(info) as src, open(safe_dest, 'wb') as dst:
                         shutil.copyfileobj(src, dst)
                 restored_files.append(arc_path)
 
