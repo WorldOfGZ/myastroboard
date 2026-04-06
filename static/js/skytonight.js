@@ -850,7 +850,7 @@ async function _showSkyTonightLogSection(container) {
         return;
     }
 
-    const lines = logContent.trim().split('\n').filter(l => l.trim());
+    const lines = logContent.trim().split('\n').filter(l => l.trim()).reverse();
     if (lines.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'alert alert-info';
