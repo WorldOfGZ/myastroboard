@@ -1007,7 +1007,7 @@ async function _showSkyTonightDataSection(sectionKey, container) {
         container.appendChild(fragment);
 
     } catch (err) {
-        console.error(`Error loading SkyTonight ${sectionKey} section:`, err);
+        console.error('Error loading SkyTonight section:', sectionKey, err);
         DOMUtils.clear(container);
         const errAlert = document.createElement('div');
         errAlert.className = 'alert alert-danger mt-3';
@@ -1347,12 +1347,15 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
     // Extract unique values for constellation and type filters (from the FULL dataset for complete filter lists)
     const constellations = [...new Set(report.map(r => r.constellation).filter(c => c))].sort();
     const types = [...new Set(report.map(r => r.type).filter(t => t))].sort();
-    
+
+    const eCat = escapeHtml(catalogue);
+    const eType = escapeHtml(type);
+
     let html = `
         <div class="row row-cols-lg-auto g-3 align-items-center mt-3">
             <div class="col-12">
-                <label for="filter-${catalogue}-${type}" class="visually-hidden">${tSkyTonightCompat('search')}</label>
-                <input type="text" id="filter-${catalogue}-${type}" placeholder="${tSkyTonightCompat('search_placeholder')}" class="filter-input form-control">
+                <label for="filter-${eCat}-${eType}" class="visually-hidden">${tSkyTonightCompat('search')}</label>
+                <input type="text" id="filter-${eCat}-${eType}" placeholder="${tSkyTonightCompat('search_placeholder')}" class="filter-input form-control">
             </div>`;
     
     // Show foto filter for all table types (report, bodies, comets)
@@ -1360,15 +1363,15 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
         html += `
             <div class="col-12">
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="foto-filter-${catalogue}-${type}">
+                    <input class="form-check-input" type="checkbox" id="foto-filter-${eCat}-${eType}">
                     <label class="form-check-label" for="inlineFormCheck"> ${tSkyTonightCompat('search_foto')} </label>
                 </div>               
             </div>`;
 
         html += `
             <div class="col-12">
-                <label for="foto-value-${catalogue}-${type}" class="visually-hidden">${tSkyTonightCompat('search_foto_score')}</label>
-                <input type="number" id="foto-value-${catalogue}-${type}" step="5" min="0" max="100" class="shared-foto-value form-control">
+                <label for="foto-value-${eCat}-${eType}" class="visually-hidden">${tSkyTonightCompat('search_foto_score')}</label>
+                <input type="number" id="foto-value-${eCat}-${eType}" step="5" min="0" max="100" class="shared-foto-value form-control">
             </div>`;
     }
     
@@ -1376,8 +1379,8 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
     if (constellations.length > 0) {
         html += `
             <div class="col-12">
-                <label class="visually-hidden" for="constellation-filter-${catalogue}-${type}">${tSkyTonightCompat('search_constellations')}</label>
-                <select class="form-select filter-select" id="constellation-filter-${catalogue}-${type}">
+                <label class="visually-hidden" for="constellation-filter-${eCat}-${eType}">${tSkyTonightCompat('search_constellations')}</label>
+                <select class="form-select filter-select" id="constellation-filter-${eCat}-${eType}">
                     <option value="">${tSkyTonightCompat('search_all_constellations')}</option>`;
         constellations.forEach(c => {
             let label_c = c;
@@ -1398,8 +1401,8 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
     if (types.length > 0) {
         html += `
             <div class="col-12">
-                <label class="visually-hidden" for="type-filter-${catalogue}-${type}">${tSkyTonightCompat('search_types')}</label>
-                <select id="type-filter-${catalogue}-${type}" class="form-select filter-select">
+                <label class="visually-hidden" for="type-filter-${eCat}-${eType}">${tSkyTonightCompat('search_types')}</label>
+                <select id="type-filter-${eCat}-${eType}" class="form-select filter-select">
                     <option value="">${tSkyTonightCompat('search_all_types')}</option>`;
         types.forEach(t => {
             let label_t = t;
@@ -1418,7 +1421,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
 
     html += `
         <div class="table-responsive mt-3">
-            <table class="table table-striped table-hover table-sm" id="table-${catalogue}-${type}">
+            <table class="table table-striped table-hover table-sm" id="table-${eCat}-${eType}">
                 <thead>
                     <tr>
     `;
