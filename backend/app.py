@@ -209,7 +209,9 @@ def index():
 
 @app.route('/login')
 def login_page():
-    """Render login page"""
+    """Render login page — redirect to dashboard if already authenticated"""
+    if 'username' in session:
+        return redirect(url_for('index'))
     # Get version for cache busting
     version = get_repo_version()
     
