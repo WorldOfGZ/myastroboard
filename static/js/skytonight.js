@@ -978,7 +978,12 @@ async function _showSkyTonightDataSection(sectionKey, container) {
         if (data.in_progress) {
             const banner = document.createElement('div');
             banner.className = 'alert alert-warning d-flex align-items-center gap-2 mb-2';
-            banner.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>${tSkyTonightCompat('calculation_in_progress')}`;
+            const _spinner0 = document.createElement('span');
+            _spinner0.className = 'spinner-border spinner-border-sm';
+            _spinner0.setAttribute('role', 'status');
+            _spinner0.setAttribute('aria-hidden', 'true');
+            banner.appendChild(_spinner0);
+            banner.appendChild(document.createTextNode(tSkyTonightCompat('calculation_in_progress')));
             container.appendChild(banner);
         }
 
@@ -1248,7 +1253,12 @@ async function _reRenderTablePage(sectionKey, page) {
     if (cachedData.in_progress) {
         const banner = document.createElement('div');
         banner.className = 'alert alert-warning d-flex align-items-center gap-2 mb-2';
-        banner.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>${tSkyTonightCompat('calculation_in_progress')}`;
+        const _spinner1 = document.createElement('span');
+        _spinner1.className = 'spinner-border spinner-border-sm';
+        _spinner1.setAttribute('role', 'status');
+        _spinner1.setAttribute('aria-hidden', 'true');
+        banner.appendChild(_spinner1);
+        banner.appendChild(document.createTextNode(tSkyTonightCompat('calculation_in_progress')));
         dataDiv.appendChild(banner);
     }
 
@@ -1347,7 +1357,6 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
     
     // Show foto filter for all table types (report, bodies, comets)
     {
-        const savedFotoValue = sanitizeFotoFilterValue(localStorage.getItem('fotoFilterValue'));
         html += `
             <div class="col-12">
                 <div class="form-check">
@@ -1359,7 +1368,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
         html += `
             <div class="col-12">
                 <label for="foto-value-${catalogue}-${type}" class="visually-hidden">${tSkyTonightCompat('search_foto_score')}</label>
-                <input type="number" id="foto-value-${catalogue}-${type}" value="${savedFotoValue}" step="5" min="0" max="100" class="shared-foto-value form-control">
+                <input type="number" id="foto-value-${catalogue}-${type}" step="5" min="0" max="100" class="shared-foto-value form-control">
             </div>`;
     }
     
@@ -1578,12 +1587,15 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
         const constellationSelect = document.getElementById(`constellation-filter-${catalogue}-${type}`);
         const typeSelect = document.getElementById(`type-filter-${catalogue}-${type}`);
         
-        // Load saved checkbox state from localStorage and apply it
+        // Load saved filter values from localStorage via DOM property assignment (not HTML template)
         if (fotoCheckbox) {
             const savedCheckboxState = localStorage.getItem('fotoFilterEnabled');
             if (savedCheckboxState === 'true') {
                 fotoCheckbox.checked = true;
             }
+        }
+        if (fotoValueInput) {
+            fotoValueInput.value = sanitizeFotoFilterValue(localStorage.getItem('fotoFilterValue'));
         }
         
         // Restore any persisted filter state (set by a previous render of this same section)
