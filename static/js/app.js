@@ -54,7 +54,50 @@ function applyUserStartupPreferences(force = false) {
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
+    handleHashNavigation();
+    window.addEventListener('hashchange', handleHashNavigation);
 });
+// ======================
+// Hash Navigation Support for PWA Shortcuts
+// ======================
+
+function handleHashNavigation() {
+    // Example hashes: #weather, #astrodex, #planmynight, #astrodex/plan-my-night
+    const hash = window.location.hash.replace(/^#/, '').toLowerCase();
+    if (!hash) return;
+
+    // Map shortcut hash to main tab and optional subtab
+    let mainTab = null;
+    let subTab = null;
+    if (hash === 'weather') {
+        mainTab = 'forecast-weather';
+    } else if (hash === 'astrodex') {
+        mainTab = 'astrodex';
+    } else if (hash === 'planmynight' || hash === 'plan-my-night') {
+        mainTab = 'astrodex';
+        subTab = 'plan-my-night';
+    } else if (hash.startsWith('astrodex/')) {
+        mainTab = 'astrodex';
+        subTab = hash.split('/')[1];
+    } else if (hash.startsWith('forecast-weather/')) {
+        mainTab = 'forecast-weather';
+        subTab = hash.split('/')[1];
+    } else if (hash.startsWith('forecast-astro/')) {
+        mainTab = 'forecast-astro';
+        subTab = hash.split('/')[1];
+    } else if (hash.startsWith('skytonight/')) {
+        mainTab = 'skytonight';
+        subTab = hash.split('/')[1];
+    }
+
+    if (mainTab) {
+        switchMainTab(mainTab);
+        if (subTab) {
+            // Delay to ensure main tab is visible before switching subtab
+            setTimeout(() => switchSubTab(mainTab, subTab), 50);
+        }
+    }
+}
 
 // ======================
 // Navigation Tabs

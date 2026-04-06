@@ -1,8 +1,8 @@
 {
   "name": "MyAstroBoard",
   "short_name": "MyAstroBoard",
-  "description": "Astronomy observation planning dashboard with forecasts, events, and target management.",
-  "lang": "en",
+  "description": "Astronomisches Beobachtungsplanungs-Dashboard mit Wettervorhersagen, Ereignissen und Zielverwaltung.",
+  "lang": "de",
   "start_url": "/",
   "scope": "/",
   "id": "/",
@@ -74,35 +74,35 @@
       "sizes": "1556x760",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "MyAstroBoard dashboard on desktop"
+      "label": "MyAstroBoard-Dashboard auf dem Desktop"
     },
     {
       "src": "/static/img/pwa-screenshot-mobile.png",
       "sizes": "756x1554",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "MyAstroBoard dashboard on mobile"
+      "label": "MyAstroBoard-Dashboard auf dem Handy"
     }
   ],
   "shortcuts": [
     {
       "name": "Astrodex",
       "short_name": "Astrodex",
-      "description": "Open the Astrodex catalogue",
+      "description": "Astrodex-Katalog öffnen",
       "url": "/#astrodex",
       "icons": [{ "src": "/static/ico/android/launchericon-96x96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
-      "name": "Plan my night",
-      "short_name": "Plan night",
-      "description": "Plan your astronomical night",
+      "name": "Plane meine Nacht",
+      "short_name": "Meine Nacht",
+      "description": "Plane deine Beobachtungsnacht",
       "url": "/#planmynight",
       "icons": [{ "src": "/static/ico/android/launchericon-96x96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
-      "name": "Weather",
-      "short_name": "Weather",
-      "description": "Check the weather forecast",
+      "name": "Wetter",
+      "short_name": "Wetter",
+      "description": "Wettervorhersage anzeigen",
       "url": "/#weather",
       "icons": [{ "src": "/static/ico/android/launchericon-96x96.png", "sizes": "96x96", "type": "image/png" }]
     }

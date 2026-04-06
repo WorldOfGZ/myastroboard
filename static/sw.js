@@ -6,6 +6,9 @@ const APP_SHELL_URLS = [
     '/login',
     '/offline.html',
     '/manifest.webmanifest',
+    '/manifest.fr.webmanifest',
+    '/manifest.es.webmanifest',
+    '/manifest.de.webmanifest',
     '/static/js/i18n.js',
     '/static/js/apiHelper.js',
     '/static/js/offline.js',
@@ -23,7 +26,8 @@ const APP_SHELL_URLS = [
     '/static/ico/android/launchericon-192x192.png',
     '/static/ico/android/launchericon-512x512.png',
     '/static/ico/windows/Square150x150Logo.scale-100.png',
-    '/favicon.ico'
+    '/static/favicon.ico',
+    '/static/favicon.svg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -144,7 +148,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    if (url.pathname.startsWith('/static/') || url.pathname === '/manifest.webmanifest' || url.pathname === '/favicon.ico') {
+    if (url.pathname.startsWith('/static/') || url.pathname.match(/^\/manifest(\.[a-z]+)?\.webmanifest$/)) {
         event.respondWith(
             (async () => {
                 const cachedResponse = await caches.match(request);
