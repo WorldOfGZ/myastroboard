@@ -1,4 +1,6 @@
 # MyAstroBoard
+![GitHub Release](https://img.shields.io/github/v/release/worldofgz/myastroboard)
+[![astropy](http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat)](http://www.astropy.org/)
 
 MyAstroBoard is a self-hosted astronomy dashboard with Docker-first deployment.
 It combines weather and astronomical conditions, automated SkyTonight execution,
@@ -32,8 +34,6 @@ If you want see more, maybe look at the [visual tour](docs/VISUAL_TOUR.md).
 - Visual Tour: [docs/VISUAL_TOUR.md](docs/VISUAL_TOUR.md)
 
 ## SkyTonight Data Model
-
-SkyTonight data is stored under `data/skytonight/`
 
 Execution is done 2 times by day:
 - 1 hour after last astronic night
