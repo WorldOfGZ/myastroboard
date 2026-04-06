@@ -123,6 +123,48 @@ def test_skytonight_reports_catalogue_filter_rejects_invalid_name(client_admin):
     assert response.status_code == 400
 
 
+def test_dso_annotation_uses_display_name_for_astrodex_matching(monkeypatch):
+    calls = []
+
+    def _capture_astrodex_call(_astrodex_data, item_name, catalogue=''):
+        calls.append((item_name, catalogue))
+        return False
+
+    monkeypatch.setattr(skytonight_api_module, 'has_dso_results', lambda: True)
+    monkeypatch.setattr(
+        skytonight_api_module,
+        'load_json_file',
+        lambda *_args, **_kwargs: {
+            'metadata': {},
+            'deep_sky': [
+                {
+                    'target_id': 'dso-openngc-ngc5457',
+                    'preferred_name': 'M 101',
+                    'catalogue_names': {
+                        'Messier': 'M 101',
+                        'OpenNGC': 'NGC 5457',
+                        'CommonName': 'Pinwheel Galaxy',
+                    },
+                    'object_type': 'Galaxy',
+                    'constellation': 'UMa',
+                    'magnitude': 7.9,
+                    'size_arcmin': 28.8,
+                    'astro_score': 0.81,
+                    'observation': {},
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(skytonight_api_module.astrodex, 'load_user_astrodex', lambda *_args, **_kwargs: {'items': []})
+    monkeypatch.setattr(skytonight_api_module.astrodex, 'is_item_in_preloaded_astrodex', _capture_astrodex_call)
+    monkeypatch.setattr(skytonight_api_module.plan_my_night, 'get_plan_with_timeline', lambda *_a, **_k: {'state': 'none'})
+
+    payload = skytonight_api_module._build_dso_section_payload(None, 'uid-1', 'Emeric')
+
+    assert payload['available'] is True
+    assert calls == [('M 101', 'Messier')]
+
+
 def test_skytonight_log_endpoint_returns_content(client_admin, monkeypatch, tmp_path):
     log_file = tmp_path / 'last_calculation.log'
     log_file.write_text('{"status":"success"}\n', encoding='utf-8')

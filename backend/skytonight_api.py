@@ -92,6 +92,20 @@ def _get_catalogue_alias_payload(catalogue: str, item_name: str) -> tuple:
     return group_id, aliases
 
 
+def _resolve_source_catalogue(catalogue_names: Dict[str, str], display_name: str) -> str:
+    """Pick the catalogue label that matches the chosen display name."""
+    if not isinstance(catalogue_names, dict) or not catalogue_names:
+        return 'SkyTonight'
+
+    normalized_display = skytonight_targets.normalize_object_name(display_name)
+    if normalized_display:
+        for catalogue_label, catalogue_value in catalogue_names.items():
+            if skytonight_targets.normalize_object_name(catalogue_value) == normalized_display:
+                return str(catalogue_label)
+
+    return str(next(iter(catalogue_names.keys()), 'SkyTonight'))
+
+
 def _annotate_skytonight_item(
     item: Dict[str, Any],
     user_id: str,
@@ -108,7 +122,7 @@ def _annotate_skytonight_item(
     files from disk again, which is critical for batch annotation (e.g. 1 000
     DSO rows in one API call).
     """
-    item_name = str(item.get('id') or item.get('target name') or item.get('name') or '').strip()
+    item_name = str(item.get('target name') or item.get('name') or item.get('id') or '').strip()
     if item_name:
         if _preloaded_astrodex is not None:
             item['in_astrodex'] = astrodex.is_item_in_preloaded_astrodex(
@@ -194,7 +208,7 @@ def _build_skytonight_reports_payload(catalogue: Optional[str], user_id: str, us
                 source_catalogue = catalogue
             else:
                 display_name = str(calc_item.get('preferred_name', '') or '').strip()
-                source_catalogue = str(next(iter(calc_catalogue_names.keys()), 'SkyTonight'))
+                source_catalogue = _resolve_source_catalogue(calc_catalogue_names, display_name)
 
             preferred_display_name = str(calc_item.get('preferred_name', '') or '').strip() or display_name
             canonical_id = (
@@ -328,7 +342,7 @@ def _build_skytonight_reports_payload(catalogue: Optional[str], user_id: str, us
                 source_catalogue = catalogue
             else:
                 display_name = preferred_name
-                source_catalogue = str(next(iter(catalogue_names.keys()), 'SkyTonight'))
+                source_catalogue = _resolve_source_catalogue(catalogue_names, display_name)
 
             const_full = _CONSTELLATION_ABBR_MAP.get(constellation, constellation)
             row = {
@@ -580,7 +594,7 @@ def _build_dso_section_payload(catalogue: Optional[str], user_id: str, username:
                 source_catalogue = catalogue
             else:
                 display_name = str(calc_item.get('preferred_name', '') or '').strip()
-                source_catalogue = str(next(iter(calc_catalogue_names.keys()), 'SkyTonight'))
+                source_catalogue = _resolve_source_catalogue(calc_catalogue_names, display_name)
 
             preferred_display_name = str(calc_item.get('preferred_name', '') or '').strip() or display_name
             canonical_id = (
@@ -649,7 +663,7 @@ def _build_dso_section_payload(catalogue: Optional[str], user_id: str, username:
             source_catalogue = catalogue
         else:
             display_name = preferred_name
-            source_catalogue = str(next(iter(catalogue_names.keys()), 'SkyTonight'))
+            source_catalogue = _resolve_source_catalogue(catalogue_names, display_name)
         const = str(_target_attr(target, 'constellation', '') or '')
         const_full = _CONSTELLATION_ABBR_MAP.get(const, const)
         row = {
