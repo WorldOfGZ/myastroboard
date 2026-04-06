@@ -22,7 +22,8 @@ const APP_SHELL_URLS = [
     '/static/ico/android/launchericon-144x144.png',
     '/static/ico/android/launchericon-192x192.png',
     '/static/ico/android/launchericon-512x512.png',
-    '/static/ico/windows/Square150x150Logo.scale-100.png'
+    '/static/ico/windows/Square150x150Logo.scale-100.png',
+    '/favicon.ico'
 ];
 
 self.addEventListener('install', (event) => {
@@ -143,7 +144,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    if (url.pathname.startsWith('/static/') || url.pathname === '/manifest.webmanifest') {
+    if (url.pathname.startsWith('/static/') || url.pathname === '/manifest.webmanifest' || url.pathname === '/favicon.ico') {
         event.respondWith(
             (async () => {
                 const cachedResponse = await caches.match(request);
