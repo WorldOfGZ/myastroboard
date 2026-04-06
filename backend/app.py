@@ -4533,8 +4533,22 @@ def _append_skytonight_calculation_log(status: str, payload: Dict[str, Any]):
     try:
         with open(SKYTONIGHT_CALCULATION_LOG_FILE, 'a', encoding='utf-8') as file_obj:
             file_obj.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
+        _trim_calculation_log(SKYTONIGHT_CALCULATION_LOG_FILE, max_runs=5)
     except Exception as exc:
         logger.warning(f'Failed to append SkyTonight calculation log: {exc}')
+
+
+def _trim_calculation_log(log_path: str, max_runs: int = 5) -> None:
+    """Keep only the last *max_runs* runs (2 lines each) in the calculation log."""
+    try:
+        with open(log_path, 'r', encoding='utf-8') as f:
+            lines = [l for l in f.readlines() if l.strip()]
+        max_lines = max_runs * 2
+        if len(lines) > max_lines:
+            with open(log_path, 'w', encoding='utf-8') as f:
+                f.writelines(lines[-max_lines:])
+    except Exception:
+        pass
 
 
 def get_or_create_skytonight_scheduler(cache_ready_event=None):

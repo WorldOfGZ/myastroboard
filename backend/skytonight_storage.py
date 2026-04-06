@@ -83,14 +83,27 @@ def save_scheduler_status(payload: Dict[str, Any]) -> bool:
     return save_json_file(get_scheduler_status_file(), payload)
 
 
-def append_scheduler_log(message: str, file_name: str = 'scheduler.log') -> str:
+def append_scheduler_log(message: str, file_name: str = 'scheduler.log', max_entries: int = 5) -> str:
     ensure_skytonight_directories()
     log_path = os.path.join(SKYTONIGHT_LOGS_DIR, file_name)
     with open(log_path, 'a', encoding='utf-8') as file_obj:
         file_obj.write(message)
         if not message.endswith('\n'):
             file_obj.write('\n')
+    _trim_log_file(log_path, max_entries)
     return log_path
+
+
+def _trim_log_file(log_path: str, max_lines: int) -> None:
+    """Keep only the last *max_lines* non-empty lines in *log_path*."""
+    try:
+        with open(log_path, 'r', encoding='utf-8') as f:
+            lines = [l for l in f.readlines() if l.strip()]
+        if len(lines) > max_lines:
+            with open(log_path, 'w', encoding='utf-8') as f:
+                f.writelines(lines[-max_lines:])
+    except Exception:
+        pass
 
 
 def get_results_file() -> str:
