@@ -84,7 +84,7 @@ $$\text{normalise}(x, x_{\min}, x_{\max}) = \max\!\left(0,\;\min\!\left(1,\;\fra
 
 Measures how well-placed the target is in the sky:
 
-$$\text{score\_visibility} = 0.5 \cdot \text{normalise}(\text{alt\_max},\;20°,\;90°) + 0.3 \cdot \text{normalise}(\text{obs\_hours},\;0\text{ h},\;8\text{ h}) + 0.2 \cdot \text{normalise}(\text{alt\_meridian},\;20°,\;90°)$$
+$$\text{scoreVisibility} = 0.5 \cdot \text{normalise}(\text{altMax},\;20°,\;90°) + 0.3 \cdot \text{normalise}(\text{obsHours},\;0\text{ h},\;8\text{ h}) + 0.2 \cdot \text{normalise}(\text{altMeridian},\;20°,\;90°)$$
 
 | Input | Description |
 |---|---|
@@ -96,9 +96,9 @@ $$\text{score\_visibility} = 0.5 \cdot \text{normalise}(\text{alt\_max},\;20°,\
 
 Penalises Moon interference:
 
-$$\text{moon\_impact} = \text{moon\_phase} \times \left(1 - \frac{\text{angular\_dist\_moon}}{180°}\right)$$
+$$\text{moonImpact} = \text{moonPhase} \times \left(1 - \frac{\text{angularDistMoon}}{180°}\right)$$
 
-$$\text{score\_sky} = \max(0,\;1 - \text{moon\_impact})$$
+$$\text{scoreSky} = \max(0,\;1 - \text{moonImpact})$$
 
 | Input | Description |
 |---|---|
@@ -109,9 +109,9 @@ $$\text{score\_sky} = \max(0,\;1 - \text{moon\_impact})$$
 
 Rewards intrinsically bright, high-contrast targets using surface brightness:
 
-$$\text{SB} \approx \text{magnitude} + 2.5 \times \log_{10}\!\left(\pi \times \left(\frac{\text{size\_arcmin}}{2}\right)^2\right)$$
+$$\text{SB} \approx \text{magnitude} + 2.5 \times \log_{10}\!\left(\pi \times \left(\frac{\text{sizeArcmin}}{2}\right)^2\right)$$
 
-$$\text{score\_object} = 1 - \text{normalise}(\text{SB},\;12,\;22)$$
+$$\text{scoreObject} = 1 - \text{normalise}(\text{SB},\;12,\;22)$$
 
 Inverting the normalisation means a **low SB value** (brighter, easier to image) → **high score**.
 
@@ -127,15 +127,15 @@ When magnitude or size data are unavailable, a neutral value of **0.5** is used.
 
 Rewards targets that are observable during convenient evening hours:
 
-$$\text{time\_bonus} = \begin{cases} 1.0 & \text{if transit window starts between 21:00–01:00} \\ 0.5 & \text{if 01:00–03:00} \\ 0.0 & \text{otherwise} \end{cases}$$
+$$\text{timeBonus} = \begin{cases} 1.0 & \text{if transit window starts between 21:00-01:00} \\ 0.5 & \text{if 01:00-03:00} \\ 0.0 & \text{otherwise} \end{cases}$$
 
-$$\text{score\_comfort} = 0.5 \times \text{normalise}(\text{obs\_hours\_in\_window},\;0\text{ h},\;6\text{ h}) + 0.5 \times \text{time\_bonus}$$
+$$\text{scoreComfort} = 0.5 \times \text{normalise}(\text{obsHoursInWindow},\;0\text{ h},\;6\text{ h}) + 0.5 \times \text{timeBonus}$$
 
 `obs_hours_in_window` is the subset of observable hours that fall within the prime-time window, not the total observable hours.
 
 ### 5 — Final weighted sum
 
-$$\text{astro\_score} = 0.40 \times \text{score\_visibility} + 0.25 \times \text{score\_sky} + 0.25 \times \text{score\_object} + 0.10 \times \text{score\_comfort}$$
+$$\text{astroScore} = 0.40 \times \text{scoreVisibility} + 0.25 \times \text{scoreSky} + 0.25 \times \text{scoreObject} + 0.10 \times \text{scoreComfort}$$
 
 ### 6 — Bonuses
 
