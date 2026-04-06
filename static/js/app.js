@@ -448,7 +448,7 @@ function showUpdateNotification(releaseUrl, version) {
     
     if (notification && link) {
         link.href = releaseUrl;
-        link.textContent = `See version v${version}`;
+        link.textContent = i18n.t('common.update_version_link', { version });
         notification.style.display = 'block';
         //console.debug(`Update notification shown for version v${version}`);
     } else {

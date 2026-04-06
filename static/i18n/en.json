@@ -40,7 +40,9 @@
     "sun": "Sun",
     "moon": "Moon",
     "modal_not_initialized": "Configuration modal not properly initialized",
-    "comming_soon": "Cette fonctionnalité est en cours de développement et sera bientôt disponible !"
+    "comming_soon": "Cette fonctionnalité est en cours de développement et sera bientôt disponible !",
+    "update_available": "A new version is available!",
+    "update_version_link": "See version v{version}"
   },
   
   "navbar": {
