@@ -73,6 +73,9 @@ async function checkAuthStatus() {
             await loadUserPreferences();
             applyUserPreferences();
             populateCustomizeFormFromPreferences();
+            if (typeof window.initializeAuthenticatedApp === 'function') {
+                window.initializeAuthenticatedApp();
+            }
             if (typeof window.applyUserStartupPreferences === 'function') {
                 window.applyUserStartupPreferences(true);
             }
