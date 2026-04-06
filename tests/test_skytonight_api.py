@@ -14,6 +14,7 @@ if 'psutil' not in sys.modules:
     sys.modules['psutil'] = types.ModuleType('psutil')
 
 import app as app_module  # type: ignore[import-not-found]
+import skytonight_api as skytonight_api_module  # type: ignore[import-not-found]
 from app import app  # type: ignore[import-not-found]
 from auth import user_manager  # type: ignore[import-not-found]
 from skytonight_models import SkyTonightTarget  # type: ignore[import-not-found]
@@ -75,14 +76,14 @@ def _sample_targets():
 
 def test_skytonight_reports_endpoint_returns_compatible_payload(client_admin, monkeypatch):
     monkeypatch.setattr(
-        app_module.skytonight_targets,
+        skytonight_api_module.skytonight_targets,
         'load_targets_dataset',
         lambda *args, **kwargs: {'loaded': True, 'targets': _sample_targets(), 'metadata': {}},
     )
-    monkeypatch.setattr(app_module.astrodex, 'is_item_in_astrodex', lambda *args, **kwargs: False)
-    monkeypatch.setattr(app_module.plan_my_night, 'is_target_in_current_plan', lambda *args, **kwargs: False)
-    monkeypatch.setattr(app_module.plan_my_night, 'get_plan_with_timeline', lambda *args, **kwargs: {'state': 'current'})
-    monkeypatch.setattr(app_module, '_get_catalogue_alias_payload', lambda catalogue, item_name: ('', {}))
+    monkeypatch.setattr(skytonight_api_module.astrodex, 'is_item_in_astrodex', lambda *args, **kwargs: False)
+    monkeypatch.setattr(skytonight_api_module.plan_my_night, 'is_target_in_current_plan', lambda *args, **kwargs: False)
+    monkeypatch.setattr(skytonight_api_module.plan_my_night, 'get_plan_with_timeline', lambda *args, **kwargs: {'state': 'current'})
+    monkeypatch.setattr(skytonight_api_module, '_get_catalogue_alias_payload', lambda catalogue, item_name: ('', {}))
 
     response = client_admin.get('/api/skytonight/reports')
     assert response.status_code == 200
@@ -100,14 +101,14 @@ def test_skytonight_reports_endpoint_returns_compatible_payload(client_admin, mo
 
 def test_skytonight_reports_catalogue_filter(client_admin, monkeypatch):
     monkeypatch.setattr(
-        app_module.skytonight_targets,
+        skytonight_api_module.skytonight_targets,
         'load_targets_dataset',
         lambda *args, **kwargs: {'loaded': True, 'targets': _sample_targets(), 'metadata': {}},
     )
-    monkeypatch.setattr(app_module.astrodex, 'is_item_in_astrodex', lambda *args, **kwargs: False)
-    monkeypatch.setattr(app_module.plan_my_night, 'is_target_in_current_plan', lambda *args, **kwargs: False)
-    monkeypatch.setattr(app_module.plan_my_night, 'get_plan_with_timeline', lambda *args, **kwargs: {'state': 'current'})
-    monkeypatch.setattr(app_module, '_get_catalogue_alias_payload', lambda catalogue, item_name: ('', {}))
+    monkeypatch.setattr(skytonight_api_module.astrodex, 'is_item_in_astrodex', lambda *args, **kwargs: False)
+    monkeypatch.setattr(skytonight_api_module.plan_my_night, 'is_target_in_current_plan', lambda *args, **kwargs: False)
+    monkeypatch.setattr(skytonight_api_module.plan_my_night, 'get_plan_with_timeline', lambda *args, **kwargs: {'state': 'current'})
+    monkeypatch.setattr(skytonight_api_module, '_get_catalogue_alias_payload', lambda catalogue, item_name: ('', {}))
 
     response = client_admin.get('/api/skytonight/reports/Messier')
     assert response.status_code == 200
@@ -126,8 +127,8 @@ def test_skytonight_log_endpoint_returns_content(client_admin, monkeypatch, tmp_
     log_file = tmp_path / 'last_calculation.log'
     log_file.write_text('{"status":"success"}\n', encoding='utf-8')
 
-    monkeypatch.setattr(app_module, 'SKYTONIGHT_CALCULATION_LOG_FILE', str(log_file))
-    monkeypatch.setattr(app_module, 'ensure_skytonight_directories', lambda *args, **kwargs: {})
+    monkeypatch.setattr(skytonight_api_module, 'SKYTONIGHT_CALCULATION_LOG_FILE', str(log_file))
+    monkeypatch.setattr(skytonight_api_module, 'ensure_skytonight_directories', lambda *args, **kwargs: {})
 
     response = client_admin.get('/api/skytonight/log')
     assert response.status_code == 200
