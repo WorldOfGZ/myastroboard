@@ -1438,7 +1438,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
     _pageRows.forEach((row, _pageIdx) => {
         const idx = _startIdx + _pageIdx; // absolute row index across all pages
         const fotoValue = row['foto'] || row['fraction of time observable'] || 0;
-        html += `<tr data-foto="${fotoValue}" data-constellation="${escapeHtml(row.constellation || '')}" data-type="${escapeHtml(row.type || '')}">`;
+        html += `<tr data-foto="${escapeHtml(String(fotoValue))}" data-constellation="${escapeHtml(row.constellation || '')}" data-type="${escapeHtml(row.type || '')}">`;  
         
         columns.forEach(col => {
             if (col.key === 'more') {
@@ -1463,7 +1463,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
                     mag: row['mag'] || row['visual magnitude'],
                     size: row['size']
                 };
-                const itemDataJson = JSON.stringify(itemData).replace(/"/g, '&quot;');
+                const itemDataJson = escapeHtml(JSON.stringify(itemData));
                 
                 if(displayAstrodex) {
                     if (isInAstrodex) {
@@ -1495,7 +1495,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
                     catalogue_group_id: row['catalogue_group_id'] || '',
                     catalogue_aliases: row['catalogue_aliases'] || {}
                 };
-                const itemDataJson = JSON.stringify(itemData).replace(/"/g, '&quot;');
+                const itemDataJson = escapeHtml(JSON.stringify(itemData));
 
                 if (displayAstrodex) {
                     if (isInPlanMyNight) {
