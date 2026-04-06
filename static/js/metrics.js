@@ -164,6 +164,7 @@ function updateFolderMetrics(folders, rootTotalBytes = null) {
         'data/skytonight/calculations': 'skytonight-calculations',
         'data/skytonight/catalogues': 'skytonight-catalogues',
         'data/skytonight/logs': 'skytonight-logs',
+        'data/skytonight/outputs': 'skytonight-outputs',
         'data/skytonight/runtime': 'skytonight-runtime',
     };
     

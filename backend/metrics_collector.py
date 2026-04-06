@@ -10,6 +10,7 @@ from logging_config import get_logger
 from constants import (
     DATA_DIR, SKYTONIGHT_DIR, SKYTONIGHT_CATALOGUES_DIR,
     SKYTONIGHT_CALCULATIONS_DIR, SKYTONIGHT_LOGS_DIR, SKYTONIGHT_RUNTIME_DIR,
+    SKYTONIGHT_OUTPUT_DIR,
 )
 
 logger = get_logger(__name__)
@@ -99,10 +100,13 @@ def get_disk_space_details():
             'data': DATA_DIR,
             'data/cache': os.path.join(DATA_DIR, 'cache'),
             'data/astrodex': os.path.join(DATA_DIR, 'astrodex'),
-            'data/equipments': os.path.join(DATA_DIR, 'equipments'),            'data/projects': os.path.join(DATA_DIR, 'projects'),            'data/skytonight': SKYTONIGHT_DIR,
+            'data/equipments': os.path.join(DATA_DIR, 'equipments'),            
+            'data/projects': os.path.join(DATA_DIR, 'projects'),            
+            'data/skytonight': SKYTONIGHT_DIR,
             'data/skytonight/calculations': SKYTONIGHT_CALCULATIONS_DIR,
             'data/skytonight/catalogues': SKYTONIGHT_CATALOGUES_DIR,
             'data/skytonight/logs': SKYTONIGHT_LOGS_DIR,
+            'data/skytonight/outputs': SKYTONIGHT_OUTPUT_DIR,
             'data/skytonight/runtime': SKYTONIGHT_RUNTIME_DIR,
         }
         
