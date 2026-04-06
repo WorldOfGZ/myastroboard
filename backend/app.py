@@ -218,8 +218,18 @@ def login_page():
 
 @app.route('/manifest.webmanifest')
 def web_manifest():
-    """Serve PWA web manifest"""
+    """Serve PWA web manifest (English / default)"""
     response = send_from_directory(STATIC_DIR, 'manifest.webmanifest', mimetype='application/manifest+json')
+    response.headers['Cache-Control'] = 'no-cache, must-revalidate'
+    return response
+
+@app.route('/manifest.<lang>.webmanifest')
+def web_manifest_localized(lang):
+    """Serve localized PWA web manifest"""
+    allowed = {'fr', 'es', 'de'}
+    if lang not in allowed:
+        return '', 404
+    response = send_from_directory(STATIC_DIR, f'manifest.{lang}.webmanifest', mimetype='application/manifest+json')
     response.headers['Cache-Control'] = 'no-cache, must-revalidate'
     return response
 

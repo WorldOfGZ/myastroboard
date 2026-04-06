@@ -30,7 +30,6 @@ This document describes features that could potentially be integrated into MyAst
 ### PWA application
 **Objective: Real PWA application for mobile**
 - PWA notifications for improving conditions (weather, ... ?)
-- Shortcuts from app: Astrodex, Plan My Night, Weather (need entrypoint events)
 
 ### Ideas in raw
 2	Equipment FOV matching      Medium      Very high — practical astrophotography fit
