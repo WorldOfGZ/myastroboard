@@ -1300,6 +1300,7 @@
     "phase_loading_dataset": "Loading targets dataset",
     "phase_moon_init": "Initialising Moon & sky frame",
     "phase_deep_sky": "Computing deep sky objects",
+    "phase_deep_sky_altaz": "Computing deep sky altitude/azimuth",
     "phase_bodies": "Computing planets & Moon",
     "phase_comets": "Computing comets",
     "phase_saving": "Saving results"

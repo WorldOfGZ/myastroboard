@@ -1281,6 +1281,7 @@
     "phase_loading_dataset": "Cargando objetivos",
     "phase_moon_init": "Inicializando Luna & marco celeste",
     "phase_deep_sky": "Calculando objetos de cielo profundo",
+    "phase_deep_sky_altaz": "Calculando altitud/azimut del cielo profundo",
     "phase_bodies": "Calculando planetas y Luna",
     "phase_comets": "Calculando cometas",
     "phase_saving": "Guardando resultados"

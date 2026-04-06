@@ -1301,6 +1301,7 @@
     "phase_loading_dataset": "Chargement des cibles",
     "phase_moon_init": "Initialisation Lune & repère céleste",
     "phase_deep_sky": "Calcul des objets du ciel profond",
+    "phase_deep_sky_altaz": "Calcul de l'altitude/azimut du ciel profond",
     "phase_bodies": "Calcul des planètes & de la Lune",
     "phase_comets": "Calcul des comètes",
     "phase_saving": "Sauvegarde des résultats"

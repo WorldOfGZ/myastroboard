@@ -1280,6 +1280,7 @@
     "phase_loading_dataset": "Ziele werden geladen",
     "phase_moon_init": "Mond & Himmelsrahmen werden initialisiert",
     "phase_deep_sky": "Deep-Sky-Objekte werden berechnet",
+    "phase_deep_sky_altaz": "Höhe/Azimut der Deep-Sky-Objekte werden berechnet",
     "phase_bodies": "Planeten & Mond werden berechnet",
     "phase_comets": "Kometen werden berechnet",
     "phase_saving": "Ergebnisse werden gespeichert"

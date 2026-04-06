@@ -108,6 +108,8 @@ function handleHashNavigation() {
 // ======================
 
 async function initializeApp() {
+    // Ensure translations are fully loaded before any component calls i18n.t()
+    await i18n.ready;
     setupMainTabs(); 
     setupSubTabs();
     await loadTimezones();
