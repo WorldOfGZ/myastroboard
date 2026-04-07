@@ -164,7 +164,7 @@ async function loadAstroWeather() {
         });
 
         if (data.status === 'pending') {
-            throw new Error(data.message || i18n.t('cache.cache_not_ready'));
+            throw new Error(i18n.t('weather.loading_astro_failed'));
         }
         
         if (data.error) {

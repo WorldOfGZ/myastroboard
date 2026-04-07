@@ -1256,7 +1256,22 @@
     "cache_updating": "Cache wird aktualisiert...",
     "cache_error": "Cache-Aktualisierung fehlgeschlagen",
     "cache_not_ready": "Cache nicht bereit",
-    "cache_not_ready_retrying": "Cache nicht bereit. Erneuter Versuch..."
+    "cache_not_ready_retrying": "Cache nicht bereit. Erneuter Versuch...",
+    "step_moon_report": "Mondbericht",
+    "step_dark_window": "Dunkelheitsfenster",
+    "step_moon_planner": "Mondplaner",
+    "step_sun_report": "Sonnenbericht",
+    "step_solar_eclipse": "Sonnenfinsternis",
+    "step_lunar_eclipse": "Mondfinsternis",
+    "step_horizon_graph": "Horizontgraph",
+    "step_aurora": "Aurora",
+    "step_iss_passes": "ISS-Überflüge",
+    "step_planetary_events": "Planetarische Ereignisse",
+    "step_special_phenomena": "Besondere Phänomene",
+    "step_solar_system_events": "Sonnensystemereignisse",
+    "step_sidereal_time": "Sternzeit",
+    "step_best_window": "Bestes Fenster",
+    "step_weather_forecast": "Wettervorhersage"
   },
   "scheduler": {
     "processing_catalogues": "SkyTonight Kataloge werden bearbeitet...",

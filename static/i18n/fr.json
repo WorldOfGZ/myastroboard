@@ -1276,7 +1276,22 @@
     "cache_updating": "Mise à jour du cache...",
     "cache_error": "Échec de la mise à jour du cache",
     "cache_not_ready": "Cache non prêt",
-    "cache_not_ready_retrying": "Cache non prêt. Nouvelle tentative..."
+    "cache_not_ready_retrying": "Cache non prêt. Nouvelle tentative...",
+    "step_moon_report": "Rapport lunaire",
+    "step_dark_window": "Fenêtre d'obscurité",
+    "step_moon_planner": "Planificateur lunaire",
+    "step_sun_report": "Rapport solaire",
+    "step_solar_eclipse": "Éclipse solaire",
+    "step_lunar_eclipse": "Éclipse lunaire",
+    "step_horizon_graph": "Graphique d'horizon",
+    "step_aurora": "Aurore",
+    "step_iss_passes": "Passages ISS",
+    "step_planetary_events": "Événements planétaires",
+    "step_special_phenomena": "Phénomènes spéciaux",
+    "step_solar_system_events": "Événements système solaire",
+    "step_sidereal_time": "Temps sidéral",
+    "step_best_window": "Meilleure fenêtre",
+    "step_weather_forecast": "Prévisions météo"
   },
   
   "scheduler": {

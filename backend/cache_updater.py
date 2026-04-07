@@ -823,21 +823,21 @@ def fully_initialize_caches():
         
         # All cache update functions
         cache_functions = [
-            ("Moon report", update_moon_report_cache),
-            ("Dark window", update_dark_window_cache),
-            ("Moon planner", update_moon_planner_cache),
-            ("Sun report", update_sun_report_cache),
-            ("Solar eclipse", update_solar_eclipse_cache),
-            ("Lunar eclipse", update_lunar_eclipse_cache),
-            ("Horizon graph", update_horizon_graph_cache),
-            ("Aurora", update_aurora_cache),
-            ("ISS passes", update_iss_passes_cache),
-            ("Planetary events", update_planetary_events_cache),
-            ("Special phenomena", update_special_phenomena_cache),
-            ("Solar system events", update_solar_system_events_cache),
-            ("Sidereal time", update_sidereal_time_cache),
-            ("Best window", update_best_window_cache),
-            ("Weather forecast", update_weather_cache)
+            ("moon_report", update_moon_report_cache),
+            ("dark_window", update_dark_window_cache),
+            ("moon_planner", update_moon_planner_cache),
+            ("sun_report", update_sun_report_cache),
+            ("solar_eclipse", update_solar_eclipse_cache),
+            ("lunar_eclipse", update_lunar_eclipse_cache),
+            ("horizon_graph", update_horizon_graph_cache),
+            ("aurora", update_aurora_cache),
+            ("iss_passes", update_iss_passes_cache),
+            ("planetary_events", update_planetary_events_cache),
+            ("special_phenomena", update_special_phenomena_cache),
+            ("solar_system_events", update_solar_system_events_cache),
+            ("sidereal_time", update_sidereal_time_cache),
+            ("best_window", update_best_window_cache),
+            ("weather_forecast", update_weather_cache)
         ]
         
         total_steps = len(cache_functions)
