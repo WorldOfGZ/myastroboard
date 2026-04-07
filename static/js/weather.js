@@ -276,17 +276,15 @@ async function loadAstronomicalCharts() {
             maxDelayMs: 12000,
             timeoutMs: 15000,
             shouldRetryData: (payload) => payload && payload.status === 'pending',
-            onRetry: ({ reason, attempt, maxAttempts, waitMs, data: retryData }) => {
+            onRetry: ({ reason, attempt, maxAttempts, waitMs }) => {
                 const seconds = Math.max(1, Math.round(waitMs / 1000));
-                const message = reason === 'data' && retryData && retryData.message
-                    ? retryData.message
-                    : i18n.t('weather.loading_astro_chart');
+                const message = i18n.t('weather.loading_astro_chart');
                 updateAstroChartsLoadingMessage(`${message} ${i18n.t('common.retrying_in', { seconds, attempt, maxAttempts })}`);
             }
         });
 
         if (data.status === 'pending') {
-            throw new Error(data.message || i18n.t('cache.cache_not_ready'));
+            throw new Error(i18n.t('weather.loading_astro_failed'));
         }
 
         //console.log(data);

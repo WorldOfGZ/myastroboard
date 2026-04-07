@@ -340,7 +340,7 @@ async function fetchJSONWithUI(endpoint, container, loadingMessage = 'Loading...
         // Handle pending status when retries are exhausted
         if (data && data.status === 'pending') {
             if (container) {
-                renderAlert('info', data.message || 'Processing...');
+                renderAlert('info', pendingMessage);
             }
             return null;
         }

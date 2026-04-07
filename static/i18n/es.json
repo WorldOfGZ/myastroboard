@@ -1257,7 +1257,22 @@
     "cache_updating": "Actualizando caché...",
     "cache_error": "Error al actualizar la caché",
     "cache_not_ready": "Caché no listo",
-    "cache_not_ready_retrying": "La caché no está lista. Reintentando..."
+    "cache_not_ready_retrying": "La caché no está lista. Reintentando...",
+    "step_moon_report": "Informe lunar",
+    "step_dark_window": "Ventana oscura",
+    "step_moon_planner": "Planificador lunar",
+    "step_sun_report": "Informe solar",
+    "step_solar_eclipse": "Eclipse solar",
+    "step_lunar_eclipse": "Eclipse lunar",
+    "step_horizon_graph": "Gráfico de horizonte",
+    "step_aurora": "Aurora",
+    "step_iss_passes": "Pasos de la ISS",
+    "step_planetary_events": "Eventos planetarios",
+    "step_special_phenomena": "Fenómenos especiales",
+    "step_solar_system_events": "Eventos del sistema solar",
+    "step_sidereal_time": "Tiempo sidéreo",
+    "step_best_window": "Mejor ventana",
+    "step_weather_forecast": "Pronóstico del tiempo"
   },
   "scheduler": {
     "processing_catalogues": "Procesando catálogos SkyTonight...",

@@ -73,11 +73,12 @@ async function checkCacheStatus() {
                 const stepName = data.step_name || '';
                 
                 if (totalSteps > 0) {
+                    const translatedStep = i18n.t(`cache.step_${stepName}`, {}, stepName);
                     bannerText.textContent = i18n.t('cache.updating_data_details', {
                         currentStep,
                         totalSteps,
                         progress,
-                        stepName
+                        stepName: translatedStep
                     });
                 } else {
                     bannerText.textContent = i18n.t('cache.updating_data');
