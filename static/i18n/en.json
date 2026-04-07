@@ -1154,7 +1154,7 @@
     "loading_text": "Fetching forecast and astronomical information",
     "observation_next_hours": "Observation Conditions - Next 12 Hours",
     "loading_astro": "Loading astronomical data...",
-    "loading_astro_failed": "Failed to load astronomical data. Please check your internet connection.",
+    "loading_astro_failed": "Astronomical weather data temporarily unavailable. Please retry shortly.",
     "cloud_cover": "Cloud Cover: ",
     "low": "Low: ",
     "mid": "Mid: ",

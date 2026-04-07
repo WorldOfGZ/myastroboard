@@ -1140,7 +1140,7 @@
     "loading_text": "Obtención de pronósticos e información astronómica.",
     "observation_next_hours": "Condiciones de observación: próximas 12 horas",
     "loading_astro": "Cargando datos astronómicos...",
-    "loading_astro_failed": "No se pudieron cargar los datos astronómicos. Por favor verifique su conexión a Internet.",
+    "loading_astro_failed": "Datos meteorológicos astronómicos temporalmente no disponibles. Por favor, inténtelo de nuevo en breve.",
     "cloud_cover": "Cubierta de nubes:",
     "low": "Bajo:",
     "mid": "Medio:",

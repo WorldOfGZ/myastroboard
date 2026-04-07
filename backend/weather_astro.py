@@ -12,6 +12,9 @@ Features:
 """
 import json
 import os
+import copy
+import time
+import threading
 import numpy as np
 import pandas as pd
 from typing import Any, Dict, List, Optional, Tuple, cast
@@ -21,6 +24,7 @@ from repo_config import load_config
 from constants import URL_OPENMETEO, DATA_DIR, WIND_TRACKING_THRESHOLD
 from logging_config import get_logger
 from weather_utils import create_weather_client
+from weather_openmeteo import is_openmeteo_rate_limited, record_openmeteo_rate_limit, _is_openmeteo_transient_error
 from i18n_utils import create_translated_alert
 
 # Create logger with centralized configuration
@@ -32,6 +36,34 @@ MAGNITUDE_LIMIT_ZENITH_MIN = 4.0  # Urban limit
 MAGNITUDE_LIMIT_ZENITH_MAX = 8.0  # Perfect dark sky
 DEW_POINT_WARNING_THRESHOLD = 2.0  # °C difference from ambient
 JET_STREAM_ALTITUDE = 9000  # meters (typical jet stream altitude)
+
+_ASTRO_ANALYSIS_LOCK = threading.Lock()
+_ASTRO_ANALYSIS_LAST_SUCCESS: Dict[Tuple[int, str], Dict[str, Any]] = {}
+_ASTRO_ANALYSIS_LAST_SUCCESS_TS: Dict[Tuple[int, str], float] = {}
+_ASTRO_ANALYSIS_LAST_FAILURE_TS: Dict[Tuple[int, str], float] = {}
+_ASTRO_ANALYSIS_FAILURE_COOLDOWN = 90.0  # seconds to wait before retrying after a failed fetch
+
+
+def _analysis_cache_key(hours: int, language: str) -> Tuple[int, str]:
+    return (int(hours), language or "en")
+
+
+def _get_last_successful_analysis(hours: int, language: str) -> Optional[Dict[str, Any]]:
+    key = _analysis_cache_key(hours, language)
+    cached = _ASTRO_ANALYSIS_LAST_SUCCESS.get(key)
+    if cached is None:
+        return None
+    return copy.deepcopy(cached)
+
+
+def _store_last_successful_analysis(hours: int, language: str, data: Dict[str, Any]) -> None:
+    key = _analysis_cache_key(hours, language)
+    _ASTRO_ANALYSIS_LAST_SUCCESS[key] = copy.deepcopy(data)
+    _ASTRO_ANALYSIS_LAST_SUCCESS_TS[key] = time.time()
+
+
+def _is_openmeteo_concurrency_error(exc: Exception) -> bool:
+    return "Too many concurrent requests" in str(exc)
 
 class AstroWeatherAnalyzer:
     """Advanced weather analysis for astrophotography"""
@@ -48,9 +80,10 @@ class AstroWeatherAnalyzer:
         """
         try:
             client = create_weather_client()
+            location_str = f"lat={int(self.location.get('latitude'))}, lon={int(self.location.get('longitude'))}"
             
-            # Extended hourly variables for astrophotography
-            hourly_vars = [
+            # Full extended hourly variables for astrophotography (including jet stream data)
+            hourly_vars_full = [
                 # Basic weather
                 "temperature_2m", "relative_humidity_2m", "dew_point_2m",
                 "wind_speed_10m", "wind_direction_10m", "wind_speed_80m", "wind_speed_120m",
@@ -68,25 +101,65 @@ class AstroWeatherAnalyzer:
                 # Solar/UV
                 "is_day", "uv_index",
                 
-                # Additional atmospheric data
+                # Jet stream data (critical for astro analysis)
                 "geopotential_height_500hPa", "geopotential_height_850hPa",
                 "temperature_500hPa", "temperature_850hPa",
                 "wind_speed_500hPa", "wind_direction_500hPa"
             ]
             
+            # Fallback: core variables only (if full request fails)
+            hourly_vars_core = [
+                "temperature_2m", "relative_humidity_2m", "dew_point_2m",
+                "wind_speed_10m", "wind_direction_10m", "wind_speed_80m", "wind_speed_120m",
+                "surface_pressure", "visibility",
+                "cloud_cover", "cloud_cover_low", "cloud_cover_mid", "cloud_cover_high",
+                "lifted_index", "convective_inhibition",
+                "precipitation", "precipitation_probability",
+                "is_day", "uv_index"
+            ]
+            
+            logger.debug(f"Fetching astro weather: {location_str}, {forecast_hours}h, {len(hourly_vars_full)} variables (full with jet stream)")
+            
             params = {
                 "latitude": self.location.get("latitude"),
                 "longitude": self.location.get("longitude"),
                 "timezone": self.location.get("timezone", "UTC"),
-                "hourly": hourly_vars,
+                "hourly": hourly_vars_full,
                 "forecast_hours": forecast_hours
             }
             
-            response = client.weather_api(URL_OPENMETEO, params=params)[0]
-            return self._parse_extended_data(response, hourly_vars)
+            try:
+                response = client.weather_api(URL_OPENMETEO, params=params)[0]
+                result = self._parse_extended_data(response, hourly_vars_full)
+                logger.info(f"Open-Meteo API: Successfully fetched {forecast_hours}h astro weather data {location_str} (with jet stream)")
+                return result
+            except Exception as full_error:
+                # If full request fails (likely due to server load), retry with core variables
+                if _is_openmeteo_concurrency_error(full_error):
+                    raise  # Don't retry on concurrency errors, let main handler deal with it
+                
+                logger.warning(f"Full astro weather request failed, retrying with core variables only")
+                params["hourly"] = hourly_vars_core
+                
+                try:
+                    response = client.weather_api(URL_OPENMETEO, params=params)[0]
+                    result = self._parse_extended_data(response, hourly_vars_core)
+                    logger.info(f"Open-Meteo API: Successfully fetched {forecast_hours}h astro weather data {location_str} (core variables, jet stream uses estimations)")
+                    return result
+                except Exception as retry_error:
+                    # If both full and core requests fail, return None and let cache fallback handle it
+                    logger.warning(f"Core astro weather request also failed - will use stale cache if available")
+                    return None
             
         except Exception as e:
-            logger.exception("Failed to fetch extended weather data")
+            if _is_openmeteo_concurrency_error(e):
+                record_openmeteo_rate_limit()
+                logger.warning("Open-Meteo API: CONCURRENCY LIMIT REACHED - Too many concurrent requests")
+            elif _is_openmeteo_transient_error(e):
+                logger.warning(f"Open-Meteo API: transient error fetching astro weather - {str(e)[:120]}")
+            else:
+                logger.warning(f"Open-Meteo API: unexpected error fetching astro weather - {str(e)[:120]}")
+                logger.debug("Full traceback:", exc_info=True)
             return None
     
     def _parse_extended_data(self, response, hourly_vars: List[str]) -> Dict:
@@ -458,6 +531,8 @@ class AstroWeatherAnalyzer:
             # Fetch extended weather data
             weather_data = self.fetch_extended_weather_data(forecast_hours)
             if not weather_data:
+                # No weather data available - will trigger 202 pending response
+                logger.warning("Could not fetch weather data")
                 return None
             
             df = weather_data["data"]
@@ -644,12 +719,66 @@ def get_astro_weather_analysis(hours: int = 24, language: str = "en") -> Optiona
     """
     Main function to get comprehensive astrophotography weather analysis
     """
+    cache_key = _analysis_cache_key(hours, language)
+
+    # Check shared Open-Meteo gate first: if ANY module recently hit the concurrency
+    # limit, all callers back off together so they don't cycle out-of-phase.
+    if is_openmeteo_rate_limited():
+        cached = _get_last_successful_analysis(hours, language)
+        if cached is not None:
+            logger.debug(f"Serving stale analysis (shared Open-Meteo rate limit active) {cache_key}")
+            return cached
+        logger.debug(f"Shared Open-Meteo rate limit active, no cache available {cache_key}")
+        return None
+
+    # If we failed recently, serve stale cache instead of hammering the API again
+    last_failure = _ASTRO_ANALYSIS_LAST_FAILURE_TS.get(cache_key, 0.0)
+    if time.time() - last_failure < _ASTRO_ANALYSIS_FAILURE_COOLDOWN:
+        cached = _get_last_successful_analysis(hours, language)
+        if cached is not None:
+            logger.debug(f"Serving stale analysis during failure cooldown {cache_key}")
+            return cached
+        logger.debug(f"In failure cooldown, no cache available {cache_key}")
+        return None
+
+    lock_acquired = _ASTRO_ANALYSIS_LOCK.acquire(blocking=False)
+    if not lock_acquired:
+        cached = _get_last_successful_analysis(hours, language)
+        if cached is not None:
+            logger.debug(f"Using cached astro weather analysis (another request in progress): {cache_key}")
+            return cached
+        return None
+
     try:
         analyzer = AstroWeatherAnalyzer(language=language)
-        return analyzer.generate_comprehensive_analysis(hours)
-    except Exception as e:
-        logger.exception("Failed to get astro weather analysis")
+        analysis = analyzer.generate_comprehensive_analysis(hours)
+        if analysis is not None:
+            _store_last_successful_analysis(hours, language, analysis)
+            # Clear any failure timestamp on success
+            _ASTRO_ANALYSIS_LAST_FAILURE_TS.pop(cache_key, None)
+            logger.info(f"Fresh astro weather analysis retrieved successfully {cache_key}")
+            return analysis
+
+        # Fetch failed — record failure timestamp to trigger cooldown
+        _ASTRO_ANALYSIS_LAST_FAILURE_TS[cache_key] = time.time()
+        cached = _get_last_successful_analysis(hours, language)
+        if cached is not None:
+            logger.warning(f"DEGRADED: Serving STALE astro weather analysis (fresh fetch failed) {cache_key}")
+            return cached
+        logger.error(f"CRITICAL: No astro weather analysis available (no cache, fetch failed) {cache_key}")
         return None
+    except Exception as e:
+        _ASTRO_ANALYSIS_LAST_FAILURE_TS[cache_key] = time.time()
+        cached = _get_last_successful_analysis(hours, language)
+        if cached is not None:
+            logger.warning(f"DEGRADED: Serving STALE astro weather analysis (exception occurred) {cache_key}: {str(e)[:80]}")
+            logger.debug("Exception traceback:", exc_info=True)
+            return cached
+        logger.error(f"CRITICAL: No astro weather analysis available (exception, no cache) {cache_key}")
+        logger.debug("Exception traceback:", exc_info=True)
+        return None
+    finally:
+        _ASTRO_ANALYSIS_LOCK.release()
 
 
 def get_current_astro_conditions() -> Optional[Dict]:

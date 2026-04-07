@@ -75,7 +75,11 @@ async function loadWeather() {
     const container = document.getElementById('weather-display');
     const containerLocation = document.getElementById('weather-location');
     
-    const data = await fetchJSONWithUI('/api/weather/forecast', container, i18n.t('weather.loading_title'));
+    const data = await fetchJSONWithUI('/api/weather/forecast', container, i18n.t('weather.loading_text'), {
+        wrapInCard: true,
+        cardTitle: i18n.t('weather.loading_title'),
+        cardIcon: 'bi-cloud-sun'
+    });
     if (!data) return;
     
     //console.log('Weather forecast data:', data);
@@ -211,6 +215,28 @@ async function loadWeather() {
 // Global chart instances
 let cloudConditionsChartInstance = null;
 let seeingConditionsChartInstance = null;
+let astroChartsRequestInFlight = null;
+
+
+function updateAstroChartsLoadingMessage(message) {
+    const loadingDiv = document.getElementById('astro-charts-loading');
+    if (!loadingDiv) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'd-flex align-items-center gap-2';
+
+    const spinner = document.createElement('span');
+    spinner.className = 'spinner-border spinner-border-sm text-info';
+    spinner.setAttribute('role', 'status');
+    spinner.setAttribute('aria-hidden', 'true');
+
+    const text = document.createElement('span');
+    text.textContent = message;
+
+    wrapper.appendChild(spinner);
+    wrapper.appendChild(text);
+    loadingDiv.replaceChildren(wrapper);
+}
 
 
 function destroyAstronomicalCharts() {
@@ -226,12 +252,18 @@ function destroyAstronomicalCharts() {
 
 //Load Astronomical Charts
 async function loadAstronomicalCharts() {
+    if (astroChartsRequestInFlight) {
+        return astroChartsRequestInFlight;
+    }
+
+    astroChartsRequestInFlight = (async () => {
     const loadingDiv = document.getElementById('astro-charts-loading');
     const containerDiv = document.getElementById('astro-charts-container');
     const errorDiv = document.getElementById('astro-charts-error');
     
     // Show loading, hide others
     loadingDiv.style.display = 'block';
+    updateAstroChartsLoadingMessage(i18n.t('weather.loading_astro_chart'));
     errorDiv.style.display = 'none';
     
     try {
@@ -249,7 +281,7 @@ async function loadAstronomicalCharts() {
                 const message = reason === 'data' && retryData && retryData.message
                     ? retryData.message
                     : i18n.t('weather.loading_astro_chart');
-                loadingDiv.textContent = `${message} ${i18n.t('common.retrying_in', { seconds, attempt, maxAttempts })}`;
+                updateAstroChartsLoadingMessage(`${message} ${i18n.t('common.retrying_in', { seconds, attempt, maxAttempts })}`);
             }
         });
 
@@ -623,8 +655,14 @@ async function loadAstronomicalCharts() {
     } catch (error) {
         console.error('Error loading astronomical charts:', error);
         loadingDiv.style.display = 'none';
-        errorDiv.style.display = 'block';
-        //Hide containerDiv
         containerDiv.style.display = 'none';
+        // Show the actual error reason rather than the generic static text
+        errorDiv.textContent = error.message || i18n.t('weather.loading_astro_failed');
+        errorDiv.style.display = 'block';
+    } finally {
+        astroChartsRequestInFlight = null;
     }
+    })();
+
+    return astroChartsRequestInFlight;
 }
