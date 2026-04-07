@@ -5,6 +5,20 @@
 // Global variables for astro weather
 let astroWeatherData = null;
 let astroWeatherUpdateInterval = null;
+let astroWeatherRequestInFlight = null;
+
+
+function updateAstroWeatherLoadingMessage(message) {
+    const loadingDiv = document.getElementById('astro-weather-loading');
+    if (!loadingDiv) return;
+
+    const textNode = loadingDiv.querySelector('.card-text');
+    if (textNode) {
+        textNode.textContent = message;
+    } else {
+        loadingDiv.textContent = message;
+    }
+}
 
 
 function destroyAstroWeatherCharts() {
@@ -118,6 +132,11 @@ function createAstroConditionCard({ title, value, valueClass = 'text-primary', b
  * Load comprehensive astrophotography weather analysis
  */
 async function loadAstroWeather() {
+    if (astroWeatherRequestInFlight) {
+        return astroWeatherRequestInFlight;
+    }
+
+    astroWeatherRequestInFlight = (async () => {
     const container = document.getElementById('astro-weather-display');
     const loadingDiv = document.getElementById('astro-weather-loading');
     const errorDiv = document.getElementById('astro-weather-error');
@@ -136,13 +155,11 @@ async function loadAstroWeather() {
             maxDelayMs: 15000,
             timeoutMs: 20000,
             shouldRetryData: (payload) => payload && payload.status === 'pending',
-            onRetry: ({ reason, attempt, maxAttempts, waitMs, data: retryData }) => {
+            onRetry: ({ reason, attempt, maxAttempts, waitMs }) => {
                 if (!loadingDiv) return;
                 const seconds = Math.max(1, Math.round(waitMs / 1000));
-                const message = reason === 'data' && retryData && retryData.message
-                    ? retryData.message
-                    : i18n.t('astro_weather.loading_details');
-                loadingDiv.textContent = `${message} ${i18n.t('common.retrying_in', { seconds, attempt, maxAttempts })}`;
+                const message = i18n.t('astro_weather.loading_details');
+                updateAstroWeatherLoadingMessage(`${message} ${i18n.t('common.retrying_in', { seconds, attempt, maxAttempts })}`);
             }
         });
 
@@ -195,7 +212,12 @@ async function loadAstroWeather() {
             col.appendChild(card);
             errorDiv.appendChild(col);
         }
+    } finally {
+        astroWeatherRequestInFlight = null;
     }
+    })();
+
+    return astroWeatherRequestInFlight;
 }
 
 /**

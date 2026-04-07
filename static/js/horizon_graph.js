@@ -5,6 +5,28 @@
  */
 
 let horizonChartInstance = null;
+let horizonGraphRequestInFlight = null;
+
+
+function updateHorizonLoadingMessage(message) {
+    const loadingDiv = document.getElementById('horizon-graph-loading');
+    if (!loadingDiv) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'd-flex align-items-center gap-2';
+
+    const spinner = document.createElement('span');
+    spinner.className = 'spinner-border spinner-border-sm text-info';
+    spinner.setAttribute('role', 'status');
+    spinner.setAttribute('aria-hidden', 'true');
+
+    const text = document.createElement('span');
+    text.textContent = message;
+
+    wrapper.appendChild(spinner);
+    wrapper.appendChild(text);
+    loadingDiv.replaceChildren(wrapper);
+}
 
 
 function destroyHorizonChart() {
@@ -18,6 +40,11 @@ function destroyHorizonChart() {
  * Load and display horizon graph data
  */
 async function loadHorizonGraph() {
+    if (horizonGraphRequestInFlight) {
+        return horizonGraphRequestInFlight;
+    }
+
+    horizonGraphRequestInFlight = (async () => {
     const container = document.getElementById('horizon-graph-display');
     if (!container) return;
     
@@ -25,7 +52,10 @@ async function loadHorizonGraph() {
     const errorDiv = document.getElementById('horizon-graph-error');
     const mainContainer = document.getElementById('horizon-graph-main');
     
-    if (loadingDiv) loadingDiv.style.display = 'block';
+    if (loadingDiv) {
+        loadingDiv.style.display = 'block';
+        updateHorizonLoadingMessage(i18n.t('astro_weather.loading_horizon_graph'));
+    }
     if (errorDiv) errorDiv.style.display = 'none';
     if (container) container.style.display = 'none';
     if (mainContainer) mainContainer.style.display = 'none';
@@ -43,7 +73,7 @@ async function loadHorizonGraph() {
                 const message = reason === 'data' && retryData && retryData.message
                     ? retryData.message
                     : i18n.t('astro_weather.loading_horizon_graph');
-                loadingDiv.textContent = `${message} ${i18n.t('common.retrying_in', { seconds, attempt, maxAttempts })}`;
+                updateHorizonLoadingMessage(`${message} ${i18n.t('common.retrying_in', { seconds, attempt, maxAttempts })}`);
             }
         });
 
@@ -98,7 +128,12 @@ async function loadHorizonGraph() {
             column.appendChild(card);
             errorDiv.appendChild(column);
         }
+    } finally {
+        horizonGraphRequestInFlight = null;
     }
+    })();
+
+    return horizonGraphRequestInFlight;
 }
 
 /**

@@ -296,16 +296,21 @@ def update_weather_cache():
     try:
         logger.debug("Updating Weather forecast cache...")
         
-        # Call the weather API - this will be cached at HTTP level by requests_cache
-        # and also stored in our application cache for consistency
         forecast = get_hourly_forecast()
         
         if forecast is None:
             logger.error("Failed to fetch weather forecast - API returned None")
             return
         
-        # Store in application cache
-        cache_store._weather_cache["data"] = forecast
+        # Serialize to JSON-compatible format so the endpoint can serve directly from cache
+        df = forecast["hourly"].copy()
+        df["date"] = df["date"].dt.strftime("%Y-%m-%dT%H:%M:%S%z")
+        for col in df.columns:
+            if df[col].dtype == "object":
+                df[col] = df[col].apply(lambda x: x.decode() if isinstance(x, bytes) else x)
+        location = {k: (v.decode() if isinstance(v, bytes) else v) for k, v in forecast["location"].items()}
+        
+        cache_store._weather_cache["data"] = {"location": location, "hourly": df.to_dict(orient="records")}
         cache_store._weather_cache["timestamp"] = time.time()
         
         logger.info(f"Weather forecast cache updated at {datetime.now().isoformat()}")

@@ -1155,7 +1155,7 @@
     "loading_text": "Récupération des prévisions et des informations astronomiques",
     "observation_next_hours": "Conditions d'observation - Prochaines 12 heures",
     "loading_astro": "Chargement des données astronomiques...",
-    "loading_astro_failed": "Échec du chargement des données astronomiques. Veuillez vérifier votre connexion Internet.",
+    "loading_astro_failed": "Données météo astronomiques temporairement indisponibles. Veuillez réessayer dans un instant.",
     "cloud_cover": "Couverture nuageuse : ",
     "low": "Bas : ",
     "mid": "Moyen : ",

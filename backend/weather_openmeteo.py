@@ -5,6 +5,8 @@ https://open-meteo.com/en/docs
 from http.client import responses
 import json
 import os
+import threading
+import time
 from typing import Any, Optional
 import pandas as pd
 from repo_config import load_config
@@ -14,6 +16,52 @@ from weather_utils import create_weather_client, create_fresh_weather_client
 
 # Create logger with centralized configuration
 logger = get_logger(__name__)
+
+# Single-flight protection for hourly forecast: prevent concurrent live API calls
+_FORECAST_LOCK = threading.Lock()
+_FORECAST_LAST_FAILURE_TS: float = 0.0
+_FORECAST_FAILURE_COOLDOWN = 45.0  # seconds to back off after a failed fetch
+
+# Global shared gate: when ANY Open-Meteo call hits the concurrency limit,
+# ALL callers (forecast + astro analysis) back off together so they don't
+# cycle out-of-phase and keep competing for the single free-tier slot.
+_GLOBAL_CONCURRENCY_TS: float = 0.0
+_GLOBAL_CONCURRENCY_COOLDOWN = 90.0  # seconds
+
+
+def _is_openmeteo_concurrency_error(exc: Exception) -> bool:
+    msg = str(exc).lower()
+    return "too many concurrent" in msg or "concurrent requests" in msg
+
+
+def _is_openmeteo_transient_error(exc: Exception) -> bool:
+    """Return True for well-known transient server/network errors that need no traceback."""
+    msg = str(exc).lower()
+    return any(k in msg for k in (
+        "502", "503", "504",
+        "max retries exceeded",
+        "too many 502", "too many 503",
+        "timed out", "timeout",
+        "connection reset", "connection refused", "connection error",
+        "remote end closed",
+    ))
+
+
+def is_openmeteo_rate_limited() -> bool:
+    """Return True while the shared Open-Meteo concurrency-limit cooldown is active."""
+    return (time.time() - _GLOBAL_CONCURRENCY_TS) < _GLOBAL_CONCURRENCY_COOLDOWN
+
+
+def record_openmeteo_rate_limit() -> None:
+    """Record that the Open-Meteo concurrency limit was just hit (any caller)."""
+    global _GLOBAL_CONCURRENCY_TS
+    _GLOBAL_CONCURRENCY_TS = time.time()
+
+
+def clear_openmeteo_rate_limit() -> None:
+    """Reset the shared gate after a successful Open-Meteo fetch."""
+    global _GLOBAL_CONCURRENCY_TS
+    _GLOBAL_CONCURRENCY_TS = 0.0
 
 def fetch_weather(latitude, longitude, timezone, hourly_vars, forecast_hours=12, use_cache=True):
     """
@@ -152,6 +200,18 @@ def parse_hourly(response, hourly_vars, timezone_str: Optional[str] = "UTC"):
 
 def get_hourly_forecast():
     """Return location info + DataFrame of the next 12 hours of weather data"""
+    global _FORECAST_LAST_FAILURE_TS
+
+    # Failure cooldown: don't retry if we just failed
+    if time.time() - _FORECAST_LAST_FAILURE_TS < _FORECAST_FAILURE_COOLDOWN:
+        logger.debug("Weather forecast in failure cooldown, skipping live fetch")
+        return None
+
+    # Single-flight: if another request is already fetching, skip rather than pile on
+    if not _FORECAST_LOCK.acquire(blocking=False):
+        logger.debug("Weather forecast fetch already in progress, skipping")
+        return None
+
     try:
         config = load_config()
         hourly_vars = [
@@ -199,14 +259,27 @@ def get_hourly_forecast():
             timezone_str = "UTC"
 
         hourly_df = parse_hourly(response, hourly_vars, timezone_str=timezone_str)
+        # Clear failure timestamps on success
+        _FORECAST_LAST_FAILURE_TS = 0.0
+        clear_openmeteo_rate_limit()
         return {
             "location": location_info,
             "hourly": hourly_df
         }
 
-    except Exception:
-        logger.exception("Error while fetching hourly forecast")
+    except Exception as e:
+        _FORECAST_LAST_FAILURE_TS = time.time()
+        if _is_openmeteo_concurrency_error(e):
+            record_openmeteo_rate_limit()
+            logger.warning("Weather forecast: Open-Meteo concurrency limit reached, will retry after cooldown")
+        elif _is_openmeteo_transient_error(e):
+            logger.warning(f"Weather forecast: transient API error - {str(e)[:120]}")
+        else:
+            logger.warning(f"Weather forecast: unexpected error - {str(e)[:120]}")
+            logger.debug("Weather forecast exception detail:", exc_info=True)
         return None
+    finally:
+        _FORECAST_LOCK.release()
 
 
 def get_skytonight_conditions():

@@ -234,27 +234,77 @@ async function fetchJSONWithRetry(endpoint, options = {}, retryOptions = {}) {
  * @returns {Promise<Object|null>} - Parsed JSON response or null on error
  */
 async function fetchJSONWithUI(endpoint, container, loadingMessage = 'Loading...', retryOptions = {}) {
+    const {
+        retryOnPending = true,
+        pendingMessage: _pendingMsg,
+        retryMessage: _retryMsg,
+        wrapInCard = false,
+        cardTitle = null,
+        cardIcon = null
+    } = retryOptions;
+    const pendingMessage = _pendingMsg !== undefined ? _pendingMsg
+        : (typeof i18n !== 'undefined' ? i18n.t('cache.cache_not_ready_retrying') : 'Cache not ready. Retrying...');
+    const retryMessage = _retryMsg !== undefined ? _retryMsg
+        : (typeof i18n !== 'undefined' ? i18n.t('cache.cache_not_ready_retrying') : 'Temporary error. Retrying...');
+
     const renderAlert = (variant, message) => {
         if (!container) {
             return;
         }
         DOMUtils.clear(container);
-        const alert = document.createElement('div');
-        alert.className = `alert alert-${variant}`;
-        alert.setAttribute('role', 'alert');
-        alert.textContent = `${message}`;
-        container.appendChild(alert);
+        if (wrapInCard && cardTitle) {
+            const defaultIcon = variant === 'danger' ? 'bi-exclamation-triangle-fill' : 'bi-clouds';
+            const col = document.createElement('div');
+            col.className = 'col';
+            const card = document.createElement('div');
+            card.className = 'card h-100';
+            const body = document.createElement('div');
+            body.className = 'card-body';
+            const h3 = document.createElement('h3');
+            h3.className = 'card-title';
+            const icon = document.createElement('i');
+            icon.className = `bi ${cardIcon || defaultIcon} icon-inline`;
+            icon.setAttribute('aria-hidden', 'true');
+            const titleSpan = document.createElement('span');
+            titleSpan.textContent = cardTitle;
+            h3.appendChild(icon);
+            h3.appendChild(document.createTextNode(' '));
+            h3.appendChild(titleSpan);
+            const p = document.createElement('p');
+            p.className = 'card-text';
+            p.textContent = message;
+            body.appendChild(h3);
+            body.appendChild(p);
+            card.appendChild(body);
+            col.appendChild(card);
+            container.appendChild(col);
+        } else if (wrapInCard) {
+            const col = document.createElement('div');
+            col.className = 'col';
+            const card = document.createElement('div');
+            card.className = 'card h-100';
+            const body = document.createElement('div');
+            body.className = 'card-body';
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${variant} mb-0`;
+            alert.setAttribute('role', 'alert');
+            alert.textContent = message;
+            body.appendChild(alert);
+            card.appendChild(body);
+            col.appendChild(card);
+            container.appendChild(col);
+        } else {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${variant}`;
+            alert.setAttribute('role', 'alert');
+            alert.textContent = message;
+            container.appendChild(alert);
+        }
     };
 
     if (container) {
         renderAlert('info', loadingMessage);
     }
-
-    const {
-        retryOnPending = true,
-        pendingMessage = 'Cache not ready. Retrying...',
-        retryMessage = 'Temporary error. Retrying...'
-    } = retryOptions;
 
     try {
         const data = await fetchJSONWithRetry(endpoint, {}, {
@@ -269,10 +319,13 @@ async function fetchJSONWithUI(endpoint, container, loadingMessage = 'Loading...
 
                 const seconds = Math.max(1, Math.round(waitMs / 1000));
                 const message = reason === 'data'
-                    ? (retryData && retryData.message ? retryData.message : pendingMessage)
-                    : (retryMessage || (error ? error.message : 'Temporary error'));
+                    ? pendingMessage
+                    : (retryMessage || (error ? error.message : pendingMessage));
+                const retrySuffix = typeof i18n !== 'undefined'
+                    ? i18n.t('common.retrying_in', { seconds, attempt, maxAttempts })
+                    : `Retrying in ${seconds}s (${attempt}/${maxAttempts})`;
 
-                renderAlert('info', `${message} Retrying in ${seconds}s (${attempt}/${maxAttempts})`);
+                renderAlert('info', `${message} ${retrySuffix}`);
             }
         });
 

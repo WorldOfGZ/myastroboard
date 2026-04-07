@@ -1139,7 +1139,7 @@
     "loading_text": "Abrufen von Wettervorhersagen und astronomischen Informationen",
     "observation_next_hours": "Beobachtungsbedingungen – Nächste 12 Stunden",
     "loading_astro": "Astronomische Daten werden geladen...",
-    "loading_astro_failed": "Astronomische Daten konnten nicht geladen werden. Bitte überprüfen Sie Ihre Internetverbindung.",
+    "loading_astro_failed": "Astronomische Wetterdaten vorübergehend nicht verfügbar. Bitte versuchen Sie es in Kürze erneut.",
     "cloud_cover": "Wolkendecke:",
     "low": "Niedrig:",
     "mid": "Mitte:",

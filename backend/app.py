@@ -43,7 +43,7 @@ from events_aggregator import EventsAggregator
 from i18n_utils import I18nManager
 from txtconf_loader import get_repo_version
 from repo_config import load_config, save_config
-from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, CACHE_TTL, SKYTONIGHT_LOGS_DIR, SKYTONIGHT_SCHEDULER_STATUS_FILE
+from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, CACHE_TTL, WEATHER_CACHE_TTL, SKYTONIGHT_LOGS_DIR, SKYTONIGHT_SCHEDULER_STATUS_FILE
 from logging_config import get_logger
 from version_checker import check_for_updates
 from metrics_collector import collect_metrics
@@ -1174,31 +1174,28 @@ def check_updates_api():
 def get_hourly_forecast_api():
     """Get hourly weather forecast"""
     try:
+        # Serve from app cache if valid — avoids a live API call on every page load
+        if cache_store.is_cache_valid(cache_store._weather_cache, WEATHER_CACHE_TTL):
+            return jsonify(cache_store._weather_cache["data"])
+
+        # Cache miss or stale: fetch live (requests_cache SQLite deduplicates across workers)
         forecast = get_hourly_forecast()
         if forecast is None:
-            return jsonify({"error": "Failed to fetch hourly forecast"}), 500
+            # Serve stale cache rather than returning an error
+            if cache_store._weather_cache.get("data"):
+                logger.warning("[WARNING] Weather API unavailable, serving stale cache")
+                return jsonify(cache_store._weather_cache["data"])
+            return jsonify({"status": "pending", "message": "Weather data is temporarily unavailable. Please retry shortly."}), 202
 
         df = forecast["hourly"].copy()
-
-        # Convert datetime to ISO string
         df["date"] = df["date"].dt.strftime("%Y-%m-%dT%H:%M:%S%z")
-
-        # Convert any bytes to string
         for col in df.columns:
             if df[col].dtype == "object":
                 df[col] = df[col].apply(lambda x: x.decode() if isinstance(x, bytes) else x)
-
-        # Convert to list of dicts
         hourly_json = df.to_dict(orient="records")
-
-        # Convert location info (just in case)
         location = {k: (v.decode() if isinstance(v, bytes) else v) for k, v in forecast["location"].items()}
+        return jsonify({"location": location, "hourly": hourly_json})
 
-        return jsonify({
-            "location": location,
-            "hourly": hourly_json
-        })
-    
     except Exception as e:
         logger.error(f"Error getting hourly forecast: {e}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -1221,7 +1218,10 @@ def get_astro_weather_analysis_api():
         
         analysis = get_astro_weather_analysis(hours, language=language)
         if analysis is None:
-            return jsonify({"error": "Failed to fetch astrophotography weather analysis"}), 500
+            return jsonify({
+                "status": "pending",
+                "message": "Astrophotography weather analysis is temporarily unavailable. Please retry shortly."
+            }), 202
         
         return jsonify(analysis)
         

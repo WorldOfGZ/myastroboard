@@ -43,8 +43,8 @@ WEATHER_CACHE_TTL = 3600  # seconds (1 hour)
 
 # Version update check configuration
 VERSION_UPDATE_CACHE_TTL = 14400  # seconds (4 hours)
-OPENMETEO_RETRY_COUNT = 5
-OPENMETEO_BACKOFF_FACTOR = 0.2
+OPENMETEO_RETRY_COUNT = 2
+OPENMETEO_BACKOFF_FACTOR = 0.5
 
 # Astronomical constants (angles in degrees)
 ASTRONOMICAL_NIGHT_ALTITUDE = -18  # Sun altitude for astronomical night
