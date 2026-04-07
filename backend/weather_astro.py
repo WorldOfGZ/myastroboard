@@ -42,6 +42,7 @@ _ASTRO_ANALYSIS_LAST_SUCCESS: Dict[Tuple[int, str], Dict[str, Any]] = {}
 _ASTRO_ANALYSIS_LAST_SUCCESS_TS: Dict[Tuple[int, str], float] = {}
 _ASTRO_ANALYSIS_LAST_FAILURE_TS: Dict[Tuple[int, str], float] = {}
 _ASTRO_ANALYSIS_FAILURE_COOLDOWN = 90.0  # seconds to wait before retrying after a failed fetch
+_ASTRO_ANALYSIS_CACHE_TTL = 1800.0  # 30 minutes — Open-Meteo data doesn't change faster than hourly
 
 
 def _analysis_cache_key(hours: int, language: str) -> Tuple[int, str]:
@@ -720,6 +721,15 @@ def get_astro_weather_analysis(hours: int = 24, language: str = "en") -> Optiona
     Main function to get comprehensive astrophotography weather analysis
     """
     cache_key = _analysis_cache_key(hours, language)
+
+    # Serve in-memory cache when data is still fresh — avoids hitting Open-Meteo on
+    # every browser poll (e.g. weather-alerts polls every 5 minutes).
+    last_success_ts = _ASTRO_ANALYSIS_LAST_SUCCESS_TS.get(cache_key, 0.0)
+    if time.time() - last_success_ts < _ASTRO_ANALYSIS_CACHE_TTL:
+        cached = _get_last_successful_analysis(hours, language)
+        if cached is not None:
+            logger.debug(f"Serving cached astro weather analysis (TTL not expired) {cache_key}")
+            return cached
 
     # Check shared Open-Meteo gate first: if ANY module recently hit the concurrency
     # limit, all callers back off together so they don't cycle out-of-phase.
