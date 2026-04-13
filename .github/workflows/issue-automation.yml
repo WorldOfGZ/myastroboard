@@ -1,0 +1,200 @@
+name: Issue Automation
+
+on:
+  issues:
+    types: [opened, reopened]
+
+jobs:
+  triage-issue:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Analyze issue and post feedback
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue  = context.payload.issue;
+            const body   = issue.body  || '';
+            const title  = issue.title || '';
+            const author = issue.user.login;
+
+            const isBug     = title.startsWith('[Bug]');
+            const isFeature = title.startsWith('[Feature]');
+
+            // ── Helpers ──────────────────────────────────────────────────────
+
+            // Extracts the content of a "### Label\n<content>" section
+            const getSection = (label) => {
+              const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const regex   = new RegExp(`###\\s*${escaped}\\s*\\n([\\s\\S]*?)(?=\\n###|$)`);
+              const match   = body.match(regex);
+              return match ? match[1].trim() : '';
+            };
+
+            const isEmpty = (text) =>
+              !text || text === '_No response_' || text.replace(/\s/g, '').length < 5;
+
+            const ensureLabel = async (name, color, description = '') => {
+              try {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo:  context.repo.repo,
+                  name, color, description
+                });
+              } catch (_) { /* label already exists */ }
+            };
+
+            const addLabels = async (labels) => {
+              await github.rest.issues.addLabels({
+                owner:        context.repo.owner,
+                repo:         context.repo.repo,
+                issue_number: issue.number,
+                labels
+              });
+            };
+
+            // ── BUG REPORT ───────────────────────────────────────────────────
+            if (isBug) {
+
+              // Fields to check: [section label in YAML, emoji, tip]
+              const fields = [
+                [
+                  'Bug Description',
+                  '📝',
+                  null
+                ],
+                [
+                  'Steps to Reproduce',
+                  '🔁',
+                  null
+                ],
+                [
+                  'Expected Behavior',
+                  '✅',
+                  null
+                ],
+                [
+                  'Relevant Logs',
+                  '📋',
+                  'Logs are essential to diagnose the issue. You can find them in the browser console **(F12 → Console tab)** or via `docker compose logs`.'
+                ],
+                [
+                  'MyAstroBoard Version',
+                  '🏷️',
+                  'Please provide the version number shown in the UI or in the `VERSION` file at the root of the project.'
+                ],
+              ];
+
+              const missing = [];
+              for (const [label, emoji, tip] of fields) {
+                if (isEmpty(getSection(label))) {
+                  missing.push({ label, emoji, tip });
+                }
+              }
+
+              if (missing.length > 0) {
+                const list = missing.map(({ label, emoji, tip }) => {
+                  let line = `- [ ] ${emoji} **${label}**`;
+                  if (tip) line += `\n  > 💡 ${tip}`;
+                  return line;
+                }).join('\n');
+
+                const commentBody = [
+                  `👋 Hi @${author}, thanks for taking the time to report this bug!`,
+                  '',
+                  '🔍 It looks like some important information is missing or incomplete. Providing these details will help us reproduce and fix the issue much faster:',
+                  '',
+                  list,
+                  '',
+                  "Once filled in, we'll be able to prioritize your issue. Thanks! 🙏"
+                ].join('\n');
+
+                await github.rest.issues.createComment({
+                  owner:        context.repo.owner,
+                  repo:         context.repo.repo,
+                  issue_number: issue.number,
+                  body:         commentBody
+                });
+
+                await ensureLabel('needs-more-info', 'e4e669', 'Additional information is required');
+                await addLabels(['needs-more-info']);
+              }
+
+              // Auto-label based on the selected component
+              const componentMap = {
+                'Weather Forecast':        'component: weather',
+                'Astrodex':                'component: astrodex',
+                'Plan my Night':           'component: plan-my-night',
+                'SkyTonight':              'component: skytonight',
+                'Astronomy Calculations':  'component: calculations',
+                'Observation Conditions':  'component: conditions',
+                'Sun & Moon Information':  'component: sun-moon',
+                'Configuration Interface': 'component: config',
+                'Catalogue Browser':       'component: catalogues',
+                'Events / Calendar':       'component: events',
+                'Aurora Borealis':         'component: aurora',
+                'ISS':                     'component: iss',
+                'Docker/Installation':     'component: docker',
+                'UI/UX':                   'component: ui',
+              };
+
+              const componentContent = getSection('Component');
+              for (const [name, label] of Object.entries(componentMap)) {
+                if (componentContent.includes(name)) {
+                  await ensureLabel(label, 'd93f0b');
+                  await addLabels([label]);
+                  break;
+                }
+              }
+            }
+
+            // ── FEATURE REQUEST ──────────────────────────────────────────────
+            if (isFeature) {
+              const categoryMap = {
+                'Weather & Conditions':    'category: weather',
+                'Astrodex':                'category: astrodex',
+                'Plan my Night':           'category: plan-my-night',
+                'Astronomy Calculations':  'category: calculations',
+                'Target Management':       'category: targets',
+                'Catalogues':              'category: catalogues',
+                'Events / Calendar':       'category: events',
+                'Aurora Borealis':         'category: aurora',
+                'ISS':                     'category: iss',
+                'Configuration':           'category: config',
+                'User Interface':          'category: ui',
+                'Mobile/Responsive':       'category: mobile',
+                'Notifications/Alerts':    'category: notifications',
+                'Performance':             'category: performance',
+                'Documentation':           'category: docs',
+                'Integration':             'category: integration',
+              };
+
+              for (const [cat, label] of Object.entries(categoryMap)) {
+                if (body.includes(cat)) {
+                  await ensureLabel(label, '0075ca');
+                  await addLabels([label]);
+                  break;
+                }
+              }
+            }
+
+            // ── Welcome message (first-time contributor) ─────────────────────
+            const { data: allIssues } = await github.rest.issues.listForRepo({
+              owner:    context.repo.owner,
+              repo:     context.repo.repo,
+              creator:  author,
+              state:    'all',
+              per_page: 5
+            });
+
+            if (allIssues.length === 1) {
+              await github.rest.issues.createComment({
+                owner:        context.repo.owner,
+                repo:         context.repo.repo,
+                issue_number: issue.number,
+                body: `🌟 Welcome to **MyAstroBoard** @${author}! This is your first contribution to the project — thank you so much! We'll review your issue as soon as possible. ✨🔭`
+              });
+            }
