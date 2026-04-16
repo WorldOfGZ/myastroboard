@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from skytonight_scheduler import SkyTonightScheduler, resolve_schedule
+from skytonight_scheduler import SkyTonightSchedule, SkyTonightScheduler, resolve_schedule
 
 
 def _base_config():
@@ -116,7 +116,6 @@ def test_missed_run_recovery_on_startup(monkeypatch):
         (server_time >= committed) fires immediately.
     """
     import threading
-    from datetime import timezone as _tz
 
     # The missed slot is 30 seconds in the past so the recovery check fires.
     past_slot = datetime.now(ZoneInfo('Europe/Paris')) - timedelta(seconds=30)
@@ -158,6 +157,19 @@ def test_missed_run_recovery_on_startup(monkeypatch):
     monkeypatch.setattr('skytonight_scheduler.ensure_skytonight_directories', _ensure_dirs)
     monkeypatch.setattr('skytonight_scheduler.get_scheduler_trigger_file', _trigger_file)
     monkeypatch.setattr('skytonight_scheduler.append_scheduler_log', lambda msg: None)
+    # Keep this test deterministic and fast: recovery is about restoring
+    # _committed_next_run from persisted status, not about real solar calculations.
+    monkeypatch.setattr(
+        'skytonight_scheduler.resolve_schedule',
+        lambda _config: SkyTonightSchedule(
+            mode='post-astronomical-night',
+            next_run=future_next_run,
+            server_time_valid=True,
+            reason='test-schedule',
+            server_time=datetime.now(ZoneInfo('Europe/Paris')),
+            timezone='Europe/Paris',
+        ),
+    )
 
     stop_event = threading.Event()
 
@@ -180,11 +192,11 @@ def test_missed_run_recovery_on_startup(monkeypatch):
     )
 
     scheduler.start()
-    fired = stop_event.wait(timeout=15)
+    fired = stop_event.wait(timeout=5)
     scheduler.stop()
 
     assert fired, (
-        'Missed-run recovery did not trigger the run within 15 s. '
+        'Missed-run recovery did not trigger the run within 5 s. '
         'The post-night slot should have been restored and fired immediately on startup.'
     )
     assert run_calls, 'Runner was never called despite missed-run recovery.'
