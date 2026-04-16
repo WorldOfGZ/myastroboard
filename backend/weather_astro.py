@@ -21,7 +21,12 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 from datetime import datetime, timedelta
 
 from repo_config import load_config
-from constants import URL_OPENMETEO, DATA_DIR, WIND_TRACKING_THRESHOLD
+from constants import (
+    URL_OPENMETEO,
+    DATA_DIR,
+    WIND_TRACKING_THRESHOLD,
+    ASTRO_BEST_PERIOD_MIN_DURATION_HOURS,
+)
 from logging_config import get_logger
 from weather_utils import create_weather_client
 from weather_openmeteo import is_openmeteo_rate_limited, record_openmeteo_rate_limit, _is_openmeteo_transient_error
@@ -586,73 +591,142 @@ class AstroWeatherAnalyzer:
             "wind_tracking_impact": current_row.get("wind_tracking_impact", "UNKNOWN"),
             "tracking_stability_score": float(current_row.get("tracking_stability_score", 0))
         }
+
+    def _resolve_astronomical_night_window(self) -> Optional[Tuple[pd.Timestamp, pd.Timestamp]]:
+        """Resolve astronomical night bounds from SkyTonight metadata when available."""
+        try:
+            from skytonight_calculator import load_calculation_results
+
+            calc = load_calculation_results()
+            metadata = calc.get("metadata") or {}
+            night_start = metadata.get("night_start")
+            night_end = metadata.get("night_end")
+            if not night_start or not night_end:
+                return None
+
+            start_ts = pd.to_datetime(night_start, errors="coerce")
+            end_ts = pd.to_datetime(night_end, errors="coerce")
+            if pd.isna(start_ts) or pd.isna(end_ts) or end_ts <= start_ts:
+                return None
+
+            return cast(pd.Timestamp, start_ts), cast(pd.Timestamp, end_ts)
+        except Exception as error:
+            logger.debug(f"Astronomical night window unavailable for astro weather filtering: {error}")
+            return None
+
+    def _infer_forecast_slot_hours(self, datetimes: pd.Series) -> float:
+        """Infer sampling interval from forecast points (typically 1h)."""
+        dt_series = cast(pd.Series, pd.to_datetime(datetimes, errors="coerce")).dropna().sort_values()
+        if len(dt_series) < 2:
+            return 1.0
+
+        diffs = dt_series.diff().dropna().dt.total_seconds() / 3600.0
+        positive_diffs = diffs[diffs > 0]
+        if len(positive_diffs) == 0:
+            return 1.0
+
+        slot_hours = float(positive_diffs.median())
+        if slot_hours <= 0:
+            return 1.0
+
+        # Clamp to a sane range to avoid outliers creating unrealistic durations.
+        return max(0.25, min(slot_hours, 3.0))
     
     def _find_best_observation_periods(self, df: pd.DataFrame) -> List[Dict]:
         """Find the best periods for astrophotography within the forecast"""
         if len(df) == 0:
             return []
-        
+
+        working_df = df.copy()
+        working_df["datetime"] = pd.to_datetime(working_df["datetime"], errors="coerce")
+        working_df = working_df[working_df["datetime"].notna()].copy()
+        if len(working_df) == 0:
+            return []
+
         # Calculate overall quality score
-        df["overall_quality"] = (
-            df["seeing_pickering"] * 10 +  # Convert to percentage scale
-            df["transparency_score"] +
-            df["cloud_discrimination"] +
-            df["tracking_stability_score"]
+        working_df["overall_quality"] = (
+            working_df["seeing_pickering"] * 10 +  # Convert to percentage scale
+            working_df["transparency_score"] +
+            working_df["cloud_discrimination"] +
+            working_df["tracking_stability_score"]
         ) / 4
-        
+
         # Filter to only nighttime hours (is_day == 0)
         # This ensures we only consider periods when astronomical observation is possible
-        nighttime_df = df[df["is_day"] == 0].copy() if "is_day" in df.columns else df.copy()
-        
+        nighttime_df = (
+            working_df[working_df["is_day"] == 0].copy() if "is_day" in working_df.columns else working_df.copy()
+        )
+
+        # If SkyTonight provides astronomical night bounds, prefer them to reject twilight/daylight edge cases.
+        night_window = self._resolve_astronomical_night_window()
+        if night_window is not None:
+            night_start, night_end = night_window
+            nighttime_df = nighttime_df[
+                (nighttime_df["datetime"] >= night_start) &
+                (nighttime_df["datetime"] < night_end)
+            ].copy()
+
         # Find periods with quality > 70%
         good_periods = nighttime_df[nighttime_df["overall_quality"] >= 70].copy()
-        
+
         if len(good_periods) == 0:
             return []
-        
+
+        good_periods = good_periods.sort_values("datetime")
+        slot_hours = self._infer_forecast_slot_hours(good_periods["datetime"])
+        slot_delta = timedelta(hours=slot_hours)
+
         # Group consecutive good periods
         periods = []
         current_period_start = None
-        current_period_end = None
-        
-        for idx, row in good_periods.iterrows():
-            if current_period_start is None:
-                current_period_start = row["datetime"]
-                current_period_end = row["datetime"]
-            else:
-                # Check if this row is consecutive to the previous
-                time_diff = (row["datetime"] - current_period_end).total_seconds() / 3600
-                if time_diff <= 1.5:  # Within 1.5 hours
-                    current_period_end = row["datetime"]
-                else:
-                    # Save current period and start new one
-                    if current_period_start is not None and current_period_end is not None:
-                        periods.append({
-                            "start": current_period_start.isoformat(),
-                            "end": current_period_end.isoformat(),
-                            "duration_hours": (current_period_end - current_period_start).total_seconds() / 3600,
-                            "average_quality": float(good_periods[
-                                (good_periods["datetime"] >= current_period_start) & 
-                                (good_periods["datetime"] <= current_period_end)
-                            ]["overall_quality"].mean())
-                        })
-                    current_period_start = row["datetime"]
-                    current_period_end = row["datetime"]
-        
-        # Don't forget the last period
-        if current_period_start is not None and current_period_end is not None:
+        current_period_last_slot = None
+        current_period_qualities: List[float] = []
+
+        def _finalize_current_period() -> None:
+            nonlocal current_period_start, current_period_last_slot, current_period_qualities
+            if current_period_start is None or current_period_last_slot is None or len(current_period_qualities) == 0:
+                return
+
+            period_end = current_period_last_slot + slot_delta
+            duration_hours = (period_end - current_period_start).total_seconds() / 3600.0
             periods.append({
                 "start": current_period_start.isoformat(),
-                "end": current_period_end.isoformat(),
-                "duration_hours": (current_period_end - current_period_start).total_seconds() / 3600,
-                "average_quality": float(good_periods[
-                    (good_periods["datetime"] >= current_period_start) & 
-                    (good_periods["datetime"] <= current_period_end)
-                ]["overall_quality"].mean())
+                "end": period_end.isoformat(),
+                "duration_hours": round(duration_hours, 2),
+                "average_quality": round(float(np.mean(current_period_qualities)), 3),
             })
-        
-        # Sort by quality and return top 5
-        periods.sort(key=lambda x: x["average_quality"], reverse=True)
+
+        for _, row in good_periods.iterrows():
+            row_dt = row["datetime"]
+            row_quality = float(row["overall_quality"])
+
+            if current_period_start is None:
+                current_period_start = row_dt
+                current_period_last_slot = row_dt
+                current_period_qualities = [row_quality]
+            else:
+                # Check if this row is consecutive to the previous
+                time_diff = (row_dt - current_period_last_slot).total_seconds() / 3600
+                if time_diff <= (slot_hours * 1.5):
+                    current_period_last_slot = row_dt
+                    current_period_qualities.append(row_quality)
+                else:
+                    _finalize_current_period()
+                    current_period_start = row_dt
+                    current_period_last_slot = row_dt
+                    current_period_qualities = [row_quality]
+
+        # Don't forget the last period
+        _finalize_current_period()
+
+        # Hide periods that are too short to be practically useful for observation/imaging.
+        periods = [
+            period for period in periods
+            if float(period.get("duration_hours", 0.0)) >= ASTRO_BEST_PERIOD_MIN_DURATION_HOURS
+        ]
+
+        # Sort by quality then by duration and return top 5
+        periods.sort(key=lambda x: (x["average_quality"], x["duration_hours"]), reverse=True)
         return periods[:5]
     
     def _generate_weather_alerts(self, df: pd.DataFrame) -> List[Dict]:

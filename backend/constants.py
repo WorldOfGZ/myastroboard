@@ -53,6 +53,7 @@ CIVIL_TWILIGHT_ALTITUDE = -6       # Sun altitude for civil twilight
 MOON_ILLUMINATION_THRESHOLD = 15   # Percentage - moon considered "low" below this
 MOON_ALTITUDE_PRACTICAL = 5        # Degrees - minimum moon altitude for visibility
 WIND_TRACKING_THRESHOLD = 15.0     # km/h - wind speed that affects mount tracking
+ASTRO_BEST_PERIOD_MIN_DURATION_HOURS = 2.0  # Hide short windows that are not practical for setup/imaging
 
 # Logging configuration
 LOG_MAX_BYTES = 10 * 1024 * 1024  # 10MB

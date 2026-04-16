@@ -1,0 +1,283 @@
+"""Unit tests for astrophotography weather analysis period selection."""
+
+import time
+from unittest.mock import Mock, patch
+from datetime import datetime
+
+import pandas as pd
+import pytest
+
+from weather_astro import (
+    AstroWeatherAnalyzer,
+    get_astro_weather_analysis,
+    get_current_astro_conditions,
+    _analysis_cache_key,
+    _get_last_successful_analysis,
+    _store_last_successful_analysis,
+    _is_openmeteo_concurrency_error,
+)
+
+
+def _build_analyzer() -> AstroWeatherAnalyzer:
+    """Build analyzer instance without loading runtime config."""
+    return AstroWeatherAnalyzer.__new__(AstroWeatherAnalyzer)
+
+
+def _build_sample_dataframe():
+    """Build a minimal DataFrame with all required analysis columns."""
+    return pd.DataFrame(
+        {
+            "datetime": pd.date_range("2026-04-17T20:00:00", periods=8, freq="h"),
+            "seeing_pickering": [7.0, 7.5, 8.0, 7.5, 6.0, 5.0, 4.0, 3.0],
+            "transparency_score": [75.0, 80.0, 85.0, 80.0, 70.0, 60.0, 50.0, 40.0],
+            "cloud_discrimination": [70.0, 80.0, 85.0, 75.0, 65.0, 55.0, 45.0, 35.0],
+            "tracking_stability_score": [70.0, 75.0, 80.0, 75.0, 65.0, 55.0, 45.0, 35.0],
+            "is_day": [0, 0, 0, 0, 0, 1, 1, 1],
+            "cloud_cover": [20.0] * 8,
+            "cloud_cover_high": [10.0] * 8,
+            "cloud_cover_mid": [5.0] * 8,
+            "cloud_cover_low": [5.0] * 8,
+            "relative_humidity_2m": [60.0] * 8,
+            "dew_point_2m": [10.0] * 8,
+            "temperature_2m": [15.0] * 8,
+            "wind_speed_10m": [5.0, 5.0, 4.0, 6.0, 8.0, 10.0, 12.0, 15.0],
+            "lifted_index": [3.0, 2.5, 2.0, 2.5, 1.0, 0.0, -1.0, -2.0],
+        }
+    )
+
+
+class TestBestObservationPeriods:
+    """Tests for best observation period selection."""
+
+    def test_single_slot_is_filtered_as_too_short(self, monkeypatch):
+        analyzer = _build_analyzer()
+        monkeypatch.setattr(analyzer, "_resolve_astronomical_night_window", lambda: None)
+
+        df = pd.DataFrame(
+            {
+                "datetime": [pd.Timestamp("2026-04-17T05:00:00+02:00")],
+                "seeing_pickering": [8.0],
+                "transparency_score": [80.0],
+                "cloud_discrimination": [82.0],
+                "tracking_stability_score": [78.0],
+                "is_day": [0],
+            }
+        )
+
+        periods = analyzer._find_best_observation_periods(df)
+        assert periods == []
+
+    def test_respects_astronomical_night_window(self, monkeypatch):
+        analyzer = _build_analyzer()
+        monkeypatch.setattr(
+            analyzer,
+            "_resolve_astronomical_night_window",
+            lambda: (
+                pd.Timestamp("2026-04-17T01:00:00+02:00"),
+                pd.Timestamp("2026-04-17T05:30:00+02:00"),
+            ),
+        )
+
+        df = pd.DataFrame(
+            {
+                "datetime": [
+                    pd.Timestamp("2026-04-17T02:00:00+02:00"),
+                    pd.Timestamp("2026-04-17T03:00:00+02:00"),
+                    pd.Timestamp("2026-04-17T06:00:00+02:00"),
+                ],
+                "seeing_pickering": [8.0, 8.0, 9.0],
+                "transparency_score": [80.0, 80.0, 95.0],
+                "cloud_discrimination": [82.0, 82.0, 95.0],
+                "tracking_stability_score": [78.0, 78.0, 95.0],
+                "is_day": [0, 0, 0],
+            }
+        )
+
+        periods = analyzer._find_best_observation_periods(df)
+        assert len(periods) == 1
+        assert periods[0]["start"] == "2026-04-17T02:00:00+02:00"
+        assert periods[0]["end"] == "2026-04-17T04:00:00+02:00"
+
+    def test_multiple_periods_sorted_by_quality(self, monkeypatch):
+        analyzer = _build_analyzer()
+        monkeypatch.setattr(analyzer, "_resolve_astronomical_night_window", lambda: None)
+
+        df = pd.DataFrame(
+            {
+                "datetime": pd.date_range("2026-04-17T20:00", periods=6, freq="h"),
+                "seeing_pickering": [8.0, 8.0, 7.0, 5.0, 5.0, 8.0],
+                "transparency_score": [85.0, 85.0, 75.0, 60.0, 60.0, 85.0],
+                "cloud_discrimination": [85.0, 85.0, 75.0, 60.0, 60.0, 85.0],
+                "tracking_stability_score": [85.0, 85.0, 75.0, 60.0, 60.0, 85.0],
+                "is_day": [0, 0, 0, 0, 0, 0],
+            }
+        )
+
+        periods = analyzer._find_best_observation_periods(df)
+        assert len(periods) >= 1
+        if len(periods) > 1:
+            assert periods[0]["average_quality"] >= periods[1]["average_quality"]
+
+    def test_empty_dataframe_returns_empty_list(self, monkeypatch):
+        analyzer = _build_analyzer()
+        monkeypatch.setattr(analyzer, "_resolve_astronomical_night_window", lambda: None)
+        df = pd.DataFrame()
+        assert analyzer._find_best_observation_periods(df) == []
+
+
+class TestWeatherAnalysisMetrics:
+    """Tests for individual weather analysis metrics."""
+
+    def test_cloud_layer_analysis(self):
+        analyzer = _build_analyzer()
+        df = pd.DataFrame(
+            {
+                "cloud_cover_high": [10.0, 50.0],
+                "cloud_cover_mid": [20.0, 40.0],
+                "cloud_cover_low": [30.0, 60.0],
+            }
+        )
+        result = analyzer.analyze_cloud_layers(df)
+        assert "cloud_discrimination" in result.columns
+        assert (result["cloud_discrimination"] >= 0).all()
+        assert (result["cloud_discrimination"] <= 100).all()
+
+    def test_seeing_forecast(self):
+        analyzer = _build_analyzer()
+        df = pd.DataFrame(
+            {
+                "wind_speed_10m": [5.0, 15.0, 25.0],
+                "wind_speed_80m": [6.0, 18.0, 30.0],
+                "wind_speed_120m": [7.0, 20.0, 35.0],
+                "lifted_index": [3.0, 0.0, -3.0],
+                "wind_speed_500hPa": [30.0, 60.0, 100.0],
+                "temperature_500hPa": [-40.0, -45.0, -50.0],
+                "temperature_2m": [15.0, 10.0, 5.0],
+            }
+        )
+        result = analyzer.calculate_seeing_forecast(df)
+        assert "seeing_pickering" in result.columns
+        assert (result["seeing_pickering"] >= 1).all()
+        assert (result["seeing_pickering"] <= 10).all()
+
+    def test_transparency_forecast(self):
+        analyzer = _build_analyzer()
+        df = pd.DataFrame(
+            {
+                "relative_humidity_2m": [30.0, 60.0, 90.0],
+                "visibility": [50000.0, 30000.0, 10000.0],
+                "cloud_cover_high": [10.0, 30.0, 70.0],
+                "cloud_cover_mid": [10.0, 20.0, 50.0],
+                "cloud_cover_low": [10.0, 15.0, 40.0],
+            }
+        )
+        result = analyzer.calculate_transparency_forecast(df)
+        assert "transparency_score" in result.columns
+        assert "limiting_magnitude" in result.columns
+        assert (result["transparency_score"] >= 0).all()
+        assert (result["transparency_score"] <= 100).all()
+
+    def test_dew_point_analysis(self):
+        analyzer = _build_analyzer()
+        df = pd.DataFrame(
+            {
+                "temperature_2m": [15.0, 12.0, 8.0, 5.0],
+                "dew_point_2m": [10.0, 11.0, 7.0, 5.0],
+            }
+        )
+        result = analyzer.analyze_dew_point_alerts(df)
+        assert "dew_risk_level" in result.columns
+        assert "dew_point_spread" in result.columns
+        assert set(result["dew_risk_level"].unique()).issubset(
+            {"CRITICAL", "HIGH", "MODERATE", "LOW", "MINIMAL"}
+        )
+
+    def test_wind_tracking_impact(self):
+        analyzer = _build_analyzer()
+        df = pd.DataFrame({
+            "wind_speed_10m": [3.0, 7.0, 12.0, 20.0, 30.0],
+            "wind_direction_10m": [0, 90, 180, 270, 360]
+        })
+        result = analyzer.analyze_wind_tracking_impact(df)
+        assert "wind_tracking_impact" in result.columns
+        assert "tracking_stability_score" in result.columns
+        assert (result["tracking_stability_score"] >= 0).all()
+        assert (result["tracking_stability_score"] <= 100).all()
+
+
+class TestCacheLogic:
+    """Tests for cache key and storage functions."""
+
+    def test_cache_key_generation(self):
+        key1 = _analysis_cache_key(24, "en")
+        key2 = _analysis_cache_key(24, "en")
+        key3 = _analysis_cache_key(48, "en")
+        assert key1 == key2
+        assert key1 != key3
+
+    def test_cache_storage_and_retrieval(self, monkeypatch):
+        # Clear internal cache state
+        import weather_astro
+        monkeypatch.setattr(weather_astro, '_ASTRO_ANALYSIS_LAST_SUCCESS', {})
+
+        test_data = {"test": "data", "hours": 24}
+        _store_last_successful_analysis(24, "en", test_data)
+        retrieved = _get_last_successful_analysis(24, "en")
+        assert retrieved == test_data
+
+        # Ensure deep copy was made
+        retrieved["modified"] = True
+        assert "modified" not in _get_last_successful_analysis(24, "en")
+
+    def test_cache_miss_returns_none(self, monkeypatch):
+        import weather_astro
+        monkeypatch.setattr(weather_astro, '_ASTRO_ANALYSIS_LAST_SUCCESS', {})
+        retrieved = _get_last_successful_analysis(48, "fr")
+        assert retrieved is None
+
+
+class TestErrorHandling:
+    """Tests for error handling and edge cases."""
+
+    def test_is_openmeteo_concurrency_error(self):
+        error1 = Exception("Too many concurrent requests from your IP")
+        error2 = Exception("Some other error")
+        assert _is_openmeteo_concurrency_error(error1)
+        assert not _is_openmeteo_concurrency_error(error2)
+
+    def test_generate_current_summary_with_none_row(self):
+        analyzer = _build_analyzer()
+        result = analyzer._generate_current_summary(None)
+        assert result["status"] == "No current data available"
+
+    def test_generate_current_summary_with_row(self):
+        analyzer = _build_analyzer()
+        row_data = {
+            "seeing_pickering": 7.5,
+            "transparency_score": 80.0,
+            "limiting_magnitude": 6.5,
+            "cloud_discrimination": 82.0,
+            "dew_risk_level": "LOW",
+            "dew_point_spread": 5.0,
+            "wind_tracking_impact": "GOOD",
+            "tracking_stability_score": 75.0,
+        }
+        row = pd.Series(row_data)
+        result = analyzer._generate_current_summary(row)
+        assert result["seeing_pickering"] == 7.5
+        assert result["dew_risk_level"] == "LOW"
+        assert result["wind_tracking_impact"] == "GOOD"
+
+    def test_infer_forecast_slot_hours_with_regular_intervals(self):
+        analyzer = _build_analyzer()
+        datetimes = pd.Series(
+            pd.date_range("2026-04-17T20:00", periods=5, freq="h")
+        )
+        slot_hours = analyzer._infer_forecast_slot_hours(datetimes)
+        assert 0.9 < slot_hours < 1.1  # Should be ~1.0
+
+    def test_infer_forecast_slot_hours_with_empty(self):
+        analyzer = _build_analyzer()
+        datetimes = pd.Series([])
+        slot_hours = analyzer._infer_forecast_slot_hours(datetimes)
+        assert slot_hours == 1.0

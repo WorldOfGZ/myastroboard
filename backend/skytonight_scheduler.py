@@ -424,10 +424,15 @@ class SkyTonightScheduler:
             # rather than the freshly-computed schedule.next_run, which can
             # diverge after midnight when the dawn slot leaves the computation
             # window.  Fall back to schedule.next_run when no commit exists yet.
+            # When disabled, always return None regardless of any previously committed run.
             'next_run': (
-                self._committed_next_run.isoformat()
-                if self._committed_next_run is not None
-                else (schedule.next_run.isoformat() if schedule.next_run else None)
+                None
+                if not enabled
+                else (
+                    self._committed_next_run.isoformat()
+                    if self._committed_next_run is not None
+                    else (schedule.next_run.isoformat() if schedule.next_run else None)
+                )
             ),
             'is_executing': self.is_executing,
             # While a run is executing, report the mode/reason that *triggered*
