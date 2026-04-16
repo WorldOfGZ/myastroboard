@@ -18,6 +18,7 @@ class I18nManager {
         this.currentLanguage = this.detectLanguage();
         this.fallbackLanguage = 'en';
         this.loadedLanguages = new Set();
+        this.appVersion = this.resolveAppVersion();
         
         // Initialize with default language.
         // this.ready resolves once the primary language translations are loaded,
@@ -28,6 +29,21 @@ class I18nManager {
         if (this.currentLanguage !== this.fallbackLanguage) {
             this.loadLanguage(this.fallbackLanguage, { activate: false, persistSelection: false });
         }
+    }
+
+    /**
+     * Resolve app version for static asset cache busting
+     * Prioritizes window.APP_VERSION, then meta[name="app-version"], then 'dev'
+     */
+    resolveAppVersion() {
+        const globalVersion = String(window.APP_VERSION || '').trim();
+        if (globalVersion) {
+            return globalVersion;
+        }
+
+        const versionMeta = document.querySelector('meta[name="app-version"]');
+        const metaVersion = versionMeta ? String(versionMeta.content || '').trim() : '';
+        return metaVersion || 'dev';
     }
 
     /**
@@ -67,7 +83,8 @@ class I18nManager {
         }
 
         try {
-            const url = `/static/i18n/${lang}.json?v=${window.APP_VERSION || ''}`;
+            const versionQuery = this.appVersion ? `?v=${encodeURIComponent(this.appVersion)}` : '';
+            const url = `/static/i18n/${lang}.json${versionQuery}`;
             //console.log(`[i18n] Loading language from: ${url}`);
             const response = await fetch(url);
             if (!response.ok) {
