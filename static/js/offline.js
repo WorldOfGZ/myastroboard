@@ -46,7 +46,7 @@
     }
 
     function navigateToApp() {
-        window.location.replace(`/?reconnect=${Date.now()}`);
+        window.location.replace('/');
     }
 
     async function tryReconnect() {

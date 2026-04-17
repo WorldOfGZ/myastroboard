@@ -69,6 +69,9 @@
         <p id="retry-countdown" class="retry-countdown"></p>
     </main>
 
+    <script>
+        window.APP_VERSION = String(localStorage.getItem('myastroboard_app_version') || '').trim();
+    </script>
     <script src="/static/js/i18n.js"></script>
     <script src="/static/js/apiHelper.js"></script>
     <script src="/static/js/offline.js"></script>

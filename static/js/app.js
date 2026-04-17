@@ -11,6 +11,17 @@ function getCanonicalHash(mainTab, subTab = null) {
     return subTab ? `${mainTab}/${subTab}` : mainTab;
 }
 
+function cleanupReconnectQueryParam() {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('reconnect')) {
+        return;
+    }
+
+    url.searchParams.delete('reconnect');
+    const cleanedUrl = `${url.pathname}${url.search}${url.hash}`;
+    window.history.replaceState(window.history.state, '', cleanedUrl || '/');
+}
+
 function getCurrentNavigationState() {
     const activeMainTabButton = document.querySelector('.main-tab-btn.active');
     if (!activeMainTabButton) {
@@ -100,6 +111,7 @@ function applyUserStartupPreferences(force = false) {
 // This prevents any authenticated API calls (e.g. scheduler status) from firing
 // before the session is validated, which would generate spurious 401 warnings.
 function initializeAuthenticatedApp() {
+    cleanupReconnectQueryParam();
     initializeApp();
     handleHashNavigation();
     window.addEventListener('hashchange', handleHashNavigation);

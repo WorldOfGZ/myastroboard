@@ -33,7 +33,8 @@ class I18nManager {
 
     /**
      * Resolve app version for static asset cache busting
-     * Prioritizes window.APP_VERSION, then meta[name="app-version"], then 'dev'
+     * Prioritizes window.APP_VERSION, then meta[name="app-version"], then persisted app version,
+     * and finally no version query.
      */
     resolveAppVersion() {
         const globalVersion = String(window.APP_VERSION || '').trim();
@@ -43,7 +44,12 @@ class I18nManager {
 
         const versionMeta = document.querySelector('meta[name="app-version"]');
         const metaVersion = versionMeta ? String(versionMeta.content || '').trim() : '';
-        return metaVersion || 'dev';
+        if (metaVersion) {
+            return metaVersion;
+        }
+
+        const persistedVersion = String(localStorage.getItem('myastroboard_app_version') || '').trim();
+        return persistedVersion;
     }
 
     /**
@@ -107,7 +113,7 @@ class I18nManager {
             // Fall back to English if loading fails
             if (lang !== this.fallbackLanguage && !this.loadedLanguages.has(lang)) {
                 console.log(`[i18n] Falling back to ${this.fallbackLanguage}`);
-                await this.loadLanguage(this.fallbackLanguage);
+                await this.loadLanguage(this.fallbackLanguage, { activate: false, persistSelection: false });
             }
         }
     }

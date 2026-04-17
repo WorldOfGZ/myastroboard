@@ -20,6 +20,8 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/static/ico/ios/16.png?v={{ version }}">
     <link rel="manifest" href="/static/manifest.webmanifest?v={{ version }}" id="pwa-manifest">
     <script>
+            localStorage.setItem('myastroboard_app_version', '{{ version }}');
+
       (function() {
         var lang = localStorage.getItem('myastroboard_language') || '';
         var supported = ['fr', 'es', 'de'];

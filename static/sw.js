@@ -152,6 +152,7 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(
             (async () => {
                 const cachedResponse = await caches.match(request);
+                const fallbackCachedResponse = cachedResponse || await caches.match(url.pathname);
                 try {
                     const networkResponse = await fetchWithTimeout(request, 4000);
                     if (networkResponse && networkResponse.status === 200) {
@@ -160,7 +161,7 @@ self.addEventListener('fetch', (event) => {
                     }
                     return networkResponse;
                 } catch (_) {
-                    return cachedResponse || new Response('', {
+                    return fallbackCachedResponse || new Response('', {
                         status: 503,
                         statusText: 'Offline asset unavailable'
                     });
