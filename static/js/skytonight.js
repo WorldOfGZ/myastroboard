@@ -1470,7 +1470,7 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
                 
                 if(displayAstrodex) {
                     if (isInAstrodex) {
-                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><span class="in-astrodex-badge"><i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('captured')}</span></td>`;
+                        html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><button type="button" class="in-astrodex-badge astrodex-captured-btn" data-item="${itemDataJson}" title="${tSkyTonightCompat('captured')}"><i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('captured')}</button></td>`;
                     } else if (itemName) {
                         html += `<td style="text-align: ${col.align}" data-item="${itemDataJson}"><button class="btn btn-sm btn-outline-primary astrodex-add-btn" data-item="${itemDataJson}"><i class="bi bi-plus-circle icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('add')}</button></td>`;
                     } else {
@@ -1662,6 +1662,21 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
                 } catch (error) {
                     console.error('Error adding to astrodex:', error);
                     showMessage('error', tSkyTonightCompat('failed_to_add_astrodex'));
+                }
+            });
+        });
+
+        // Add event listeners for captured Astrodex buttons (open pictures popup)
+        const capturedButtons = document.querySelectorAll('.astrodex-captured-btn');
+        capturedButtons.forEach(button => {
+            button.addEventListener('click', async function(e) {
+                e.preventDefault();
+                try {
+                    const itemDataJson = this.getAttribute('data-item');
+                    const itemData = JSON.parse(itemDataJson);
+                    await openCapturedAstrodexItem(itemData);
+                } catch (error) {
+                    console.error('Error opening captured astrodex item:', error);
                 }
             });
         });
@@ -2365,6 +2380,99 @@ window.addEventListener('click', function(event) {
 // Astrodex Integration
 // ======================
 
+function _normalizeAstrodexLookup(value) {
+    return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+function _findAstrodexItemFromSkytonightItem(itemData) {
+    if (!itemData || !Array.isArray(astrodexData?.items)) {
+        return null;
+    }
+
+    const namesToMatch = new Set([
+        _normalizeAstrodexLookup(itemData.name),
+        _normalizeAstrodexLookup(itemData['target name']),
+        _normalizeAstrodexLookup(itemData.id)
+    ]);
+
+    const aliases = itemData.catalogue_aliases;
+    if (aliases && typeof aliases === 'object') {
+        Object.values(aliases).forEach(name => namesToMatch.add(_normalizeAstrodexLookup(name)));
+    }
+    namesToMatch.delete('');
+    if (namesToMatch.size === 0) {
+        return null;
+    }
+
+    return astrodexData.items.find(item => {
+        const candidateNames = new Set([
+            _normalizeAstrodexLookup(item.name),
+            _normalizeAstrodexLookup(item.id)
+        ]);
+
+        const itemAliases = item.catalogue_aliases;
+        if (itemAliases && typeof itemAliases === 'object') {
+            Object.values(itemAliases).forEach(name => candidateNames.add(_normalizeAstrodexLookup(name)));
+        }
+        candidateNames.delete('');
+
+        for (const name of candidateNames) {
+            if (namesToMatch.has(name)) {
+                return true;
+            }
+        }
+        return false;
+    }) || null;
+}
+
+async function openCapturedAstrodexItem(itemData) {
+    if (!itemData) {
+        return;
+    }
+
+    // Keep the user on SkyTonight: refresh Astrodex cache silently only when needed.
+    if (typeof astrodexData !== 'undefined') {
+        const hasLoadedItems = Array.isArray(astrodexData.items) && astrodexData.items.length > 0;
+        if (!hasLoadedItems && typeof fetchJSON === 'function') {
+            try {
+                const response = await fetchJSON('/api/astrodex');
+                astrodexData.items = response.items || [];
+                astrodexData.stats = response.stats || {};
+                astrodexData.privateMode = response.private_mode !== false;
+                astrodexData.currentUserId = response.current_user_id || null;
+            } catch (error) {
+                console.error('Error loading astrodex cache for SkyTonight popup:', error);
+            }
+        }
+    }
+
+    const matchedItem = _findAstrodexItemFromSkytonightItem(itemData);
+    if (!matchedItem && typeof astrodexData !== 'undefined' && typeof fetchJSON === 'function') {
+        // Retry once after background refresh in case data changed since last load.
+        try {
+            const response = await fetchJSON('/api/astrodex');
+            astrodexData.items = response.items || [];
+            astrodexData.stats = response.stats || {};
+            astrodexData.privateMode = response.private_mode !== false;
+            astrodexData.currentUserId = response.current_user_id || null;
+        } catch (error) {
+            console.error('Error refreshing astrodex cache for SkyTonight popup:', error);
+        }
+    }
+
+    const retryMatchedItem = matchedItem || _findAstrodexItemFromSkytonightItem(itemData);
+    if (!retryMatchedItem) {
+        return;
+    }
+
+    const hasPictures = Array.isArray(retryMatchedItem.pictures) && retryMatchedItem.pictures.length > 0;
+    if (hasPictures && typeof showPictureSlideshow === 'function') {
+        showPictureSlideshow(retryMatchedItem.id);
+    } else if (typeof showAstrodexItemDetail === 'function') {
+        showAstrodexItemDetail(retryMatchedItem.id);
+    }
+}
+
 /**
  * Update the "Captured" badges in catalogue tables after Astrodex changes
  * @param {string} itemName - Name of the item to update
@@ -2396,7 +2504,7 @@ async function updateCatalogueCapturedBadge(itemDataOrName, isInAstrodex) {
         rows.forEach(row => {
             // Find the astrodex column cell
             const astrodexCell = Array.from(row.cells).find(cell => {
-                const badge = cell.querySelector('.in-astrodex-badge');
+                const badge = cell.querySelector('.astrodex-captured-btn');
                 const button = cell.querySelector('.astrodex-add-btn');
                 return badge || button;
             });
@@ -2419,9 +2527,16 @@ async function updateCatalogueCapturedBadge(itemDataOrName, isInAstrodex) {
             
             if (isInAstrodex) {
                 DOMUtils.clear(astrodexCell);
-                const badge = document.createElement('span');
-                badge.className = 'in-astrodex-badge';
+                const badge = document.createElement('button');
+                badge.type = 'button';
+                badge.className = 'in-astrodex-badge astrodex-captured-btn';
+                badge.setAttribute('data-item', JSON.stringify(rowItemData));
+                badge.setAttribute('title', tSkyTonightCompat('captured'));
                 badge.innerHTML = `<i class="bi bi-check-circle-fill icon-inline" aria-hidden="true"></i>${tSkyTonightCompat('captured')}`;
+                badge.addEventListener('click', async (event) => {
+                    event.preventDefault();
+                    await openCapturedAstrodexItem(rowItemData);
+                });
                 astrodexCell.appendChild(badge);
             } else {
                 const itemDataJson = JSON.stringify(rowItemData);
