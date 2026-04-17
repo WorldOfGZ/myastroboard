@@ -2,6 +2,51 @@
 // Core initialization and navigation
 
 let currentConfig = {};
+let isHandlingHashNavigation = false;
+
+function getCanonicalHash(mainTab, subTab = null) {
+    if (!mainTab) {
+        return '';
+    }
+    return subTab ? `${mainTab}/${subTab}` : mainTab;
+}
+
+function getCurrentNavigationState() {
+    const activeMainTabButton = document.querySelector('.main-tab-btn.active');
+    if (!activeMainTabButton) {
+        return { mainTab: null, subTab: null };
+    }
+
+    const mainTab = activeMainTabButton.getAttribute('data-tab');
+    const activeSubTabButton = document.querySelector(`#${mainTab}-tab .sub-tab-btn.active`);
+    const subTab = activeSubTabButton ? activeSubTabButton.getAttribute('data-subtab') : null;
+
+    return { mainTab, subTab };
+}
+
+function syncNavigationHash({ replace = false } = {}) {
+    if (isHandlingHashNavigation) {
+        return;
+    }
+
+    const { mainTab, subTab } = getCurrentNavigationState();
+    const canonicalHash = getCanonicalHash(mainTab, subTab);
+    if (!canonicalHash) {
+        return;
+    }
+
+    const currentHash = window.location.hash.replace(/^#/, '').toLowerCase();
+    if (currentHash === canonicalHash.toLowerCase()) {
+        return;
+    }
+
+    const targetUrl = `${window.location.pathname}${window.location.search}#${canonicalHash}`;
+    if (replace) {
+        window.history.replaceState({ myastroboard: true, hash: canonicalHash }, '', targetUrl);
+    } else {
+        window.history.pushState({ myastroboard: true, hash: canonicalHash }, '', targetUrl);
+    }
+}
 
 function getStartupPreferenceValues() {
     const prefs = window.myastroboardUserPreferences || {};
@@ -58,6 +103,7 @@ function initializeAuthenticatedApp() {
     initializeApp();
     handleHashNavigation();
     window.addEventListener('hashchange', handleHashNavigation);
+    syncNavigationHash({ replace: true });
 }
 
 window.initializeAuthenticatedApp = initializeAuthenticatedApp;
@@ -94,12 +140,24 @@ function handleHashNavigation() {
         subTab = hash.split('/')[1];
     }
 
-    if (mainTab) {
-        switchMainTab(mainTab);
+    if (!mainTab) {
+        return;
+    }
+
+    isHandlingHashNavigation = true;
+    try {
+        switchMainTab(mainTab, { syncHistory: false });
         if (subTab) {
-            // Delay to ensure main tab is visible before switching subtab
-            setTimeout(() => switchSubTab(mainTab, subTab), 50);
+            // Delay to ensure main tab is visible before switching subtab.
+            setTimeout(() => {
+                switchSubTab(mainTab, subTab, { syncHistory: false });
+            }, 50);
         }
+    } finally {
+        // Keep this async to ensure delayed sub-tab switch does not emit history entries.
+        setTimeout(() => {
+            isHandlingHashNavigation = false;
+        }, 60);
     }
 }
 
@@ -138,7 +196,8 @@ function setupMainTabs() {
     });
 }
 
-function switchMainTab(tabName) {
+function switchMainTab(tabName, options = {}) {
+    const { syncHistory = true } = options;
     //console.log(`Switching to main tab: ${tabName}`);
 
     cleanupTransientCharts();
@@ -181,8 +240,10 @@ function switchMainTab(tabName) {
         const activeSubTabButton = parentElement.querySelector('.sub-tab-btn.active') || subTabButtons[0];
         const activeSubTabName = activeSubTabButton?.getAttribute('data-subtab');
         if (activeSubTabName) {
-            switchSubTab(tabName, activeSubTabName);
+            switchSubTab(tabName, activeSubTabName, { syncHistory });
         }
+    } else if (syncHistory) {
+        syncNavigationHash();
     }
     
     // Load tab-specific content
@@ -231,7 +292,8 @@ function setupNavbarAutoCollapse() {
     });
 }
 
-function switchSubTab(parentTab, subtabName) {
+function switchSubTab(parentTab, subtabName, options = {}) {
+    const { syncHistory = true } = options;
     cleanupTransientCharts();
 
     activateSubTab(parentTab, subtabName);
@@ -281,6 +343,10 @@ function switchSubTab(parentTab, subtabName) {
         if (typeof _showSkyTonightSectionData === 'function') {
             _showSkyTonightSectionData(skytSection);
         }
+    }
+
+    if (syncHistory) {
+        syncNavigationHash();
     }
 }
 
