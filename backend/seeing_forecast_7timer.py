@@ -81,7 +81,7 @@ class SeeingForecastService:
             requested_init = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
             init_str = requested_init.strftime("%Y%m%d%H")
             
-            logger.debug(f"Fetching 7Timer seeing data for lat={self.latitude}, lon={self.longitude}, init={init_str}")
+            logger.debug(f"Fetching 7Timer seeing data (location redacted, init={init_str})")
             
             # Fetch from 7Timer API
             params = {
