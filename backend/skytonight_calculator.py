@@ -9,6 +9,7 @@ recomputing on every request.
 
 from __future__ import annotations
 
+import gc
 import math
 import os
 import re
@@ -916,6 +917,31 @@ def _degrees_to_dms(degrees: float) -> str:
     return f'{sign}{d_int:02d}° {m_int:02d}\' {s:05.2f}"'
 
 
+def _cleanup_calculation_memory(
+    *,
+    deep_sky_results: List[Dict[str, Any]],
+    bodies_results: List[Dict[str, Any]],
+    comets_results: List[Dict[str, Any]],
+    skymap_entries: List[Dict[str, Any]],
+    all_targets: List[SkyTonightTarget],
+    dso_targets_with_coords: List[SkyTonightTarget],
+    times_iso_list: Optional[List[str]],
+    times_local: Optional[List[datetime]],
+) -> None:
+    """Release large per-run containers before returning from the calculation cycle."""
+    deep_sky_results.clear()
+    bodies_results.clear()
+    comets_results.clear()
+    skymap_entries.clear()
+    all_targets.clear()
+    dso_targets_with_coords.clear()
+    if times_iso_list is not None:
+        times_iso_list.clear()
+    if times_local is not None:
+        times_local.clear()
+    gc.collect()
+
+
 # ---------------------------------------------------------------------------
 # Main calculation runner
 # ---------------------------------------------------------------------------
@@ -1200,6 +1226,13 @@ def run_calculations(
     n_dso_batch = len(dso_targets_with_coords)
     _set_progress('deep_sky', 0, n_dso_batch)
 
+    alt_matrix: Optional[np.ndarray] = None
+    az_matrix: Optional[np.ndarray] = None
+    all_dso_coords: Optional[SkyCoord] = None
+    lst_hours_arr: Optional[np.ndarray] = None
+    times_iso_list: Optional[List[str]] = None
+    times_local: Optional[List[datetime]] = None
+
     if n_dso_batch > 0:
         n_steps = len(times)
         total_night_min = (night_end - night_start).total_seconds() / 60.0
@@ -1217,7 +1250,7 @@ def run_calculations(
         )
 
         # ISO strings computed once — reused for every alttime JSON write
-        times_iso_list: List[str] = [
+        times_iso_list = [
             t.strftime('%Y-%m-%dT%H:%M:%S')
             for t in times.to_datetime(timezone=timezone.utc)
         ]
@@ -1344,6 +1377,17 @@ def run_calculations(
     logger.info(
         f'SkyTonight calculations done: '
         f'{counts["deep_sky"]} DSOs, {counts["bodies"]} bodies, {counts["comets"]} comets.'
+    )
+
+    _cleanup_calculation_memory(
+        deep_sky_results=deep_sky_results,
+        bodies_results=bodies_results,
+        comets_results=comets_results,
+        skymap_entries=skymap_entries,
+        all_targets=all_targets,
+        dso_targets_with_coords=dso_targets_with_coords,
+        times_iso_list=times_iso_list,
+        times_local=times_local,
     )
 
     return {'counts': counts, 'night_found': True, 'night_start': night_start.isoformat(), 'night_end': night_end.isoformat()}

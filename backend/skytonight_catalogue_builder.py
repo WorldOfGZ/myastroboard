@@ -326,7 +326,9 @@ def build_and_save_default_dataset(
     if not save_targets_dataset(all_targets, metadata=metadata):
         raise RuntimeError('Failed to persist SkyTonight dataset')
 
+    # Do not return the full targets list: the caller only needs metadata and the
+    # data is already persisted to disk.  Keeping a reference here would double
+    # RAM usage until the caller returns (the scheduler also loads the dataset).
     return {
         'metadata': metadata,
-        'targets': all_targets,
     }
