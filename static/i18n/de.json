@@ -355,7 +355,10 @@
       "4": "Jupiter und Saturn sind die besten Ziele bei gutem Seeing (1-2 Bogensekunden)",
       "5": "Der Mond kann auch bei schlechtem Seeing aufgrund seiner Helligkeit abgebildet werden"
     },
-    "failed_to_load_forecast": "Die Seeing-Vorhersage konnte nicht geladen werden. Bitte versuchen Sie es später noch einmal."
+    "failed_to_load_forecast": "Die Seeing-Vorhersage konnte nicht geladen werden. Bitte versuchen Sie es später noch einmal.",
+    "quality_table": "Qualität",
+    "scale_mapping_title": "Skalenzuordnung",
+    "scale_mapping_info": "Die rohen 7Timer-Seeing-Werte (1-8) werden auf die 5-stufige Qualitäts-Skala dieser App (1-5) normalisiert, damit Bezeichnungen und Beschreibungen konsistent bleiben."
   },
   "iss": {
     "passes": "ISS Bestanden",

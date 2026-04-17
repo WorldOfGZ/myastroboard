@@ -355,7 +355,10 @@
       "4": "Júpiter y Saturno son los mejores objetivos con buen seeing (1-2 arcosegundos)",
       "5": "La Luna puede ser fotografiada incluso con mal seeing debido a su brillo"
     },
-    "failed_to_load_forecast": "No se pudo cargar el pronóstico de seeing. Inténtelo de nuevo más tarde."
+    "failed_to_load_forecast": "No se pudo cargar el pronóstico de seeing. Inténtelo de nuevo más tarde.",
+    "quality_table": "Calidad",
+    "scale_mapping_title": "Correspondencia de escala",
+    "scale_mapping_info": "Los valores brutos de seeing de 7Timer (1-8) se normalizan a la escala de calidad de 5 niveles de esta aplicación (1-5) para mantener etiquetas y descripciones coherentes."
   },
   "iss": {
     "passes": "ISS Pases",

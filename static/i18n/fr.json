@@ -363,7 +363,10 @@
       "4": "Jupiter et Saturne sont les meilleures cibles lors d'un bon seeing (1-2 arcsec)",
       "5": "La Lune peut être imagée même avec un mauvais seeing en raison de sa luminosité"
     },
-    "failed_to_load_forecast": "Échec du chargement des prévisions de seeing. Veuillez réessayer plus tard."
+    "failed_to_load_forecast": "Échec du chargement des prévisions de seeing. Veuillez réessayer plus tard.",
+    "quality_table": "Qualité",
+    "scale_mapping_title": "Correspondance des échelles",
+    "scale_mapping_info": "Les valeurs brutes de seeing 7Timer (1-8) sont normalisées vers l'échelle de qualité à 5 niveaux de l'application (1-5) afin de garder des libellés et descriptions cohérents."
   },
 
   "iss": {

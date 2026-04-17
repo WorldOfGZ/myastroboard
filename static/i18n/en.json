@@ -363,7 +363,10 @@
       "4": "Jupiter and Saturn are best targets during good seeing (1-2 arcsec)",
       "5": "The Moon can be imaged even with poor seeing due to its brightness"
     },
-    "failed_to_load_forecast": "Failed to load seeing forecast. Please try again later."
+    "failed_to_load_forecast": "Failed to load seeing forecast. Please try again later.",
+    "quality_table": "Quality",
+    "scale_mapping_title": "Scale mapping",
+    "scale_mapping_info": "7Timer raw seeing values (1-8) are normalized to this app's 5-level quality scale (1-5) to keep labels and descriptions consistent."
   },
 
   "iss": {
