@@ -803,6 +803,63 @@ def update_sidereal_time_cache():
 
     except Exception as e:
         logger.error(f"Failed to update Sidereal time cache: {e}", exc_info=True)
+
+
+def update_seeing_forecast_cache():
+    """
+    Updates the Seeing Forecast cache
+    Provides atmospheric seeing conditions for planetary imaging
+    Fetches data from 7Timer API
+    """
+    try:
+        logger.debug("Updating Seeing Forecast cache...")
+        config = load_config()
+        
+        if not config.get("location"):
+            raise ValueError("Location configuration is missing")
+        
+        location = config["location"]
+        logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
+
+        from seeing_forecast_7timer import get_seeing_forecast
+        
+        seeing_data = get_seeing_forecast(
+            latitude=location["latitude"],
+            longitude=location["longitude"],
+            timezone_str=location.get("timezone", "UTC")
+        )
+
+        if seeing_data is None:
+            response = {
+                "location": config["location"],
+                "seeing_forecast": None,
+                "message": "Failed to fetch seeing forecast from 7Timer",
+                "message_key": "seeing_forecast.unavailable_fetch_failed"
+            }
+        else:
+            response = {
+                "location": config["location"],
+                "seeing_forecast": seeing_data,
+                "units": {
+                    "seeing": "scale 1-5 (1=Excellent, 2=Good, 3=Moderate, 4=Poor, 5=Very Poor)",
+                    "times": "ISO 8601 UTC",
+                    "duration": "hours"
+                }
+            }
+
+        # Update global cache
+        cache_store._seeing_forecast_cache["data"] = response
+        cache_store._seeing_forecast_cache["timestamp"] = time.time()
+        cache_store.update_shared_cache_entry(
+            "seeing_forecast",
+            cache_store._seeing_forecast_cache["data"],
+            cache_store._seeing_forecast_cache["timestamp"]
+        )
+
+        logger.info(f"Seeing forecast cache updated at {datetime.now().isoformat()}")
+
+    except Exception as e:
+        logger.error(f"Failed to update Seeing forecast cache: {e}", exc_info=True)
         
 
 def fully_initialize_caches():
@@ -836,6 +893,7 @@ def fully_initialize_caches():
             ("special_phenomena", update_special_phenomena_cache),
             ("solar_system_events", update_solar_system_events_cache),
             ("sidereal_time", update_sidereal_time_cache),
+            ("seeing_forecast", update_seeing_forecast_cache),
             ("best_window", update_best_window_cache),
             ("weather_forecast", update_weather_cache)
         ]

@@ -57,6 +57,7 @@
     "moon": "Mond",
     "sun": "Sonne",
     "aurora": "Nordlicht",
+    "seeing": "Seeing-Vorhersage",
     "iss": "ISS",
     "calendar": "Veranstaltungskalender",
     "plan_my_night": "Plane meine Nacht"
@@ -320,6 +321,41 @@
     },
     "failed_to_load_predictions": "Die Aurora-Vorhersagen konnten nicht geladen werden. Bitte versuchen Sie es später noch einmal.",
     "tips_for_aurora_hunting": "Tipps für die Aurora-Jagd:"
+  },
+  "seeing_forecast": {
+    "title": "Seeing-Vorhersage",
+    "description": "Atmosphärische Seeing-Bedingungen von 7Timer",
+    "loading_forecast": "Laden der atmosphärischen Seeing-Vorhersage...",
+    "planetary_imaging": "Für Planetenabbildung",
+    "current_seeing": "Aktuelles Seeing",
+    "forecast": "Heutige Vorhersage",
+    "best_window": "Bestes Seeing-Fenster",
+    "seeing_scale": {
+      "1": "Ausgezeichnet",
+      "2": "Gut",
+      "3": "Mäßig",
+      "4": "Schlecht",
+      "5": "Sehr schlecht"
+    },
+    "seeing_descriptions": {
+      "1": "Ausgezeichnet (< 0,5 Bogensekunden) - Perfekt für Planetenabbildung",
+      "2": "Gut (0,5 - 1 Bogensekunde) - Sehr gut für Planetenabbildung",
+      "3": "Mäßig (1 - 2 Bogensekunden) - Fair für Planetenabbildung",
+      "4": "Schlecht (2 - 4 Bogensekunden) - Schlechte Bedingungen",
+      "5": "Sehr schlecht (> 4 Bogensekunden) - Ungeeignet für Planetenabbildung"
+    },
+    "no_data": "Keine Seeing-Daten verfügbar",
+    "data_source": "Datenquelle: 7Timer",
+    "unavailable_no_usable_values": "Die öffentliche numerische API von 7Timer liefert in diesem Zyklus undefinierte Seeing-Werte. Das Website-Diagramm kann weiterhin Symbole anzeigen, aber derzeit keine nutzbaren numerischen Seeing-Werte.",
+    "unavailable_fetch_failed": "Die Seeing-Vorhersage ist vorübergehend nicht verfügbar, weil die 7Timer-Anfrage fehlgeschlagen ist. Bitte versuchen Sie es später erneut.",
+    "tips": {
+      "1": "Ausgezeichnetes Seeing ist selten - nutzen Sie es für hochauflösende Planetenabbildung",
+      "2": "Seeing wird durch atmosphärische Turbulenz, Temperaturgradienten und Höhe beeinflusst",
+      "3": "Bestes Seeing tritt typischerweise unter stabilen atmosphärischen Bedingungen auf",
+      "4": "Jupiter und Saturn sind die besten Ziele bei gutem Seeing (1-2 Bogensekunden)",
+      "5": "Der Mond kann auch bei schlechtem Seeing aufgrund seiner Helligkeit abgebildet werden"
+    },
+    "failed_to_load_forecast": "Die Seeing-Vorhersage konnte nicht geladen werden. Bitte versuchen Sie es später noch einmal."
   },
   "iss": {
     "passes": "ISS Bestanden",

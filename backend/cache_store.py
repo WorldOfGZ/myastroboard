@@ -34,6 +34,7 @@ _planetary_events_cache = {"timestamp": 0, "data": None}
 _special_phenomena_cache = {"timestamp": 0, "data": None}
 _solar_system_events_cache = {"timestamp": 0, "data": None}
 _sidereal_time_cache = {"timestamp": 0, "data": None}
+_seeing_forecast_cache = {"timestamp": 0, "data": None}
 
 # Weather cache (separate TTL)
 _weather_cache = {"timestamp": 0, "data": None}
@@ -155,6 +156,7 @@ def _write_all_astronomical_caches_to_shared():
             "special_phenomena": _special_phenomena_cache,
             "solar_system_events": _solar_system_events_cache,
             "sidereal_time": _sidereal_time_cache,
+            "seeing_forecast": _seeing_forecast_cache,
         })
         _write_shared_cache(shared_cache)
 
@@ -234,7 +236,7 @@ def reset_all_caches():
     global _moon_report_cache, _sun_report_cache, _best_window_cache
     global _moon_planner_report_cache, _dark_window_report_cache
     global _solar_eclipse_cache, _lunar_eclipse_cache, _horizon_graph_cache, _aurora_cache, _iss_passes_cache
-    global _planetary_events_cache, _special_phenomena_cache, _solar_system_events_cache, _sidereal_time_cache
+    global _planetary_events_cache, _special_phenomena_cache, _solar_system_events_cache, _sidereal_time_cache, _seeing_forecast_cache
     
     _moon_report_cache = {"timestamp": 0, "data": None}
     _sun_report_cache = {"timestamp": 0, "data": None}
@@ -254,6 +256,7 @@ def reset_all_caches():
     _special_phenomena_cache = {"timestamp": 0, "data": None}
     _solar_system_events_cache = {"timestamp": 0, "data": None}
     _sidereal_time_cache = {"timestamp": 0, "data": None}
+    _seeing_forecast_cache = {"timestamp": 0, "data": None}
     _write_all_astronomical_caches_to_shared()
 
 
@@ -292,6 +295,7 @@ def is_astronomical_cache_ready():
     sync_cache_from_shared("special_phenomena", _special_phenomena_cache)
     sync_cache_from_shared("solar_system_events", _solar_system_events_cache)
     sync_cache_from_shared("sidereal_time", _sidereal_time_cache)
+    sync_cache_from_shared("seeing_forecast", _seeing_forecast_cache)
     all_valid = (
         is_cache_valid(_moon_report_cache, CACHE_TTL) and
         is_cache_valid(_sun_report_cache, CACHE_TTL) and
@@ -306,7 +310,8 @@ def is_astronomical_cache_ready():
         is_cache_valid(_planetary_events_cache, CACHE_TTL) and
         is_cache_valid(_special_phenomena_cache, CACHE_TTL) and
         is_cache_valid(_solar_system_events_cache, CACHE_TTL) and
-        is_cache_valid(_sidereal_time_cache, CACHE_TTL)
+        is_cache_valid(_sidereal_time_cache, CACHE_TTL) and
+        is_cache_valid(_seeing_forecast_cache, CACHE_TTL)
     )
     return all_valid
 

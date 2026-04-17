@@ -58,6 +58,7 @@
     "moon": "Lune",
     "sun": "Soleil",
     "aurora": "Aurore Boréale",
+    "seeing": "Prévisions de seeing",
     "iss": "ISS",
     "calendar": "Calendrier des événements",
     "plan_my_night": "Planifie ma nuit"
@@ -327,6 +328,42 @@
     },
     "failed_to_load_predictions": "Échec du chargement des prévisions d'aurore. Veuillez réessayer plus tard.",
     "tips_for_aurora_hunting": "Conseils pour l'observation des aurores :"
+  },
+
+  "seeing_forecast": {
+    "title": "Prévisions de Seeing",
+    "description": "Conditions de seeing atmosphérique de 7Timer",
+    "loading_forecast": "Chargement des prévisions de seeing atmosphérique...",
+    "planetary_imaging": "Pour l'imagerie planétaire",
+    "current_seeing": "Seeing actuel",
+    "forecast": "Prévisions de ce soir",
+    "best_window": "Meilleure fenêtre de seeing",
+    "seeing_scale": {
+      "1": "Excellent",
+      "2": "Bon",
+      "3": "Modéré",
+      "4": "Mauvais",
+      "5": "Très mauvais"
+    },
+    "seeing_descriptions": {
+      "1": "Excellent (< 0,5 arcsec) - Parfait pour l'imagerie planétaire",
+      "2": "Bon (0,5 - 1 arcsec) - Très bon pour l'imagerie planétaire",
+      "3": "Modéré (1 - 2 arcsec) - Acceptable pour l'imagerie planétaire",
+      "4": "Mauvais (2 - 4 arcsec) - Conditions mauvaises",
+      "5": "Très mauvais (> 4 arcsec) - Inapproprié pour l'imagerie planétaire"
+    },
+    "no_data": "Aucune donnée de seeing disponible",
+    "data_source": "Source des données : 7Timer",
+    "unavailable_no_usable_values": "L'API numérique publique de 7Timer a renvoyé des valeurs de seeing indéfinies pour ce cycle. Le graphique du site peut encore afficher des icônes, mais aucune valeur numérique exploitable n'est fournie actuellement.",
+    "unavailable_fetch_failed": "Les prévisions de seeing sont temporairement indisponibles car la requête 7Timer a échoué. Veuillez réessayer plus tard.",
+    "tips": {
+      "1": "Un excellent seeing est rare - profitez-en pour l'imagerie planétaire haute résolution",
+      "2": "Le seeing est affecté par la turbulence atmosphérique, les gradients de température et l'altitude",
+      "3": "Le meilleur seeing se produit généralement lors de conditions atmosphériques stables",
+      "4": "Jupiter et Saturne sont les meilleures cibles lors d'un bon seeing (1-2 arcsec)",
+      "5": "La Lune peut être imagée même avec un mauvais seeing en raison de sa luminosité"
+    },
+    "failed_to_load_forecast": "Échec du chargement des prévisions de seeing. Veuillez réessayer plus tard."
   },
 
   "iss": {

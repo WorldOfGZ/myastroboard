@@ -57,6 +57,7 @@
     "moon": "Luna",
     "sun": "Sol",
     "aurora": "Aurora boreal",
+    "seeing": "Pronóstico de seeing",
     "iss": "ISS",
     "calendar": "Calendario de eventos",
     "plan_my_night": "Planifica mi noche"
@@ -320,6 +321,41 @@
     },
     "failed_to_load_predictions": "No se pudieron cargar las predicciones de auroras. Inténtelo de nuevo más tarde.",
     "tips_for_aurora_hunting": "Consejos para la caza de auroras:"
+  },
+  "seeing_forecast": {
+    "title": "Pronóstico de Seeing",
+    "description": "Condiciones de seeing atmosférico de 7Timer",
+    "loading_forecast": "Cargando pronóstico de seeing atmosférico...",
+    "planetary_imaging": "Para imágenes de planetas",
+    "current_seeing": "Seeing actual",
+    "forecast": "Pronóstico de esta noche",
+    "best_window": "Mejor ventana de seeing",
+    "seeing_scale": {
+      "1": "Excelente",
+      "2": "Bien",
+      "3": "Moderado",
+      "4": "Malo",
+      "5": "Muy malo"
+    },
+    "seeing_descriptions": {
+      "1": "Excelente (< 0,5 arcosegundos) - Perfecto para imágenes de planetas",
+      "2": "Bien (0,5 - 1 arcosegundos) - Muy bueno para imágenes de planetas",
+      "3": "Moderado (1 - 2 arcosegundos) - Aceptable para imágenes de planetas",
+      "4": "Malo (2 - 4 arcosegundos) - Condiciones malas",
+      "5": "Muy malo (> 4 arcosegundos) - Inadecuado para imágenes de planetas"
+    },
+    "no_data": "No hay datos de seeing disponibles",
+    "data_source": "Fuente de datos: 7Timer",
+    "unavailable_no_usable_values": "La API numérica pública de 7Timer devolvió valores de seeing indefinidos para este ciclo. El gráfico del sitio puede seguir mostrando iconos, pero actualmente no hay valores numéricos utilizables.",
+    "unavailable_fetch_failed": "El pronóstico de seeing no está disponible temporalmente porque falló la solicitud a 7Timer. Inténtelo de nuevo más tarde.",
+    "tips": {
+      "1": "El seeing excelente es raro - aprovéchalo para imágenes de alta resolución de planetas",
+      "2": "El seeing se ve afectado por turbulencia atmosférica, gradientes de temperatura y altitud",
+      "3": "El mejor seeing generalmente ocurre durante condiciones atmosféricas estables",
+      "4": "Júpiter y Saturno son los mejores objetivos con buen seeing (1-2 arcosegundos)",
+      "5": "La Luna puede ser fotografiada incluso con mal seeing debido a su brillo"
+    },
+    "failed_to_load_forecast": "No se pudo cargar el pronóstico de seeing. Inténtelo de nuevo más tarde."
   },
   "iss": {
     "passes": "ISS Pases",

@@ -58,6 +58,7 @@
     "moon": "Moon",
     "sun": "Sun",
     "aurora": "Aurora Borealis",
+    "seeing": "Seeing Forecast",
     "iss": "ISS",
     "calendar": "Events Calendar",
     "plan_my_night": "Plan my night"
@@ -327,6 +328,42 @@
     },
     "failed_to_load_predictions": "Failed to load aurora predictions. Please try again later.",
     "tips_for_aurora_hunting": "Tips for Aurora Hunting:"
+  },
+
+  "seeing_forecast": {
+    "title": "Seeing Forecast",
+    "description": "Atmospheric seeing conditions from 7Timer",
+    "loading_forecast": "Loading atmospheric seeing forecast...",
+    "planetary_imaging": "For Planetary Imaging",
+    "current_seeing": "Current Seeing",
+    "forecast": "Tonight's Forecast",
+    "best_window": "Best Seeing Window",
+    "seeing_scale": {
+      "1": "Excellent",
+      "2": "Good",
+      "3": "Moderate",
+      "4": "Poor",
+      "5": "Very Poor"
+    },
+    "seeing_descriptions": {
+      "1": "Excellent (< 0.5 arcsec) - Perfect for planetary imaging",
+      "2": "Good (0.5 - 1 arcsec) - Very good for planetary imaging",
+      "3": "Moderate (1 - 2 arcsec) - Fair for planetary imaging",
+      "4": "Poor (2 - 4 arcsec) - Poor conditions",
+      "5": "Very Poor (> 4 arcsec) - Unsuitable for planetary imaging"
+    },
+    "no_data": "No seeing data available",
+    "data_source": "Data source: 7Timer",
+    "unavailable_no_usable_values": "7Timer's public numeric API returned undefined seeing values for this cycle. The website chart may still show icons, but no usable numeric seeing values are currently provided.",
+    "unavailable_fetch_failed": "Seeing forecast is temporarily unavailable because the 7Timer request failed. Please try again later.",
+    "tips": {
+      "1": "Excellent seeing is rare - take advantage of it for high-resolution planetary imaging",
+      "2": "Seeing is affected by atmospheric turbulence, temperature gradients, and altitude",
+      "3": "Best seeing typically occurs during stable atmospheric conditions",
+      "4": "Jupiter and Saturn are best targets during good seeing (1-2 arcsec)",
+      "5": "The Moon can be imaged even with poor seeing due to its brightness"
+    },
+    "failed_to_load_forecast": "Failed to load seeing forecast. Please try again later."
   },
 
   "iss": {
