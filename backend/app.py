@@ -25,16 +25,7 @@ from zoneinfo import ZoneInfo, available_timezones
 
 import sys
 from werkzeug.utils import secure_filename
-import yaml
-import psutil
 import shutil
-import platform
-
-# Windows-compatible file locking
-if sys.platform == "win32":
-    import msvcrt
-else:
-    import fcntl
 
 # Add backend to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
@@ -74,7 +65,6 @@ import cache_store
 # Authentication
 from auth import (
     user_manager, login_required, admin_required, user_required, get_current_user,
-    ROLE_ADMIN, ROLE_USER, ROLE_READ_ONLY
 )
 
 # Astrodex

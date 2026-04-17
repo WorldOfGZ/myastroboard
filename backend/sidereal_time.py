@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo
 from logging_config import get_logger
 
 from astropy.time import Time
-from astropy.coordinates import EarthLocation, AltAz, get_body
+from astropy.coordinates import EarthLocation, AltAz
 from astropy import units as u
 import numpy as np
 

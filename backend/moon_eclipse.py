@@ -46,9 +46,9 @@ Example output:
 import datetime
 from dataclasses import dataclass
 from zoneinfo import ZoneInfo
-from typing import Any, Optional, List, cast
+from typing import Any, Optional, List
 
-from astronomy import SearchLunarEclipse, Time as AstronTime, Observer, Horizon, Body
+from astronomy import SearchLunarEclipse, Time as AstronTime, Observer
 from astropy.time import Time as AstroTime
 from astropy.coordinates import EarthLocation, AltAz, get_body
 import astropy.units as u

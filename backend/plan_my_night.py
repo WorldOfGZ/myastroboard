@@ -9,7 +9,7 @@ import threading
 import uuid
 import io
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import skytonight_targets
 from constants import DATA_DIR

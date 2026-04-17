@@ -17,7 +17,7 @@ Usage:
 
 import json
 import os
-from typing import Dict, Optional, Any
+from typing import Dict, Any
 from datetime import datetime
 from logging_config import get_logger
 
