@@ -19,4 +19,3 @@ rm -rf /app/data/skytonight/logs/* || true
 
 echo "[INFO] Starting application as non-root user"
 exec su appuser -c "$*"
-

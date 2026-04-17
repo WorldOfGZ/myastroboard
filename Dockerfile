@@ -31,8 +31,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Minify static assets during build so production serves pre-minified files
 COPY scripts/minify_static.py ./scripts/minify_static.py
 COPY static/ ./static-src/
+COPY requirements-build.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --no-cache-dir rjsmin==1.2.5 csscompressor==0.9.5 \
+    pip install --no-cache-dir -r requirements-build.txt \
     && python ./scripts/minify_static.py ./static-src ./static-dist
 
 # =================================
@@ -78,11 +79,12 @@ COPY backend/ ./backend/
 COPY templates/ ./templates/
 COPY --from=builder /build/static-dist ./static/
 
-# Application directories
-RUN mkdir -p /app/data
-
 # Create non-root user
 RUN useradd -m -u 1000 appuser
+
+# Application directories
+RUN mkdir -p /app/data && chown appuser:appuser /app/data
+
 
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh

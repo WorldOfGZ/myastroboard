@@ -1,0 +1,3 @@
+# Build-time minification tools
+rjsmin==1.2.5
+csscompressor==0.9.5
