@@ -1,5 +1,7 @@
 """Tests for SkyTonight target normalization and compatibility helpers."""
 
+import json
+
 from skytonight_models import SkyTonightCoordinates, SkyTonightTarget
 import skytonight_targets
 
@@ -85,3 +87,26 @@ def test_merge_item_with_target_entry_adds_alias_payload(monkeypatch):
 
     assert merged['catalogue_group_id'] == 'DSO-0001'
     assert merged['catalogue_aliases']['OpenNGC'] == 'NGC 224'
+
+
+def test_invalidate_targets_dataset_cache_forces_reload_from_disk(tmp_path):
+    dataset_file = tmp_path / 'targets.json'
+    skytonight_targets.save_targets_dataset(_sample_targets(), dataset_file=str(dataset_file))
+
+    cached_dataset = skytonight_targets.load_targets_dataset(force_reload=True, dataset_file=str(dataset_file))
+    assert len(cached_dataset['targets']) == 1
+
+    # Mutate the dataset file directly to simulate an external rebuild while the
+    # in-memory cache still holds the previous large target list.
+    dataset_file.write_text(
+        json.dumps({'metadata': {'version': 'new'}, 'targets': []}),
+        encoding='utf-8',
+    )
+
+    still_cached = skytonight_targets.load_targets_dataset(dataset_file=str(dataset_file))
+    assert len(still_cached['targets']) == 1
+
+    skytonight_targets.invalidate_targets_dataset_cache()
+    reloaded = skytonight_targets.load_targets_dataset(dataset_file=str(dataset_file))
+    assert reloaded['metadata']['version'] == 'new'
+    assert reloaded['targets'] == []

@@ -14,6 +14,7 @@ from logging_config import get_logger
 from repo_config import load_config
 from skytonight_catalogue_builder import build_and_save_default_dataset
 from skytonight_calculator import load_calculation_results, run_calculations
+from skytonight_targets import invalidate_targets_dataset_cache
 from skytonight_storage import (
     ensure_skytonight_directories,
     get_scheduler_lock_file as get_skytonight_scheduler_lock_file,
@@ -101,6 +102,11 @@ def _run_skytonight_refresh() -> Dict[str, Any]:
     except Exception as exc:
         _append_skytonight_calculation_log('dataset_error', {'error': str(exc), 'comet_source_mode': comet_source_mode})
         raise
+
+    # Invalidate the in-memory dataset cache so run_calculations() loads the
+    # freshly built file instead of the previous run's stale objects.  This
+    # also releases the old ~13 000-target list from RAM.
+    invalidate_targets_dataset_cache()
 
     # --- Phase 2: observability calculations ---
     try:

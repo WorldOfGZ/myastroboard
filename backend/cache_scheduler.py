@@ -30,9 +30,6 @@ class CacheScheduler:
         # Signalled after the first successful cache update so that dependent
         # schedulers (e.g. SkyTonightScheduler) can wait before their first run.
         self.cache_ready_event = threading.Event()
-        # Signalled after the first successful cache update so that dependent
-        # schedulers (e.g. SkyTonightScheduler) can wait before their first run.
-        self.cache_ready_event = threading.Event()
 
     def start(self):
         """Start the cache scheduler if it can acquire the lock"""

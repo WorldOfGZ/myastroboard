@@ -15,6 +15,16 @@ logger = get_logger(__name__)
 _dataset_cache: Dict[str, Any] = {}
 
 
+def invalidate_targets_dataset_cache() -> None:
+    """Clear the in-memory targets dataset cache.
+
+    Use this after rebuilding dataset files so the next read reloads fresh
+    objects from disk and old large lists can be reclaimed by GC.
+    """
+    global _dataset_cache
+    _dataset_cache = {}
+
+
 def normalize_catalogue_name(value: str) -> str:
     """Normalize catalogue labels for stable comparisons."""
     return ' '.join(str(value or '').strip().split())
