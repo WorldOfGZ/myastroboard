@@ -19,7 +19,7 @@ const DEFAULT_USER_PREFERENCES = {
 
 const startupSubtabsByMain = {
     'forecast-astro': ['astro-weather', 'window', 'moon', 'sun', 'aurora', 'iss', 'calendar'],
-    'forecast-weather': ['weather', 'trend'],
+    'forecast-weather': ['weather', 'seeing', 'trend'],
     'skytonight': [],
     'astrodex': ['astrodex', 'plan-my-night'],
     'equipment': ['combinations', 'fov', 'telescopes', 'cameras', 'mounts', 'filters', 'accessories'],
@@ -253,6 +253,7 @@ function getSubtabLabelKey(subtabName) {
         'moon': 'navbar.moon',
         'sun': 'navbar.sun',
         'aurora': 'navbar.aurora',
+        'seeing': 'navbar.seeing',
         'iss': 'navbar.iss',
         'calendar': 'navbar.calendar',
         'weather': 'navbar.weather',

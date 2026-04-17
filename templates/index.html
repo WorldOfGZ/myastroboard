@@ -428,6 +428,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="seeing">
+                            <i class="bi bi-wind icon-inline text-info" aria-hidden="true"></i> <span data-i18n="navbar.seeing">Seeing Forecast</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link sub-tab-btn" href="#" data-subtab="trend">
                             <i class="bi bi-graph-up-arrow text-info icon-inline" aria-hidden="true"></i> <span data-i18n="weather.observation_conditions">Observation Conditions</span>
                         </a>
@@ -474,6 +479,16 @@
                     <div id="astro-charts-error" class="alert alert-danger" role="alert" style="display: none" data-i18n="weather.loading_astro_failed">
                         Failed to load astronomical data. Please check your internet connection.
                     </div>
+                </div>
+            </div>
+
+            <!-- Seeing Forecast Sub-tab -->
+            <div id="seeing-subtab" class="sub-tab-content">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>
+                        <i class="bi bi-wind text-info icon-inline" aria-hidden="true"></i> <span data-i18n="seeing_forecast.title">Seeing Forecast</span>
+                    </h2>
+                    <div id="seeing-forecast-display" class="rounded"></div>
                 </div>
             </div>
 
@@ -1947,6 +1962,7 @@
     <script src="/static/js/lunar_eclipse.js?v={{ version }}"></script>
     <script src="/static/js/horizon_graph.js?v={{ version }}"></script>
     <script src="/static/js/aurora.js?v={{ version }}"></script>
+    <script src="/static/js/seeing_forecast.js?v={{ version }}"></script>
     <script src="/static/js/iss.js?v={{ version }}"></script>
     <script src="/static/js/weather.js?v={{ version }}"></script>
     <script src="/static/js/weather_astro.js?v={{ version }}"></script>

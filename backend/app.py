@@ -1392,6 +1392,36 @@ def get_aurora_predictions_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
+@app.route("/api/seeing-forecast", methods=["GET"])
+@login_required
+def get_seeing_forecast_api():
+    """Return atmospheric seeing forecast for planetary imaging, from cache only"""
+    try:
+        if cache_store.is_cache_valid(cache_store._seeing_forecast_cache, CACHE_TTL):
+            return jsonify(cache_store._seeing_forecast_cache["data"])
+
+        # Try shared cache first (other worker may have computed)
+        if cache_store.sync_cache_from_shared("seeing_forecast", cache_store._seeing_forecast_cache):
+            if cache_store.is_cache_valid(cache_store._seeing_forecast_cache, CACHE_TTL):
+                return jsonify(cache_store._seeing_forecast_cache["data"])
+
+        # Cache not ready in this worker -> attempt to refresh just this cache
+        from cache_updater import update_seeing_forecast_cache
+        update_seeing_forecast_cache()
+        if cache_store.is_cache_valid(cache_store._seeing_forecast_cache, CACHE_TTL):
+            return jsonify(cache_store._seeing_forecast_cache["data"])
+
+        # Cache not available
+        return jsonify({
+            "status": "pending",
+            "message": "Seeing forecast cache is not ready yet. Please try again shortly."
+        }), 202
+
+    except Exception as e:
+        logger.error(f"Error getting Seeing forecast cache: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
 @app.route("/api/iss/passes", methods=["GET"])
 @login_required
 def get_iss_passes_api():
