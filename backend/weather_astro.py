@@ -10,8 +10,6 @@ Features:
 - Dew point and humidity alerts
 - Wind speed impact on tracking
 """
-import json
-import os
 import copy
 import time
 import threading
@@ -23,8 +21,6 @@ from datetime import datetime, timedelta
 from repo_config import load_config
 from constants import (
     URL_OPENMETEO,
-    DATA_DIR,
-    WIND_TRACKING_THRESHOLD,
     ASTRO_BEST_PERIOD_MIN_DURATION_HOURS,
 )
 from logging_config import get_logger

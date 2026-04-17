@@ -2,28 +2,26 @@
 Planetary Events Service for MyAstroBoard
 
 Calculates and provides information about planetary events:
-- Planetary Conjunctions – when two planets appear very close in the sky
-- Planetary Oppositions – best visibility of outer planets (180° from Sun)
-- Planetary Elongations – maximum angular distance from the Sun
-- Retrograde Motion – apparent backward motion of planets
+- Planetary Conjunctions - when two planets appear very close in the sky
+- Planetary Oppositions - best visibility of outer planets (180° from Sun)
+- Planetary Elongations - maximum angular distance from the Sun
+- Retrograde Motion - apparent backward motion of planets
 
 Uses Astropy and Skyfield for accurate astronomical calculations.
 All calculations account for observer location and timezone.
 """
 
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Optional
 from zoneinfo import ZoneInfo
-import math
 from logging_config import get_logger
 
 from astropy.coordinates import (
     EarthLocation,
     AltAz,
     get_body,
-    get_body_barycentric_posvel,
 )
-from astropy.time import Time, TimezoneInfo
+from astropy.time import Time
 from astropy import units as u
 import numpy as np
 

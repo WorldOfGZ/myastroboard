@@ -3,7 +3,6 @@ SkyTonight Scheduler Management
 Handles the SkyTonight scheduler lifecycle, including creation, status, and refresh logic.
 """
 import json
-import logging
 import os
 import sys
 from datetime import datetime, timezone
@@ -13,13 +12,12 @@ from constants import SKYTONIGHT_CALCULATION_LOG_FILE
 from logging_config import get_logger
 from repo_config import load_config
 from skytonight_catalogue_builder import build_and_save_default_dataset
-from skytonight_calculator import load_calculation_results, run_calculations
+from skytonight_calculator import run_calculations
 from skytonight_targets import invalidate_targets_dataset_cache
 from skytonight_storage import (
     ensure_skytonight_directories,
     get_scheduler_lock_file as get_skytonight_scheduler_lock_file,
     get_scheduler_status_file as get_skytonight_scheduler_status_file,
-    get_scheduler_trigger_file as get_skytonight_scheduler_trigger_file,
 )
 
 # Windows-compatible file locking

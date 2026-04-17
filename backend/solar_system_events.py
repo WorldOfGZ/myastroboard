@@ -2,16 +2,16 @@
 Solar System Events Service for MyAstroBoard
 
 Calculates solar system phenomena:
-- Meteor Showers – peak times and radiant positions
-- Comet Appearances – perihelion passages or brightest dates
-- Asteroid Occultations – when an asteroid passes in front of a star
+- Meteor Showers - peak times and radiant positions
+- Comet Appearances - perihelion passages or brightest dates
+- Asteroid Occultations - when an asteroid passes in front of a star
 
 Uses a curated database of known events for accuracy.
 Provides detailed visibility information for each event.
 """
 
 from datetime import datetime, timedelta, date
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from zoneinfo import ZoneInfo
 from logging_config import get_logger
 from i18n_utils import I18nManager

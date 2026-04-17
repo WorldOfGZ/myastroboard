@@ -7,7 +7,6 @@ import requests
 import openmeteo_requests
 import requests_cache
 from retry_requests import retry
-from typing import Any
 from constants import WEATHER_CACHE_TTL, OPENMETEO_RETRY_COUNT, OPENMETEO_BACKOFF_FACTOR, DATA_DIR_CACHE
 
 # Ensure cache directory exists

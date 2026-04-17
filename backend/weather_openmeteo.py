@@ -2,15 +2,14 @@
 Manage weather from Open-Meteo API
 https://open-meteo.com/en/docs
 """
-from http.client import responses
 import json
 import os
 import threading
 import time
-from typing import Any, Optional
+from typing import Optional
 import pandas as pd
 from repo_config import load_config
-from constants import URL_OPENMETEO, DATA_DIR, CONFIG_FILE, CONDITIONS_FILE
+from constants import URL_OPENMETEO, CONDITIONS_FILE
 from logging_config import get_logger
 from weather_utils import create_weather_client, create_fresh_weather_client
 

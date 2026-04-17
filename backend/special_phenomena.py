@@ -2,18 +2,17 @@
 Special Phenomena Service for MyAstroBoard
 
 Calculates special astronomical phenomena:
-- Equinoxes and Solstices – start of seasons
-- Zodiacal Light Visibility Windows – faint diffuse light from interplanetary dust
-- Ecliptic and Galactic Alignments – e.g., Milky Way core visibility
+- Equinoxes and Solstices - start of seasons
+- Zodiacal Light Visibility Windows - faint diffuse light from interplanetary dust
+- Ecliptic and Galactic Alignments - e.g., Milky Way core visibility
 
 Uses Astropy for accurate astronomical calculations.
 All calculations account for observer location and timezone.
 """
 
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from zoneinfo import ZoneInfo
-import math
 from logging_config import get_logger
 
 from astropy.coordinates import (

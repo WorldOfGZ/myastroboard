@@ -5,11 +5,8 @@ Uses NOAA Space Weather Prediction Center data.
 """
 
 import requests
-import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
-import math
-from repo_config import load_config
 from constants import CACHE_TTL
 from logging_config import get_logger
 
