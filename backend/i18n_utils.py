@@ -24,7 +24,6 @@ from logging_config import get_logger
 logger = get_logger(__name__)
 
 # Supported languages
-SUPPORTED_LANGUAGES = ['en', 'fr', 'es', 'de', 'it', 'pt']
 DEFAULT_LANGUAGE = 'en'
 _TRANSLATION_FILENAMES = {
     'en': 'en.json',
@@ -34,6 +33,7 @@ _TRANSLATION_FILENAMES = {
     'it': 'it.json',
     'pt': 'pt.json'
 }
+SUPPORTED_LANGUAGES = list(_TRANSLATION_FILENAMES.keys())
 
 # Cache for loaded translations
 _translation_cache: Dict[str, Dict] = {}
