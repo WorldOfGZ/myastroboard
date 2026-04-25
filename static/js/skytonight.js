@@ -1191,12 +1191,10 @@ function _skytApplyFilter(catalogue, type) {
     const constellation = constellationSelect ? constellationSelect.value : '';
     const typeVal       = typeSelect          ? typeSelect.value          : '';
 
-    // Persist state so it survives the pagination re-render.
-    // filterRaw preserves the original un-trimmed, un-lowercased input so the
-    // value is restored exactly as typed (spaces and capitalisation intact).
-    // filterInputWasActive lets the re-render know it should return focus.
-    const filterInputWasActive = filterInput ? document.activeElement === filterInput : false;
-    _skytFilterState[type] = { filterText, filterRaw, filterInputWasActive, fotoEnabled, fotoThreshold, constellation, typeVal };
+    // Persist state so it survives pagination re-renders.
+    // filterRaw preserves the original un-trimmed value so it can be restored
+    // exactly as typed if the user revisits the section.
+    _skytFilterState[type] = { filterText, filterRaw, fotoEnabled, fotoThreshold, constellation, typeVal };
 
     const hasFilter = filterText || fotoEnabled || constellation || typeVal;
     const fullData  = _skytSectionCache[type][type];
@@ -1253,7 +1251,13 @@ async function _reRenderTablePage(sectionKey, page) {
         : cachedData[sectionKey];
     if (!Array.isArray(tableData) || tableData.length === 0) return;
 
-    DOMUtils.clear(dataDiv);
+    // Target only the table sub-div so the filter controls in skyt-ctrl-… are
+    // never cleared — the filter input keeps its DOM node, its value, and focus
+    // across every filter/pagination re-render.
+    const tableType = sectionKey === 'report' ? 'report' : sectionKey;
+    const tblDiv = document.getElementById(`skyt-tbl-SkyTonight-${tableType}`);
+    const targetDiv = tblDiv || dataDiv;
+    DOMUtils.clear(targetDiv);
 
     if (cachedData.in_progress) {
         const banner = document.createElement('div');
@@ -1264,14 +1268,13 @@ async function _reRenderTablePage(sectionKey, page) {
         _spinner1.setAttribute('aria-hidden', 'true');
         banner.appendChild(_spinner1);
         banner.appendChild(document.createTextNode(tSkyTonightCompat('calculation_in_progress')));
-        dataDiv.appendChild(banner);
+        targetDiv.appendChild(banner);
     }
 
-    const tableType = sectionKey === 'report' ? 'report' : sectionKey;
     const fragment = document.createRange().createContextualFragment(
         generateReportTable(tableData, 'SkyTonight', tableType, displayAstrodex, page, true)
     );
-    dataDiv.appendChild(fragment);
+    targetDiv.appendChild(fragment);
     dataDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -1356,16 +1359,22 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
     const eCat = escapeHtml(catalogue);
     const eType = escapeHtml(type);
 
-    let html = `
+    // Filter controls are rendered ONCE inside their own container (skyt-ctrl-…).
+    // On re-renders only the table rows change; the filter input element is never
+    // destroyed so focus and the virtual keyboard are naturally preserved while typing.
+    let html = '';
+    if (!isRerender) {
+        html += `<div id="skyt-ctrl-${eCat}-${eType}">`;
+        html += `
         <div class="row row-cols-lg-auto g-3 align-items-center mt-3">
             <div class="col-12">
                 <label for="filter-${eCat}-${eType}" class="visually-hidden">${tSkyTonightCompat('search')}</label>
                 <input type="text" id="filter-${eCat}-${eType}" placeholder="${tSkyTonightCompat('search_placeholder')}" class="filter-input form-control">
             </div>`;
-    
-    // Show foto filter for all table types (report, bodies, comets)
-    {
-        html += `
+
+        // Show foto filter for all table types (report, bodies, comets)
+        {
+            html += `
             <div class="col-12">
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="foto-filter-${eCat}-${eType}">
@@ -1373,55 +1382,57 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
                 </div>               
             </div>`;
 
-        html += `
+            html += `
             <div class="col-12">
                 <label for="foto-value-${eCat}-${eType}" class="visually-hidden">${tSkyTonightCompat('search_foto_score')}</label>
                 <input type="number" id="foto-value-${eCat}-${eType}" step="5" min="0" max="100" class="shared-foto-value form-control">
             </div>`;
-    }
-    
-    // Add constellation filter if constellation field exists
-    if (constellations.length > 0) {
-        html += `
+        }
+
+        // Add constellation filter if constellation field exists
+        if (constellations.length > 0) {
+            html += `
             <div class="col-12">
                 <label class="visually-hidden" for="constellation-filter-${eCat}-${eType}">${tSkyTonightCompat('search_constellations')}</label>
                 <select class="form-select filter-select" id="constellation-filter-${eCat}-${eType}">
                     <option value="">${tSkyTonightCompat('search_all_constellations')}</option>`;
-        constellations.forEach(c => {
-            let label_c = c;
-            let translationKey = 'constellations.' + strToTranslateKey(label_c);
-            if (i18n.has(translationKey)) {
-                label_c = i18n.t(translationKey);
-            } else {                // Try uppercase version of the key
-                console.warn(`Translation key not found: ${translationKey}`);
-            }
-
-            html += `<option value="${escapeHtml(c)}">${escapeHtml(label_c)}</option>`;
-        });
-        html += `</select>
+            constellations.forEach(c => {
+                let label_c = c;
+                let translationKey = 'constellations.' + strToTranslateKey(label_c);
+                if (i18n.has(translationKey)) {
+                    label_c = i18n.t(translationKey);
+                } else {
+                    console.warn(`Translation key not found: ${translationKey}`);
+                }
+                html += `<option value="${escapeHtml(c)}">${escapeHtml(label_c)}</option>`;
+            });
+            html += `</select>
             </div>`;
-    }
-    
-    // Add type filter if type field exists
-    if (types.length > 0) {
-        html += `
+        }
+
+        // Add type filter if type field exists
+        if (types.length > 0) {
+            html += `
             <div class="col-12">
                 <label class="visually-hidden" for="type-filter-${eCat}-${eType}">${tSkyTonightCompat('search_types')}</label>
                 <select id="type-filter-${eCat}-${eType}" class="form-select filter-select">
                     <option value="">${tSkyTonightCompat('search_all_types')}</option>`;
-        types.forEach(t => {
-            let label_t = t;
-            label_t = tSkyTonightType(label_t);
-
-            html += `<option value="${escapeHtml(t)}">${escapeHtml(label_t)}</option>`;
-        });
-        html += `</select>
+            types.forEach(t => {
+                let label_t = t;
+                label_t = tSkyTonightType(label_t);
+                html += `<option value="${escapeHtml(t)}">${escapeHtml(label_t)}</option>`;
+            });
+            html += `</select>
             </div>`;
-    }
-    
-    html += `
-        </div>`;
+        }
 
+        html += `
+        </div>`; // closes filter row div
+        html += `</div>`; // closes skyt-ctrl div
+    }
+
+    // Table content container — replaced on every filter/pagination change.
+    if (!isRerender) html += `<div id="skyt-tbl-${eCat}-${eType}">`;
     html += _astroScoreLegendHtml();
 
     html += `
@@ -1585,8 +1596,9 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
         html += _buildPaginationHtml(catalogue, type, page, _totalPages, _totalItems);
     }
 
-    html += `</div>`;
-    
+    html += `</div>`; // closes table-responsive
+    if (!isRerender) html += `</div>`; // closes skyt-tbl div
+
     // Add event listeners for filtering
     setTimeout(() => {
         const filterInput = document.getElementById(`filter-${catalogue}-${type}`);
@@ -1594,65 +1606,58 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
         const fotoValueInput = document.getElementById(`foto-value-${catalogue}-${type}`);
         const constellationSelect = document.getElementById(`constellation-filter-${catalogue}-${type}`);
         const typeSelect = document.getElementById(`type-filter-${catalogue}-${type}`);
-        
-        // Load saved filter values from localStorage via DOM property assignment (not HTML template)
-        if (fotoCheckbox) {
-            const savedCheckboxState = localStorage.getItem('fotoFilterEnabled');
-            if (savedCheckboxState === 'true') {
-                fotoCheckbox.checked = true;
+
+        // Filter controls live in skyt-ctrl-… which is never cleared on re-render.
+        // Only set up listeners and restore values on the initial render.
+        if (!isRerender) {
+            // Load saved filter values from localStorage
+            if (fotoCheckbox) {
+                const savedCheckboxState = localStorage.getItem('fotoFilterEnabled');
+                if (savedCheckboxState === 'true') {
+                    fotoCheckbox.checked = true;
+                }
+            }
+            if (fotoValueInput) {
+                fotoValueInput.value = sanitizeFotoFilterValue(localStorage.getItem('fotoFilterValue'));
+            }
+
+            // Restore any persisted filter state (from a previous section visit)
+            const _savedFilter = _skytFilterState[type];
+            if (_savedFilter && catalogue === 'SkyTonight') {
+                if (filterInput)         filterInput.value          = (_savedFilter.filterRaw !== undefined) ? _savedFilter.filterRaw : _savedFilter.filterText;
+                if (fotoCheckbox)        fotoCheckbox.checked       = _savedFilter.fotoEnabled;
+                if (fotoValueInput)      fotoValueInput.value       = String(Math.round(_savedFilter.fotoThreshold * 100));
+                if (constellationSelect) constellationSelect.value  = _savedFilter.constellation;
+                if (typeSelect)          typeSelect.value           = _savedFilter.typeVal;
+            }
+
+            if (filterInput) {
+                filterInput.addEventListener('input', () => _skytApplyFilter(catalogue, type));
+            }
+            if (fotoCheckbox) {
+                fotoCheckbox.addEventListener('change', () => {
+                    localStorage.setItem('fotoFilterEnabled', fotoCheckbox.checked);
+                    syncFotoCheckboxes(fotoCheckbox.checked);
+                    _skytApplyFilter(catalogue, type);
+                });
+            }
+            if (fotoValueInput) {
+                fotoValueInput.addEventListener('input', () => {
+                    const normalizedFotoValue = sanitizeFotoFilterValue(fotoValueInput.value);
+                    fotoValueInput.value = normalizedFotoValue;
+                    localStorage.setItem('fotoFilterValue', normalizedFotoValue);
+                    syncFotoValues(normalizedFotoValue);
+                    _skytApplyFilter(catalogue, type);
+                });
+            }
+            if (constellationSelect) {
+                constellationSelect.addEventListener('change', () => _skytApplyFilter(catalogue, type));
+            }
+            if (typeSelect) {
+                typeSelect.addEventListener('change', () => _skytApplyFilter(catalogue, type));
             }
         }
-        if (fotoValueInput) {
-            fotoValueInput.value = sanitizeFotoFilterValue(localStorage.getItem('fotoFilterValue'));
-        }
-        
-        // Restore any persisted filter state (set by a previous render of this same section)
-        const _savedFilter = _skytFilterState[type];
-        if (_savedFilter && catalogue === 'SkyTonight') {
-            if (filterInput)         filterInput.value          = (_savedFilter.filterRaw !== undefined) ? _savedFilter.filterRaw : _savedFilter.filterText;
-            if (fotoCheckbox)        fotoCheckbox.checked       = _savedFilter.fotoEnabled;
-            if (fotoValueInput)      fotoValueInput.value       = String(Math.round(_savedFilter.fotoThreshold * 100));
-            if (constellationSelect) constellationSelect.value  = _savedFilter.constellation;
-            if (typeSelect)          typeSelect.value           = _savedFilter.typeVal;
-        }
 
-        // On mobile, re-rendering the table replaces the DOM and loses keyboard focus.
-        // Restore focus to the filter input when it was the active element before the
-        // re-render (i.e. the user was typing), keeping the virtual keyboard open.
-        if (isRerender && filterInput && _savedFilter && _savedFilter.filterInputWasActive) {
-            filterInput.focus();
-            const len = filterInput.value.length;
-            filterInput.setSelectionRange(len, len);
-        }
-
-        if (filterInput) {
-            filterInput.addEventListener('input', () => _skytApplyFilter(catalogue, type));
-        }
-        if (fotoCheckbox) {
-            fotoCheckbox.addEventListener('change', () => {
-                // Save checkbox state to localStorage and sync across all tables
-                localStorage.setItem('fotoFilterEnabled', fotoCheckbox.checked);
-                syncFotoCheckboxes(fotoCheckbox.checked);
-                _skytApplyFilter(catalogue, type);
-            });
-        }
-        if (fotoValueInput) {
-            fotoValueInput.addEventListener('input', () => {
-                // Save foto value to localStorage and sync across all tables
-                const normalizedFotoValue = sanitizeFotoFilterValue(fotoValueInput.value);
-                fotoValueInput.value = normalizedFotoValue;
-                localStorage.setItem('fotoFilterValue', normalizedFotoValue);
-                syncFotoValues(normalizedFotoValue);
-                _skytApplyFilter(catalogue, type);
-            });
-        }
-        if (constellationSelect) {
-            constellationSelect.addEventListener('change', () => _skytApplyFilter(catalogue, type));
-        }
-        if (typeSelect) {
-            typeSelect.addEventListener('change', () => _skytApplyFilter(catalogue, type));
-        }
-        
         // Add event listeners for Astrodex "Add" buttons
         const addButtons = document.querySelectorAll('.astrodex-add-btn');
         addButtons.forEach(button => {
