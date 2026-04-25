@@ -711,7 +711,9 @@ async function showAddAstrodexItemModal() {
         <form id="add-astrodex-form" class="form row g-3">
             <div class="col-md-12">
                 <label for="item-name" class="form-label">${i18n.t('astrodex.form_object_name')} *</label>
-                <input type="text" id="item-name" class="form-control" required>
+                <input type="text" id="item-name" class="form-control" required autocomplete="off">
+                <input type="hidden" id="item-catalogue" value="">
+                <div id="catalogue-lookup-hint" class="d-none mt-1"><span class="badge bg-success"></span></div>
             </div>
             <div class="col-md-6">
                 <label for="item-type" class="form-label">${i18n.t('astrodex.form_object_type')}</label>
@@ -735,6 +737,88 @@ async function showAddAstrodexItemModal() {
             </div>
         </form>
     `, 'lg');
+
+    // --- Catalogue auto-prefill on name input ---
+    let _catalogueLookupTimer = null;
+    const nameInput = document.getElementById('item-name');
+    const hintEl = document.getElementById('catalogue-lookup-hint');
+
+    function _mapCatalogueType(rawType) {
+        if (!rawType) return '';
+        const t = rawType.toLowerCase();
+        if (t.includes('open cluster')) return 'Open Cluster';
+        if (t.includes('globular')) return 'Globular Cluster';
+        if (t.includes('galaxy')) return 'Galaxy';
+        if (t.includes('planetary nebula')) return 'Planetary Nebula';
+        if (t.includes('nebula') || t.includes('supernova') || t.includes('remnant')) return 'Nebula';
+        if (t.includes('star cluster') || t.includes('cluster')) return 'Star Cluster';
+        if (t.includes('planet')) return 'Planet';
+        if (t.includes('moon')) return 'Moon';
+        if (t.includes('comet')) return 'Comet';
+        return 'Other';
+    }
+
+    if (nameInput) {
+        nameInput.addEventListener('input', () => {
+            clearTimeout(_catalogueLookupTimer);
+            if (hintEl) hintEl.classList.add('d-none');
+            const val = nameInput.value.trim();
+            if (val.length < 2) return;
+            _catalogueLookupTimer = setTimeout(async () => {
+                try {
+                    const res = await fetchJSON(`/api/astrodex/catalogue-lookup?name=${encodeURIComponent(val)}`);
+                    if (!res || !res.found) return;
+
+                    const typeSelect = document.getElementById('item-type');
+                    const constSelect = document.getElementById('item-constellation');
+                    const catInput = document.getElementById('item-catalogue');
+
+                    // Match the user's typed value against known catalogue names so we
+                    // normalise spacing ("M44" -> "M 44") without overwriting with a
+                    // common alias ("Beehive"). Comparison ignores whitespace and case.
+                    const typedNorm = val.replace(/\s+/g, '').toLowerCase();
+                    let matchedCatName = null;
+                    let matchedCat = null;
+                    for (const [cat, catName] of Object.entries(res.catalogue_names || {})) {
+                        if ((catName || '').replace(/\s+/g, '').toLowerCase() === typedNorm) {
+                            matchedCatName = catName;
+                            matchedCat = cat;
+                            break;
+                        }
+                    }
+                    if (matchedCatName) {
+                        // Normalise spacing to the official catalogue form
+                        nameInput.value = matchedCatName;
+                        if (catInput) catInput.value = matchedCat;
+                    }
+                    // If no catalogue match the user typed a common alias (e.g. "Beehive");
+                    // keep their original input as-is and leave catalogue blank.
+
+                    if (typeSelect) {
+                        const mappedType = _mapCatalogueType(res.object_type);
+                        if (mappedType) {
+                            for (const opt of typeSelect.options) {
+                                if (opt.value === mappedType) { typeSelect.value = mappedType; break; }
+                            }
+                        }
+                    }
+                    if (constSelect && res.constellation) {
+                        // Backend returns the full lowercase name (e.g. 'cancer')
+                        const constLower = res.constellation.toLowerCase();
+                        for (const opt of constSelect.options) {
+                            if (opt.value === constLower) { constSelect.value = constLower; break; }
+                        }
+                    }
+                    if (hintEl) {
+                        const badge = hintEl.querySelector('.badge');
+                        if (badge) badge.textContent = i18n.t('astrodex.catalogue_found');
+                        hintEl.classList.remove('d-none');
+                    }
+                } catch (_) { /* silent — lookup is best-effort */ }
+            }, 500);
+        });
+    }
+    // --- end catalogue prefill ---
     
     document.getElementById('add-astrodex-form').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -742,6 +826,7 @@ async function showAddAstrodexItemModal() {
         const itemData = {
             name: document.getElementById('item-name').value,
             type: document.getElementById('item-type').value,
+            catalogue: document.getElementById('item-catalogue')?.value || '',
             constellation: document.getElementById('item-constellation').value,
             notes: document.getElementById('item-notes').value
         };
@@ -762,6 +847,7 @@ async function showAddAstrodexItemModal() {
 
     // Event listener when modal is closed
     document.getElementById('modal_lg_close').addEventListener('hidden.bs.modal', () => {
+        clearTimeout(_catalogueLookupTimer);
         // Remove previous event listeners to prevent duplicates
         const form = document.getElementById('add-astrodex-form');
         if (form) {
@@ -877,9 +963,12 @@ function renderCatalogueAliasesSection(item) {
         .sort(([catalogueA], [catalogueB]) => catalogueA.localeCompare(catalogueB))
         .map(([catalogueName, objectName]) => {
             const isCurrent = (item.catalogue || '') === catalogueName;
+            const catalogueLabel = catalogueName === 'CommonName'
+                ? i18n.t('astrodex.catalogue_label_commonname')
+                : catalogueName;
             return `
                 <div class="astrodex-catalogue-alias-row">
-                    <div class="astrodex-catalogue-alias-label">${escapeHtml(catalogueName)}:</div>
+                    <div class="astrodex-catalogue-alias-label">${escapeHtml(catalogueLabel)}:</div>
                     <div class="astrodex-catalogue-alias-value">${escapeHtml(objectName)}</div>
                     <button
                         type="button"
@@ -1944,6 +2033,16 @@ async function initializeAstrodexEventListeners() {
         });
     }
 }
+
+// Bootstrap sets aria-hidden="true" on the modal element at the start of the
+// hide transition, but the focused element (e.g. the Close button) may still
+// be inside the modal at that point, triggering an accessibility warning.
+// Blurring it on `hide.bs.modal` — which fires before aria-hidden is applied —
+// moves focus to <body> first so the attribute change is clean.
+document.addEventListener('hide.bs.modal', (e) => {
+    const focused = e.target.querySelector(':focus');
+    if (focused) focused.blur();
+});
 
 // Initialize event listeners when DOM is ready
 if (document.readyState === 'loading') {

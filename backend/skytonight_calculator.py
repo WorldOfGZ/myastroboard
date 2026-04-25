@@ -53,6 +53,11 @@ _MIN_STEPS = 2
 # Log a progress line every N deep-sky targets
 _DSO_LOG_INTERVAL = 500
 
+# A DSO passes the observability gate when it meets the fraction threshold
+# OR is visible for this many hours or more — prevents spring/fall targets from
+# being excluded just because they transit before dusk or set shortly after it.
+_MIN_OBSERVABLE_HOURS_DSO = 1.0
+
 # Regex pattern for valid alttime target IDs used in file names
 _ALTTIME_ID_SAFE = re.compile(r'[^a-z0-9_-]')
 
@@ -615,7 +620,14 @@ def _compute_target_result(
     observable_steps = int(np.sum(in_window_mask))
     observable_fraction = observable_steps / total_steps
 
-    if observable_fraction < frac_threshold:
+    # Compute observable hours early so both conditions can be tested together.
+    # A target passes if it satisfies the fraction threshold OR is visible for
+    # at least _MIN_OBSERVABLE_HOURS_DSO (e.g. spring objects that already
+    # transited before dusk are only up for the first hour of a long night).
+    night_hours = (night_end - night_start).total_seconds() / 3600.0
+    observable_hours = night_hours * observable_fraction
+
+    if observable_fraction < frac_threshold and observable_hours < _MIN_OBSERVABLE_HOURS_DSO:
         return None
 
     max_altitude = float(np.max(altaz_values))
@@ -640,10 +652,6 @@ def _compute_target_result(
         peak_az_deg = round((360.0 - az_cw) % 360.0 if north_to_east_ccw else az_cw, 1)
     except Exception:
         pass
-
-    # Observable hours
-    night_hours = (night_end - night_start).total_seconds() / 3600.0
-    observable_hours = night_hours * observable_fraction
 
     # Find first/last observable indices using NumPy (avoids O(n) Python generator loops)
     obs_indices = np.nonzero(in_window_mask)[0]

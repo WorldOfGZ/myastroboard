@@ -1184,14 +1184,19 @@ function _skytApplyFilter(catalogue, type) {
     const constellationSelect = document.getElementById(`constellation-filter-${catalogue}-${type}`);
     const typeSelect         = document.getElementById(`type-filter-${catalogue}-${type}`);
 
-    const filterText   = (filterInput        ? filterInput.value        : '').trim().toLowerCase();
+    const filterRaw    = filterInput        ? filterInput.value        : '';
+    const filterText   = filterRaw.trim().toLowerCase();
     const fotoEnabled  =  fotoCheckbox       ? fotoCheckbox.checked     : false;
     const fotoThreshold = fotoValueInput     ? parseFloat(sanitizeFotoFilterValue(fotoValueInput.value)) / 100 : 0.8;
     const constellation = constellationSelect ? constellationSelect.value : '';
     const typeVal       = typeSelect          ? typeSelect.value          : '';
 
-    // Persist state so it survives the pagination re-render
-    _skytFilterState[type] = { filterText, fotoEnabled, fotoThreshold, constellation, typeVal };
+    // Persist state so it survives the pagination re-render.
+    // filterRaw preserves the original un-trimmed, un-lowercased input so the
+    // value is restored exactly as typed (spaces and capitalisation intact).
+    // filterInputWasActive lets the re-render know it should return focus.
+    const filterInputWasActive = filterInput ? document.activeElement === filterInput : false;
+    _skytFilterState[type] = { filterText, filterRaw, filterInputWasActive, fotoEnabled, fotoThreshold, constellation, typeVal };
 
     const hasFilter = filterText || fotoEnabled || constellation || typeVal;
     const fullData  = _skytSectionCache[type][type];
@@ -1604,11 +1609,20 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
         // Restore any persisted filter state (set by a previous render of this same section)
         const _savedFilter = _skytFilterState[type];
         if (_savedFilter && catalogue === 'SkyTonight') {
-            if (filterInput)         filterInput.value          = _savedFilter.filterText;
+            if (filterInput)         filterInput.value          = (_savedFilter.filterRaw !== undefined) ? _savedFilter.filterRaw : _savedFilter.filterText;
             if (fotoCheckbox)        fotoCheckbox.checked       = _savedFilter.fotoEnabled;
             if (fotoValueInput)      fotoValueInput.value       = String(Math.round(_savedFilter.fotoThreshold * 100));
             if (constellationSelect) constellationSelect.value  = _savedFilter.constellation;
             if (typeSelect)          typeSelect.value           = _savedFilter.typeVal;
+        }
+
+        // On mobile, re-rendering the table replaces the DOM and loses keyboard focus.
+        // Restore focus to the filter input when it was the active element before the
+        // re-render (i.e. the user was typing), keeping the virtual keyboard open.
+        if (isRerender && filterInput && _savedFilter && _savedFilter.filterInputWasActive) {
+            filterInput.focus();
+            const len = filterInput.value.length;
+            filterInput.setSelectionRange(len, len);
         }
 
         if (filterInput) {
