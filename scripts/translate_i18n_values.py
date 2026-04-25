@@ -158,7 +158,7 @@ def translate_node(node: Any, translator: GoogleTranslator, target_lang: str, st
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lang", choices=["es", "de"], required=True)
+    parser.add_argument("--lang", choices=["es", "de", "it", "pt"], required=True)
     args = parser.parse_args()
 
     with SOURCE_FILE.open("r", encoding="utf-8") as f:

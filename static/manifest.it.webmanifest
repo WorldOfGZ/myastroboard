@@ -1,0 +1,110 @@
+{
+  "name": "MyAstroBoard",
+  "short_name": "MyAstroBoard",
+  "description": "Dashboard per la pianificazione delle osservazioni astronomiche con previsioni, eventi e gestione degli obiettivi.",
+  "lang": "it",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "dir": "ltr",
+  "categories": [
+    "productivity",
+    "utilities",
+    "science"
+  ],
+  "display_override": [
+    "standalone",
+    "window-controls-overlay"
+  ],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/static/ico/android/launchericon-48x48.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/ico/android/launchericon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/ico/android/launchericon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/ico/android/launchericon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/ico/android/launchericon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/ico/android/launchericon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/ico/ios/512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/static/img/pwa-screenshot-wide.png",
+      "sizes": "1556x760",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard MyAstroBoard su desktop"
+    },
+    {
+      "src": "/static/img/pwa-screenshot-mobile.png",
+      "sizes": "756x1554",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard MyAstroBoard su mobile"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Astrodex",
+      "short_name": "Astrodex",
+      "description": "Apri il catalogo Astrodex",
+      "url": "/#astrodex",
+      "icons": [{ "src": "/static/ico/android/launchericon-96x96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Pianifica la mia notte",
+      "short_name": "Pianifica notte",
+      "description": "Pianifica la tua notte di osservazione",
+      "url": "/#planmynight",
+      "icons": [{ "src": "/static/ico/android/launchericon-96x96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Meteo",
+      "short_name": "Meteo",
+      "description": "Controlla le previsioni meteo",
+      "url": "/#weather",
+      "icons": [{ "src": "/static/ico/android/launchericon-96x96.png", "sizes": "96x96", "type": "image/png" }]
+    }
+  ]
+}

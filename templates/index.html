@@ -24,7 +24,7 @@
 
       (function() {
         var lang = localStorage.getItem('myastroboard_language') || '';
-        var supported = ['fr', 'es', 'de'];
+        var supported = ['fr', 'es', 'de', 'it', 'pt'];
         if (supported.indexOf(lang) !== -1) {
           document.getElementById('pwa-manifest').href = '/manifest.' + lang + '.webmanifest?v={{ version }}';
         }
