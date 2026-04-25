@@ -1,0 +1,21 @@
+name: Update Docker Hub Description
+
+on:
+  workflow_dispatch:  # Manuel uniquement
+
+jobs:
+  update-description:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Update Docker Hub description
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: worldofgz/myastroboard
+          readme-filepath: ./DOCKER_HUB.md
+          short-description: "🔭 Self-hosted astronomy dashboard for observation planning and astrophotography"
