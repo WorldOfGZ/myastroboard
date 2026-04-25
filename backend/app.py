@@ -70,6 +70,7 @@ from auth import (
 # Astrodex
 import astrodex
 import plan_my_night
+import skytonight_targets
 
 # Equipment Profiles
 import equipment_profiles
@@ -2757,6 +2758,53 @@ def get_constellations():
         })
     except Exception as e:
         logger.error(f"Error getting constellations: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route('/api/astrodex/catalogue-lookup', methods=['GET'])
+@login_required
+def astrodex_catalogue_lookup():
+    """Look up a celestial object by name in the SkyTonight catalogue dataset.
+
+    Returns basic object metadata (type, constellation, catalogue names) so the
+    Astrodex manual-add form can be pre-filled when the entered name is known.
+    """
+    try:
+        from constellation import Constellation
+        import re as _re
+        # Build a one-time abbr→full-name mapping (e.g. 'Cnc' -> 'Cancer',
+        # 'UMa' -> 'Ursa Major').  c.name is the Python enum member name
+        # (e.g. 'UrsaMajor') so we apply the same humanize() logic used in
+        # astrodex.get_constellations_list() to insert spaces before capitals.
+        def _humanize(name: str) -> str:
+            return _re.sub(r'(?<!^)(?=[A-Z])', ' ', name)
+        _abbr_to_name = {c.abbr: _humanize(c.name) for c in Constellation}
+
+        name = request.args.get('name', '').strip()
+        if not name:
+            return jsonify({'found': False})
+
+        # get_lookup_entry requires a non-empty catalogue; searching via the
+        # 'alias' key covers all catalogue names and common aliases since the
+        # lookup table registers every target under alias::<normalised_name>.
+        entry = skytonight_targets.get_lookup_entry('alias', name)
+        if not entry:
+            return jsonify({'found': False})
+
+        # PyOngc stores constellation as a 3-letter IAU abbreviation (e.g. 'Cnc');
+        # the dropdown expects the full lowercase name (e.g. 'cancer').
+        raw_constellation = entry.get('constellation') or ''
+        full_constellation = (_abbr_to_name.get(raw_constellation, raw_constellation) or '').lower()
+
+        return jsonify({
+            'found': True,
+            'preferred_name': entry.get('preferred_name', ''),
+            'object_type': entry.get('object_type', ''),
+            'constellation': full_constellation,
+            'catalogue_names': entry.get('aliases', {}),
+        })
+    except Exception as e:
+        logger.error(f"Error in catalogue lookup: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
 # ============================================================
