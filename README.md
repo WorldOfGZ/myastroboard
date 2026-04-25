@@ -3,7 +3,6 @@
 [![astropy](https://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat)](http://www.astropy.org/)
 [![Docker Pulls](https://img.shields.io/docker/pulls/worldofgz/myastroboard)](https://hub.docker.com/r/worldofgz/myastroboard)
 [![Docker Image Size](https://img.shields.io/docker/image-size/worldofgz/myastroboard/latest)](https://hub.docker.com/r/worldofgz/myastroboard)
-[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/myastroboard)](https://artifacthub.io/packages/search?repo=myastroboard)
 
 MyAstroBoard is a self-hosted astronomy dashboard with Docker-first deployment.
 It combines weather and astronomical conditions, automated SkyTonight execution,
