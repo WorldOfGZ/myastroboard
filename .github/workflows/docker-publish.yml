@@ -178,7 +178,7 @@ jobs:
             "$REGISTRY/$IMAGE_NAME:linux-arm64-build"
 
       - name: Scan image for vulnerabilities
-        uses: aquasecurity/trivy-action@v0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ steps.version.outputs.VERSION }}
           format: table
