@@ -43,9 +43,13 @@ FROM python:3.13-slim AS production
 
 # Labels
 LABEL maintainer="Gloup" \
-      description="MyAstroBoard" \
+      org.opencontainers.image.title="MyAstroBoard" \
+      org.opencontainers.image.description="Self-hosted astronomy dashboard for observation planning and astrophotography" \
+      org.opencontainers.image.url="https://github.com/WorldOfGZ/myastroboard" \
       org.opencontainers.image.source="https://github.com/WorldOfGZ/myastroboard" \
-      org.opencontainers.image.license="AGPL-3.0"
+      org.opencontainers.image.licenses="AGPL-3.0" \
+      org.opencontainers.image.vendor="WorldOfGZ" \
+      org.opencontainers.image.documentation="https://github.com/WorldOfGZ/myastroboard/tree/main/docs"
 
 # Environment
 ENV PYTHONDONTWRITEBYTECODE=1 \
