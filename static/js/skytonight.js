@@ -11,6 +11,8 @@ let _skytCurrentPages = {};       // sectionKey -> current page number
 let _skytMoreRowData = {};        // moreKey -> { type, moreFields, row } for lazy popup
 let _skytFilteredData = {};       // sectionKey -> filtered row array (null = no active filter)
 let _skytFilterState = {};        // sectionKey -> saved filter values for cross-page persistence
+let _skytHasTelescopesCache = null;
+let _skytHasTelescopesPromise = null;
 
 function tSkyTonightCompat(key, params = {}) {
     const skytonightKey = `skytonight.${key}`;
@@ -30,6 +32,135 @@ function _translatedConstellation(value) {
     if (!value) return value;
     const key = 'constellations.' + strToTranslateKey(value);
     return i18n.has(key) ? i18n.t(key) : value;
+}
+
+async function _skytUserHasTelescopes() {
+    if (_skytHasTelescopesCache !== null) {
+        return _skytHasTelescopesCache;
+    }
+    if (_skytHasTelescopesPromise) {
+        return _skytHasTelescopesPromise;
+    }
+
+    _skytHasTelescopesPromise = (async () => {
+        try {
+            const payload = await fetchJSON('/api/equipment/telescopes');
+            const hasTelescopes = Array.isArray(payload?.data) && payload.data.length > 0;
+            _skytHasTelescopesCache = hasTelescopes;
+            return hasTelescopes;
+        } catch (_err) {
+            _skytHasTelescopesCache = false;
+            return false;
+        } finally {
+            _skytHasTelescopesPromise = null;
+        }
+    })();
+
+    return _skytHasTelescopesPromise;
+}
+
+function _skytTargetPayloadFromRow(row) {
+    return {
+        id: row['id'] || '',
+        target_name: row['target name'] || '',
+        type: row['type'] || '',
+        size: row['size'] !== undefined ? row['size'] : null,
+        mag: row['mag'] !== undefined ? row['mag'] : (row['visual magnitude'] !== undefined ? row['visual magnitude'] : null)
+    };
+}
+
+function _skytStarsFromRating(ratingValue) {
+    const safeRating = Math.min(5, Math.max(1, parseInt(ratingValue, 10) || 1));
+    return `${'★'.repeat(safeRating)}${'☆'.repeat(5 - safeRating)}`;
+}
+
+function _skytBuildTelescopeRecommendationNote(item) {
+    const parts = [];
+
+    parts.push(i18n.t('skytonight.telescope_reco_note_focal', {
+        focal: item.effective_focal_length,
+        ideal_min: item.ideal_focal_min,
+        ideal_max: item.ideal_focal_max,
+    }));
+
+    parts.push(i18n.t('skytonight.telescope_reco_note_aperture', {
+        aperture: item.aperture_mm,
+        f_ratio: item.effective_focal_ratio,
+    }));
+
+    if (item.target_magnitude !== null && item.target_magnitude !== undefined) {
+        parts.push(i18n.t('skytonight.telescope_reco_note_target_mag', {
+            mag: item.target_magnitude,
+        }));
+    }
+
+    if (item.target_size_arcmin !== null && item.target_size_arcmin !== undefined) {
+        parts.push(i18n.t('skytonight.telescope_reco_note_target_size', {
+            size: item.target_size_arcmin,
+        }));
+    }
+
+    return parts.join(' ');
+}
+
+async function _skytFetchTelescopeRecommendations(row) {
+    const payload = _skytTargetPayloadFromRow(row);
+    try {
+        return await fetchJSON('/api/skytonight/telescope-recommendations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    } catch (error) {
+        console.error('Error loading telescope recommendations:', error);
+        return null;
+    }
+}
+
+function _skytBuildTelescopeRecommendationsHtml(response, row) {
+    if (!response || !response.has_telescopes) {
+        return '';
+    }
+
+    const targetTitle = response.target?.target_name || row['target name'] || row['id'] || '';
+    const recommendations = Array.isArray(response.recommendations) ? response.recommendations : [];
+
+    let html = `<div class="mt-3 pt-3 border-top">`;
+    html += `<h6 class="mb-2">${escapeHtml(tSkyTonightCompat('telescope_reco_title'))}</h6>`;
+    html += `<div class="small text-muted mb-2">${escapeHtml(targetTitle)}</div>`;
+
+    if (recommendations.length === 0) {
+        html += `<p class="text-muted mb-0">${escapeHtml(tSkyTonightCompat('telescope_reco_no_result'))}</p>`;
+        html += `</div>`;
+        return html;
+    }
+
+    html += `
+        <div class="table-responsive">
+            <table class="table table-striped table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>${escapeHtml(tSkyTonightCompat('telescope_reco_table_telescope'))}</th>
+                        <th class="text-center">${escapeHtml(tSkyTonightCompat('telescope_reco_table_rating'))}</th>
+                        <th>${escapeHtml(tSkyTonightCompat('telescope_reco_table_note'))}</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+    recommendations.forEach((item) => {
+        const scopeName = `${item.name || ''}${item.manufacturer ? ` (${item.manufacturer})` : ''}`.trim();
+        const rating = parseInt(item.rating_1_to_5, 10) || 1;
+        const noteText = _skytBuildTelescopeRecommendationNote(item);
+        html += `
+            <tr>
+                <td>${escapeHtml(scopeName)}</td>
+                <td class="text-center" title="${escapeHtml(String(rating))}/5">${escapeHtml(_skytStarsFromRating(rating))}</td>
+                <td>${escapeHtml(noteText)}</td>
+            </tr>`;
+    });
+
+    html += `</tbody></table></div></div>`;
+    return html;
 }
 
 // ── AstroScore visual helpers ─────────────────────────────────────────────────
@@ -1073,7 +1204,7 @@ function _buildPaginationHtml(catalogue, type, page, totalPages, totalItems) {
  * Lazily build and show the "More" popup from pre-stored row data
  * (replaces the old pre-generated hidden-div approach).
  */
-function showMorePopupFromRowData(moreData) {
+async function showMorePopupFromRowData(moreData) {
     const { type, moreFields, row } = moreData;
 
     const titleEl = document.getElementById('modal_lg_close_title');
@@ -1109,7 +1240,10 @@ function showMorePopupFromRowData(moreData) {
                             const tr = document.createElement('tr');
                             const td1 = document.createElement('td');
                             td1.className = 'more-label';
-                            td1.textContent = catName;
+                            const translatedCatName = (catName === 'CommonName' && i18n.has('astrodex.catalogue_label_commonname'))
+                                ? i18n.t('astrodex.catalogue_label_commonname')
+                                : catName;
+                            td1.textContent = translatedCatName;
                             const td2 = document.createElement('td');
                             td2.className = 'more-value';
                             td2.textContent = String(catValue);
@@ -1166,6 +1300,25 @@ function showMorePopupFromRowData(moreData) {
         backdrop: 'static', focus: true, keyboard: true
     });
     bs_modal.show();
+
+    const hasTelescopes = await _skytUserHasTelescopes();
+    if (!hasTelescopes) {
+        return;
+    }
+
+    const recoContainer = document.createElement('div');
+    recoContainer.className = 'mt-3 pt-3 border-top';
+    recoContainer.innerHTML = `<div class="text-muted small">${escapeHtml(tSkyTonightCompat('loading_report_content'))}</div>`;
+    contentEl.appendChild(recoContainer);
+
+    const response = await _skytFetchTelescopeRecommendations(row);
+    if (!response) {
+        recoContainer.innerHTML = `<div class="text-danger small">${escapeHtml(tSkyTonightCompat('telescope_reco_load_error'))}</div>`;
+        return;
+    }
+
+    recoContainer.className = '';
+    recoContainer.innerHTML = _skytBuildTelescopeRecommendationsHtml(response, row);
 }
 
 /**
@@ -1774,11 +1927,11 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
 
         // Lazy "More" popup: delegate via data-more-key attribute
         document.querySelectorAll('.skyt-more-link').forEach(link => {
-            link.addEventListener('click', (e) => {
+            link.addEventListener('click', async (e) => {
                 e.preventDefault();
                 const moreKey = link.getAttribute('data-more-key');
                 const moreData = _skytMoreRowData[moreKey];
-                if (moreData) showMorePopupFromRowData(moreData);
+                if (moreData) await showMorePopupFromRowData(moreData);
             });
         });
 
