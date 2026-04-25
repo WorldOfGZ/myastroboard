@@ -3,6 +3,7 @@ SkyTonight API Blueprint
 All /api/skytonight/* and /api/catalogues routes, plus the payload-builder helpers.
 """
 import json
+import math
 import os
 import re
 from typing import Any, Dict, Optional
@@ -10,6 +11,7 @@ from typing import Any, Dict, Optional
 from flask import Blueprint, jsonify, request
 
 import astrodex
+import equipment_profiles
 import plan_my_night
 import skytonight_targets
 from auth import admin_required, get_current_user, login_required
@@ -701,6 +703,124 @@ def _build_dso_section_payload(catalogue: Optional[str], user_id: str, username:
     }
 
 
+def _to_float(value: Any) -> Optional[float]:
+    try:
+        if value is None or value == '':
+            return None
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _score_in_range(value: float, min_value: float, max_value: float) -> float:
+    """Return a soft score in [1, 5] where [min_value, max_value] is ideal."""
+    if min_value > max_value:
+        min_value, max_value = max_value, min_value
+    if min_value <= value <= max_value:
+        return 5.0
+
+    span = max(max_value - min_value, 1.0)
+    tolerance = span * 1.5
+    distance = (min_value - value) if value < min_value else (value - max_value)
+    penalty = min(distance / max(tolerance, 1.0), 1.0)
+    return max(1.0, 5.0 - 4.0 * penalty)
+
+
+def _ideal_focal_range(size_arcmin: Optional[float], object_type: str) -> tuple[float, float]:
+    """Estimate a practical focal-length band from target apparent size/type."""
+    if size_arcmin is not None and size_arcmin > 0:
+        if size_arcmin >= 120:
+            return (100.0, 350.0)
+        if size_arcmin >= 60:
+            return (200.0, 550.0)
+        if size_arcmin >= 30:
+            return (350.0, 850.0)
+        if size_arcmin >= 15:
+            return (600.0, 1300.0)
+        if size_arcmin >= 8:
+            return (900.0, 1800.0)
+        return (1200.0, 3000.0)
+
+    normalized_type = str(object_type or '').lower()
+    if any(token in normalized_type for token in ['galaxy', 'planetary', 'globular']):
+        return (900.0, 2200.0)
+    if any(token in normalized_type for token in ['open cluster', 'asterism', 'nebula', 'cloud']):
+        return (250.0, 900.0)
+    return (450.0, 1400.0)
+
+
+def _aperture_score(aperture_mm: float, magnitude: Optional[float]) -> float:
+    """Estimate how suitable aperture is for target brightness."""
+    if magnitude is None:
+        return _score_in_range(aperture_mm, 70.0, 180.0)
+
+    faintness = max(0.0, min((magnitude - 6.0) / 6.0, 1.0))
+    min_ap = 50.0 + 120.0 * faintness
+    ideal_ap = 100.0 + 220.0 * faintness
+    return _score_in_range(aperture_mm, min_ap, ideal_ap)
+
+
+def _speed_score(f_ratio: float, object_type: str) -> float:
+    normalized_type = str(object_type or '').lower()
+    if any(token in normalized_type for token in ['nebula', 'open cluster', 'asterism', 'cloud']):
+        if f_ratio <= 5.0:
+            return 5.0
+        if f_ratio <= 6.5:
+            return 4.0
+        if f_ratio <= 8.0:
+            return 3.0
+        if f_ratio <= 10.0:
+            return 2.0
+        return 1.0
+    return 3.5
+
+
+def _recommend_telescopes_for_target(target_payload: Dict[str, Any], telescopes: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
+    size_arcmin = _to_float(target_payload.get('size'))
+    magnitude = _to_float(target_payload.get('mag'))
+    object_type = str(target_payload.get('type') or target_payload.get('object_type') or '')
+
+    ideal_f_min, ideal_f_max = _ideal_focal_range(size_arcmin, object_type)
+    recommendations: list[Dict[str, Any]] = []
+
+    for scope in telescopes:
+        aperture_mm = _to_float(scope.get('aperture_mm'))
+        focal_length = _to_float(scope.get('effective_focal_length')) or _to_float(scope.get('focal_length_mm'))
+        f_ratio = _to_float(scope.get('effective_focal_ratio')) or _to_float(scope.get('native_focal_ratio'))
+
+        if not aperture_mm or not focal_length or not f_ratio:
+            continue
+
+        focal_score = _score_in_range(focal_length, ideal_f_min, ideal_f_max)
+        aperture_sc = _aperture_score(aperture_mm, magnitude)
+        speed_sc = _speed_score(f_ratio, object_type)
+        final_score = int(round(max(1.0, min(5.0, (0.50 * focal_score) + (0.35 * aperture_sc) + (0.15 * speed_sc)))))
+
+        recommendations.append({
+            'telescope_id': str(scope.get('id') or ''),
+            'name': str(scope.get('name') or ''),
+            'manufacturer': str(scope.get('manufacturer') or ''),
+            'aperture_mm': round(aperture_mm, 1),
+            'effective_focal_length': round(focal_length, 1),
+            'effective_focal_ratio': round(f_ratio, 2),
+            'ideal_focal_min': int(ideal_f_min),
+            'ideal_focal_max': int(ideal_f_max),
+            'target_magnitude': round(magnitude, 2) if magnitude is not None else None,
+            'target_size_arcmin': round(size_arcmin, 1) if size_arcmin is not None else None,
+            'rating_1_to_5': final_score,
+        })
+
+    recommendations.sort(
+        key=lambda row: (
+            row.get('rating_1_to_5', 0),
+            row.get('aperture_mm', 0),
+            -abs((row.get('effective_focal_length', 0) or 0) - ((ideal_f_min + ideal_f_max) / 2.0)),
+        ),
+        reverse=True,
+    )
+    return recommendations
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -925,6 +1045,56 @@ def get_skytonight_alttime_api(target_id):
         return jsonify(data)
     except Exception:
         logger.exception(f'Error reading alttime JSON for target {target_id}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@skytonight_bp.route('/api/skytonight/telescope-recommendations', methods=['POST'])
+@login_required
+def get_skytonight_telescope_recommendations_api():
+    """Return per-user telescope recommendations (1-5 rating) for one target.
+
+    This endpoint is user-specific and on-demand, independent from the
+    scheduler-based SkyTonight calculations.
+    """
+    try:
+        user = get_current_user()
+        user_id = user.user_id if user else None
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        target_payload = request.get_json(silent=True) or {}
+        if not isinstance(target_payload, dict):
+            return jsonify({'error': 'Invalid payload'}), 400
+
+        telescopes_blob = equipment_profiles.load_user_telescopes(user_id)
+        telescopes = telescopes_blob.get('items', []) if isinstance(telescopes_blob, dict) else []
+        if not telescopes:
+            return jsonify({
+                'has_telescopes': False,
+                'target': target_payload,
+                'recommendations': [],
+            })
+
+        mag_value = target_payload.get('mag')
+        if mag_value is None:
+            mag_value = target_payload.get('visual magnitude')
+
+        normalized_target = {
+            'id': target_payload.get('id', ''),
+            'target_name': target_payload.get('target_name') or target_payload.get('target name') or '',
+            'type': target_payload.get('type') or target_payload.get('object_type') or '',
+            'size': target_payload.get('size'),
+            'mag': mag_value,
+        }
+        recommendations = _recommend_telescopes_for_target(normalized_target, telescopes)
+
+        return jsonify({
+            'has_telescopes': bool(telescopes),
+            'target': normalized_target,
+            'recommendations': recommendations,
+        })
+    except Exception:
+        logger.exception('Error computing telescope recommendations')
         return jsonify({'error': 'Internal server error'}), 500
 
 
