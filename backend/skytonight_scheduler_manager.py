@@ -12,7 +12,7 @@ from constants import SKYTONIGHT_CALCULATION_LOG_FILE
 from logging_config import get_logger
 from repo_config import load_config
 from skytonight_catalogue_builder import build_and_save_default_dataset
-from skytonight_calculator import run_calculations
+from skytonight_calculator import run_calculations, load_calculation_results
 from skytonight_targets import invalidate_targets_dataset_cache
 from skytonight_storage import (
     ensure_skytonight_directories,
@@ -213,6 +213,44 @@ def get_remote_skytonight_scheduler_status() -> Dict[str, Any]:
         if os.path.exists(status_file):
             with open(status_file, 'r', encoding='utf-8') as file_obj:
                 status = json.load(file_obj)
+                if not isinstance(status.get('last_result'), dict):
+                    status['last_result'] = {}
+
+                # Backfill minimal last_result details when worker restarted and
+                # persisted status lacks payload despite existing calculation cache.
+                if not status['last_result']:
+                    try:
+                        calc_cache = load_calculation_results()
+                        metadata = calc_cache.get('metadata', {}) if isinstance(calc_cache, dict) else {}
+                        night_start = metadata.get('night_start')
+                        night_end = metadata.get('night_end')
+                        counts = metadata.get('counts', {}) if isinstance(metadata, dict) else {}
+                        if night_start or night_end or counts:
+                            status['last_result'] = {
+                                'calculation': {
+                                    'counts': {
+                                        'deep_sky': counts.get('deep_sky', 0),
+                                        'bodies': counts.get('bodies', 0),
+                                        'comets': counts.get('comets', 0),
+                                    },
+                                    'night_start': night_start,
+                                    'night_end': night_end,
+                                    'night_found': bool(night_start and night_end),
+                                }
+                            }
+                    except Exception:
+                        pass
+
+                progress = status.get('progress')
+                if not isinstance(progress, dict):
+                    status['progress'] = {
+                        'execution_duration_seconds': None,
+                        'last_execution_duration_seconds': None,
+                    }
+                else:
+                    progress.setdefault('execution_duration_seconds', None)
+                    progress.setdefault('last_execution_duration_seconds', None)
+
                 status['worker'] = 'remote'
                 return status
     except Exception as e:

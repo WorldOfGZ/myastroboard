@@ -25,14 +25,30 @@ const SkyTonightScheduler = (() => {
     };
 
     async function fetchStatus() {
-        return fetchJSONWithRetry('/api/skytonight/scheduler/status', {
-            cache: 'no-store'
-        }, {
+        const retryOptions = {
             maxAttempts: 3,
             baseDelayMs: 1000,
             maxDelayMs: 5000,
             timeoutMs: 8000
-        });
+        };
+
+        try {
+            return await fetchJSONWithRetry('/api/skytonight/scheduler/status', {
+                cache: 'no-store'
+            }, retryOptions);
+        } catch (error) {
+            // If the primary endpoint briefly returns 5xx (e.g. reverse proxy
+            // restart), try the legacy alias before surfacing the failure.
+            if (error && Number.isFinite(Number(error.status)) && Number(error.status) >= 500) {
+                return fetchJSONWithRetry('/api/scheduler/status', {
+                    cache: 'no-store'
+                }, {
+                    ...retryOptions,
+                    maxAttempts: 2
+                });
+            }
+            throw error;
+        }
     }
 
     async function trigger() {

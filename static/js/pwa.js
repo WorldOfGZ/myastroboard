@@ -5,6 +5,16 @@
 
     let deferredInstallPrompt = null;
 
+    const PWA_FALLBACK_MESSAGES = {
+        'pwa.install_prompt_unavailable': 'Install prompt is not currently available in this browser.',
+        'pwa.install_dismissed': 'Install dismissed. You can install later from the browser menu.',
+        'pwa.install_ready': 'Install MyAstroBoard for faster launch and offline access.',
+        'pwa.install_success': 'MyAstroBoard installed successfully.',
+        'pwa.running_installed': 'MyAstroBoard is running as an installed app.',
+        'pwa.ios_add_to_home': 'On iOS, use Share -> Add to Home Screen to install this app.',
+        'pwa.offline_support_unavailable': 'Background offline support is unavailable right now.',
+    };
+
     function getInstallButtons() {
         return Array.from(document.querySelectorAll('[data-pwa-install]'));
     }
@@ -29,7 +39,17 @@
     }
 
     function t(key) {
-        return (typeof i18n !== 'undefined' && i18n && typeof i18n.t === 'function') ? i18n.t(key) : key;
+        if (typeof i18n !== 'undefined' && i18n && typeof i18n.t === 'function') {
+            try {
+                if (typeof i18n.has === 'function' && i18n.has(key)) {
+                    return i18n.t(key);
+                }
+                return PWA_FALLBACK_MESSAGES[key] || key;
+            } catch (_) {
+                return PWA_FALLBACK_MESSAGES[key] || key;
+            }
+        }
+        return PWA_FALLBACK_MESSAGES[key] || key;
     }
 
     function setInstallStatusKey(key) {
@@ -91,22 +111,29 @@
             let appVersion = appVersionMeta ? String(appVersionMeta.content || '').trim() : '';
 
             if (!appVersion) {
+                appVersion = String(localStorage.getItem('myastroboard_app_version') || '').trim();
+            }
+
+            if (!appVersion) {
                 try {
                     const response = await fetch('/api/version', { cache: 'no-store' });
                     if (response.ok) {
                         const payload = await response.json();
                         appVersion = String(payload?.version || '').trim();
+                        if (appVersion) {
+                            localStorage.setItem('myastroboard_app_version', appVersion);
+                        }
                     }
                 } catch (_) {
                     // Keep fallback below if version endpoint is unavailable.
                 }
             }
 
-            if (!appVersion) {
-                appVersion = 'dev';
-            }
+            const serviceWorkerUrl = appVersion
+                ? `/sw.js?v=${encodeURIComponent(appVersion)}`
+                : '/sw.js';
 
-            await navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(appVersion)}`, {
+            await navigator.serviceWorker.register(serviceWorkerUrl, {
                 scope: '/',
                 updateViaCache: 'none'
             });

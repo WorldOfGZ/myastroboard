@@ -19,6 +19,7 @@ from skytonight_storage import (
     load_scheduler_status,
     save_scheduler_status,
 )
+from skytonight_calculator import load_calculation_results
 from sun_phases import SunService
 
 
@@ -165,6 +166,50 @@ class SkyTonightScheduler:
                 self.last_run = datetime.fromisoformat(last_run_text)
             except ValueError:
                 self.last_run = None
+        stored_last_error = stored_status.get('last_error')
+        if isinstance(stored_last_error, str) and stored_last_error.strip():
+            self.last_error = stored_last_error
+        elif stored_last_error is None:
+            self.last_error = None
+        else:
+            self.last_error = str(stored_last_error)
+
+        stored_last_result = stored_status.get('last_result')
+        if isinstance(stored_last_result, dict):
+            self.last_result = stored_last_result
+        elif stored_last_result:
+            self.last_result = {'result': stored_last_result}
+
+        stored_last_duration = stored_status.get('progress', {}).get('last_execution_duration_seconds')
+        try:
+            if stored_last_duration is not None:
+                self.last_execution_duration_seconds = int(stored_last_duration)
+        except (TypeError, ValueError):
+            self.last_execution_duration_seconds = None
+
+        if not self.last_result:
+            # Defensive backfill for workers restarted with an older/incomplete status file.
+            try:
+                calc_cache = load_calculation_results()
+                metadata = calc_cache.get('metadata', {}) if isinstance(calc_cache, dict) else {}
+                night_start = metadata.get('night_start')
+                night_end = metadata.get('night_end')
+                counts = metadata.get('counts', {}) if isinstance(metadata, dict) else {}
+                if night_start or night_end or counts:
+                    self.last_result = {
+                        'calculation': {
+                            'counts': {
+                                'deep_sky': counts.get('deep_sky', 0),
+                                'bodies': counts.get('bodies', 0),
+                                'comets': counts.get('comets', 0),
+                            },
+                            'night_start': night_start,
+                            'night_end': night_end,
+                            'night_found': bool(night_start and night_end),
+                        },
+                    }
+            except Exception:
+                pass
         next_run_text = str(stored_status.get('next_run') or '').strip()
         if next_run_text:
             try:
