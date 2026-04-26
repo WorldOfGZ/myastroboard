@@ -514,14 +514,39 @@ async function checkForUpdates() {
             timeoutMs: 15000
         });
         
-        // Show notification if update is available
-        if (updateInfo.update_available && updateInfo.release_url) {
+        // Defensive guard: never show a downgrade/stale notification.
+        const currentVersion = String(updateInfo.current_version || '').trim();
+        const latestVersion = String(updateInfo.latest_version || '').trim();
+        const isActuallyNewer = isVersionNewer(currentVersion, latestVersion);
+
+        // Show notification if update is available and semver confirms it.
+        if (updateInfo.update_available && updateInfo.release_url && isActuallyNewer) {
             showUpdateNotification(updateInfo.release_url, updateInfo.latest_version);
         }
     } catch (error) {
         // Silently fail - update checks are not critical
         console.debug('Update check failed (non-critical):', error);
     }
+}
+
+function isVersionNewer(currentVersion, latestVersion) {
+    const normalize = (value) => String(value || '').replace(/^v/i, '').trim();
+    const parseParts = (value) => normalize(value)
+        .split('.')
+        .map((part) => parseInt(part, 10))
+        .map((num) => (Number.isFinite(num) ? num : 0));
+
+    const currentParts = parseParts(currentVersion);
+    const latestParts = parseParts(latestVersion);
+    const maxLen = Math.max(currentParts.length, latestParts.length);
+
+    for (let i = 0; i < maxLen; i++) {
+        const c = currentParts[i] ?? 0;
+        const l = latestParts[i] ?? 0;
+        if (l > c) return true;
+        if (l < c) return false;
+    }
+    return false;
 }
 
 function showUpdateNotification(releaseUrl, version) {

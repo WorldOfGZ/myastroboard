@@ -53,18 +53,26 @@ def check_for_updates():
     """
     # Sync from shared cache first (for multi-worker support)
     cache_store.sync_cache_from_shared("version_update", cache_store._version_update_cache)
+
+    current_version = get_repo_version().strip()
     
     # Check cache first
     if cache_store.is_cache_valid(cache_store._version_update_cache, VERSION_UPDATE_CACHE_TTL):
-        logger.debug("Returning cached version update information")
-        return cache_store._version_update_cache["data"]
+        cached_data = cache_store._version_update_cache.get("data") or {}
+        cached_current = str(cached_data.get("current_version") or "").strip()
+        if cached_current == current_version:
+            logger.debug("Returning cached version update information")
+            return cached_data
+
+        logger.info(
+            "Installed version changed (%s -> %s), invalidating version-update cache",
+            cached_current or "unknown",
+            current_version,
+        )
     
     # Cache expired or empty, fetch from GitHub
     try:
         logger.info("Checking for updates from GitHub...")
-        
-        # Get current version
-        current_version = get_repo_version().strip()
         
         # Fetch latest release from GitHub
         response = requests.get(

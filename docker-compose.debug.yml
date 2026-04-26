@@ -10,6 +10,7 @@ services:
       - ./static:/app/static
       - ./templates:/app/templates
       - ./backend:/app/backend
+      - ./VERSION:/app/VERSION:ro
     
     environment:
       FLASK_DEBUG: 1
