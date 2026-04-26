@@ -25,7 +25,9 @@ const SkyTonightScheduler = (() => {
     };
 
     async function fetchStatus() {
-        return fetchJSONWithRetry('/api/skytonight/scheduler/status', {}, {
+        return fetchJSONWithRetry('/api/skytonight/scheduler/status', {
+            cache: 'no-store'
+        }, {
             maxAttempts: 3,
             baseDelayMs: 1000,
             maxDelayMs: 5000,
@@ -49,7 +51,14 @@ const SkyTonightScheduler = (() => {
                 throw new Error('Trigger failed');
             }
 
-            startPolling(2000);
+            // Show immediate feedback while worker picks up the manual trigger.
+            showBanner();
+            els.progress().textContent = i18n.t('scheduler.status_running');
+            els.detail().textContent = i18n.t('scheduler.processing_catalogues');
+
+            // Poll right away, then continue on a faster cadence for manual runs.
+            await poll();
+            startPolling(2000, true);
         } catch (e) {
             console.error(e);
             resetUI();
@@ -136,8 +145,13 @@ const SkyTonightScheduler = (() => {
         }
     }
 
-    function startPolling(interval) {
-        if (state.pollInterval) return;
+    function startPolling(interval, forceRestart = false) {
+        if (state.pollInterval) {
+            if (!forceRestart) {
+                return;
+            }
+            stopPolling();
+        }
         state.pollInterval = setInterval(poll, interval);
     }
 
