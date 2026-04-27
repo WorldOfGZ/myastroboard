@@ -84,6 +84,9 @@ jobs:
             io.artifacthub.package.keywords=astronomy,astrophotography,self-hosted,dashboard,skytonight
             io.artifacthub.package.maintainers=[{"name":"WorldOfGZ","email":"myastroboard@outlook.com"}]
             io.artifacthub.package.license=AGPL-3.0
+          annotations: |
+            manifest:org.opencontainers.image.description=Self-hosted astronomy dashboard for observation planning and astrophotography
+            manifest:org.opencontainers.image.title=MyAstroBoard
 
       - name: Deduplicate tags
         id: dedup_tags
