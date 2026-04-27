@@ -42,14 +42,14 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 FROM python:3.13-slim AS production
 
 # Labels
-LABEL maintainer="Gloup" \
-      org.opencontainers.image.title="MyAstroBoard" \
-      org.opencontainers.image.description="Self-hosted astronomy dashboard for observation planning and astrophotography" \
-      org.opencontainers.image.url="https://github.com/WorldOfGZ/myastroboard" \
-      org.opencontainers.image.source="https://github.com/WorldOfGZ/myastroboard" \
-      org.opencontainers.image.licenses="AGPL-3.0" \
-      org.opencontainers.image.vendor="WorldOfGZ" \
-      org.opencontainers.image.documentation="https://github.com/WorldOfGZ/myastroboard/tree/main/docs"
+LABEL maintainer="Gloup"
+LABEL org.opencontainers.image.title="MyAstroBoard"
+LABEL org.opencontainers.image.description="Self-hosted astronomy dashboard for observation planning and astrophotography"
+LABEL org.opencontainers.image.url="https://github.com/WorldOfGZ/myastroboard"
+LABEL org.opencontainers.image.source="https://github.com/WorldOfGZ/myastroboard"
+LABEL org.opencontainers.image.licenses="AGPL-3.0"
+LABEL org.opencontainers.image.vendor="WorldOfGZ"
+LABEL org.opencontainers.image.documentation="https://github.com/WorldOfGZ/myastroboard/tree/main/docs"
 
 # Environment
 ENV PYTHONDONTWRITEBYTECODE=1 \
