@@ -1,0 +1,47 @@
+services:
+  myastroboard:
+    image: ghcr.io/worldofgz/myastroboard:latest
+    pull_policy: always
+    container_name: myastroboard
+
+    ports:
+      - "5000:5000"
+
+    volumes:
+      - myastroboard_data:/app/data
+
+    environment:
+      # Timezone
+      - TZ=Europe/Paris
+
+      # Flask
+      - FLASK_DEBUG=0
+
+      # Security - Flask secret key for session management
+      # Generate: python3 -c "import secrets; print(secrets.token_hex(32))"
+      - SECRET_KEY=your-secret-key-here-replace-with-random-64-character-hex-string
+
+      # Reverse Proxy Configuration (NGINX Proxy Manager, Traefik, etc.)
+      # Set to true if behind a reverse proxy with HTTPS termination
+      - TRUST_PROXY_HEADERS=true
+
+      # Session cookie security
+      # Set to "true" when using HTTPS
+      - SESSION_COOKIE_SECURE=false
+
+      # App
+      - DATA_DIR=/app/data
+
+    restart: unless-stopped
+
+    privileged: false
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  myastroboard_data:
+    driver: local
