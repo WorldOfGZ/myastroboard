@@ -114,7 +114,8 @@ function renderSeeingForecastRows(forecast, timezone) {
     thead.appendChild(trh);
 
     const tbody = document.createElement('tbody');
-    (forecast || []).forEach((point) => {
+    const now = Date.now();
+    (forecast || []).filter(point => new Date(point.time).getTime() >= now).forEach((point) => {
         const tr = document.createElement('tr');
 
         const tdTime = document.createElement('td');

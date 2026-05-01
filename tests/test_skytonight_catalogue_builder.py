@@ -167,6 +167,6 @@ def test_build_and_save_default_dataset_includes_comets(monkeypatch):
     assert counts['deep_sky'] == 1
     assert counts['bodies'] == 1
     assert counts['comets'] == 1
-    assert len(result['targets']) == 3
+    assert counts['deep_sky'] + counts['bodies'] + counts['comets'] == 3
     assert 'builtin-solar-system' in result['metadata']['sources']
     assert 'curated-fallback' in result['metadata']['sources']

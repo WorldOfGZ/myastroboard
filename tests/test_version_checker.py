@@ -28,6 +28,7 @@ def test_check_for_updates_returns_cached_data(monkeypatch):
     module.cache_store._version_update_cache = {"timestamp": 100, "data": cached}
 
     monkeypatch.setattr(module.cache_store, "is_cache_valid", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(module, "get_repo_version", lambda: "1.0.0")
     monkeypatch.setattr(module.requests, "get", lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("should not fetch")))
 
     result = module.check_for_updates()

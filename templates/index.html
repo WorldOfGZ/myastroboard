@@ -1598,6 +1598,35 @@
                     </div>
                 </div>
 
+                <!-- Cache Jobs Metrics -->
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h3>
+                        <i class="bi bi-database-gear text-info icon-inline" aria-hidden="true"></i>
+                        <span data-i18n="metrics.cache_jobs_title">Cache Jobs</span>
+                    </h3>
+                    <div class="alert alert-secondary py-2 mb-2 small" role="alert" data-i18n="metrics.cache_jobs_info">
+                        Each cache job has its own TTL. The scheduler checks every 25 min but only runs jobs whose TTL has expired.
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0" id="cache-jobs-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col"><span data-i18n="metrics.cache_job_name">Job</span></th>
+                                    <th scope="col"><span data-i18n="metrics.cache_job_ttl">TTL</span></th>
+                                    <th scope="col"><span data-i18n="metrics.cache_job_status">Status</span></th>
+                                    <th scope="col"><span data-i18n="metrics.cache_job_last_run">Last run</span></th>
+                                    <th scope="col"><span data-i18n="metrics.cache_job_duration">Duration</span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="cache-jobs-table-body">
+                                <tr>
+                                    <td colspan="5" class="text-muted" data-i18n="metrics.cache_jobs_loading">Loading cache metrics…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- System Info -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h3>

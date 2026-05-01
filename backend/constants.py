@@ -36,7 +36,25 @@ SKYTONIGHT_SCHEDULER_LOCK_FILE = os.path.join(SKYTONIGHT_RUNTIME_DIR, 'scheduler
 URL_OPENMETEO = "https://api.open-meteo.com/v1/forecast"
 
 # Cache configuration
-CACHE_TTL = 1800  # seconds
+CACHE_TTL = 1800  # seconds (legacy default, prefer per-job TTLs below)
+
+# Per-job cache TTLs — each cache is refreshed only when its own TTL expires.
+# The scheduler polls every ~25 min but only runs a job if its TTL has elapsed.
+CACHE_TTL_MOON_REPORT         = 3600    # 1 hour  — moon phase changes gradually
+CACHE_TTL_DARK_WINDOW         = 3600    # 1 hour  — derived from moon report
+CACHE_TTL_MOON_PLANNER        = 7200    # 2 hours — 7-night forecast, daily precision
+CACHE_TTL_SUN_REPORT          = 3600    # 1 hour  — sunrise/sunset changes slowly
+CACHE_TTL_BEST_WINDOW         = 3600    # 1 hour  — observation window for tonight
+CACHE_TTL_SOLAR_ECLIPSE       = 86400   # 24 hours — next event is months away
+CACHE_TTL_LUNAR_ECLIPSE       = 86400   # 24 hours — next event is months away
+CACHE_TTL_HORIZON_GRAPH       = 3600    # 1 hour  — daily arc of sun/moon
+CACHE_TTL_AURORA              = 3600    # 1 hour  — geomagnetic forecast updates hourly
+CACHE_TTL_ISS_PASSES          = 21600   # 6 hours — 20-day window, stable predictions
+CACHE_TTL_PLANETARY_EVENTS    = 86400   # 24 hours — 365-day planetary forecast
+CACHE_TTL_SPECIAL_PHENOMENA   = 86400   # 24 hours — annual events (equinoxes, etc.)
+CACHE_TTL_SOLAR_SYSTEM_EVENTS = 86400   # 24 hours — annual events (meteor showers, etc.)
+CACHE_TTL_SIDEREAL_TIME       = 3600    # 1 hour  — hourly precision is sufficient
+CACHE_TTL_SEEING_FORECAST     = 21600   # 6 hours — 7Timer API resolution
 
 # Weather API configuration
 WEATHER_CACHE_TTL = 3600  # seconds (1 hour)
