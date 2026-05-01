@@ -25,6 +25,8 @@ jobs:
   validate-i18n:
     name: i18n consistency checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository

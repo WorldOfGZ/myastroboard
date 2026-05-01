@@ -57,7 +57,7 @@ def parse_backend_languages(source: str) -> Set[str]:
     )
     if not match:
         return set()
-    return set(re.findall(r"'([a-z]{2,3})':", match.group(1)))
+    return set(re.findall(r"['\"]([a-z]{2,3})['\"]\s*:", match.group(1)))
 
 
 def parse_html_supported_langs(html: str) -> Set[str]:
@@ -65,12 +65,12 @@ def parse_html_supported_langs(html: str) -> Set[str]:
     match = re.search(r"var\s+supported\s*=\s*\[([^\]]+)\]", html)
     if not match:
         return set()
-    return set(re.findall(r"'([a-z]{2,3})'", match.group(1)))
+    return set(re.findall(r"['\"]([a-z]{2,3})['\"]", match.group(1)))
 
 
 def parse_html_selector_langs(html: str) -> Set[str]:
     """Extract language <option> values from the language selector in index.html."""
-    return set(re.findall(r'<option\s+value="([a-z]{2,3})">', html))
+    return set(re.findall(r"<option[^>]*value=['\"]([a-z]{2,3})['\"]", html))
 
 
 def main() -> int:
