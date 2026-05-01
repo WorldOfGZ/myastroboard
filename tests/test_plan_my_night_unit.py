@@ -446,7 +446,7 @@ class TestSaveAndLoadUserPlan:
 
     def test_save_and_load_plan(self, temp_plan_dir):
         """Test saving and loading a plan."""
-        user_id = "test_user"
+        user_id = "11111111-1111-4111-8111-111111111111"
         payload = {
             "user_id": user_id,
             "username": "testuser",
@@ -470,7 +470,7 @@ class TestSaveAndLoadUserPlan:
 
     def test_load_nonexistent_plan(self, temp_plan_dir):
         """Test loading plan that doesn't exist returns default."""
-        user_id = "nonexistent_user"
+        user_id = "22222222-2222-4222-8222-222222222222"
         
         loaded = load_user_plan(user_id)
         
@@ -479,7 +479,7 @@ class TestSaveAndLoadUserPlan:
 
     def test_save_invalid_plan_returns_false(self, temp_plan_dir):
         """Test that saving invalid plan returns False."""
-        user_id = "test_user"
+        user_id = "11111111-1111-4111-8111-111111111111"
         payload = {
             # Missing user_id - should be invalid
             "plan": {
@@ -536,7 +536,7 @@ class TestConcurrency:
 
     def test_concurrent_saves_same_user(self, temp_plan_dir):
         """Test concurrent saves to same user plan."""
-        user_id = "concurrent_user"
+        user_id = "33333333-3333-4333-8333-333333333333"
         errors = []
         
         def save_plan(index):
@@ -570,7 +570,7 @@ class TestConcurrency:
         
         def save_plan(user_num):
             try:
-                user_id = f"user_{user_num}"
+                user_id = f"0000000{user_num}-0000-4000-8000-000000000000"
                 payload = {
                     "user_id": user_id,
                     "username": f"user{user_num}",
@@ -600,7 +600,7 @@ class TestPlanMutationsAndTimeline:
 
     def test_create_or_add_target_invalid_window(self, temp_plan_dir):
         ok, reason, payload, target = create_or_add_target(
-            user_id="u1",
+            user_id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             username="user",
             item_data={"name": "M31"},
             catalogue="Messier",
@@ -613,7 +613,7 @@ class TestPlanMutationsAndTimeline:
         assert target is None
 
     def test_create_or_add_target_previous_plan_locked(self, temp_plan_dir):
-        user_id = "u2"
+        user_id = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
         now = datetime.now().astimezone()
         payload = {
             "user_id": user_id,
@@ -639,7 +639,7 @@ class TestPlanMutationsAndTimeline:
         assert reason == "previous_plan_locked"
 
     def test_remove_and_update_and_reorder_target(self, temp_plan_dir):
-        user_id = "u3"
+        user_id = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
         payload = {
             "user_id": user_id,
             "username": "user",
@@ -663,7 +663,7 @@ class TestPlanMutationsAndTimeline:
         assert remove_target(user_id, "user", "a") is True
 
     def test_clear_plan_and_timeline_none(self, temp_plan_dir):
-        user_id = "u4"
+        user_id = "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
         payload = {
             "user_id": user_id,
             "username": "user",

@@ -33,6 +33,26 @@ def _get_user_plan_lock(user_id: str) -> threading.Lock:
 
 PLAN_DIR = os.path.join(DATA_DIR, 'projects')
 
+
+def _safe_plan_path(path: str) -> str:
+    """Resolve *path* and verify it lives inside PLAN_DIR.
+
+    This is the canonical sanitizer for path expressions in this module.
+    CodeQL (CWE-022) requires the realpath check to occur at the call site of
+    each file operation; callers must use the *returned* resolved path.
+
+    PLAN_DIR is read at call time (not cached) so that test fixtures that
+    monkeypatch plan_my_night.PLAN_DIR are honoured correctly.
+
+    Raises ValueError if the path would escape the plan directory.
+    """
+    plan_dir_real = os.path.realpath(PLAN_DIR)
+    resolved = os.path.realpath(path)
+    if not resolved.startswith(plan_dir_real + os.sep):
+        raise ValueError(f'Path outside plan directory: {path!r}')
+    return resolved
+
+
 _TELESCOPE_ID_DEFAULT = 'default'
 
 # All system-generated IDs are UUID v4 strings produced by uuid.uuid4()
@@ -100,12 +120,9 @@ def get_user_plan_file(user_id: str, telescope_id: Optional[str] = None) -> str:
         path = os.path.join(PLAN_DIR, f'{user_id}_plan_my_night.json')
     else:
         path = os.path.join(PLAN_DIR, f'{user_id}_plan_{tid}.json')
-    # Containment guard: ensure the resolved path stays inside PLAN_DIR
-    plan_dir_real = os.path.realpath(PLAN_DIR)
-    resolved = os.path.realpath(path)
-    if not resolved.startswith(plan_dir_real + os.sep):
-        raise ValueError(f'Path traversal detected for user_id={user_id!r}')
-    return path
+    # _safe_plan_path resolves symlinks and verifies containment; returns the
+    # realpath so downstream callers always operate on a canonical, safe path.
+    return _safe_plan_path(path)
 
 
 def get_all_plan_files(user_id: str) -> list:
@@ -114,12 +131,13 @@ def get_all_plan_files(user_id: str) -> list:
         return []
     ensure_plan_directory()
     result = []
-    plan_dir_real = os.path.realpath(PLAN_DIR)
     for fname in os.listdir(PLAN_DIR):
         if fname.startswith(f'{user_id}_plan') and fname.endswith('.json') and '.corrupted.' not in fname and '.backup' not in fname and fname != f'{user_id}_plan_my_night.json.tmp':
-            resolved = os.path.realpath(os.path.join(PLAN_DIR, fname))
-            if resolved.startswith(plan_dir_real + os.sep):
-                result.append(os.path.join(PLAN_DIR, fname))
+            try:
+                resolved = _safe_plan_path(os.path.join(PLAN_DIR, fname))
+                result.append(resolved)
+            except ValueError:
+                pass
     return result
 
 
@@ -128,11 +146,9 @@ def delete_plan_for_telescope(user_id: str, telescope_id: str) -> bool:
     if not _is_valid_user_id(user_id) or not _is_valid_telescope_id(telescope_id):
         logger.warning('delete_plan_for_telescope: invalid user_id or telescope_id, aborting')
         return False
-    file_path = get_user_plan_file(user_id, telescope_id)
-    # Containment guard: resolved path must stay inside PLAN_DIR
-    plan_dir_real = os.path.realpath(PLAN_DIR)
-    resolved = os.path.realpath(file_path)
-    if not resolved.startswith(plan_dir_real + os.sep):
+    try:
+        resolved = get_user_plan_file(user_id, telescope_id)
+    except ValueError:
         logger.warning('delete_plan_for_telescope: path traversal detected, aborting')
         return False
     try:
@@ -156,7 +172,10 @@ def _default_payload(user_id: str, username: Optional[str] = None) -> Dict:
 
 
 def load_user_plan(user_id: str, username: Optional[str] = None, telescope_id: Optional[str] = None) -> Dict:
-    file_path = get_user_plan_file(user_id, telescope_id)
+    # get_user_plan_file already calls _safe_plan_path and returns the resolved
+    # path.  Re-applying _safe_plan_path here makes the sanitization explicit at
+    # the call site, which is required for CodeQL to recognise the barrier.
+    file_path = _safe_plan_path(get_user_plan_file(user_id, telescope_id))
     if not os.path.exists(file_path):
         return _default_payload(user_id, username)
 
@@ -165,7 +184,7 @@ def load_user_plan(user_id: str, username: Optional[str] = None, telescope_id: O
             payload = json.load(file_obj)
     except json.JSONDecodeError as error:
         logger.error(f'Error loading plan for user {user_id}: {error}')
-        backup_path = file_path + '.corrupted.' + datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_path = _safe_plan_path(file_path + '.corrupted.' + datetime.now().strftime('%Y%m%d_%H%M%S'))
         try:
             shutil.copy2(file_path, backup_path)
         except Exception as backup_error:
@@ -194,7 +213,8 @@ def load_user_plan(user_id: str, username: Optional[str] = None, telescope_id: O
 
 def validate_plan_json(file_path: str) -> Tuple[bool, str]:
     try:
-        with open(file_path, 'r', encoding='utf-8') as file_obj:
+        safe_path = _safe_plan_path(file_path)
+        with open(safe_path, 'r', encoding='utf-8') as file_obj:
             payload = json.load(file_obj)
 
         if not isinstance(payload, dict):
@@ -241,6 +261,16 @@ def _save_user_plan_locked(
     temp_path: str,
     backup_path: str,
 ) -> bool:
+    # Validate all three paths at the entry point so every file operation in
+    # this function operates on a sanitized, realpath-resolved path.
+    try:
+        file_path = _safe_plan_path(file_path)
+        temp_path = _safe_plan_path(temp_path)
+        backup_path = _safe_plan_path(backup_path)
+    except ValueError as ve:
+        logger.error(f'_save_user_plan_locked: path validation failed for user {user_id}: {ve}')
+        return False
+
     backup_created = False
 
     try:
