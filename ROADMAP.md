@@ -39,11 +39,6 @@ Example which could be implemented in subtabs:
 **Objective: Real PWA application for mobile**
 - PWA notifications for improving conditions (weather, ... ?)
 
-### ISS Passes
-Add a card with leaflet to see in realtime where the ISS is, and with the route prev/next
-Add the card map between card with next pass, and table with all passes
-ISS must be vertical/horizontal central in the map. Remmber that is an app, and it can be multiple size and resized
-
 ### Ideas in raw
 2	Equipment FOV matching      Medium      Very high — practical astrophotography fit
 3	Bortle/SQM in AstroScore    Low	        High — corrects score_object for light pollution
