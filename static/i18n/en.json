@@ -1075,7 +1075,7 @@
     "cache_status_valid": "Valid",
     "cache_status_stale": "Stale",
     "cache_status_failed": "Failed",
-    "cache_status_unknown": "–"
+    "cache_status_unknown": "-"
   },
 
   "equipment": {
@@ -1569,5 +1569,25 @@
     "checking_connection": "Checking connection...",
     "still_offline": "Still offline. Please verify your network and try again.",
     "auto_retry_in": "Automatic retry in {seconds}s"
+  },
+
+  "object_info": {
+    "title": "Object Information",
+    "loading": "Loading object data...",
+    "not_found": "Object not found",
+    "not_found_detail": "No data was found for \"{{identifier}}\" in the SIMBAD database.",
+    "invalid_identifier": "Invalid object identifier",
+    "type_label": "Type",
+    "coordinates_label": "Coordinates",
+    "aliases_label": "Also known as",
+    "description_label": "Description",
+    "image_label": "Image",
+    "image_credit": "Image credit",
+    "image_unavailable": "No image available",
+    "description_unavailable": "No description available",
+    "source_simbad": "Source: SIMBAD (CDS, Strasbourg)",
+    "source_wikipedia": "Description: Wikipedia",
+    "source_skyview": "Image: DSS2 / SkyView (NASA GSFC)",
+    "error_loading": "Failed to load object information."
   }
 }

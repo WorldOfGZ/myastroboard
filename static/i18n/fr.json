@@ -1076,7 +1076,7 @@
     "cache_status_valid": "Valide",
     "cache_status_stale": "Expiré",
     "cache_status_failed": "Échec",
-    "cache_status_unknown": "–"
+    "cache_status_unknown": "-"
   },
 
   "equipment": {
@@ -1570,5 +1570,25 @@
     "checking_connection": "Vérification de la connexion...",
     "still_offline": "Toujours hors ligne. Vérifiez votre connexion puis réessayez.",
     "auto_retry_in": "Nouvelle tentative automatique dans {seconds}s"
+  },
+
+  "object_info": {
+    "title": "Informations sur l'objet",
+    "loading": "Chargement des données...",
+    "not_found": "Objet introuvable",
+    "not_found_detail": "Aucune donnée trouvée pour \"{{identifier}}\" dans la base SIMBAD.",
+    "invalid_identifier": "Identifiant d'objet invalide",
+    "type_label": "Type",
+    "coordinates_label": "Coordonnées",
+    "aliases_label": "Aussi connu sous",
+    "description_label": "Description",
+    "image_label": "Image",
+    "image_credit": "Crédit image",
+    "image_unavailable": "Aucune image disponible",
+    "description_unavailable": "Aucune description disponible",
+    "source_simbad": "Source : SIMBAD (CDS, Strasbourg)",
+    "source_wikipedia": "Description : Wikipédia",
+    "source_skyview": "Image : DSS2 / SkyView (NASA GSFC)",
+    "error_loading": "Impossible de charger les informations sur l'objet."
   }
 }

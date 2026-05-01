@@ -952,6 +952,7 @@ async function showAstrodexItemDetail(itemId) {
         keyboard: true
     });
     bs_modal.show();
+
 }
 
 function renderCatalogueAliasesSection(item) {
@@ -1621,12 +1622,12 @@ function showPictureSlideshow(itemId) {
             </div>
         `;
         
-        // Update the modal content
-        const modalBody = document.getElementById('modal_full_close_body');
-        if (modalBody) {
-            DOMUtils.clear(modalBody);
+        // Update only the slideshow sub-container so the info card below is preserved
+        const slideshowWrapper = document.getElementById('slideshow-content-wrapper');
+        if (slideshowWrapper) {
+            DOMUtils.clear(slideshowWrapper);
             const fragment = document.createRange().createContextualFragment(modalContent);
-            modalBody.appendChild(fragment);
+            slideshowWrapper.appendChild(fragment);
             
             // Re-attach event listeners to navigation buttons
             attachNavigationListeners();
@@ -1703,9 +1704,22 @@ function showPictureSlideshow(itemId) {
         document.addEventListener('keydown', keyHandler);
     }
     
-    // Create modal using existing Bootstrap structure
+    // Create modal using existing Bootstrap structure — body has two stable sub-containers:
+    // #slideshow-content-wrapper (replaced on navigation) and #slideshow-object-info-wrapper (persistent)
     createModal(`${escapeHtml(item.name)} - ${i18n.t('astrodex.photos')}`, '', 'full');
-    
+
+    // Set up the two-part body structure before first render
+    const modalBodyInit = document.getElementById('modal_full_close_body');
+    if (modalBodyInit) {
+        DOMUtils.clear(modalBodyInit);
+        const slideshowDiv = document.createElement('div');
+        slideshowDiv.id = 'slideshow-content-wrapper';
+        const infoDiv = document.createElement('div');
+        infoDiv.id = 'slideshow-object-info-wrapper';
+        modalBodyInit.appendChild(slideshowDiv);
+        modalBodyInit.appendChild(infoDiv);
+    }
+
     // Show the modal
     bs_modal = new bootstrap.Modal('#modal_full_close', {
         backdrop: 'static',
@@ -1729,6 +1743,14 @@ function showPictureSlideshow(itemId) {
     updateModalContent();
     setupKeyboardNavigation();
     bs_modal.show();
+
+    // Async: inject object-info card into the stable info container
+    if (typeof injectObjectInfoIntoContainer === 'function' && item.name) {
+        const infoContainer = document.getElementById('slideshow-object-info-wrapper');
+        if (infoContainer) {
+            injectObjectInfoIntoContainer(item.name, infoContainer);
+        }
+    }
 }
 
 // ============================================

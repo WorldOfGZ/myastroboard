@@ -1,7 +1,7 @@
 {
   "common": {
     "title": "MyAstroBoard",
-    "title_html": "MyAstroBoard – Planungstool für astronomische Beobachtungen",
+    "title_html": "MyAstroBoard - Planungstool für astronomische Beobachtungen",
     "slogan": "Planungstool für astronomische Beobachtungen",
     "loading": "Laden...",
     "error": "Fehler",
@@ -115,7 +115,7 @@
     "low_cloud_impact": "Niedrig",
     "chart_cloud_impact": "Auswirkungen (%)",
     "chart_dew_tracking_title": "Taurisiko und Tracking-Stabilität",
-    "score_100_label": "Punktzahl (0–100 %)",
+    "score_100_label": "Punktzahl (0-100 %)",
     "no_horizon_data": "Keine Horizontdaten verfügbar",
     "error_loading_horizon_graph": "Das Horizontdiagramm konnte nicht geladen werden",
     "horizon_badge": "Horizont",
@@ -194,11 +194,11 @@
     "direction": "Richtung:",
     "astrophotography_score_hint": "Bewerten Sie basierend auf Typ, Sichtbarkeit, Höhe und Dauer",
     "eclipse_classification": {
-      "excellent": "Ausgezeichnet – außergewöhnliche Gelegenheit",
+      "excellent": "Ausgezeichnet - außergewöhnliche Gelegenheit",
       "very_good": "Sehr gut - Sehr empfehlenswert",
-      "good": "Gut – Sehenswert",
-      "moderate": "Mäßiges Interesse – Beobachtbar",
-      "low": "Geringes Interesse – Kaum sichtbar"
+      "good": "Gut - Sehenswert",
+      "moderate": "Mäßiges Interesse - Beobachtbar",
+      "low": "Geringes Interesse - Kaum sichtbar"
     },
     "eclipse_type": {
       "total": "Gesamt",
@@ -237,11 +237,11 @@
     "direction": "Richtung:",
     "astrophotography_score_hint": "Bewerten Sie basierend auf Typ, Sichtbarkeit, Höhe und Dauer",
     "eclipse_classification": {
-      "excellent": "Ausgezeichnet – außergewöhnliche Gelegenheit",
+      "excellent": "Ausgezeichnet - außergewöhnliche Gelegenheit",
       "very_good": "Sehr gut - Sehr empfehlenswert",
-      "good": "Gut – Sehenswert",
-      "moderate": "Mäßiges Interesse – Beobachtbar",
-      "low": "Geringes Interesse – Kaum sichtbar"
+      "good": "Gut - Sehenswert",
+      "moderate": "Mäßiges Interesse - Beobachtbar",
+      "low": "Geringes Interesse - Kaum sichtbar"
     },
     "failed_to_load_solar_eclipse_data": "Daten zur Sonnenfinsternis konnten nicht geladen werden",
     "eclipse_chart_title": "Höhe vs. Zeit",
@@ -294,7 +294,7 @@
     "location": "Standort:",
     "expected_colors": "Erwartete Farben:",
     "colors": {
-      "green": "Grün (am häufigsten, 100–300 km Höhe)",
+      "green": "Grün (am häufigsten, 100-300 km Höhe)",
       "red": "Rot (große Höhe, >300 km, mit starker Aktivität)",
       "blue_purple": "Blau/Lila (Stickstoff, selten, bei schweren Stürmen)",
       "pink": "Pink/Magenta (große Höhe, bei starker Aktivität)"
@@ -314,7 +314,7 @@
     "tips": {
       "1": "Um eine optimale Sicht zu erhalten, reisen Sie fernab der Lichtverschmutzung (Städte).",
       "2": "Schauen Sie während des empfohlenen Zeitfensters in Richtung Nordhorizont",
-      "3": "Ziehen Sie sich warm an – bei der Polarlichtjagd kann es erforderlich sein, draußen in der Kälte zu warten",
+      "3": "Ziehen Sie sich warm an - bei der Polarlichtjagd kann es erforderlich sein, draußen in der Kälte zu warten",
       "4": "Ein höherer Kp-Index bedeutet, dass Polarlichter weiter südlich sichtbar sein könnten",
       "5": "Grünes Polarlicht kommt am häufigsten vor, rotes Polarlicht entsteht durch Sauerstoff in großer Höhe",
       "6": "Bessere Sicht in klaren, mondlosen Nächten"
@@ -494,7 +494,7 @@
     "moon_sep": "Mondabstand (°):",
     "moon_sep_info": "Mindestabstand zum Mond in Grad (wird überschrieben, wenn „Mondbeleuchtung verwenden“ aktiviert ist)",
     "time_threshold": "Beobachtbarer Zeitschwellenwert:",
-    "time_threshold_info": "Der Anteil der Dunkelheit am Objekt muss beobachtbar sein (0,0–1,0, z. B. 0,5 = 50 %).",
+    "time_threshold_info": "Der Anteil der Dunkelheit am Objekt muss beobachtbar sein (0,0-1,0, z. B. 0,5 = 50 %).",
     "max_targets": "Maximale Ziele im Schwellenwert:",
     "max_targets_info": "Maximale Anzahl zu berechnender Ziele (empfohlen: ~45 für MQTT, andernfalls ~60)",
     "use_moon_illumination": "Verwenden Sie Mondbeleuchtung",
@@ -503,7 +503,7 @@
     "north_ccw_info": "Azimut-Anzeige einstellen: gegen den Uhrzeigersinn (Norden oben, Osten links) oder im Uhrzeigersinn",
     "bucket_list": "Bucket-Liste",
     "bucket_list_info": "Ziele, die immer enthalten sein sollen (eines pro Zeile). Diese werden angezeigt, sofern sie sichtbar sind, wobei Einschränkungen ignoriert werden. Verwenden Sie zur Identifizierung das Attribut „Name“.",
-    "bucket_list_title": "Persönliche Bucket-Liste – Ziele, die immer enthalten sind, wenn sie sichtbar sind",
+    "bucket_list_title": "Persönliche Bucket-Liste - Ziele, die immer enthalten sind, wenn sie sichtbar sind",
     "ready": "Bereit",
     "done_list": "Erledigt-Liste",
     "done_list_info": "Ziele, die nie angezeigt werden sollen (eines pro Zeile). Verwenden Sie zur Identifizierung das Attribut „Name“.",
@@ -575,7 +575,7 @@
     "log_export_started": "Protokoll-Archiv-Download gestartet"
   },
   "astrodex": {
-    "title": "Astrodex – Ich muss sie alle fangen!",
+    "title": "Astrodex - Ich muss sie alle fangen!",
     "your_collection": "Ihre persönliche Sammlung erfasster Himmelsobjekte",
     "shared_collection": "Gemeinsame Sammlung erfasster Himmelsobjekte (schreibgeschützt für Elemente anderer Benutzer)",
     "my_collection": "Meine Sammlung",
@@ -1061,7 +1061,7 @@
     "cache_status_valid": "Gültig",
     "cache_status_stale": "Abgelaufen",
     "cache_status_failed": "Fehler",
-    "cache_status_unknown": "–"
+    "cache_status_unknown": "-"
   },
   "equipment": {
     "combinations": "Kombinationen",
@@ -1228,7 +1228,7 @@
     "forecast": "Vorhersage",
     "loading_title": "Wetterdaten werden geladen...",
     "loading_text": "Abrufen von Wettervorhersagen und astronomischen Informationen",
-    "observation_next_hours": "Beobachtungsbedingungen – Nächste 12 Stunden",
+    "observation_next_hours": "Beobachtungsbedingungen - Nächste 12 Stunden",
     "loading_astro": "Astronomische Daten werden geladen...",
     "loading_astro_failed": "Astronomische Wetterdaten vorübergehend nicht verfügbar. Bitte versuchen Sie es in Kürze erneut.",
     "cloud_cover": "Wolkendecke:",
@@ -1333,7 +1333,7 @@
     "please_authenticate": "Bitte melden Sie sich an, um fortzufahren",
     "invalid_credentials": "Ungültiger Benutzername oder Passwort",
     "session_expired": "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an",
-    "login_page_title": "Anmelden – MyAstroBoard",
+    "login_page_title": "Anmelden - MyAstroBoard",
     "remember_me_30_days": "An mich erinnern (30 Tage lang eingeloggt bleiben)",
     "sign_in": "Anmelden",
     "signing_in": "Anmelden...",
@@ -1545,5 +1545,25 @@
     "checking_connection": "Verbindung wird gepruft...",
     "still_offline": "Weiterhin offline. Bitte Verbindung prufen und erneut versuchen.",
     "auto_retry_in": "Automatischer neuer Versuch in {seconds}s"
+  },
+
+  "object_info": {
+    "title": "Objektinformationen",
+    "loading": "Objektdaten werden geladen...",
+    "not_found": "Objekt nicht gefunden",
+    "not_found_detail": "Keine Daten für \"{{identifier}}\" in der SIMBAD-Datenbank gefunden.",
+    "invalid_identifier": "Ungültiger Objektbezeichner",
+    "type_label": "Typ",
+    "coordinates_label": "Koordinaten",
+    "aliases_label": "Auch bekannt als",
+    "description_label": "Beschreibung",
+    "image_label": "Bild",
+    "image_credit": "Bildnachweis",
+    "image_unavailable": "Kein Bild verfügbar",
+    "description_unavailable": "Keine Beschreibung verfügbar",
+    "source_simbad": "Quelle: SIMBAD (CDS, Straßburg)",
+    "source_wikipedia": "Beschreibung: Wikipedia",
+    "source_skyview": "Bild: DSS2 / SkyView (NASA GSFC)",
+    "error_loading": "Objektinformationen konnten nicht geladen werden."
   }
 }

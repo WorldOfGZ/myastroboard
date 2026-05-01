@@ -102,7 +102,7 @@ $$\text{scoreSky} = \max(0,\;1 - \text{moonImpact})$$
 
 | Input | Description |
 |---|---|
-| `moon_phase` | Illuminated fraction of Moon disk, 0 (new) – 1 (full) |
+| `moon_phase` | Illuminated fraction of Moon disk, 0 (new) - 1 (full) |
 | `angular_dist_moon` | Angular separation between target and Moon (degrees); defaults to 180° when unavailable |
 
 ### 3 — Object score (weight 0.25)
@@ -152,9 +152,9 @@ The final value is clamped to **[0.0, 1.0]** and rounded to 4 decimal places.
 
 | AstroScore | Interpretation |
 |---|---|
-| 0.85 – 1.00 | Exceptional — ideal conditions |
-| 0.65 – 0.84 | Good — recommended target |
-| 0.45 – 0.64 | Average — worth imaging if nothing better |
+| 0.85 - 1.00 | Exceptional — ideal conditions |
+| 0.65 - 0.84 | Good — recommended target |
+| 0.45 - 0.64 | Average — worth imaging if nothing better |
 | < 0.45 | Poor — significant limitation (moon, low altitude, faint object) |
 
 ---

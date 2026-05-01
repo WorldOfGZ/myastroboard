@@ -31,7 +31,7 @@ def load_config():
     """Load configuration from file"""
     config = load_json_file(CONFIG_FILE, deepcopy(DEFAULT_CONFIG))
     merged = _merge_defaults(config, DEFAULT_CONFIG)
-    # Strip legacy top-level 'constraints' key – constraints live exclusively
+    # Strip legacy top-level 'constraints' key - constraints live exclusively
     # under skytonight.constraints from now on.
     merged.pop('constraints', None)
     return merged

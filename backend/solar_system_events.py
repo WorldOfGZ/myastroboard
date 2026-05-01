@@ -246,7 +246,7 @@ class SolarSystemEventsService:
                                              zenith_hourly_rate=shower_data['zenith_hourly_rate'],
                                              parent_body=shower_data['parent_body'])
 
-                    # Score 0–10: ZHR drives 70 %, radiant visibility drives 30 %
+                    # Score 0-10: ZHR drives 70 %, radiant visibility drives 30 %
                     zhr = shower_data['zenith_hourly_rate']
                     score = round(min(10.0, (zhr / 100.0) * 7.0 + (3.0 if is_visible else 0.0)), 1)
 
