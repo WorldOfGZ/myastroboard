@@ -1460,7 +1460,8 @@ def get_iss_location_api():
         position = iss_passes.get_current_position()
         return jsonify(position)
     except RuntimeError as exc:
-        return jsonify({'error': str(exc)}), 503
+        logger.exception("Runtime error computing ISS location")
+        return jsonify({'error': 'Service temporarily unavailable'}), 503
     except Exception as exc:
         logger.error(f"Error computing ISS location: {exc}")
         return jsonify({'error': 'Internal server error'}), 500
