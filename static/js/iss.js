@@ -1,6 +1,182 @@
 // ======================
-// ISS Passes
+// ISS Passes + Real-time Map
 // ======================
+
+// ---- Map module state ----
+let _issMap = null;
+let _issMarker = null;
+let _issPastLines = [];
+let _issFutureLines = [];
+let _issMapInterval = null;
+
+/**
+ * Split a ground-track point array into segments that don't cross the
+ * anti-meridian (|Δlon| > 180°).  Leaflet draws straight lines and would
+ * otherwise wrap the wrong way around the globe.
+ */
+function _splitAtAntimeridian(points) {
+    if (!points || !points.length) return [];
+    const segments = [];
+    let current = [points[0]];
+    for (let i = 1; i < points.length; i++) {
+        if (Math.abs(points[i][1] - points[i - 1][1]) > 180) {
+            segments.push(current);
+            current = [points[i]];
+        } else {
+            current.push(points[i]);
+        }
+    }
+    segments.push(current);
+    return segments.filter(s => s.length > 0);
+}
+
+/** Remove all existing ground-track polylines from the map. */
+function _clearIssTrackLines() {
+    _issPastLines.forEach(l => { if (_issMap) _issMap.removeLayer(l); });
+    _issFutureLines.forEach(l => { if (_issMap) _issMap.removeLayer(l); });
+    _issPastLines = [];
+    _issFutureLines = [];
+}
+
+/**
+ * (Re-)draw ground-track polylines and reposition the ISS marker.
+ * Safe to call on every poll cycle.
+ */
+function _updateIssMapContent(data) {
+    if (!_issMap || !_issMarker) return;
+
+    const lat = Number(data.latitude);
+    const lon = Number(data.longitude);
+
+    // Update marker position (no setView – avoids the infinite-tiles zoom loop)
+    _issMarker.setLatLng([lat, lon]);
+    _issMarker.getPopup().setContent(
+        `<b>ISS</b><br>${i18n.t('iss.map_altitude_label')}: ${data.altitude_km} km`
+    );
+
+    // Redraw tracks
+    _clearIssTrackLines();
+    _splitAtAntimeridian(data.past_track || []).forEach(seg => {
+        _issPastLines.push(L.polyline(seg, { color: '#f97316', weight: 2, opacity: 0.55, dashArray: '5,6' }).addTo(_issMap));
+    });
+    _splitAtAntimeridian(data.future_track || []).forEach(seg => {
+        _issFutureLines.push(L.polyline(seg, { color: '#6366f1', weight: 2, opacity: 0.85 }).addTo(_issMap));
+    });
+
+    // Update meta bar if present
+    const metaEl = document.getElementById('iss-map-meta');
+    if (metaEl) {
+        metaEl.textContent = `${i18n.t('iss.map_altitude_label')}: ${data.altitude_km} km`;
+    }
+}
+
+/** Poll /api/iss/location and refresh map. */
+async function _pollIssLocation() {
+    try {
+        const resp = await fetch('/api/iss/location', { credentials: 'same-origin', cache: 'no-store' });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data && data.latitude !== undefined) {
+            _updateIssMapContent(data);
+        }
+    } catch (_) { /* silent – map just stays stale */ }
+}
+
+/** Stop the auto-refresh interval for the ISS map. */
+function _stopIssMapRefresh() {
+    if (_issMapInterval !== null) {
+        clearInterval(_issMapInterval);
+        _issMapInterval = null;
+    }
+}
+
+/**
+ * Create the ISS real-time map card, insert it into `container`, and start
+ * a 10-second refresh cycle.
+ */
+async function _createIssMapCard(container) {
+    // Card shell
+    const row = document.createElement('div');
+    row.className = 'row row-cols-1 mb-3';
+    const col = document.createElement('div');
+    col.className = 'col';
+    const card = document.createElement('div');
+    card.className = 'card h-100';
+
+    const cardHeader = document.createElement('div');
+    cardHeader.className = 'card-header fw-bold d-flex align-items-center gap-2';
+    cardHeader.innerHTML =
+        `<i class="bi bi-globe-americas icon-inline" aria-hidden="true"></i>${i18n.t('iss.map_title')}` +
+        `<span class="ms-auto iss-map-legend d-flex gap-3">` +
+        `<span><span class="iss-legend-dot iss-legend-past"></span>${i18n.t('iss.map_past_track')}</span>` +
+        `<span><span class="iss-legend-dot iss-legend-future"></span>${i18n.t('iss.map_future_track')}</span>` +
+        `</span>`;
+
+    // Meta bar (altitude etc.)
+    const metaBar = document.createElement('div');
+    metaBar.id = 'iss-map-meta';
+    metaBar.className = 'iss-map-meta text-muted';
+    metaBar.textContent = i18n.t('iss.map_loading');
+
+    // Map container
+    const mapEl = document.createElement('div');
+    mapEl.id = 'iss-map';
+    mapEl.className = 'iss-map';
+
+    card.appendChild(cardHeader);
+    card.appendChild(metaBar);
+    card.appendChild(mapEl);
+    col.appendChild(card);
+    row.appendChild(col);
+    container.appendChild(row);
+
+    // Initialise Leaflet (needs the element to be in the DOM first)
+    // A tiny delay ensures the element has been painted and has a size.
+    await new Promise(r => setTimeout(r, 50));
+
+    if (typeof L === 'undefined') {
+        metaBar.textContent = i18n.t('iss.map_error');
+        return;
+    }
+
+    _issMap = L.map('iss-map', { zoomControl: true, scrollWheelZoom: true });
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 7,
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
+    }).addTo(_issMap);
+
+    // Custom ISS icon
+    const issIcon = L.divIcon({
+        className: '',
+        html: '<span class="iss-marker-icon" aria-label="ISS"><i class="bi bi-iss" style="font-size:1.6rem;color:#f97316;text-shadow:0 0 4px #000a"></i></span>',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+    });
+
+    _issMarker = L.marker([0, 0], { icon: issIcon })
+        .addTo(_issMap)
+        .bindPopup('<b>ISS</b>');
+
+    // First fetch
+    try {
+        const resp = await fetch('/api/iss/location', { credentials: 'same-origin', cache: 'no-store' });
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.latitude !== undefined) {
+                _updateIssMapContent(data);
+                _issMap.setView([data.latitude, data.longitude], 2);
+            }
+        } else {
+            metaBar.textContent = i18n.t('iss.map_error');
+        }
+    } catch (_) {
+        metaBar.textContent = i18n.t('iss.map_error');
+    }
+
+    // Auto-refresh every 10 s
+    _stopIssMapRefresh();
+    _issMapInterval = setInterval(_pollIssLocation, 10000);
+}
 
 
 function clamp(value, min, max) {
@@ -56,6 +232,13 @@ function createVisibilityGauge(scorePercent) {
  * Load ISS upcoming passes for current location (next 20 days).
  */
 async function loadIss() {
+    // Stop any running map refresh from a previous load
+    _stopIssMapRefresh();
+    _issMap = null;
+    _issMarker = null;
+    _issPastLines = [];
+    _issFutureLines = [];
+
     const container = document.getElementById('iss-display');
     const data = await fetchJSONWithUI('/api/iss/passes?days=20', container, i18n.t('iss.loading_passes'));
     if (!data) return;
@@ -126,6 +309,9 @@ async function loadIss() {
         warning.textContent = i18n.t('iss.no_passes');
         container.appendChild(warning);
     }
+
+    // ---- Real-time ISS map (between next-pass card and passes table) ----
+    await _createIssMapCard(container);
 
     const tableRow = document.createElement('div');
     tableRow.className = 'row row-cols-1';

@@ -389,7 +389,13 @@
     "table_end": "Fin",
     "table_time": "Heure",
     "table_elev": "Élévation / Azimut",
-    "not_found": "Aucun passage visible de l'ISS trouvé."
+    "not_found": "Aucun passage visible de l'ISS trouvé.",
+    "map_title": "Position en temps réel de l'ISS",
+    "map_altitude_label": "Altitude",
+    "map_loading": "Chargement de la position en temps réel de l'ISS...",
+    "map_error": "Impossible de charger la position de l'ISS.",
+    "map_past_track": "Orbite passée",
+    "map_future_track": "Orbite à venir"
   },
 
   "calendar": {

@@ -380,7 +380,13 @@
     "table_end": "Ende",
     "table_time": "Zeit",
     "table_elev": "Elev / Az",
-    "not_found": "Keine sichtbaren ISS Passagen gefunden."
+    "not_found": "Keine sichtbaren ISS Passagen gefunden.",
+    "map_title": "ISS Echtzeit-Position",
+    "map_altitude_label": "Höhe",
+    "map_loading": "ISS-Echtzeit-Position wird geladen...",
+    "map_error": "ISS-Position konnte nicht geladen werden.",
+    "map_past_track": "Vergangene Bahn",
+    "map_future_track": "Nächste Bahn"
   },
   "calendar": {
     "no_significant_events": "Keine nennenswerten astronomischen Ereignisse in den nächsten 30 Tagen.",
