@@ -134,3 +134,21 @@
     transform: translateX(-50%);
 }
 
+/* Telescope picker modal buttons — card surface style for contrast on gradient modal */
+.btn-telescope-pick {
+    background-color: var(--surface-card);
+    color: var(--text-color);
+    border: 1px solid var(--surface-border-strong);
+    border-radius: var(--border-radius);
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-telescope-pick:hover,
+.btn-telescope-pick:focus {
+    background-color: #e8e9ff;
+    border-color: var(--accent-1);
+    color: var(--text-color);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+    outline: none;
+}
+

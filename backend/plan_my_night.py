@@ -32,6 +32,18 @@ def _get_user_plan_lock(user_id: str) -> threading.Lock:
 
 PLAN_DIR = os.path.join(DATA_DIR, 'projects')
 
+_TELESCOPE_ID_DEFAULT = 'default'
+
+
+def _is_valid_telescope_id(telescope_id: Optional[str]) -> bool:
+    """Return True for a non-empty string that could be a telescope UUID or 'default'."""
+    if not telescope_id:
+        return False
+    if telescope_id == _TELESCOPE_ID_DEFAULT:
+        return True
+    # Accept UUID-like strings (hex + hyphens, 32-36 chars)
+    return bool(telescope_id) and len(telescope_id) <= 64
+
 
 def _now() -> datetime:
     return datetime.now().astimezone()
@@ -67,9 +79,36 @@ def ensure_plan_directory() -> None:
     os.makedirs(PLAN_DIR, exist_ok=True)
 
 
-def get_user_plan_file(user_id: str) -> str:
+def get_user_plan_file(user_id: str, telescope_id: Optional[str] = None) -> str:
     ensure_plan_directory()
-    return os.path.join(PLAN_DIR, f'{user_id}_plan_my_night.json')
+    tid = telescope_id if _is_valid_telescope_id(telescope_id) else _TELESCOPE_ID_DEFAULT
+    if tid == _TELESCOPE_ID_DEFAULT:
+        # Legacy / no-telescope filename kept for backwards compat
+        return os.path.join(PLAN_DIR, f'{user_id}_plan_my_night.json')
+    return os.path.join(PLAN_DIR, f'{user_id}_plan_{tid}.json')
+
+
+def get_all_plan_files(user_id: str) -> list:
+    """Return all plan file paths that exist for this user."""
+    ensure_plan_directory()
+    result = []
+    for fname in os.listdir(PLAN_DIR):
+        if fname.startswith(f'{user_id}_plan') and fname.endswith('.json') and '.corrupted.' not in fname and '.backup' not in fname and fname != f'{user_id}_plan_my_night.json.tmp':
+            result.append(os.path.join(PLAN_DIR, fname))
+    return result
+
+
+def delete_plan_for_telescope(user_id: str, telescope_id: str) -> bool:
+    """Delete the plan file for a specific telescope (called when telescope is removed)."""
+    file_path = get_user_plan_file(user_id, telescope_id)
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            logger.info(f'Deleted plan file for user {user_id} telescope {telescope_id}')
+        return True
+    except Exception as error:
+        logger.error(f'Error deleting plan file {file_path}: {error}')
+        return False
 
 
 def _default_payload(user_id: str, username: Optional[str] = None) -> Dict:
@@ -82,8 +121,8 @@ def _default_payload(user_id: str, username: Optional[str] = None) -> Dict:
     }
 
 
-def load_user_plan(user_id: str, username: Optional[str] = None) -> Dict:
-    file_path = get_user_plan_file(user_id)
+def load_user_plan(user_id: str, username: Optional[str] = None, telescope_id: Optional[str] = None) -> Dict:
+    file_path = get_user_plan_file(user_id, telescope_id)
     if not os.path.exists(file_path):
         return _default_payload(user_id, username)
 
@@ -151,8 +190,8 @@ def validate_plan_json(file_path: str) -> Tuple[bool, str]:
         return False, f'Validation failed: {error}'
 
 
-def save_user_plan(user_id: str, payload: Dict, username: Optional[str] = None) -> bool:
-    file_path = get_user_plan_file(user_id)
+def save_user_plan(user_id: str, payload: Dict, username: Optional[str] = None, telescope_id: Optional[str] = None) -> bool:
+    file_path = get_user_plan_file(user_id, telescope_id)
     temp_path = file_path + '.tmp'
     backup_path = file_path + '.backup'
 
@@ -268,8 +307,8 @@ def is_target_in_entries(plan_entries: list, catalogue: str, name: str) -> bool:
     return False
 
 
-def is_target_in_current_plan(user_id: str, username: str, catalogue: str, name: str) -> bool:
-    payload = load_user_plan(user_id, username)
+def is_target_in_current_plan(user_id: str, username: str, catalogue: str, name: str, telescope_id: Optional[str] = None) -> bool:
+    payload = load_user_plan(user_id, username, telescope_id=telescope_id)
     plan = payload.get('plan')
     if not plan:
         return False
@@ -365,8 +404,10 @@ def create_or_add_target(
     night_start: Any,
     night_end: Any,
     duration_hours: float = 0.0,
+    telescope_id: Optional[str] = None,
+    telescope_name: Optional[str] = None,
 ) -> Tuple[bool, str, Optional[Dict], Optional[Dict]]:
-    payload = load_user_plan(user_id, username)
+    payload = load_user_plan(user_id, username, telescope_id=telescope_id)
     plan = payload.get('plan')
     now_dt = _now()
 
@@ -387,6 +428,8 @@ def create_or_add_target(
             'duration_hours': float(duration_hours or 0.0),
             'created_at': _to_iso(now_dt),
             'updated_at': _to_iso(now_dt),
+            'telescope_id': telescope_id or None,
+            'telescope_name': telescope_name or None,
             'entries': [],
         }
         payload['plan'] = plan
@@ -402,20 +445,32 @@ def create_or_add_target(
     entries.append(target)
     plan['updated_at'] = _to_iso(now_dt)
 
-    if not save_user_plan(user_id, payload, username=username):
+    if not save_user_plan(user_id, payload, username=username, telescope_id=telescope_id):
         return False, 'save_failed', payload, None
 
     return True, 'added', payload, target
 
 
-def clear_plan(user_id: str, username: str) -> bool:
-    payload = load_user_plan(user_id, username)
+def clear_plan(user_id: str, username: str, telescope_id: Optional[str] = None) -> bool:
+    payload = load_user_plan(user_id, username, telescope_id=telescope_id)
     payload['plan'] = None
-    return save_user_plan(user_id, payload, username=username)
+    return save_user_plan(user_id, payload, username=username, telescope_id=telescope_id)
 
 
-def remove_target(user_id: str, username: str, entry_id: str) -> bool:
-    payload = load_user_plan(user_id, username)
+def clear_all_plans(user_id: str) -> int:
+    """Delete all plan files for this user. Returns the number of files deleted."""
+    deleted = 0
+    for file_path in get_all_plan_files(user_id):
+        try:
+            os.remove(file_path)
+            deleted += 1
+        except Exception as err:
+            logger.error(f'Error deleting plan file {file_path}: {err}')
+    return deleted
+
+
+def remove_target(user_id: str, username: str, entry_id: str, telescope_id: Optional[str] = None) -> bool:
+    payload = load_user_plan(user_id, username, telescope_id=telescope_id)
     plan = payload.get('plan')
     if not plan:
         return False
@@ -431,11 +486,11 @@ def remove_target(user_id: str, username: str, entry_id: str) -> bool:
         return False
 
     plan['updated_at'] = _to_iso(_now())
-    return save_user_plan(user_id, payload, username=username)
+    return save_user_plan(user_id, payload, username=username, telescope_id=telescope_id)
 
 
-def update_target(user_id: str, username: str, entry_id: str, updates: Dict) -> Optional[Dict]:
-    payload = load_user_plan(user_id, username)
+def update_target(user_id: str, username: str, entry_id: str, updates: Dict, telescope_id: Optional[str] = None) -> Optional[Dict]:
+    payload = load_user_plan(user_id, username, telescope_id=telescope_id)
     plan = payload.get('plan')
     if not plan:
         return None
@@ -469,14 +524,37 @@ def update_target(user_id: str, username: str, entry_id: str, updates: Dict) -> 
     target_entry['updated_at'] = _to_iso(_now())
     plan['updated_at'] = _to_iso(_now())
 
-    if not save_user_plan(user_id, payload, username=username):
+    if not save_user_plan(user_id, payload, username=username, telescope_id=telescope_id):
         return None
 
     return target_entry
 
 
-def reorder_target(user_id: str, username: str, entry_id: str, new_index: int) -> bool:
-    payload = load_user_plan(user_id, username)
+def update_plan_meta(user_id: str, username: str, updates: Dict, telescope_id: Optional[str] = None) -> Optional[Dict]:
+    """Update plan-level metadata fields (e.g. start_delay_minutes)."""
+    payload = load_user_plan(user_id, username, telescope_id=telescope_id)
+    plan = payload.get('plan')
+    if not plan:
+        return None
+
+    if get_plan_state(plan) == 'previous':
+        return None
+
+    if 'start_delay_minutes' in updates:
+        try:
+            delay = max(0, min(int(updates['start_delay_minutes']), 23 * 60 + 59))
+        except (TypeError, ValueError):
+            delay = 0
+        plan['start_delay_minutes'] = delay
+
+    plan['updated_at'] = _to_iso(_now())
+    if not save_user_plan(user_id, payload, username=username, telescope_id=telescope_id):
+        return None
+    return plan
+
+
+def reorder_target(user_id: str, username: str, entry_id: str, new_index: int, telescope_id: Optional[str] = None) -> bool:
+    payload = load_user_plan(user_id, username, telescope_id=telescope_id)
     plan = payload.get('plan')
     if not plan:
         return False
@@ -497,11 +575,11 @@ def reorder_target(user_id: str, username: str, entry_id: str, new_index: int) -
     entries.insert(bounded_new_index, entry)
     plan['updated_at'] = _to_iso(_now())
 
-    return save_user_plan(user_id, payload, username=username)
+    return save_user_plan(user_id, payload, username=username, telescope_id=telescope_id)
 
 
-def get_plan_with_timeline(user_id: str, username: str) -> Dict:
-    payload = load_user_plan(user_id, username)
+def get_plan_with_timeline(user_id: str, username: str, telescope_id: Optional[str] = None) -> Dict:
+    payload = load_user_plan(user_id, username, telescope_id=telescope_id)
     plan = payload.get('plan')
     if not plan:
         return {
@@ -534,7 +612,8 @@ def get_plan_with_timeline(user_id: str, username: str) -> Dict:
             progress_percent = max(0.0, min(100.0, (elapsed_seconds / total_seconds) * 100.0))
         is_inside_night = night_start <= now_dt <= night_end
 
-        cursor = night_start
+        start_delay_minutes = int(plan_copy.get('start_delay_minutes') or 0)
+        cursor = night_start + timedelta(minutes=start_delay_minutes)
         for entry in entries:
             planned_minutes = int(entry.get('planned_minutes') or 0)
             start_dt = cursor
@@ -643,3 +722,42 @@ def serialize_plan_csv(plan_payload: Dict, labels: Optional[Dict[str, str]] = No
         ])
 
     return output.getvalue()
+
+
+def get_all_plan_states(user_id: str, username: str, telescopes: list) -> list:
+    """Return a list of plan summaries for each telescope plus the default (no-telescope) plan.
+
+    Each element: {telescope_id, telescope_name, state, entries_count, night_start, night_end}
+    """
+    result = []
+    # Include the default plan (no telescope) only if it exists on disk
+    default_file = get_user_plan_file(user_id, None)
+    if os.path.exists(default_file):
+        payload = load_user_plan(user_id, username, telescope_id=None)
+        plan = payload.get('plan')
+        state = get_plan_state(plan)
+        result.append({
+            'telescope_id': None,
+            'telescope_name': None,
+            'state': state,
+            'entries_count': len(plan.get('entries', [])) if plan else 0,
+            'night_start': plan.get('night_start') if plan else None,
+            'night_end': plan.get('night_end') if plan else None,
+        })
+
+    for telescope in telescopes:
+        tid = telescope.get('id')
+        tname = telescope.get('name', '')
+        payload = load_user_plan(user_id, username, telescope_id=tid)
+        plan = payload.get('plan')
+        state = get_plan_state(plan)
+        result.append({
+            'telescope_id': tid,
+            'telescope_name': tname,
+            'state': state,
+            'entries_count': len(plan.get('entries', [])) if plan else 0,
+            'night_start': plan.get('night_start') if plan else None,
+            'night_end': plan.get('night_end') if plan else None,
+        })
+
+    return result

@@ -98,8 +98,9 @@ class TestSeeingForecastService:
     def test_fetch_tonight_seeing_success(self, mock_get, service):
         """Test successful fetch from 7Timer API."""
         now_utc = datetime.now(timezone.utc)
-        init_time = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
-        
+        # Use an init time 1 hour in the future so all timepoints (3h, 6h, 9h from init) are ahead of now
+        init_time = (now_utc + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
+
         mock_response = Mock()
         mock_response.json.return_value = {
             "init": init_time.strftime("%Y%m%d%H"),

@@ -672,9 +672,10 @@ async function addFromCatalogue(catalogueItem) {
     
     const success = await addToAstrodex(itemData);
     
-    // On success, switch to Astrodex tab and show the item detail
+    // On success, switch to Astrodex tab and explicitly activate the astrodex sub-tab
     if (success) {
         switchMainTab('astrodex');
+        switchSubTab('astrodex', 'astrodex', { syncHistory: false });
         // Wait for tab to switch and data to reload
         await new Promise(resolve => {
             const checkInterval = setInterval(() => {

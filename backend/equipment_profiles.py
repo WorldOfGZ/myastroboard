@@ -488,11 +488,19 @@ def update_telescope(user_id: str, telescope_id: str, telescope_data: Dict) -> O
 
 
 def delete_telescope(user_id: str, telescope_id: str) -> bool:
-    """Delete a telescope profile"""
+    """Delete a telescope profile and its associated plan if it exists."""
     try:
         data = load_user_telescopes(user_id)
         data['items'] = [item for item in data['items'] if item['id'] != telescope_id]
-        return save_user_telescopes(user_id, data)
+        result = save_user_telescopes(user_id, data)
+        if result:
+            # Cascade: remove the per-telescope plan file if present
+            try:
+                from plan_my_night import delete_plan_for_telescope
+                delete_plan_for_telescope(user_id, telescope_id)
+            except Exception as plan_error:
+                logger.warning(f'Could not delete plan for telescope {telescope_id}: {plan_error}')
+        return result
     except Exception as e:
         logger.error(f"Error deleting telescope: {e}")
         return False
