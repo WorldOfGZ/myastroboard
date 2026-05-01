@@ -1,0 +1,174 @@
+"""
+Validate i18n consistency across backend, frontend, and webmanifests.
+
+Checks (all are hard failures):
+  1. Every language in static/i18n/*.json is declared in _TRANSLATION_FILENAMES
+     in backend/i18n_utils.py.
+  2. Every non-English language has a static/manifest.<lang>.webmanifest file
+     AND the language code appears in the 'supported' array of templates/index.html.
+  3. Every language has an <option value="<lang>"> entry in the language selector
+     in templates/index.html.
+  4. No translation key present in en.json is missing from another language file.
+
+Usage:
+    python scripts/validate_i18n.py
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+from typing import Any, Set
+
+ROOT = Path(__file__).resolve().parent.parent
+I18N_DIR = ROOT / "static" / "i18n"
+BACKEND_FILE = ROOT / "backend" / "i18n_utils.py"
+INDEX_HTML = ROOT / "templates" / "index.html"
+STATIC_DIR = ROOT / "static"
+REFERENCE_LANG = "en"
+
+
+def flatten_keys(data: Any, parent: str = "") -> Set[str]:
+    """Return flattened dot-notation keys from a nested JSON structure."""
+    keys: Set[str] = set()
+    if isinstance(data, dict):
+        for key, value in data.items():
+            path = f"{parent}.{key}" if parent else str(key)
+            if isinstance(value, (dict, list)):
+                keys.update(flatten_keys(value, path))
+            else:
+                keys.add(path)
+    elif isinstance(data, list):
+        for index, value in enumerate(data):
+            path = f"{parent}[{index}]" if parent else f"[{index}]"
+            if isinstance(value, (dict, list)):
+                keys.update(flatten_keys(value, path))
+            else:
+                keys.add(path)
+    return keys
+
+
+def parse_backend_languages(source: str) -> Set[str]:
+    """Extract declared language codes from _TRANSLATION_FILENAMES dict."""
+    match = re.search(
+        r"_TRANSLATION_FILENAMES\s*=\s*\{([^}]+)\}", source, re.DOTALL
+    )
+    if not match:
+        return set()
+    return set(re.findall(r"'([a-z]{2,3})':", match.group(1)))
+
+
+def parse_html_supported_langs(html: str) -> Set[str]:
+    """Extract language codes from the 'var supported = [...]' array in index.html."""
+    match = re.search(r"var\s+supported\s*=\s*\[([^\]]+)\]", html)
+    if not match:
+        return set()
+    return set(re.findall(r"'([a-z]{2,3})'", match.group(1)))
+
+
+def parse_html_selector_langs(html: str) -> Set[str]:
+    """Extract language <option> values from the language selector in index.html."""
+    return set(re.findall(r'<option\s+value="([a-z]{2,3})">', html))
+
+
+def main() -> int:
+    errors: list[str] = []
+
+    # --- Collect i18n languages from JSON files ---
+    json_languages = {p.stem for p in I18N_DIR.glob("*.json")}
+    if not json_languages:
+        print("ERROR: No i18n JSON files found in static/i18n/.")
+        return 1
+
+    # --- Parse backend/i18n_utils.py ---
+    if not BACKEND_FILE.exists():
+        errors.append(f"Backend file not found: {BACKEND_FILE}")
+        backend_langs: Set[str] = set()
+    else:
+        backend_langs = parse_backend_languages(BACKEND_FILE.read_text(encoding="utf-8"))
+        if not backend_langs:
+            errors.append(
+                f"Could not parse _TRANSLATION_FILENAMES from {BACKEND_FILE.name}"
+            )
+
+    # --- Parse templates/index.html ---
+    if not INDEX_HTML.exists():
+        errors.append(f"Template not found: {INDEX_HTML}")
+        html_supported_langs: Set[str] = set()
+        html_selector_langs: Set[str] = set()
+    else:
+        html_content = INDEX_HTML.read_text(encoding="utf-8")
+        html_supported_langs = parse_html_supported_langs(html_content)
+        html_selector_langs = parse_html_selector_langs(html_content)
+        if not html_supported_langs:
+            errors.append(
+                "Could not find 'var supported = [...]' for webmanifests in index.html"
+            )
+
+    # --- Load reference translation keys ---
+    ref_path = I18N_DIR / f"{REFERENCE_LANG}.json"
+    if not ref_path.exists():
+        errors.append(f"Reference translation file not found: {ref_path}")
+        ref_keys: Set[str] = set()
+    else:
+        ref_keys = flatten_keys(json.loads(ref_path.read_text(encoding="utf-8")))
+
+    # --- Per-language checks ---
+    for lang in sorted(json_languages):
+        # Check 1: backend declaration
+        if backend_langs and lang not in backend_langs:
+            errors.append(
+                f"[{lang}] Not declared in _TRANSLATION_FILENAMES in {BACKEND_FILE.name}"
+            )
+
+        # Check 3: language selector option in index.html
+        if html_selector_langs and lang not in html_selector_langs:
+            errors.append(
+                f"[{lang}] Missing <option value=\"{lang}\"> in language selector in index.html"
+            )
+
+        # Check 2 (non-reference languages only): webmanifest file + html supported array
+        if lang != REFERENCE_LANG:
+            webmanifest = STATIC_DIR / f"manifest.{lang}.webmanifest"
+            if not webmanifest.exists():
+                errors.append(
+                    f"[{lang}] Webmanifest file not found: static/manifest.{lang}.webmanifest"
+                )
+
+            if html_supported_langs and lang not in html_supported_langs:
+                errors.append(
+                    f"[{lang}] Not listed in 'var supported = [...]' for webmanifests in index.html"
+                )
+
+        # Check 4: translation key completeness (skip reference language)
+        if lang != REFERENCE_LANG and ref_keys:
+            lang_path = I18N_DIR / f"{lang}.json"
+            try:
+                lang_json = json.loads(lang_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                errors.append(f"[{lang}] Could not load translation file: {exc}")
+                continue
+            lang_keys = flatten_keys(lang_json)
+            missing = sorted(ref_keys - lang_keys)
+            for key in missing:
+                errors.append(f"[{lang}] Missing translation key: '{key}'")
+
+    # --- Report ---
+    if errors:
+        print(f"i18n validation FAILED — {len(errors)} error(s) found:\n")
+        for err in errors:
+            print(f"  ✗ {err}")
+        print()
+        return 1
+
+    print(
+        f"i18n validation OK — {len(json_languages)} language(s): "
+        f"{sorted(json_languages)}"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
