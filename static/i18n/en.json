@@ -1292,6 +1292,10 @@
       "comet_description": "Periodic comet near perihelion. Magnitude ~{magnitude} ({visibility}). Check charts for exact location.",
       "asteroid_occultation_title": "Asteroid Occultation - See IOTA for Details",
       "asteroid_occultation_description": "Asteroid passing in front of a star. Precise predictions available at IOTA/IOD. Requires precise timing."
+    },
+    "special_phenomena": {
+      "milky_way_title": "Milky Way Core Visible",
+      "milky_way_description": "Galactic center visible at {gc_altitude}° altitude. Excellent night for wide-field astrophotography."
     }
   },
   

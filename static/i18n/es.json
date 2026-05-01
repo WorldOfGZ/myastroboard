@@ -1276,6 +1276,10 @@
       "comet_description": "Cometa periódico cerca del perihelio. Magnitud ~{magnitude} ({visibility}). Consulta los gráficos para la ubicación exacta.",
       "asteroid_occultation_title": "Ocultación de Asteroide - Consulte IOTA para Detalles",
       "asteroid_occultation_description": "Asteroide pasando frente a una estrella. Predicciones precisas disponibles en IOTA/IOD. Requiere sincronización precisa."
+    },
+    "special_phenomena": {
+      "milky_way_title": "Núcleo de la Vía Láctea visible",
+      "milky_way_description": "Centro galáctico visible a {gc_altitude}° de altitud. Excelente noche para astrofótografía de campo amplio."
     }
   },
   "weather_alerts": {

@@ -245,7 +245,11 @@ class SolarSystemEventsService:
                     description = self.i18n.t('events_api.solar_system.meteor_shower_description',
                                              zenith_hourly_rate=shower_data['zenith_hourly_rate'],
                                              parent_body=shower_data['parent_body'])
-                    
+
+                    # Score 0–10: ZHR drives 70 %, radiant visibility drives 30 %
+                    zhr = shower_data['zenith_hourly_rate']
+                    score = round(min(10.0, (zhr / 100.0) * 7.0 + (3.0 if is_visible else 0.0)), 1)
+
                     events.append({
                         'event_type': 'Meteor Shower',
                         'title': title,
@@ -264,6 +268,7 @@ class SolarSystemEventsService:
                         'best_viewing_time': 'After midnight (local time)',
                         'visibility': is_visible,
                         'importance': self._rate_meteor_shower_importance(shower_data['zenith_hourly_rate']),
+                        'score': score,
                         'raw_data': {
                             'shower': shower_name,
                             'peak_month': peak_month,
