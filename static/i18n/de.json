@@ -1275,6 +1275,10 @@
       "comet_description": "Periodischer Komet bei Perihelion. Magnitude ~{magnitude} ({visibility}). Konsultieren Sie Karten für den genauen Standort.",
       "asteroid_occultation_title": "Asteroidenbedeckung - Siehe IOTA für Details",
       "asteroid_occultation_description": "Asteroid geht vor einem Stern vorbei. Genaue Vorhersagen verfügbar auf IOTA/IOD. Erfordert genaues Timing."
+    },
+    "special_phenomena": {
+      "milky_way_title": "Milchstraßenkern sichtbar",
+      "milky_way_description": "Galaktisches Zentrum bei {gc_altitude}° Höhe sichtbar. Ausgezeichnete Nacht für Weitfeld-Astrofotografie."
     }
   },
   "weather_alerts": {

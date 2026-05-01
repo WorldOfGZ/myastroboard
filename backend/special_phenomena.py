@@ -10,16 +10,19 @@ Uses Astropy for accurate astronomical calculations.
 All calculations account for observer location and timezone.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date as date_type
 from typing import List, Dict, Any
 from zoneinfo import ZoneInfo
 from logging_config import get_logger
+from i18n_utils import I18nManager
 
 from astropy.coordinates import (
     EarthLocation,
     AltAz,
     get_body,
     get_sun,
+    SkyCoord,
+    ICRS,
 )
 from astropy.time import Time
 from astropy import units as u
@@ -34,7 +37,7 @@ class SpecialPhenomenaService:
     Provides equinox, solstice, zodiacal light, and alignment information.
     """
 
-    def __init__(self, latitude: float, longitude: float, elevation: float = 0, timezone: str = "UTC"):
+    def __init__(self, latitude: float, longitude: float, elevation: float = 0, timezone: str = "UTC", language: str = "en"):
         """
         Initialize special phenomena service.
         
@@ -43,11 +46,14 @@ class SpecialPhenomenaService:
             longitude: Observer longitude in degrees
             elevation: Observer elevation in meters (default 0)
             timezone: IANA timezone string (default UTC)
+            language: Language code for translations (default 'en')
         """
         self.latitude = latitude
         self.longitude = longitude
         self.elevation = elevation
         self.timezone = timezone
+        self.language = language
+        self.i18n = I18nManager(language)
         self.location = EarthLocation(
             lat=latitude * u.deg,
             lon=longitude * u.deg,
@@ -409,94 +415,147 @@ class SpecialPhenomenaService:
         Find Milky Way core visibility windows.
         Core is visible when:
         1. Galactic center (Sagittarius region) is above horizon
-        2. Sun is well below horizon (civil twilight or darker)
-        3. Moon is not bright
-        
-        Best from May to August from Northern Hemisphere.
+        2. Sun is well below horizon (nautical twilight or darker)
+        3. Moon is not bright / below horizon
+
+        Season (Northern Hemisphere): May–September
+        Season (Southern Hemisphere): November–March
+
+        To avoid time-of-day bias the check is performed at 02:00 local time each night
+        (deep into astronomical night for most latitudes). Results are deduplicated so
+        only one event is emitted per 14-day window.
         """
         events = []
-        current_time = start_date
-        step_days = 1.0 * u.day
-        
-        # Milky Way core visibility season (for Northern Hemisphere)
-        mw_season_start = 5  # May
-        mw_season_end = 9    # August
-        
-        while current_time < end_date:
+        tz = ZoneInfo(self.timezone)
+
+        # Hemisphere-aware season months
+        if self.latitude >= 0:
+            mw_season_months = {5, 6, 7, 8, 9}       # Northern: May–Sep
+        else:
+            mw_season_months = {11, 12, 1, 2, 3}      # Southern: Nov–Mar
+
+        # Galactic center coordinates (Sgr A* region)
+        _galactic_center = SkyCoord(ra=266.417 * u.deg, dec=-29.008 * u.deg, frame=ICRS)
+
+        # The GC barely clears the horizon from high latitudes; use a permissive threshold
+        gc_min_altitude = 5.0   # degrees
+
+        start_dt: datetime = start_date.to_datetime(timezone=tz)  # type: ignore[assignment]
+        end_dt: datetime   = end_date.to_datetime(timezone=tz)    # type: ignore[assignment]
+
+        current_date: date_type = start_dt.date()
+        end_local_date: date_type = end_dt.date()
+
+        last_event_date: date_type | None = None  # deduplication cursor
+
+        while current_date <= end_local_date:
             try:
-                dt = current_time.to_datetime(timezone=ZoneInfo(self.timezone))
-                month = dt.month  # type: ignore
-                
-                # Check if we're in Milky Way season
-                if mw_season_start <= month <= mw_season_end:
-                    sun = get_sun(current_time)
-                    if sun is None:
-                        current_time += step_days
-                        continue
-                        
-                    sun_altaz = sun.transform_to(AltAz(obstime=current_time, location=self.location))
-                    if sun_altaz is None:
-                        current_time += step_days
-                        continue
-                    
-                    # Sun must be below horizon
-                    sun_alt_val = sun_altaz.alt.degree  # type: ignore
-                    if isinstance(sun_alt_val, (np.ndarray, complex)):
-                        sun_alt = float(np.real(np.atleast_1d(sun_alt_val).flat[0]))
-                    else:
-                        sun_alt = float(sun_alt_val)  # type: ignore
-                    
-                    if sun_alt < -12:  # Nautical twilight or darker
-                        # Check if galactic center is visible
-                        gc_altitude = self._get_galactic_center_altitude(current_time)
-                        
-                        # Galactic center should be reasonably high
-                        if gc_altitude > 15:
-                            # Check moon phase
-                            moon = get_body('moon', current_time, self.location)
-                            if moon is None:
-                                current_time += step_days
-                                continue
-                                
-                            moon_altaz = moon.transform_to(AltAz(obstime=current_time, location=self.location))
-                            if moon_altaz is None:
-                                current_time += step_days
-                                continue
-                            
-                            # Moon below horizon or far from galactic center
-                            moon_alt_val = moon_altaz.alt.degree  # type: ignore
-                            if isinstance(moon_alt_val, (np.ndarray, complex)):
-                                moon_alt = float(np.real(np.atleast_1d(moon_alt_val).flat[0]))
-                            else:
-                                moon_alt = float(moon_alt_val)  # type: ignore
-                            
-                            is_moon_ok = moon_alt < 5
-                            
-                            if is_moon_ok:
-                                events.append({
-                                    'event_type': 'Milky Way Core Visibility',
-                                    'title': 'Milky Way Core Visible',
-                                    'description': 'Galactic center (Sagittarius region) visible and well-positioned. Excellent astrophotography opportunity.',
-                                    'icon_class': 'bi bi-galaxy',
-                                    'peak_time': self._to_local_iso(current_time),
-                                    'start_time': self._to_local_iso(current_time),
-                                    'end_time': self._to_local_iso(current_time + (6 * u.hour)),  # ~6 hour window
-                                    'galactic_center_altitude': gc_altitude,
-                                    'best_season': 'Summer',
-                                    'visibility': True,
-                                    'importance': 'high',
-                                    'raw_data': {
-                                        'event': 'milky_way_core',
-                                        'galactic_center_altitude': gc_altitude,
-                                        'useful_window_hours': 6,
-                                    }
-                                })
-            
+                if current_date.month not in mw_season_months:
+                    current_date += timedelta(days=1)
+                    continue
+
+                # Check at 02:00 local time — representative deep-night hour
+                check_dt = datetime(
+                    current_date.year, current_date.month, current_date.day,
+                    2, 0, 0, tzinfo=tz
+                )
+                check_time = Time(check_dt)
+
+                # --- Sun must be below nautical twilight ---
+                sun = get_sun(check_time)
+                if sun is None:
+                    current_date += timedelta(days=1)
+                    continue
+
+                sun_altaz = sun.transform_to(AltAz(obstime=check_time, location=self.location))
+                sun_alt_val = sun_altaz.alt.degree  # type: ignore
+                if isinstance(sun_alt_val, (np.ndarray, complex)):
+                    sun_alt = float(np.real(np.atleast_1d(sun_alt_val).flat[0]))
+                else:
+                    sun_alt = float(sun_alt_val)  # type: ignore
+
+                if sun_alt >= -12.0:
+                    current_date += timedelta(days=1)
+                    continue
+
+                # --- Galactic center must be above the minimum altitude ---
+                gc_altaz = _galactic_center.transform_to(AltAz(obstime=check_time, location=self.location))
+                gc_alt_val = gc_altaz.alt.degree  # type: ignore
+                if isinstance(gc_alt_val, (np.ndarray, complex)):
+                    gc_altitude = float(np.real(np.atleast_1d(gc_alt_val).flat[0]))
+                else:
+                    gc_altitude = float(gc_alt_val)  # type: ignore
+
+                if gc_altitude < gc_min_altitude:
+                    current_date += timedelta(days=1)
+                    continue
+
+                # --- Moon must be below horizon ---
+                moon = get_body('moon', check_time, self.location)
+                if moon is None:
+                    current_date += timedelta(days=1)
+                    continue
+
+                moon_altaz = moon.transform_to(AltAz(obstime=check_time, location=self.location))
+                moon_alt_val = moon_altaz.alt.degree  # type: ignore
+                if isinstance(moon_alt_val, (np.ndarray, complex)):
+                    moon_alt = float(np.real(np.atleast_1d(moon_alt_val).flat[0]))
+                else:
+                    moon_alt = float(moon_alt_val)  # type: ignore
+
+                if moon_alt >= 5.0:
+                    current_date += timedelta(days=1)
+                    continue
+
+                # --- Conditions met — deduplicate to one event per 14-day window ---
+                if last_event_date is not None and (current_date - last_event_date).days < 14:
+                    current_date += timedelta(days=1)
+                    continue
+
+                # Score: weighted altitude (0–8) + dark-sky bonus (always 2 here, moon already filtered)
+                score = round(min(10.0, (gc_altitude / 60.0) * 8.0 + 2.0), 1)
+
+                title = self.i18n.t('events_api.special_phenomena.milky_way_title')
+                if not title or title == 'events_api.special_phenomena.milky_way_title':
+                    title = 'Milky Way Core Visible'
+
+                description = self.i18n.t(
+                    'events_api.special_phenomena.milky_way_description',
+                    gc_altitude=f"{gc_altitude:.0f}"
+                )
+                if not description or description == 'events_api.special_phenomena.milky_way_description':
+                    description = (
+                        f"Galactic center visible at {gc_altitude:.0f}° altitude. "
+                        "Excellent for wide-field astrophotography."
+                    )
+
+                events.append({
+                    'event_type': 'Milky Way Core Visibility',
+                    'title': title,
+                    'description': description,
+                    'icon_class': 'bi bi-stars',
+                    'peak_time': self._to_local_iso(check_time),
+                    'start_time': self._to_local_iso(check_time),
+                    'end_time': self._to_local_iso(check_time + (5 * u.hour)),
+                    'galactic_center_altitude': round(gc_altitude, 1),
+                    'best_season': 'Summer' if self.latitude >= 0 else 'Winter',
+                    'visibility': True,
+                    'importance': 'high' if gc_altitude >= 20 else 'medium',
+                    'score': score,
+                    'raw_data': {
+                        'event': 'milky_way_core',
+                        'galactic_center_altitude': round(gc_altitude, 1),
+                        'useful_window_hours': 5,
+                    }
+                })
+
+                last_event_date = current_date
+
             except Exception as e:
-                logger.debug(f"Error in Milky Way calculation: {e}")
-            
-            current_time = current_time + step_days
-        
+                logger.debug(f"Error in Milky Way calculation for {current_date}: {e}")
+
+            current_date += timedelta(days=1)
+
         return events
 
     def _get_ecliptic_altitude(self, time: Time) -> float:

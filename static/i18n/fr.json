@@ -1293,6 +1293,10 @@
       "comet_description": "Comète périodique près du périhélie. Magnitude ~{magnitude} ({visibility}). Consultez les cartes pour la localisation exacte.",
       "asteroid_occultation_title": "Occultation d'Astéroïde - Consultez l'IOTA pour les Détails",
       "asteroid_occultation_description": "Astéroïde passant devant une étoile. Prédictions précises disponibles sur IOTA/IOD. Nécessite un chronométrage précis."
+    },
+    "special_phenomena": {
+      "milky_way_title": "Voie Lactée visible",
+      "milky_way_description": "Centre galactique visible à {gc_altitude}° d'altitude. Excellente nuit pour l'astrophotographie grand champ."
     }
   },
   

@@ -673,7 +673,8 @@ def update_special_phenomena_cache(config=None):
             latitude=location["latitude"],
             longitude=location["longitude"],
             elevation=location.get("elevation", 0),
-            timezone=location.get("timezone", "UTC")
+            timezone=location.get("timezone", "UTC"),
+            language=config.get("language", "en")
         )
 
         events = phenomena_service.get_special_phenomena(days_ahead=365)
