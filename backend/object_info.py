@@ -33,6 +33,15 @@ _ALLOWED_LANGS: frozenset = frozenset([
 # Permits: letters, digits, space, +, -, ., *, /, '  (e.g. "NGC 2632", "alpha Cen")
 _IDENT_RE = re.compile(r"^[A-Za-z0-9 +\-_.*/']+$")
 
+# Pre-built Wikipedia base URLs keyed by lang code — the hostname is never
+# constructed from user input, which prevents SSRF (CodeQL CWE-918).
+_WIKIPEDIA_BASES: Dict[str, str] = {
+    lang: f'https://{lang}.wikipedia.org/api/rest_v1/page/summary/'
+    for lang in [
+        'en', 'fr', 'de', 'es', 'it', 'pt', 'nl', 'ru', 'ja', 'zh',
+        'pl', 'sv', 'uk', 'ar', 'cs', 'ko', 'hu', 'fi', 'no', 'da',
+    ]
+}
 SIMBAD_TAP_URL = 'https://simbad.cds.unistra.fr/simbad/sim-tap/sync'
 HIPS2FITS_URL = 'https://alasky.cds.unistra.fr/hips-image-services/hips2fits'
 
@@ -201,7 +210,9 @@ def _get_wikipedia_summary(search_term: str, lang: str = 'en') -> Optional[Dict[
     """
     lang = _sanitize_lang(lang)
     safe_term = urllib.parse.quote(_normalize_wikipedia_term(search_term), safe='')
-    url = f'https://{lang}.wikipedia.org/api/rest_v1/page/summary/{safe_term}'
+    # Use the pre-built base URL so the hostname is never derived from user input.
+    base = _WIKIPEDIA_BASES[lang]  # lang is guaranteed in _ALLOWED_LANGS after _sanitize_lang
+    url = base + safe_term
     try:
         resp = requests.get(
             url,
