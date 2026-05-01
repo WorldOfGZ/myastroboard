@@ -443,6 +443,52 @@ function setupEventListeners() {
     // Coordinate conversion
     document.getElementById('latitude-input')?.addEventListener('blur', () => convertCoordinate('latitude'));
     document.getElementById('longitude-input')?.addEventListener('blur', () => convertCoordinate('longitude'));
+
+    // Geolocation auto-fill
+    document.getElementById('geolocate-btn')?.addEventListener('click', async () => {
+        if (!navigator.geolocation) {
+            showMessage('warning', i18n.t('settings.geolocation_unsupported') || 'Geolocation is not supported by your browser.');
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            const lat = position.coords.latitude.toFixed(6);
+            const lon = position.coords.longitude.toFixed(6);
+            let locationName = null;
+            try {
+                const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`, {
+                    headers: { 'Accept-Language': i18n.currentLocale || 'en' }
+                });
+                const geo = await resp.json();
+                locationName = geo.address?.city || geo.address?.town || geo.address?.village || geo.address?.county || null;
+            } catch (_) { /* reverse geocoding is optional */ }
+
+            const lines = [
+                i18n.t('settings.geolocation_confirm') || 'Use this location?',
+                `Latitude: ${lat}`,
+                `Longitude: ${lon}`,
+            ];
+            if (locationName) lines.push(`Name: ${locationName}`);
+
+            if (confirm(lines.join('\n'))) {
+                const latInput = document.getElementById('latitude-input');
+                const lonInput = document.getElementById('longitude-input');
+                const nameInput = document.getElementById('location-name');
+                if (latInput) { latInput.value = lat; convertCoordinate('latitude'); }
+                if (lonInput) { lonInput.value = lon; convertCoordinate('longitude'); }
+                if (nameInput && locationName && !nameInput.value) nameInput.value = locationName;
+            }
+        }, () => {
+            showMessage('warning', i18n.t('settings.geolocation_error') || 'Unable to retrieve your location.');
+        });
+    });
+
+    // Horizon profile buttons (replaced onclick= attributes)
+    document.getElementById('add-horizon-row-btn')?.addEventListener('click', () => addHorizonRow());
+    document.getElementById('clear-horizon-profile-btn')?.addEventListener('click', clearHorizonProfile);
+    document.getElementById('horizon-profile-tbody')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-action="delete-horizon-row"]');
+        if (btn) { btn.closest('tr').remove(); _updateHorizonTableVisibility(); }
+    });
     
     // Logs
     document.getElementById('refresh-logs')?.addEventListener('click', loadLogs);

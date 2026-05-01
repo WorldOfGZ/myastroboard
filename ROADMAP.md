@@ -46,26 +46,6 @@ This document describes features that could potentially be integrated into MyAst
 - The system remain unchanged
 - In Equipment/telescope, if a telescope is removed, the associated plan must be removed if exists.
 
-### Settings
-**Improve handle to set location**
-- Use lib Geolocation_API https://developer.mozilla.org/fr/docs/Web/API/Geolocation_API
-- If user allow Geolocation API:
-  - At right of field id "latitude-input", use bootstrap "input-group-text" to add icon "bi-pin-map"
-  - Click on this icon try to overfill "latitude-input", "longitude-input", and if possible "location-name"
-  - Before overfill, a confirm with these new values should be displayed to decline if necessary.
-**Improve advanced settings**
-- Horizon profile:
-  - Table "horizon-profile-table" is displayed even it there is no points. This should be displayed only if there is a profile, or when we add point.
-  - Button clearHorizonProfile() don't respect graphic charter, exemple of delete button correct: <button class="btn btn-sm btn-danger" data-action="delete-item" data-item-id="3ac560d3-53c4-4f63-be4a-0a85642565df"><i class="bi bi-trash icon-inline" aria-hidden="true"></i>Supprimer</button>
-  - Button addHorizonRow() don't respect graphic charter, exemple of add button correct: <button class="btn btn-sm btn-primary me-3" data-action="add-picture" data-item-id="3ac560d3-53c4-4f63-be4a-0a85642565df"><i class="bi bi-plus-lg icon-inline" aria-hidden="true"></i>Ajouter une photo</button>
-  - Buttons clearHorizonProfile() and addHorizonRow() use "onclick", must be changed with events
-**Logs**
-- Page #parameters/logs:
-  - An indication on numbers of lines in log must be displayed (between row and "logs-display")
-  - On selector id "log-limit", an option at the end must be "All" and dispaly the entire log. Must be translated i18n
-**Metrics**
-- Add a section to see the last execution for each cache object.
-
 ### Ideas in raw
 2	Equipment FOV matching      Medium      Very high — practical astrophotography fit
 3	Bortle/SQM in AstroScore    Low	        High — corrects score_object for light pollution

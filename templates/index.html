@@ -974,7 +974,12 @@
                                                 
                         <div class="col-md-3">
                             <label for="latitude-input" class="form-label" data-i18n="settings.latitude">Latitude (DMS or Decimal):</label>
-                            <input type="text" id="latitude-input" class="form-control" placeholder="48d38m36.16s or 48.6434" data-i18n-placeholder="settings.latitude_placeholder">
+                            <div class="input-group">
+                                <input type="text" id="latitude-input" class="form-control" placeholder="48d38m36.16s or 48.6434" data-i18n-placeholder="settings.latitude_placeholder">
+                                <button class="btn btn-outline-secondary" type="button" id="geolocate-btn" data-i18n-title="settings.geolocation_btn_title" title="Use my location">
+                                    <i class="bi bi-pin-map" aria-hidden="true"></i>
+                                </button>
+                            </div>
                             <div id="latitude-converted" class="valid-feedback"></div>
                             <div id="latitude-error" class="invalid-feedback"></div>
                         </div>
@@ -1122,7 +1127,7 @@
                     <div class="alert alert-info" role="alert">
                         <span data-i18n="settings.horizon_profile_info">Define the minimum observable altitude at each azimuth direction to exclude targets blocked by trees, hills, or buildings. Leave empty to use the flat altitude minimum.</span>
                     </div>
-                    <div class="table-responsive mb-2">
+                    <div class="table-responsive mb-2" id="horizon-profile-table-wrapper" style="display:none">
                         <table class="table table-sm align-middle" id="horizon-profile-table">
                             <thead>
                                 <tr>
@@ -1135,11 +1140,11 @@
                         </table>
                     </div>
                     <div class="d-flex gap-2 mb-3">
-                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addHorizonRow()">
+                        <button type="button" class="btn btn-sm btn-primary" id="add-horizon-row-btn">
                             <i class="bi bi-plus-lg icon-inline" aria-hidden="true"></i>
                             <span data-i18n="settings.horizon_profile_add">Add Point</span>
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearHorizonProfile()">
+                        <button type="button" class="btn btn-sm btn-danger" id="clear-horizon-profile-btn">
                             <i class="bi bi-trash icon-inline" aria-hidden="true"></i>
                             <span data-i18n="settings.horizon_profile_clear">Clear</span>
                         </button>
@@ -1179,6 +1184,7 @@
                                 <option value="500" selected data-i18n="settings.log_limit_500">Last 500</option>
                                 <option value="1000" data-i18n="settings.log_limit_1000">Last 1000</option>
                                 <option value="5000" data-i18n="settings.log_limit_5000">Last 5000</option>
+                                <option value="0" data-i18n="settings.log_limit_all">All</option>
                             </select>
                         </div>                        
                         <div class="col-12">
@@ -1188,6 +1194,7 @@
                             <button id="clear-logs-display" class="btn btn-secondary"><i class="bi bi-trash icon-inline" aria-hidden="true"></i> <span data-i18n="settings.clear_logs">Delete logs (empty log file)</span></button>
                         </div>          
                     </div>
+                    <div id="logs-line-count" class="text-muted small mt-2" style="display:none"></div>
                     <div id="logs-display" class="logs-container mt-3 rounded"></div>
                 </div>
             </div>
