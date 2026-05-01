@@ -129,13 +129,19 @@ def delete_plan_for_telescope(user_id: str, telescope_id: str) -> bool:
         logger.warning('delete_plan_for_telescope: invalid user_id or telescope_id, aborting')
         return False
     file_path = get_user_plan_file(user_id, telescope_id)
+    # Containment guard: resolved path must stay inside PLAN_DIR
+    plan_dir_real = os.path.realpath(PLAN_DIR)
+    resolved = os.path.realpath(file_path)
+    if not resolved.startswith(plan_dir_real + os.sep):
+        logger.warning('delete_plan_for_telescope: path traversal detected, aborting')
+        return False
     try:
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        if os.path.exists(resolved):
+            os.remove(resolved)
             logger.info(f'Deleted plan file for user {user_id} telescope {telescope_id}')
         return True
     except Exception as error:
-        logger.error(f'Error deleting plan file {file_path}: {error}')
+        logger.error(f'Error deleting plan file {resolved}: {error}')
         return False
 
 
