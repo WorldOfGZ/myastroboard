@@ -71,6 +71,7 @@ from auth import (
 
 # Astrodex
 import astrodex
+import iss_passes
 import plan_my_night
 import skytonight_targets
 
@@ -1448,6 +1449,20 @@ def get_iss_passes_api():
 
     except Exception as e:
         logger.error(f"Error getting ISS passes cache: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route("/api/iss/location", methods=["GET"])
+@login_required
+def get_iss_location_api():
+    """Return current ISS ground position and ±50-minute orbit track, computed from cached TLE."""
+    try:
+        position = iss_passes.get_current_position()
+        return jsonify(position)
+    except RuntimeError as exc:
+        return jsonify({'error': str(exc)}), 503
+    except Exception as exc:
+        logger.error(f"Error computing ISS location: {exc}")
         return jsonify({'error': 'Internal server error'}), 500
 
 

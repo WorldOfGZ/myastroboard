@@ -496,3 +496,50 @@ def get_iss_passes_report(
     except Exception as e:
         logger.warning(f"Failed to generate ISS passes report: {e}")
         return None
+
+
+def get_current_position() -> Dict[str, Any]:
+    """Compute current ISS ground position and ±50-minute ground track from cached TLE.
+
+    Returns a dict with keys:
+      latitude, longitude, altitude_km  – current sub-satellite point
+      past_track   – list of [lat, lon] for the past 50 minutes (1-min steps)
+      future_track – list of [lat, lon] for the next 50 minutes (1-min steps),
+                     starting at the current position
+      timestamp    – ISO 8601 UTC instant used for the computation
+    """
+    cached = _get_cached_tle(max_age_seconds=None)
+    if cached is None:
+        raise RuntimeError("No ISS TLE available for position computation")
+
+    line1, line2, _ = cached
+    ts = SKYFIELD_LOADER.timescale()
+    satellite = EarthSatellite(line1, line2, "ISS (ZARYA)", ts)
+
+    now_utc = datetime.now(timezone.utc)
+    subpoint = wgs84.subpoint(satellite.at(ts.from_datetime(now_utc)))
+    lat = float(subpoint.latitude.degrees)  # type: ignore[arg-type]
+    lon = float(subpoint.longitude.degrees)  # type: ignore[arg-type]
+    alt_km = float(subpoint.elevation.km)  # type: ignore[arg-type]
+
+    past_track: List[List[float]] = []
+    for delta_min in range(-50, 0):
+        t = ts.from_datetime(now_utc + timedelta(minutes=delta_min))
+        sp = wgs84.subpoint(satellite.at(t))
+        past_track.append([float(sp.latitude.degrees), float(sp.longitude.degrees)])  # type: ignore[arg-type]
+
+    # Future track starts at the current position so the two polylines connect
+    future_track: List[List[float]] = [[lat, lon]]
+    for delta_min in range(1, 51):
+        t = ts.from_datetime(now_utc + timedelta(minutes=delta_min))
+        sp = wgs84.subpoint(satellite.at(t))
+        future_track.append([float(sp.latitude.degrees), float(sp.longitude.degrees)])  # type: ignore[arg-type]
+
+    return {
+        "latitude": lat,
+        "longitude": lon,
+        "altitude_km": round(alt_km, 1),
+        "past_track": past_track,
+        "future_track": future_track,
+        "timestamp": now_utc.isoformat(),
+    }

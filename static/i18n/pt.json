@@ -380,7 +380,13 @@
     "table_end": "Fim",
     "table_time": "Tempo",
     "table_elev": "Elev/Az",
-    "not_found": "Nenhuma passagem ISS visível encontrada."
+    "not_found": "Nenhuma passagem ISS visível encontrada.",
+    "map_title": "Posição em tempo real da ISS",
+    "map_altitude_label": "Altitude",
+    "map_loading": "Carregando posição em tempo real da ISS...",
+    "map_error": "Não foi possível carregar a posição da ISS.",
+    "map_past_track": "Órbita anterior",
+    "map_future_track": "Próxima órbita"
   },
   "calendar": {
     "no_significant_events": "Nenhum evento astronômico significativo nos próximos 30 dias.",

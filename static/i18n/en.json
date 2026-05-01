@@ -389,7 +389,13 @@
     "table_end": "End",
     "table_time": "Time",
     "table_elev": "Elev / Az",
-    "not_found": "No visible ISS passages found."
+    "not_found": "No visible ISS passages found.",
+    "map_title": "ISS Real-time Position",
+    "map_altitude_label": "Altitude",
+    "map_loading": "Loading ISS real-time position...",
+    "map_error": "Unable to load ISS position.",
+    "map_past_track": "Past orbit",
+    "map_future_track": "Upcoming orbit"
   },
 
   "calendar": {
