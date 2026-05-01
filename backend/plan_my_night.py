@@ -4,6 +4,7 @@ import copy
 import csv
 import json
 import os
+import re
 import shutil
 import threading
 import uuid
@@ -34,15 +35,25 @@ PLAN_DIR = os.path.join(DATA_DIR, 'projects')
 
 _TELESCOPE_ID_DEFAULT = 'default'
 
+# All system-generated IDs are UUID v4 strings produced by uuid.uuid4()
+_UUID_RE = re.compile(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    re.IGNORECASE,
+)
+
+
+def _is_valid_user_id(user_id: Optional[str]) -> bool:
+    """Return True only when user_id matches the UUID v4 format used by auth.py."""
+    return bool(user_id) and bool(_UUID_RE.match(str(user_id)))
+
 
 def _is_valid_telescope_id(telescope_id: Optional[str]) -> bool:
-    """Return True for a non-empty string that could be a telescope UUID or 'default'."""
+    """Return True for 'default' or a UUID string used as a telescope identifier."""
     if not telescope_id:
         return False
     if telescope_id == _TELESCOPE_ID_DEFAULT:
         return True
-    # Accept UUID-like strings (hex + hyphens, 32-36 chars)
-    return bool(telescope_id) and len(telescope_id) <= 64
+    return bool(_UUID_RE.match(str(telescope_id)))
 
 
 def _now() -> datetime:
@@ -81,11 +92,20 @@ def ensure_plan_directory() -> None:
 
 def get_user_plan_file(user_id: str, telescope_id: Optional[str] = None) -> str:
     ensure_plan_directory()
+    if not _is_valid_user_id(user_id):
+        raise ValueError(f'Invalid user_id format: {user_id!r}')
     tid = telescope_id if _is_valid_telescope_id(telescope_id) else _TELESCOPE_ID_DEFAULT
     if tid == _TELESCOPE_ID_DEFAULT:
         # Legacy / no-telescope filename kept for backwards compat
-        return os.path.join(PLAN_DIR, f'{user_id}_plan_my_night.json')
-    return os.path.join(PLAN_DIR, f'{user_id}_plan_{tid}.json')
+        path = os.path.join(PLAN_DIR, f'{user_id}_plan_my_night.json')
+    else:
+        path = os.path.join(PLAN_DIR, f'{user_id}_plan_{tid}.json')
+    # Containment guard: ensure the resolved path stays inside PLAN_DIR
+    plan_dir_real = os.path.realpath(PLAN_DIR)
+    resolved = os.path.realpath(path)
+    if not resolved.startswith(plan_dir_real + os.sep):
+        raise ValueError(f'Path traversal detected for user_id={user_id!r}')
+    return path
 
 
 def get_all_plan_files(user_id: str) -> list:
