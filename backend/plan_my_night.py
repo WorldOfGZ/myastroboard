@@ -110,16 +110,24 @@ def get_user_plan_file(user_id: str, telescope_id: Optional[str] = None) -> str:
 
 def get_all_plan_files(user_id: str) -> list:
     """Return all plan file paths that exist for this user."""
+    if not _is_valid_user_id(user_id):
+        return []
     ensure_plan_directory()
     result = []
+    plan_dir_real = os.path.realpath(PLAN_DIR)
     for fname in os.listdir(PLAN_DIR):
         if fname.startswith(f'{user_id}_plan') and fname.endswith('.json') and '.corrupted.' not in fname and '.backup' not in fname and fname != f'{user_id}_plan_my_night.json.tmp':
-            result.append(os.path.join(PLAN_DIR, fname))
+            resolved = os.path.realpath(os.path.join(PLAN_DIR, fname))
+            if resolved.startswith(plan_dir_real + os.sep):
+                result.append(os.path.join(PLAN_DIR, fname))
     return result
 
 
 def delete_plan_for_telescope(user_id: str, telescope_id: str) -> bool:
     """Delete the plan file for a specific telescope (called when telescope is removed)."""
+    if not _is_valid_user_id(user_id) or not _is_valid_telescope_id(telescope_id):
+        logger.warning('delete_plan_for_telescope: invalid user_id or telescope_id, aborting')
+        return False
     file_path = get_user_plan_file(user_id, telescope_id)
     try:
         if os.path.exists(file_path):
