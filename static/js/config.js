@@ -160,12 +160,20 @@ async function saveConfiguration() {
 
 let _horizonExplicitlyCleared = false;
 
+function _updateHorizonTableVisibility() {
+    const wrapper = document.getElementById('horizon-profile-table-wrapper');
+    const tbody   = document.getElementById('horizon-profile-tbody');
+    if (!wrapper || !tbody) return;
+    wrapper.style.display = tbody.children.length > 0 ? '' : 'none';
+}
+
 function loadHorizonProfileTable(profile) {
     const tbody = document.getElementById('horizon-profile-tbody');
     if (!tbody) return;
     tbody.innerHTML = '';
     _horizonExplicitlyCleared = false;
     (profile || []).forEach(pt => addHorizonRow(pt.az, pt.alt));
+    _updateHorizonTableVisibility();
 }
 
 function addHorizonRow(az = '', alt = '') {
@@ -175,14 +183,16 @@ function addHorizonRow(az = '', alt = '') {
     tr.innerHTML = `
         <td><input type="number" class="form-control form-control-sm horizon-az" value="${az}" min="0" max="360" step="1" placeholder="0–360"></td>
         <td><input type="number" class="form-control form-control-sm horizon-alt" value="${alt}" min="0" max="90" step="1" placeholder="0–90"></td>
-        <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()"><i class="bi bi-x-lg" aria-hidden="true"></i></button></td>`;
+        <td><button type="button" class="btn btn-sm btn-danger" data-action="delete-horizon-row"><i class="bi bi-trash icon-inline" aria-hidden="true"></i></button></td>`;
     tbody.appendChild(tr);
+    _updateHorizonTableVisibility();
 }
 
 function clearHorizonProfile() {
     const tbody = document.getElementById('horizon-profile-tbody');
     if (tbody) tbody.innerHTML = '';
     _horizonExplicitlyCleared = true;
+    _updateHorizonTableVisibility();
 }
 
 function readHorizonProfile() {

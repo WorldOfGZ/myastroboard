@@ -25,15 +25,14 @@ async function loadLogs() {
         }
         
         DOMUtils.clear(logsContainer);
-        
+
+        const lineCountEl = document.getElementById('logs-line-count');
+
         if (data.logs && data.logs.length > 0) {
-            // Add log info header
-            const logInfo = document.createElement('div');
-            logInfo.className = 'log-info-header';
-            const strong = document.createElement('strong');
-            strong.textContent = `Showing ${data.showing} of ${data.total} log entries`;
-            logInfo.appendChild(strong);
-            logsContainer.appendChild(logInfo);
+            if (lineCountEl) {
+                lineCountEl.textContent = `${data.showing} / ${data.total}`;
+                lineCountEl.style.display = '';
+            }
             
             // Display logs in chronological order (newest last)
             data.logs.forEach(log => {
@@ -57,6 +56,7 @@ async function loadLogs() {
             // Auto-scroll to bottom to show latest logs
             logsContainer.scrollTop = logsContainer.scrollHeight;
         } else {
+            if (lineCountEl) lineCountEl.style.display = 'none';
             DOMUtils.clear(logsContainer);
             const empty = document.createElement('div');
             empty.className = 'log-empty';

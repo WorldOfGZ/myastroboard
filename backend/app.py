@@ -34,7 +34,9 @@ from events_aggregator import EventsAggregator
 from i18n_utils import I18nManager
 from txtconf_loader import get_repo_version
 from repo_config import load_config, save_config
-from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, CACHE_TTL, WEATHER_CACHE_TTL, SKYTONIGHT_LOGS_DIR, SKYTONIGHT_SCHEDULER_STATUS_FILE
+from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, CACHE_TTL, WEATHER_CACHE_TTL, SKYTONIGHT_LOGS_DIR, SKYTONIGHT_SCHEDULER_STATUS_FILE, \
+    CACHE_TTL_MOON_PLANNER, CACHE_TTL_SOLAR_ECLIPSE, CACHE_TTL_LUNAR_ECLIPSE, CACHE_TTL_AURORA, \
+    CACHE_TTL_ISS_PASSES, CACHE_TTL_PLANETARY_EVENTS, CACHE_TTL_SPECIAL_PHENOMENA, CACHE_TTL_SOLAR_SYSTEM_EVENTS
 from logging_config import get_logger
 from version_checker import check_for_updates
 from metrics_collector import collect_metrics
@@ -955,7 +957,7 @@ def get_logs_api():
                 logs = f.readlines()
             
             # Get parameters
-            limit = int(request.args.get('limit', 500))  # Increased default limit
+            limit = int(request.args.get('limit', 500))
             level = request.args.get('level', 'all').upper()
             offset = int(request.args.get('offset', 0))
             
@@ -969,11 +971,14 @@ def get_logs_api():
             else:
                 logs = [log.strip() for log in logs]
             
-            # Apply pagination
+            # Apply pagination (limit=0 means return all)
             total_logs = len(logs)
-            start_idx = max(0, total_logs - limit - offset)
-            end_idx = total_logs - offset
-            paginated_logs = logs[start_idx:end_idx] if end_idx > start_idx else []
+            if limit <= 0:
+                paginated_logs = logs
+            else:
+                start_idx = max(0, total_logs - limit - offset)
+                end_idx = total_logs - offset
+                paginated_logs = logs[start_idx:end_idx] if end_idx > start_idx else []
             
             return jsonify({
                 "status": "success",
@@ -1560,59 +1565,59 @@ def get_upcoming_events_api():
         solar_system_events_data = None
 
         # Try to get solar eclipse data
-        if cache_store.is_cache_valid(cache_store._solar_eclipse_cache, CACHE_TTL):
+        if cache_store.is_cache_valid(cache_store._solar_eclipse_cache, CACHE_TTL_SOLAR_ECLIPSE):
             solar_eclipse_data = cache_store._solar_eclipse_cache.get("data")
         elif cache_store.sync_cache_from_shared("solar_eclipse", cache_store._solar_eclipse_cache):
-            if cache_store.is_cache_valid(cache_store._solar_eclipse_cache, CACHE_TTL):
+            if cache_store.is_cache_valid(cache_store._solar_eclipse_cache, CACHE_TTL_SOLAR_ECLIPSE):
                 solar_eclipse_data = cache_store._solar_eclipse_cache.get("data")
 
         # Try to get lunar eclipse data
-        if cache_store.is_cache_valid(cache_store._lunar_eclipse_cache, CACHE_TTL):
+        if cache_store.is_cache_valid(cache_store._lunar_eclipse_cache, CACHE_TTL_LUNAR_ECLIPSE):
             lunar_eclipse_data = cache_store._lunar_eclipse_cache.get("data")
         elif cache_store.sync_cache_from_shared("lunar_eclipse", cache_store._lunar_eclipse_cache):
-            if cache_store.is_cache_valid(cache_store._lunar_eclipse_cache, CACHE_TTL):
+            if cache_store.is_cache_valid(cache_store._lunar_eclipse_cache, CACHE_TTL_LUNAR_ECLIPSE):
                 lunar_eclipse_data = cache_store._lunar_eclipse_cache.get("data")
 
         # Try to get aurora data
-        if cache_store.is_cache_valid(cache_store._aurora_cache, CACHE_TTL):
+        if cache_store.is_cache_valid(cache_store._aurora_cache, CACHE_TTL_AURORA):
             aurora_data = cache_store._aurora_cache.get("data")
         elif cache_store.sync_cache_from_shared("aurora", cache_store._aurora_cache):
-            if cache_store.is_cache_valid(cache_store._aurora_cache, CACHE_TTL):
+            if cache_store.is_cache_valid(cache_store._aurora_cache, CACHE_TTL_AURORA):
                 aurora_data = cache_store._aurora_cache.get("data")
 
         # Try to get ISS passes data
-        if cache_store.is_cache_valid(cache_store._iss_passes_cache, CACHE_TTL):
+        if cache_store.is_cache_valid(cache_store._iss_passes_cache, CACHE_TTL_ISS_PASSES):
             iss_passes_data = cache_store._iss_passes_cache.get("data")
         elif cache_store.sync_cache_from_shared("iss_passes", cache_store._iss_passes_cache):
-            if cache_store.is_cache_valid(cache_store._iss_passes_cache, CACHE_TTL):
+            if cache_store.is_cache_valid(cache_store._iss_passes_cache, CACHE_TTL_ISS_PASSES):
                 iss_passes_data = cache_store._iss_passes_cache.get("data")
 
         # Try to get moon phases data
-        if cache_store.is_cache_valid(cache_store._moon_planner_report_cache, CACHE_TTL):
+        if cache_store.is_cache_valid(cache_store._moon_planner_report_cache, CACHE_TTL_MOON_PLANNER):
             moon_phases_data = cache_store._moon_planner_report_cache.get("data")
         elif cache_store.sync_cache_from_shared("moon_planner", cache_store._moon_planner_report_cache):
-            if cache_store.is_cache_valid(cache_store._moon_planner_report_cache, CACHE_TTL):
+            if cache_store.is_cache_valid(cache_store._moon_planner_report_cache, CACHE_TTL_MOON_PLANNER):
                 moon_phases_data = cache_store._moon_planner_report_cache.get("data")
 
         # Try to get planetary events data
-        if cache_store.is_cache_valid(cache_store._planetary_events_cache, CACHE_TTL):
+        if cache_store.is_cache_valid(cache_store._planetary_events_cache, CACHE_TTL_PLANETARY_EVENTS):
             planetary_events_data = cache_store._planetary_events_cache.get("data")
         elif cache_store.sync_cache_from_shared("planetary_events", cache_store._planetary_events_cache):
-            if cache_store.is_cache_valid(cache_store._planetary_events_cache, CACHE_TTL):
+            if cache_store.is_cache_valid(cache_store._planetary_events_cache, CACHE_TTL_PLANETARY_EVENTS):
                 planetary_events_data = cache_store._planetary_events_cache.get("data")
 
         # Try to get special phenomena data
-        if cache_store.is_cache_valid(cache_store._special_phenomena_cache, CACHE_TTL):
+        if cache_store.is_cache_valid(cache_store._special_phenomena_cache, CACHE_TTL_SPECIAL_PHENOMENA):
             special_phenomena_data = cache_store._special_phenomena_cache.get("data")
         elif cache_store.sync_cache_from_shared("special_phenomena", cache_store._special_phenomena_cache):
-            if cache_store.is_cache_valid(cache_store._special_phenomena_cache, CACHE_TTL):
+            if cache_store.is_cache_valid(cache_store._special_phenomena_cache, CACHE_TTL_SPECIAL_PHENOMENA):
                 special_phenomena_data = cache_store._special_phenomena_cache.get("data")
 
         # Try to get solar system events data
-        if cache_store.is_cache_valid(cache_store._solar_system_events_cache, CACHE_TTL):
+        if cache_store.is_cache_valid(cache_store._solar_system_events_cache, CACHE_TTL_SOLAR_SYSTEM_EVENTS):
             solar_system_events_data = cache_store._solar_system_events_cache.get("data")
         elif cache_store.sync_cache_from_shared("solar_system_events", cache_store._solar_system_events_cache):
-            if cache_store.is_cache_valid(cache_store._solar_system_events_cache, CACHE_TTL):
+            if cache_store.is_cache_valid(cache_store._solar_system_events_cache, CACHE_TTL_SOLAR_SYSTEM_EVENTS):
                 solar_system_events_data = cache_store._solar_system_events_cache.get("data")
 
         # Translate solar system events if needed
