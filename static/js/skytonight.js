@@ -19,6 +19,103 @@ function tSkyTonightCompat(key, params = {}) {
     return i18n.t(skytonightKey, params);
 }
 
+/**
+ * Show a modal to pick a telescope for "Add to Plan My Night".
+ * Returns a Promise that resolves with {telescope_id, telescope_name} or null if cancelled.
+ */
+async function showPlanTelescopePickerModal(telescopeItems, row) {
+    const existingModal = document.getElementById('plan-telescope-picker-modal');
+    if (existingModal) existingModal.remove();
+
+    // Fetch ratings for the target row (non-blocking — render immediately, fill in ratings after)
+    let ratingsById = {};
+    if (row) {
+        try {
+            const recoResp = await _skytFetchTelescopeRecommendations(row);
+            if (recoResp && Array.isArray(recoResp.recommendations)) {
+                recoResp.recommendations.forEach(item => {
+                    if (item.telescope_id) ratingsById[item.telescope_id] = parseInt(item.rating_1_to_5, 10) || 1;
+                });
+            }
+        } catch (_) { /* ratings optional */ }
+    }
+
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.id = 'plan-telescope-picker-modal';
+        overlay.className = 'modal fade show d-block';
+        overlay.setAttribute('tabindex', '-1');
+        overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+
+        const dialog = document.createElement('div');
+        dialog.className = 'modal-dialog modal-dialog-centered';
+
+        const content = document.createElement('div');
+        content.className = 'modal-content';
+
+        const header = document.createElement('div');
+        header.className = 'modal-header';
+        const headerTitle = document.createElement('h5');
+        headerTitle.className = 'modal-title';
+        headerTitle.textContent = i18n.t('plan_my_night.select_telescope_for_plan');
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn-close';
+        closeBtn.setAttribute('aria-label', i18n.t('common.close') || 'Close');
+        closeBtn.addEventListener('click', () => { overlay.remove(); resolve(null); });
+        header.appendChild(headerTitle);
+        header.appendChild(closeBtn);
+
+        const body = document.createElement('div');
+        body.className = 'modal-body';
+
+        const hasRatings = Object.keys(ratingsById).length > 0;
+
+        telescopeItems.forEach(t => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-telescope-pick w-100 mb-2 text-start d-flex align-items-center gap-2';
+
+            const stateBadge = t.state !== 'none'
+                ? `<span class="badge bg-${t.state === 'current' ? 'success' : 'warning'}">${i18n.t(`plan_my_night.plan_status_${t.state}`, {defaultValue: t.state})}</span>`
+                : `<span class="badge bg-secondary">${i18n.t('plan_my_night.plan_status_none', {defaultValue: 'no plan'})}</span>`;
+
+            const rating = ratingsById[t.telescope_id];
+            const ratingHtml = rating
+                ? `<span class="ms-auto text-warning text-nowrap" title="${escapeHtml(String(rating))}/5" aria-label="${escapeHtml(String(rating))} stars">${escapeHtml(_skytStarsFromRating(rating))}</span>`
+                : (hasRatings ? `<span class="ms-auto text-muted text-nowrap" aria-hidden="true">&#8212;</span>` : '');
+
+            btn.innerHTML = `<i class="bi bi-telescope icon-inline flex-shrink-0" aria-hidden="true"></i><span class="flex-grow-1">${escapeHtml(t.telescope_name || t.telescope_id)} ${stateBadge}</span>${ratingHtml}`;
+            btn.addEventListener('click', () => {
+                overlay.remove();
+                resolve({ telescope_id: t.telescope_id, telescope_name: t.telescope_name });
+            });
+            body.appendChild(btn);
+        });
+
+        const footer = document.createElement('div');
+        footer.className = 'modal-footer';
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'btn btn-secondary btn-sm';
+        cancelBtn.textContent = i18n.t('common.cancel') || 'Cancel';
+        cancelBtn.addEventListener('click', () => { overlay.remove(); resolve(null); });
+        footer.appendChild(cancelBtn);
+
+        content.appendChild(header);
+        content.appendChild(body);
+        content.appendChild(footer);
+        dialog.appendChild(content);
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+
+        // Close on backdrop click
+        overlay.addEventListener('click', (ev) => {
+            if (ev.target === overlay) { overlay.remove(); resolve(null); }
+        });
+    });
+}
+
 function tSkyTonightType(value) {
     const suffix = strToTranslateKey(value);
     const skytonightKey = `skytonight.type_${suffix}`;
@@ -1867,12 +1964,34 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
                         throw new Error('Invalid item data');
                     }
 
+                    // Check telescope count to decide whether to show picker
+                    let telescopeId = null;
+                    let telescopeName = null;
+                    try {
+                        const listPayload = await fetchJSON('/api/plan-my-night/list');
+                        const telescopeItems = (listPayload?.plans || []).filter(p => p.telescope_id !== null);
+                        if (telescopeItems.length >= 2) {
+                            // Show telescope picker modal
+                            const picked = await showPlanTelescopePickerModal(telescopeItems, itemData);
+                            if (!picked) return; // user cancelled
+                            telescopeId = picked.telescope_id;
+                            telescopeName = picked.telescope_name;
+                        } else if (telescopeItems.length === 1) {
+                            telescopeId = telescopeItems[0].telescope_id;
+                            telescopeName = telescopeItems[0].telescope_name;
+                        }
+                    } catch (_) {
+                        // If list fetch fails, proceed without telescope
+                    }
+
                     const response = await fetchJSON('/api/plan-my-night/targets', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             item: itemData,
-                            catalogue: catalogueName || itemData.catalogue || currentCatalogueTab
+                            catalogue: catalogueName || itemData.catalogue || currentCatalogueTab,
+                            telescope_id: telescopeId,
+                            telescope_name: telescopeName,
                         })
                     });
 

@@ -94,6 +94,32 @@ def _get_catalogue_alias_payload(catalogue: str, item_name: str) -> tuple:
     return group_id, aliases
 
 
+def _preload_all_current_plan_entries(user_id: str, username: str) -> list:
+    """Aggregate entries from all current (non-previous) plans for a user across all telescopes."""
+    all_entries: list = []
+    seen_ids: set = set()
+    for file_path in plan_my_night.get_all_plan_files(user_id):
+        fname = os.path.basename(file_path)
+        tid: Optional[str] = None
+        if fname != f'{user_id}_plan_my_night.json':
+            tid = fname.replace(f'{user_id}_plan_', '').replace('.json', '')
+        try:
+            payload = plan_my_night.load_user_plan(user_id, username, telescope_id=tid)
+            plan_obj = payload.get('plan')
+            if not isinstance(plan_obj, dict):
+                continue
+            if plan_my_night.get_plan_state(plan_obj) != 'current':
+                continue
+            for entry in plan_obj.get('entries', []):
+                eid = entry.get('id')
+                if eid and eid not in seen_ids:
+                    all_entries.append(entry)
+                    seen_ids.add(eid)
+        except Exception:
+            pass
+    return all_entries
+
+
 def _resolve_source_catalogue(catalogue_names: Dict[str, str], display_name: str) -> str:
     """Pick the catalogue label that matches the chosen display name."""
     if not isinstance(catalogue_names, dict) or not catalogue_names:
@@ -407,12 +433,7 @@ def _build_bodies_section_payload(user_id: str, username: str) -> Dict[str, Any]
 
     # Pre-load user data once to avoid N×file-reads inside the per-item annotation loop.
     _preloaded_astrodex = astrodex.load_user_astrodex(user_id)
-    _plan_obj = plan_payload.get('plan')
-    _preloaded_plan_entries: list = (
-        _plan_obj.get('entries', []) or []
-        if isinstance(_plan_obj, dict) and plan_state == 'current'
-        else []
-    )
+    _preloaded_plan_entries: list = _preload_all_current_plan_entries(user_id, username)
 
     if has_bodies_results():
         data = load_json_file(SKYTONIGHT_BODIES_RESULTS_FILE, default={})
@@ -484,12 +505,7 @@ def _build_comets_section_payload(user_id: str, username: str) -> Dict[str, Any]
 
     # Pre-load user data once to avoid N×file-reads inside the per-item annotation loop.
     _preloaded_astrodex = astrodex.load_user_astrodex(user_id)
-    _plan_obj = plan_payload.get('plan')
-    _preloaded_plan_entries: list = (
-        _plan_obj.get('entries', []) or []
-        if isinstance(_plan_obj, dict) and plan_state == 'current'
-        else []
-    )
+    _preloaded_plan_entries: list = _preload_all_current_plan_entries(user_id, username)
 
     if has_comets_results():
         data = load_json_file(SKYTONIGHT_COMETS_RESULTS_FILE, default={})
@@ -574,12 +590,7 @@ def _build_dso_section_payload(catalogue: Optional[str], user_id: str, username:
 
     # Pre-load user data once to avoid N×file-reads inside the per-item annotation loop.
     _preloaded_astrodex = astrodex.load_user_astrodex(user_id)
-    _plan_obj = plan_payload.get('plan')
-    _preloaded_plan_entries: list = (
-        _plan_obj.get('entries', []) or []
-        if isinstance(_plan_obj, dict) and plan_state == 'current'
-        else []
-    )
+    _preloaded_plan_entries: list = _preload_all_current_plan_entries(user_id, username)
 
     if has_dso_results():
         data = load_json_file(SKYTONIGHT_DSO_RESULTS_FILE, default={})

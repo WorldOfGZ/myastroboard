@@ -2,6 +2,8 @@
 
 let planMyNightPollTimer = null;
 let planMyNightStructureSnapshot = null;
+let currentPlanTelescopeId = null;   // null = no/default telescope
+let planTelescopeList = [];          // array from /api/plan-my-night/list
 
 function tSkyTonightCompat(key, params = {}) {
     const skytonightKey = `skytonight.${key}`;
@@ -186,7 +188,22 @@ async function loadPlanMyNight(options = {}) {
     }
 
     try {
-        const payload = await fetchJSON('/api/plan-my-night');
+        const telescopeListPayload = await fetchJSON('/api/plan-my-night/list');
+        planTelescopeList = telescopeListPayload?.plans || [];
+        const telescopeItems = (telescopeListPayload?.telescope_count) || 0;
+
+        // Auto-select the first telescope if none selected yet and there are telescopes
+        if (currentPlanTelescopeId === null && telescopeItems > 0) {
+            const firstTelescope = planTelescopeList.find(p => p.telescope_id !== null);
+            if (firstTelescope) {
+                currentPlanTelescopeId = firstTelescope.telescope_id;
+            }
+        }
+
+        const telescopeIdParam = currentPlanTelescopeId
+            ? `?telescope_id=${encodeURIComponent(currentPlanTelescopeId)}`
+            : '';
+        const payload = await fetchJSON(`/api/plan-my-night${telescopeIdParam}`);
         const nextStructureSnapshot = getPlanMyNightStructureSnapshot(payload);
         const canPatchInPlace = silent && planMyNightStructureSnapshot === nextStructureSnapshot;
         const patchedInPlace = patchPlanMyNightView(payload);
@@ -346,7 +363,7 @@ function makePlanActionButton(labelKey, className, onClick) {
         ico = '<i class="bi bi-filetype-pdf"></i> ';
     } else if (labelKey === 'plan_my_night.export_csv') {
         ico = '<i class="bi bi-filetype-csv"></i> ';
-    } else if (labelKey === 'plan_my_night.clear_plan') {
+    } else if (labelKey === 'plan_my_night.clear_this_plan' || labelKey === 'plan_my_night.clear_plan' || labelKey === 'plan_my_night.clear_all_plans') {
         ico = '<i class="bi bi-trash"></i> ';
     }
 
@@ -463,6 +480,10 @@ function computePlannedCoverage(entries, plan) {
         nightMinutes = Math.round((nightEnd.getTime() - nightStart.getTime()) / 60000);
     }
 
+    // Subtract start delay — the usable observing window is shorter
+    const startDelayMinutes = Math.max(0, parseInt(plan && plan.start_delay_minutes) || 0);
+    nightMinutes = Math.max(0, nightMinutes - startDelayMinutes);
+
     let plannedMinutes = 0;
     (entries || []).forEach(entry => {
         const explicitMinutes = Number.parseInt(String(entry.planned_minutes ?? ''), 10);
@@ -577,31 +598,102 @@ function renderPlanMyNight(payload) {
     const timeline = payload.timeline || {};
 
     const toolbar = document.createElement('div');
-    toolbar.className = 'd-flex gap-2 mb-3 flex-wrap';
+    toolbar.className = 'd-flex gap-2 mb-3 flex-wrap align-items-center';
+
+    // Telescope selector (shown when 2+ telescopes exist)
+    const telescopeItems = planTelescopeList.filter(p => p.telescope_id !== null);
+    if (telescopeItems.length >= 2) {
+        const selectorWrap = document.createElement('div');
+        selectorWrap.className = 'd-flex align-items-center gap-2 me-2';
+
+        const selectorLabel = document.createElement('label');
+        selectorLabel.className = 'form-label mb-0 small fw-semibold';
+        selectorLabel.textContent = i18n.t('plan_my_night.telescope_label');
+        selectorLabel.setAttribute('for', 'plan-telescope-selector');
+
+        const selector = document.createElement('select');
+        selector.id = 'plan-telescope-selector';
+        selector.className = 'form-select form-select-sm';
+        selector.style.maxWidth = '220px';
+
+        telescopeItems.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.telescope_id;
+            opt.textContent = t.telescope_name || t.telescope_id;
+            const stateLabel = t.state !== 'none'
+                ? ` (${i18n.t(`plan_my_night.plan_status_${t.state}`, {defaultValue: t.state})})`
+                : ` (${i18n.t('plan_my_night.plan_status_none', {defaultValue: 'no plan'})})`;
+            opt.textContent += stateLabel;
+            if (t.telescope_id === currentPlanTelescopeId) {
+                opt.selected = true;
+            }
+            selector.appendChild(opt);
+        });
+
+        selector.addEventListener('change', async () => {
+            currentPlanTelescopeId = selector.value || null;
+            planMyNightStructureSnapshot = null;
+            await loadPlanMyNight();
+        });
+
+        selectorWrap.appendChild(selectorLabel);
+        selectorWrap.appendChild(selector);
+        toolbar.appendChild(selectorWrap);
+    } else if (telescopeItems.length === 1) {
+        // Show telescope name as plain text
+        const telescopeName = document.createElement('span');
+        telescopeName.className = 'badge bg-secondary me-2';
+        telescopeName.innerHTML = `<i class="bi bi-telescope icon-inline" aria-hidden="true"></i> ${telescopeItems[0].telescope_name || i18n.t('plan_my_night.no_telescope_created')}`;
+        toolbar.appendChild(telescopeName);
+    } else {
+        // No telescopes created
+        const noTelescope = document.createElement('span');
+        noTelescope.className = 'text-muted small me-2';
+        noTelescope.textContent = i18n.t('plan_my_night.no_telescope_created');
+        toolbar.appendChild(noTelescope);
+    }
 
     if (state !== 'none' && plan) {
         if (state === 'current') {
             const exportCsvBtn = makePlanActionButton('plan_my_night.export_csv', 'btn btn-primary btn-sm', async () => {
                 const lang = typeof i18n?.getCurrentLanguage === 'function' ? i18n.getCurrentLanguage() : 'en';
-                window.location.href = `/api/plan-my-night/export.csv?lang=${encodeURIComponent(lang)}`;
+                const tidParam = currentPlanTelescopeId ? `&telescope_id=${encodeURIComponent(currentPlanTelescopeId)}` : '';
+                window.location.href = `/api/plan-my-night/export.csv?lang=${encodeURIComponent(lang)}${tidParam}`;
             });
             const exportPdfBtn = makePlanActionButton('plan_my_night.export_pdf', 'btn btn-success btn-sm', async () => {
                 const lang = typeof i18n?.getCurrentLanguage === 'function' ? i18n.getCurrentLanguage() : 'en';
-                window.location.href = `/api/plan-my-night/export.pdf?lang=${encodeURIComponent(lang)}`;
+                const tidParam = currentPlanTelescopeId ? `&telescope_id=${encodeURIComponent(currentPlanTelescopeId)}` : '';
+                window.location.href = `/api/plan-my-night/export.pdf?lang=${encodeURIComponent(lang)}${tidParam}`;
             });
             toolbar.appendChild(exportPdfBtn);
             toolbar.appendChild(exportCsvBtn);
         }
 
-        const clearButton = makePlanActionButton('plan_my_night.clear_plan', 'btn btn-danger btn-sm', async () => {
+        const clearButton = makePlanActionButton('plan_my_night.clear_this_plan', 'btn btn-danger btn-sm', async () => {
             const confirmClear = window.confirm(i18n.t('plan_my_night.confirm_clear'));
             if (!confirmClear) return;
-            await fetchJSON('/api/plan-my-night/clear', { method: 'DELETE' });
+            const tidParam = currentPlanTelescopeId ? `?telescope_id=${encodeURIComponent(currentPlanTelescopeId)}` : '';
+            await fetchJSON(`/api/plan-my-night/clear${tidParam}`, { method: 'DELETE' });
             showMessage('success', i18n.t('plan_my_night.plan_cleared'));
             await loadPlanMyNight();
             await loadSkyTonightResultsTabs();
         });
         toolbar.appendChild(clearButton);
+
+        // Show "Clear all plans" only when there are 2+ telescopes
+        if (planTelescopeList.filter(p => p.telescope_id !== null).length >= 2) {
+            const clearAllButton = makePlanActionButton('plan_my_night.clear_all_plans', 'btn btn-outline-danger btn-sm', async () => {
+                const confirmClearAll = window.confirm(i18n.t('plan_my_night.confirm_clear_all'));
+                if (!confirmClearAll) return;
+                await fetchJSON('/api/plan-my-night/clear-all', { method: 'DELETE' });
+                currentPlanTelescopeId = null;
+                planMyNightStructureSnapshot = null;
+                showMessage('success', i18n.t('plan_my_night.all_plans_cleared'));
+                await loadPlanMyNight();
+                await loadSkyTonightResultsTabs();
+            });
+            toolbar.appendChild(clearAllButton);
+        }
     }
 
     if (toolbar.children.length > 0) {
@@ -641,6 +733,15 @@ function renderPlanMyNight(payload) {
     const title = document.createElement('h5');
     title.className = 'card-title';
     title.textContent = i18n.t('plan_my_night.night_summary');
+
+    // Show telescope name in the summary if one is selected
+    const selectedTelescope = planTelescopeList.find(t => t.telescope_id === currentPlanTelescopeId);
+    if (selectedTelescope && selectedTelescope.telescope_name) {
+        const telescopeBadge = document.createElement('span');
+        telescopeBadge.className = 'badge bg-secondary ms-2 small';
+        telescopeBadge.innerHTML = `<i class="bi bi-telescope icon-inline" aria-hidden="true"></i> ${selectedTelescope.telescope_name}`;
+        title.appendChild(telescopeBadge);
+    }
 
     const nightRange = document.createElement('div');
     nightRange.className = 'text-muted';
@@ -778,6 +879,61 @@ function renderPlanMyNight(payload) {
     civilStartItem.appendChild(civilStartDescription);
     timelineList.appendChild(civilStartItem);
 
+    // ── Observation start delay input ────────────────────────────────────────
+    if (state !== 'previous') {
+        const delayItem = document.createElement('li');
+        delayItem.className = 'timeline-item mb-3 rounded p-2 ps-3 plan-boundary-item plan-start-delay-item';
+        delayItem.id = 'plan-start-delay-item';
+
+        const delayBadge = document.createElement('span');
+        delayBadge.className = 'timeline-icon plan-time-badge plan-boundary-badge';
+        const startDelayMinutes = parseInt(plan.start_delay_minutes) || 0;
+        const delayedStart = plan.night_start
+            ? new Date(new Date(plan.night_start).getTime() + startDelayMinutes * 60000)
+            : null;
+        delayBadge.textContent = delayedStart ? formatTimeOnly(delayedStart.toISOString()) : '--:--';
+        delayItem.appendChild(delayBadge);
+
+        const delayRow = document.createElement('div');
+        delayRow.className = 'd-flex align-items-center gap-2 flex-wrap';
+
+        const delayLabel = document.createElement('label');
+        delayLabel.className = 'form-label mb-0 small text-muted';
+        delayLabel.textContent = i18n.t('plan_my_night.start_delay_label');
+
+        const delayInput = document.createElement('input');
+        delayInput.type = 'time';
+        delayInput.className = 'form-control plan-duration-input';
+        delayInput.id = 'plan-start-delay-input';
+        delayInput.step = '60';
+        delayInput.min = '00:00';
+        delayInput.max = '23:59';
+        delayInput.inputMode = 'numeric';
+        delayInput.pattern = '^([01]\\d|2[0-3]):[0-5]\\d$';
+        delayInput.placeholder = '00:00';
+        delayInput.value = `${String(Math.floor(startDelayMinutes / 60)).padStart(2, '0')}:${String(startDelayMinutes % 60).padStart(2, '0')}`;
+
+        const delaySaveBtn = makePlanActionButton('plan_my_night.save_duration', 'btn btn-secondary btn-sm', async () => {
+            const normalized = normalizePlanDurationHHMM(delayInput.value);
+            if (!normalized) { delayInput.reportValidity(); delayInput.focus(); return; }
+            const [h, m] = normalized.split(':').map(Number);
+            const minutes = h * 60 + m;
+            await fetchJSON('/api/plan-my-night', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ start_delay_minutes: minutes, telescope_id: currentPlanTelescopeId })
+            });
+            await loadPlanMyNight();
+        });
+
+        delayRow.appendChild(delayLabel);
+        delayRow.appendChild(delayInput);
+        delayRow.appendChild(delaySaveBtn);
+        delayItem.appendChild(delayRow);
+        timelineList.appendChild(delayItem);
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     entries.forEach((entry, index) => {
         const item = document.createElement('li');
         if (entry.id !== undefined && entry.id !== null) {
@@ -837,7 +993,8 @@ function renderPlanMyNight(payload) {
             controls.appendChild(capturedBadge);
         } else {
             const addToAstrodexBtn = makePlanActionButton('plan_my_night.add_to_astrodex', 'btn btn-primary btn-sm', async () => {
-                const response = await fetchJSON(`/api/plan-my-night/targets/${encodeURIComponent(entry.id)}/add-to-astrodex`, { method: 'POST' });
+                const tidParam = currentPlanTelescopeId ? `?telescope_id=${encodeURIComponent(currentPlanTelescopeId)}` : '';
+                const response = await fetchJSON(`/api/plan-my-night/targets/${encodeURIComponent(entry.id)}/add-to-astrodex${tidParam}`, { method: 'POST' });
                 if (response && response.reason === 'already_in_astrodex') {
                     showMessage('info', i18n.t('plan_my_night.already_in_astrodex'));
                 } else {
@@ -858,7 +1015,7 @@ function renderPlanMyNight(payload) {
                     await fetchJSON(`/api/plan-my-night/targets/${encodeURIComponent(entry.id)}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ done: !entry.done })
+                        body: JSON.stringify({ done: !entry.done, telescope_id: currentPlanTelescopeId })
                     });
                     await loadPlanMyNight();
                 }
@@ -866,7 +1023,8 @@ function renderPlanMyNight(payload) {
             controls.appendChild(doneBtn);
 
             const removeBtn = makePlanActionButton('plan_my_night.remove_target', 'btn btn-danger btn-sm', async () => {
-                await fetchJSON(`/api/plan-my-night/targets/${encodeURIComponent(entry.id)}`, { method: 'DELETE' });
+                const tidParam = currentPlanTelescopeId ? `?telescope_id=${encodeURIComponent(currentPlanTelescopeId)}` : '';
+                await fetchJSON(`/api/plan-my-night/targets/${encodeURIComponent(entry.id)}${tidParam}`, { method: 'DELETE' });
                 await loadPlanMyNight();
                 await loadSkyTonightResultsTabs();
             });
@@ -912,7 +1070,7 @@ function renderPlanMyNight(payload) {
                 await fetchJSON(`/api/plan-my-night/targets/${encodeURIComponent(entry.id)}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ planned_duration: normalizedDuration })
+                    body: JSON.stringify({ planned_duration: normalizedDuration, telescope_id: currentPlanTelescopeId })
                 });
                 await loadPlanMyNight();
             });
@@ -922,7 +1080,7 @@ function renderPlanMyNight(payload) {
                 await fetchJSON(`/api/plan-my-night/targets/${encodeURIComponent(entry.id)}/reorder`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ new_index: index - 1 })
+                    body: JSON.stringify({ new_index: index - 1, telescope_id: currentPlanTelescopeId })
                 });
                 movePlanTargetItemInDom(entry.id, -1);
                 await loadPlanMyNight({
@@ -939,7 +1097,7 @@ function renderPlanMyNight(payload) {
                 await fetchJSON(`/api/plan-my-night/targets/${encodeURIComponent(entry.id)}/reorder`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ new_index: index + 1 })
+                    body: JSON.stringify({ new_index: index + 1, telescope_id: currentPlanTelescopeId })
                 });
                 movePlanTargetItemInDom(entry.id, 1);
                 await loadPlanMyNight({

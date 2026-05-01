@@ -25,26 +25,22 @@ This document describes features that could potentially be integrated into MyAst
 ### User profile
 - Notification (when/if available in future)
 
+### Space tabs
+**New tab with space information**
+Launch Library provide for example API with low rate but free to use
+Example which could be implemented in subtabs: 
+- Launch
+- Space Events
+- Astronauts in ISS
+
 ## Upgrade Features
 
 ### PWA application
 **Objective: Real PWA application for mobile**
 - PWA notifications for improving conditions (weather, ... ?)
 
-### Plan my night
-**Use telescopes in plan my night**
-- If user have more than one telescope, the plan my night is incorrect because we can have only one plan.
-- Add possibility to have one plan by telescope
-- SkyTonight table: 
-  - If zero or one telescope created by user, just create/add target to plan on the telescope used. 
-  - If there is two or more telescope created by user, button "Add" for plan my night, open a popup to ask which telescope we need to use (with rating provided on "more" popup, but without reason)
-- Plan my Night page
-  - If zero or one telescope created by user, display name of telescope, or "no telescope created". 
-  - If there is two or more telescope created by user, add a selector to select telescope to display plan. Add also an information is a plan already exists, and/or expired for this telescope
-- On export/print, the telescope name must be displayed
-- After "Clear plan" (to be renamed on "Clear this plan" on all language) button, a new button "Clear all plans" can clear all plans for all telescope (this button is displayed only if user have more than one telescope)
-- The system remain unchanged
-- In Equipment/telescope, if a telescope is removed, the associated plan must be removed if exists.
+### ISS Passes
+Add a card with leaflet to see in realtime where the ISS is, and with the route prev/next
 
 ### Ideas in raw
 2	Equipment FOV matching      Medium      Very high — practical astrophotography fit
