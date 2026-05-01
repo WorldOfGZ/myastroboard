@@ -48,7 +48,7 @@ function _updateIssMapContent(data) {
     const lat = Number(data.latitude);
     const lon = Number(data.longitude);
 
-    // Update marker position (no setView – avoids the infinite-tiles zoom loop)
+    // Update marker position (no setView - avoids the infinite-tiles zoom loop)
     _issMarker.setLatLng([lat, lon]);
     _issMarker.getPopup().setContent(
         `<b>ISS</b><br>${i18n.t('iss.map_altitude_label')}: ${data.altitude_km} km`
@@ -79,7 +79,7 @@ async function _pollIssLocation() {
         if (data && data.latitude !== undefined) {
             _updateIssMapContent(data);
         }
-    } catch (_) { /* silent – map just stays stale */ }
+    } catch (_) { /* silent - map just stays stale */ }
 }
 
 /** Stop the auto-refresh interval for the ISS map. */

@@ -37,9 +37,9 @@ logger.info(f"Skyfield cache directory: {SKYFIELD_CACHE_DIR}")
 ISS_TLE_URLS = [
     # Primary: Celestrak GP catalog (most specific, JSON-capable via FORMAT=TLE)
     "https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE",
-    # Alternative 1: independent aggregator – returns JSON {line1, line2}
+    # Alternative 1: independent aggregator - returns JSON {line1, line2}
     "https://tle.ivanstanojevic.me/api/tle/25544",
-    # Alternative 2: wheretheiss.at – returns JSON {line1, line2}
+    # Alternative 2: wheretheiss.at - returns JSON {line1, line2}
     "https://api.wheretheiss.at/v1/satellites/25544/tles",
     # Celestrak group / legacy fallbacks
     "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle",
@@ -221,7 +221,7 @@ class ISSPassService:
 
     def _parse_iss_tle_from_response(self, response_text: str) -> Tuple[str, str]:
         """Extract ISS TLE pair from a response payload (JSON or plain-text)."""
-        # Attempt JSON first – tle.ivanstanojevic.me and wheretheiss.at return
+        # Attempt JSON first - tle.ivanstanojevic.me and wheretheiss.at return
         # {"line1": "1 25544...", "line2": "2 25544..."}
         try:
             data = json.loads(response_text)
@@ -502,11 +502,11 @@ def get_current_position() -> Dict[str, Any]:
     """Compute current ISS ground position and ±50-minute ground track from cached TLE.
 
     Returns a dict with keys:
-      latitude, longitude, altitude_km  – current sub-satellite point
-      past_track   – list of [lat, lon] for the past 50 minutes (1-min steps)
-      future_track – list of [lat, lon] for the next 50 minutes (1-min steps),
+      latitude, longitude, altitude_km  - current sub-satellite point
+      past_track   - list of [lat, lon] for the past 50 minutes (1-min steps)
+      future_track - list of [lat, lon] for the next 50 minutes (1-min steps),
                      starting at the current position
-      timestamp    – ISO 8601 UTC instant used for the computation
+      timestamp    - ISO 8601 UTC instant used for the computation
     """
     cached = _get_cached_tle(max_age_seconds=None)
     if cached is None:

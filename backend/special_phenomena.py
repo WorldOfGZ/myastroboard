@@ -418,8 +418,8 @@ class SpecialPhenomenaService:
         2. Sun is well below horizon (nautical twilight or darker)
         3. Moon is not bright / below horizon
 
-        Season (Northern Hemisphere): May–September
-        Season (Southern Hemisphere): November–March
+        Season (Northern Hemisphere): May-September
+        Season (Southern Hemisphere): November-March
 
         To avoid time-of-day bias the check is performed at 02:00 local time each night
         (deep into astronomical night for most latitudes). Results are deduplicated so
@@ -430,9 +430,9 @@ class SpecialPhenomenaService:
 
         # Hemisphere-aware season months
         if self.latitude >= 0:
-            mw_season_months = {5, 6, 7, 8, 9}       # Northern: May–Sep
+            mw_season_months = {5, 6, 7, 8, 9}       # Northern: May-Sep
         else:
-            mw_season_months = {11, 12, 1, 2, 3}      # Southern: Nov–Mar
+            mw_season_months = {11, 12, 1, 2, 3}      # Southern: Nov-Mar
 
         # Galactic center coordinates (Sgr A* region)
         _galactic_center = SkyCoord(ra=266.417 * u.deg, dec=-29.008 * u.deg, frame=ICRS)
@@ -512,7 +512,7 @@ class SpecialPhenomenaService:
                     current_date += timedelta(days=1)
                     continue
 
-                # Score: weighted altitude (0–8) + dark-sky bonus (always 2 here, moon already filtered)
+                # Score: weighted altitude (0-8) + dark-sky bonus (always 2 here, moon already filtered)
                 score = round(min(10.0, (gc_altitude / 60.0) * 8.0 + 2.0), 1)
 
                 title = self.i18n.t('events_api.special_phenomena.milky_way_title')

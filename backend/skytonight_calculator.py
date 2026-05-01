@@ -189,7 +189,7 @@ def _horizon_floor_array(az_deg: np.ndarray, profile: List[Dict[str, Any]]) -> n
     """Return the custom horizon minimum altitude at each azimuth sample.
 
     Linearly interpolates between profile points on the circular azimuth scale.
-    ``profile`` is a list of dicts with ``az`` (0–360°) and ``alt`` (0–90°) keys.
+    ``profile`` is a list of dicts with ``az`` (0-360°) and ``alt`` (0-90°) keys.
     Returns a zero array when the profile is empty or invalid so that the caller's
     flat ``alt_min`` acts as the sole floor.
     """
@@ -504,7 +504,7 @@ def compute_astro_score(
         obj_score = 0.5
 
     # --- score_comfort ---
-    # Reward targets that transit during prime evening hours (21:00–01:00)
+    # Reward targets that transit during prime evening hours (21:00-01:00)
     if 21 <= window_start_hour or window_start_hour <= 1:
         time_bonus = 1.0
     elif 1 < window_start_hour <= 3:
