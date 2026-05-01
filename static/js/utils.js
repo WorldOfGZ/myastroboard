@@ -246,6 +246,22 @@ function formatTimeOnly(isoString, locale = navigator.language) {
     return timeFormatter.format(date);
 }
 
+// Like formatTimeOnly but renders in a specific IANA timezone instead of browser local time
+function formatTimeOnlyInTimezone(isoString, timezone, locale = navigator.language) {
+    if (!isoString) return 'N/A';
+    const date = new Date(isoString);
+    try {
+        return new Intl.DateTimeFormat(locale, {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: getHour12Option(),
+            timeZone: timezone || 'UTC'
+        }).format(date);
+    } catch (_) {
+        return formatTimeOnly(isoString, locale);
+    }
+}
+
 
 // Helper function to format date from YYYY-MM-DD to DD/MM/YYYY
 function formatStringToDate(dateInput, locale = navigator.language) {

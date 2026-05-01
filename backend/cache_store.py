@@ -7,7 +7,15 @@ import json
 import os
 import sys
 from contextlib import contextmanager
-from constants import CACHE_TTL, WEATHER_CACHE_TTL, DATA_DIR_CACHE
+from datetime import datetime
+from constants import (
+    CACHE_TTL, WEATHER_CACHE_TTL, DATA_DIR_CACHE,
+    CACHE_TTL_MOON_REPORT, CACHE_TTL_DARK_WINDOW, CACHE_TTL_MOON_PLANNER,
+    CACHE_TTL_SUN_REPORT, CACHE_TTL_BEST_WINDOW, CACHE_TTL_SOLAR_ECLIPSE,
+    CACHE_TTL_LUNAR_ECLIPSE, CACHE_TTL_HORIZON_GRAPH, CACHE_TTL_AURORA,
+    CACHE_TTL_ISS_PASSES, CACHE_TTL_PLANETARY_EVENTS, CACHE_TTL_SPECIAL_PHENOMENA,
+    CACHE_TTL_SOLAR_SYSTEM_EVENTS, CACHE_TTL_SIDEREAL_TIME, CACHE_TTL_SEEING_FORECAST,
+)
 
 # Windows-compatible file locking
 if sys.platform == "win32":
@@ -297,21 +305,21 @@ def is_astronomical_cache_ready():
     sync_cache_from_shared("sidereal_time", _sidereal_time_cache)
     sync_cache_from_shared("seeing_forecast", _seeing_forecast_cache)
     all_valid = (
-        is_cache_valid(_moon_report_cache, CACHE_TTL) and
-        is_cache_valid(_sun_report_cache, CACHE_TTL) and
-        is_cache_valid(_best_window_cache["strict"], CACHE_TTL) and
-        is_cache_valid(_moon_planner_report_cache, CACHE_TTL) and
-        is_cache_valid(_dark_window_report_cache, CACHE_TTL) and
-        is_cache_valid(_solar_eclipse_cache, CACHE_TTL) and
-        is_cache_valid(_lunar_eclipse_cache, CACHE_TTL) and
-        is_cache_valid(_horizon_graph_cache, CACHE_TTL) and
-        is_cache_valid(_aurora_cache, CACHE_TTL) and
-        is_cache_valid(_iss_passes_cache, CACHE_TTL) and
-        is_cache_valid(_planetary_events_cache, CACHE_TTL) and
-        is_cache_valid(_special_phenomena_cache, CACHE_TTL) and
-        is_cache_valid(_solar_system_events_cache, CACHE_TTL) and
-        is_cache_valid(_sidereal_time_cache, CACHE_TTL) and
-        is_cache_valid(_seeing_forecast_cache, CACHE_TTL)
+        is_cache_valid(_moon_report_cache, CACHE_TTL_MOON_REPORT) and
+        is_cache_valid(_sun_report_cache, CACHE_TTL_SUN_REPORT) and
+        is_cache_valid(_best_window_cache["strict"], CACHE_TTL_BEST_WINDOW) and
+        is_cache_valid(_moon_planner_report_cache, CACHE_TTL_MOON_PLANNER) and
+        is_cache_valid(_dark_window_report_cache, CACHE_TTL_DARK_WINDOW) and
+        is_cache_valid(_solar_eclipse_cache, CACHE_TTL_SOLAR_ECLIPSE) and
+        is_cache_valid(_lunar_eclipse_cache, CACHE_TTL_LUNAR_ECLIPSE) and
+        is_cache_valid(_horizon_graph_cache, CACHE_TTL_HORIZON_GRAPH) and
+        is_cache_valid(_aurora_cache, CACHE_TTL_AURORA) and
+        is_cache_valid(_iss_passes_cache, CACHE_TTL_ISS_PASSES) and
+        is_cache_valid(_planetary_events_cache, CACHE_TTL_PLANETARY_EVENTS) and
+        is_cache_valid(_special_phenomena_cache, CACHE_TTL_SPECIAL_PHENOMENA) and
+        is_cache_valid(_solar_system_events_cache, CACHE_TTL_SOLAR_SYSTEM_EVENTS) and
+        is_cache_valid(_sidereal_time_cache, CACHE_TTL_SIDEREAL_TIME) and
+        is_cache_valid(_seeing_forecast_cache, CACHE_TTL_SEEING_FORECAST)
     )
     return all_valid
 
@@ -334,6 +342,7 @@ def get_cache_init_status():
     sync_cache_from_shared("special_phenomena", _special_phenomena_cache)
     sync_cache_from_shared("solar_system_events", _solar_system_events_cache)
     sync_cache_from_shared("sidereal_time", _sidereal_time_cache)
+    sync_cache_from_shared("seeing_forecast", _seeing_forecast_cache)
     
     # Read in_progress status from shared cache for cross-worker visibility
     shared_cache = _read_shared_cache()
@@ -353,29 +362,49 @@ def get_cache_init_status():
             progress_percent = int((current_step / total_steps) * 100)
     
     return {
-        "moon_report": is_cache_valid(_moon_report_cache, CACHE_TTL),
-        "sun_report": is_cache_valid(_sun_report_cache, CACHE_TTL),
-        "best_window_strict": is_cache_valid(_best_window_cache["strict"], CACHE_TTL),
-        "best_window_practical": is_cache_valid(_best_window_cache["practical"], CACHE_TTL),
-        "best_window_illumination": is_cache_valid(_best_window_cache["illumination"], CACHE_TTL),
-        "moon_planner": is_cache_valid(_moon_planner_report_cache, CACHE_TTL),
-        "dark_window": is_cache_valid(_dark_window_report_cache, CACHE_TTL),
-        "solar_eclipse": is_cache_valid(_solar_eclipse_cache, CACHE_TTL),
-        "lunar_eclipse": is_cache_valid(_lunar_eclipse_cache, CACHE_TTL),
-        "horizon_graph": is_cache_valid(_horizon_graph_cache, CACHE_TTL),
-        "aurora": is_cache_valid(_aurora_cache, CACHE_TTL),
-        "iss_passes": is_cache_valid(_iss_passes_cache, CACHE_TTL),
-        "planetary_events": is_cache_valid(_planetary_events_cache, CACHE_TTL),
-        "special_phenomena": is_cache_valid(_special_phenomena_cache, CACHE_TTL),
-        "solar_system_events": is_cache_valid(_solar_system_events_cache, CACHE_TTL),
-        "sidereal_time": is_cache_valid(_sidereal_time_cache, CACHE_TTL),
+        "moon_report": is_cache_valid(_moon_report_cache, CACHE_TTL_MOON_REPORT),
+        "sun_report": is_cache_valid(_sun_report_cache, CACHE_TTL_SUN_REPORT),
+        "best_window_strict": is_cache_valid(_best_window_cache["strict"], CACHE_TTL_BEST_WINDOW),
+        "best_window_practical": is_cache_valid(_best_window_cache["practical"], CACHE_TTL_BEST_WINDOW),
+        "best_window_illumination": is_cache_valid(_best_window_cache["illumination"], CACHE_TTL_BEST_WINDOW),
+        "moon_planner": is_cache_valid(_moon_planner_report_cache, CACHE_TTL_MOON_PLANNER),
+        "dark_window": is_cache_valid(_dark_window_report_cache, CACHE_TTL_DARK_WINDOW),
+        "solar_eclipse": is_cache_valid(_solar_eclipse_cache, CACHE_TTL_SOLAR_ECLIPSE),
+        "lunar_eclipse": is_cache_valid(_lunar_eclipse_cache, CACHE_TTL_LUNAR_ECLIPSE),
+        "horizon_graph": is_cache_valid(_horizon_graph_cache, CACHE_TTL_HORIZON_GRAPH),
+        "aurora": is_cache_valid(_aurora_cache, CACHE_TTL_AURORA),
+        "iss_passes": is_cache_valid(_iss_passes_cache, CACHE_TTL_ISS_PASSES),
+        "planetary_events": is_cache_valid(_planetary_events_cache, CACHE_TTL_PLANETARY_EVENTS),
+        "special_phenomena": is_cache_valid(_special_phenomena_cache, CACHE_TTL_SPECIAL_PHENOMENA),
+        "solar_system_events": is_cache_valid(_solar_system_events_cache, CACHE_TTL_SOLAR_SYSTEM_EVENTS),
+        "sidereal_time": is_cache_valid(_sidereal_time_cache, CACHE_TTL_SIDEREAL_TIME),
+        "seeing_forecast": is_cache_valid(_seeing_forecast_cache, CACHE_TTL_SEEING_FORECAST),
         "weather_forecast": is_cache_valid(_weather_cache, WEATHER_CACHE_TTL),
         "all_ready": is_astronomical_cache_ready(),
         "in_progress": in_progress,
         "current_step": current_step,
         "total_steps": total_steps,
         "step_name": step_name,
-        "progress_percent": progress_percent
+        "progress_percent": progress_percent,
+        "ttls": {
+            "moon_report": CACHE_TTL_MOON_REPORT,
+            "dark_window": CACHE_TTL_DARK_WINDOW,
+            "moon_planner": CACHE_TTL_MOON_PLANNER,
+            "sun_report": CACHE_TTL_SUN_REPORT,
+            "best_window": CACHE_TTL_BEST_WINDOW,
+            "solar_eclipse": CACHE_TTL_SOLAR_ECLIPSE,
+            "lunar_eclipse": CACHE_TTL_LUNAR_ECLIPSE,
+            "horizon_graph": CACHE_TTL_HORIZON_GRAPH,
+            "aurora": CACHE_TTL_AURORA,
+            "iss_passes": CACHE_TTL_ISS_PASSES,
+            "planetary_events": CACHE_TTL_PLANETARY_EVENTS,
+            "special_phenomena": CACHE_TTL_SPECIAL_PHENOMENA,
+            "solar_system_events": CACHE_TTL_SOLAR_SYSTEM_EVENTS,
+            "sidereal_time": CACHE_TTL_SIDEREAL_TIME,
+            "seeing_forecast": CACHE_TTL_SEEING_FORECAST,
+            "weather_forecast": WEATHER_CACHE_TTL,
+        },
+        "execution_metrics": get_cache_metrics(),
     }
 
 
@@ -391,3 +420,23 @@ def set_cache_initialization_in_progress(value, current_step=0, total_steps=0, s
             "step_name": step_name
         }
         _write_shared_cache(shared_cache)
+
+
+def record_cache_execution(job_name, duration_seconds, success):
+    """Persist per-job execution timing and result to shared cache for metrics reporting."""
+    with _cache_file_lock():
+        shared = _read_shared_cache()
+        if "_cache_metrics" not in shared:
+            shared["_cache_metrics"] = {}
+        shared["_cache_metrics"][job_name] = {
+            "last_run_at": datetime.now().isoformat(),
+            "last_duration_s": round(duration_seconds, 3),
+            "last_success": success,
+        }
+        _write_shared_cache(shared)
+
+
+def get_cache_metrics():
+    """Return per-job execution metrics from shared cache."""
+    shared = _read_shared_cache()
+    return shared.get("_cache_metrics", {})

@@ -75,6 +75,7 @@ def _sample_targets():
 
 
 def test_skytonight_reports_endpoint_returns_compatible_payload(client_admin, monkeypatch):
+    monkeypatch.setattr(skytonight_api_module, 'has_calculation_results', lambda: False)
     monkeypatch.setattr(
         skytonight_api_module.skytonight_targets,
         'load_targets_dataset',
@@ -100,6 +101,7 @@ def test_skytonight_reports_endpoint_returns_compatible_payload(client_admin, mo
 
 
 def test_skytonight_reports_catalogue_filter(client_admin, monkeypatch):
+    monkeypatch.setattr(skytonight_api_module, 'has_calculation_results', lambda: False)
     monkeypatch.setattr(
         skytonight_api_module.skytonight_targets,
         'load_targets_dataset',

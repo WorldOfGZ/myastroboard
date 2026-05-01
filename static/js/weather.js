@@ -139,8 +139,10 @@ async function loadWeather() {
 
     // if forecast list is available
     if (data.hourly && data.hourly.length > 0) {
-        // We receive up to 12 hours of data, display all
-        data.hourly.forEach(forecast => {
+        const now = Date.now();
+        const configuredTimezone = data?.location?.timezone || 'UTC';
+        // We receive up to 12 hours of data; skip entries that are already in the past
+        data.hourly.filter(forecast => new Date(forecast.date).getTime() >= now).forEach(forecast => {
             const date = new Date(forecast.date);
             const cloudCover = Math.round(forecast.cloud_cover);
             const cloudCoverL = Math.round(forecast.cloud_cover_low);
@@ -188,7 +190,7 @@ async function loadWeather() {
             cardBody.className = 'card-body';
             const title = document.createElement('h5');
             title.className = 'card-title card-title-weather';
-            title.textContent = formatTimeOnly(date);
+            title.textContent = formatTimeOnlyInTimezone(forecast.date, configuredTimezone);
 
             const list = document.createElement('ul');
             list.className = 'list-group list-group-flush';
@@ -296,24 +298,23 @@ async function loadAstronomicalCharts() {
         // Hide loading, show charts
         loadingDiv.style.display = 'none';
         
-        // Extract data for charts
-        const labels = data.hourly.map(item => {
-            const date = new Date(item.date);
-            //return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-            return formatTimeOnly(date);
-        });
+        // Extract data for charts — skip entries already in the past
+        const now = Date.now();
+        const configuredTimezone = data?.location?.timezone || 'UTC';
+        const futureHourly = data.hourly.filter(item => new Date(item.date).getTime() >= now);
+        const labels = futureHourly.map(item => formatTimeOnlyInTimezone(item.date, configuredTimezone));
         
-        const condition = data.hourly.map(item => item.condition);
-        const cloudless = data.hourly.map(item => item.cloudless);
-        const cloudHigh = data.hourly.map(item => item.cloudless_high);
-        const cloudMid = data.hourly.map(item => item.cloudless_mid);
-        const cloudLow = data.hourly.map(item => item.cloudless_low);
-        const calm = data.hourly.map(item => item.calm);
-        const fog = data.hourly.map(item => item.fog);
-        const seeing = data.hourly.map(item => item.seeing);
-        const transparency = data.hourly.map(item => item.transparency);
-        const liftedIndex = data.hourly.map(item => item.lifted_index);
-        const precipitation = data.hourly.map(item => item.precipitation);
+        const condition = futureHourly.map(item => item.condition);
+        const cloudless = futureHourly.map(item => item.cloudless);
+        const cloudHigh = futureHourly.map(item => item.cloudless_high);
+        const cloudMid = futureHourly.map(item => item.cloudless_mid);
+        const cloudLow = futureHourly.map(item => item.cloudless_low);
+        const calm = futureHourly.map(item => item.calm);
+        const fog = futureHourly.map(item => item.fog);
+        const seeing = futureHourly.map(item => item.seeing);
+        const transparency = futureHourly.map(item => item.transparency);
+        const liftedIndex = futureHourly.map(item => item.lifted_index);
+        const precipitation = futureHourly.map(item => item.precipitation);
         
         // Destroy existing charts if they exist
         destroyAstronomicalCharts();

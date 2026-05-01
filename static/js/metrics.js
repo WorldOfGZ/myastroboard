@@ -93,6 +93,8 @@ async function loadSystemMetrics() {
     
     // Scheduler status is fetched from a separate endpoint
     updateSchedulerMetrics();
+    // Cache jobs metrics from /api/cache
+    updateCacheJobsMetrics();
 }
 
 async function updateSchedulerMetrics() {
@@ -150,6 +152,143 @@ async function updateSchedulerMetrics() {
         }
     } catch (error) {
         console.warn('Error loading scheduler metrics:', error);
+    }
+}
+
+// Human-readable TTL label
+function formatTTL(seconds) {
+    if (!seconds) return '-';
+    const s = Number(seconds);
+    if (s >= 86400) return `${Math.round(s / 3600)}h`;
+    if (s >= 3600)  return `${Math.round(s / 3600)}h`;
+    if (s >= 60)    return `${Math.round(s / 60)}m`;
+    return `${s}s`;
+}
+
+// Map job names to human-friendly labels
+// Fallback labels used when the i18n key is missing
+const CACHE_JOB_LABELS = {
+    moon_report:          'Moon Report',
+    dark_window:          'Dark Window',
+    moon_planner:         'Moon Planner',
+    sun_report:           'Sun Report',
+    best_window:          'Best Window',
+    solar_eclipse:        'Solar Eclipse',
+    lunar_eclipse:        'Lunar Eclipse',
+    horizon_graph:        'Horizon Graph',
+    aurora:               'Aurora',
+    iss_passes:           'ISS Passes',
+    planetary_events:     'Planetary Events',
+    special_phenomena:    'Special Phenomena',
+    solar_system_events:  'Solar System Events',
+    sidereal_time:        'Sidereal Time',
+    seeing_forecast:      'Seeing Forecast',
+    weather_forecast:     'Weather Forecast',
+};
+
+function getCacheJobLabel(jobKey) {
+    const key = `cache.step_${jobKey}`;
+    const translated = i18n.t(key);
+    // i18n.t returns the key itself when missing — fall back to the static map
+    return (translated && translated !== key)
+        ? translated
+        : (CACHE_JOB_LABELS[jobKey] ?? jobKey);
+}
+
+async function updateCacheJobsMetrics() {
+    const tbody = document.getElementById('cache-jobs-table-body');
+    if (!tbody) return;
+
+    const formatDt = (iso) => {
+        if (!iso) return '-';
+        try { return new Date(iso).toLocaleString(); } catch (_) { return iso; }
+    };
+    const formatSecs = (secs) => {
+        if (secs == null || !Number.isFinite(Number(secs))) return '-';
+        const s = Number(secs);
+        return s < 60 ? `${s.toFixed(2)}s` : `${Math.floor(s / 60)}m ${(s % 60).toFixed(0)}s`;
+    };
+
+    try {
+        const data = await fetchJSON('/api/cache');
+        if (!data) return;
+
+        const details   = data.details ?? {};
+        const ttls      = details.ttls ?? {};
+        const execMeta  = details.execution_metrics ?? {};
+
+        // Build job order: keys from ttls (canonical list), fallback to execMeta keys
+        const jobKeys = Object.keys(ttls).length
+            ? Object.keys(ttls)
+            : Object.keys(CACHE_JOB_LABELS);
+
+        DOMUtils.clear(tbody);
+
+        for (const jobKey of jobKeys) {
+            const ttl       = ttls[jobKey];
+            const exec      = execMeta[jobKey] ?? {};
+            // best_window validity uses best_window_strict in details
+            const validKey  = jobKey === 'best_window' ? 'best_window_strict' : jobKey;
+            const isValid   = details[validKey] ?? null;
+            const label     = getCacheJobLabel(jobKey);
+
+            const tr = document.createElement('tr');
+
+            // Job name
+            const tdName = document.createElement('td');
+            tdName.textContent = label;
+            tr.appendChild(tdName);
+
+            // TTL
+            const tdTTL = document.createElement('td');
+            const ttlBadge = document.createElement('span');
+            ttlBadge.className = 'badge bg-secondary font-monospace';
+            ttlBadge.textContent = formatTTL(ttl);
+            tdTTL.appendChild(ttlBadge);
+            tr.appendChild(tdTTL);
+
+            // Valid / stale badge
+            const tdStatus = document.createElement('td');
+            if (isValid === null) {
+                const b = document.createElement('span');
+                b.className = 'badge bg-secondary';
+                b.textContent = i18n.t('metrics.cache_status_unknown') || '–';
+                tdStatus.appendChild(b);
+            } else if (isValid) {
+                const b = document.createElement('span');
+                b.className = 'badge bg-success';
+                b.textContent = i18n.t('metrics.cache_status_valid') || 'Valid';
+                tdStatus.appendChild(b);
+            } else {
+                const b = document.createElement('span');
+                b.className = 'badge bg-warning text-dark';
+                b.textContent = i18n.t('metrics.cache_status_stale') || 'Stale';
+                tdStatus.appendChild(b);
+            }
+            tr.appendChild(tdStatus);
+
+            // Last run
+            const tdLastRun = document.createElement('td');
+            tdLastRun.className = 'font-monospace small';
+            tdLastRun.textContent = formatDt(exec.last_run_at);
+            tr.appendChild(tdLastRun);
+
+            // Duration
+            const tdDur = document.createElement('td');
+            tdDur.className = 'font-monospace small';
+            if (exec.last_success === false) {
+                const errBadge = document.createElement('span');
+                errBadge.className = 'badge bg-danger me-1';
+                errBadge.textContent = i18n.t('metrics.cache_status_failed') || 'Failed';
+                tdDur.appendChild(errBadge);
+            }
+            tdDur.appendChild(document.createTextNode(formatSecs(exec.last_duration_s)));
+            tr.appendChild(tdDur);
+
+            tbody.appendChild(tr);
+        }
+    } catch (error) {
+        console.warn('Error loading cache jobs metrics:', error);
     }
 }
 

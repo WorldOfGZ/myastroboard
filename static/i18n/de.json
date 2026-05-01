@@ -1026,7 +1026,19 @@
     "scheduler_night_end": "Nachtende",
     "scheduler_dso_count": "Deep-Sky-Objekte",
     "scheduler_bodies_count": "Himmelskörper",
-    "scheduler_comets_count": "Kometen"
+    "scheduler_comets_count": "Kometen",
+    "cache_jobs_title": "Cache-Jobs",
+    "cache_jobs_info": "Jeder Cache-Job hat seine eigene TTL. Der Scheduler prüft alle 25 Min., führt aber nur abgelaufene Jobs aus.",
+    "cache_job_name": "Job",
+    "cache_job_ttl": "TTL",
+    "cache_job_status": "Status",
+    "cache_job_last_run": "Letzter Lauf",
+    "cache_job_duration": "Dauer",
+    "cache_jobs_loading": "Cache-Metriken laden…",
+    "cache_status_valid": "Gültig",
+    "cache_status_stale": "Abgelaufen",
+    "cache_status_failed": "Fehler",
+    "cache_status_unknown": "–"
   },
   "equipment": {
     "combinations": "Kombinationen",
@@ -1327,6 +1339,7 @@
     "step_solar_system_events": "Sonnensystemereignisse",
     "step_sidereal_time": "Sternzeit",
     "step_best_window": "Bestes Fenster",
+    "step_seeing_forecast": "Seeing-Vorhersage",
     "step_weather_forecast": "Wettervorhersage"
   },
   "scheduler": {

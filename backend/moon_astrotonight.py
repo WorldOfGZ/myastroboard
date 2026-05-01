@@ -75,7 +75,16 @@ class AstroTonightService:
         """
         Returns the best continuous imaging window tonight.
         """
+        windows = self.best_windows_all_modes()
+        return windows[mode]
 
+    def best_windows_all_modes(self) -> dict:
+        """
+        Compute best windows for all three modes in a single pass through the night.
+        Altitudes are calculated once per time-step instead of once per mode,
+        reducing Astropy frame transforms by ~66%.
+        Returns a dict keyed by mode: {'strict': BestWindow, 'practical': BestWindow, 'illumination': BestWindow}
+        """
         now = datetime.datetime.now(self.timezone)
         today = now.date()
 
@@ -85,102 +94,91 @@ class AstroTonightService:
             datetime.time(18, 0),
             tzinfo=self.timezone
         )
-
         end = datetime.datetime.combine(
             today + datetime.timedelta(days=1),
             datetime.time(6, 0),
             tzinfo=self.timezone
         )
 
-        # Illumination computed once per night
+        # Illumination computed once per night (used by 'illumination' mode)
         illumination = self._moon_illumination(start)
 
         step_minutes = 5
         step = datetime.timedelta(minutes=step_minutes)
 
-        best_start = None
-        best_duration = datetime.timedelta(0)
+        modes = ["strict", "practical", "illumination"]
 
-        current_start = None
+        # Per-mode tracking state
+        best_start    = {m: None for m in modes}
+        best_duration = {m: datetime.timedelta(0) for m in modes}
+        current_start = {m: None for m in modes}
+
         dt = start
 
-        # ========================================================
-        # Scan the night in 5-min blocks
-        # ========================================================
+        # Mode condition lambdas — evaluated once per step with shared altitudes
+        def is_ok(mode, sun_alt, moon_alt):
+            if sun_alt >= -18:
+                return False
+            if mode == "strict":
+                return moon_alt < 0
+            if mode == "practical":
+                return moon_alt < 5
+            # illumination
+            return illumination < 15
 
         while dt <= end:
-
             sun_alt, moon_alt = self._altitudes(dt)
 
             if sun_alt is None or moon_alt is None:
                 dt += step
                 continue
 
-            # Always require astronomical darkness
-            if sun_alt < -18:
-
-                ok = False
-
-                if mode == "strict":
-                    ok = moon_alt < 0
-
-                elif mode == "practical":
-                    ok = moon_alt < 5
-
-                elif mode == "illumination":
-                    ok = illumination < 15
-
-                # Start or continue a valid window
+            for m in modes:
+                ok = is_ok(m, sun_alt, moon_alt)
                 if ok:
-                    if current_start is None:
-                        current_start = dt
-
-                # Window breaks → compare
+                    if current_start[m] is None:
+                        current_start[m] = dt
                 else:
-                    if current_start is not None:
-                        duration = dt - current_start
-                        if duration > best_duration:
-                            best_duration = duration
-                            best_start = current_start
-                        current_start = None
+                    if current_start[m] is not None:
+                        duration = dt - current_start[m]
+                        if duration > best_duration[m]:
+                            best_duration[m] = duration
+                            best_start[m] = current_start[m]
+                        current_start[m] = None
 
             dt += step
 
-        # ========================================================
-        # Close last open window
-        # ========================================================
+        # Close any still-open windows at end of scan
+        for m in modes:
+            if current_start[m] is not None:
+                duration = end - current_start[m]
+                if duration > best_duration[m]:
+                    best_duration[m] = duration
+                    best_start[m] = current_start[m]
 
-        if current_start is not None:
-            duration = end - current_start
-            if duration > best_duration:
-                best_duration = duration
-                best_start = current_start
+        # Build result dict
+        result = {}
+        for m in modes:
+            if best_start[m] is None:
+                result[m] = BestWindow(
+                    start="Not found",
+                    end="Not found",
+                    duration_hours=0,
+                    moon_condition="unfavorable",
+                    score=0,
+                )
+            else:
+                b_end = best_start[m] + best_duration[m]
+                hours = best_duration[m].total_seconds() / 3600
+                result[m] = BestWindow(
+                    start=best_start[m].strftime("%Y-%m-%d %H:%M"),
+                    end=b_end.strftime("%Y-%m-%d %H:%M"),
+                    duration_hours=round(hours, 2),
+                    moon_condition=m,
+                    score=self._score(hours),
+                )
 
-        # ========================================================
-        # No window found
-        # ========================================================
-
-        if best_start is None:
-            return BestWindow(
-                start="Not found",
-                end="Not found",
-                duration_hours=0,
-                moon_condition="unfavorable",
-                score=0
-            )
-
-        best_end = best_start + best_duration
-
-        hours = best_duration.total_seconds() / 3600
-        score = self._score(hours)
-
-        return BestWindow(
-            start=best_start.strftime("%Y-%m-%d %H:%M"),
-            end=best_end.strftime("%Y-%m-%d %H:%M"),
-            duration_hours=round(hours, 2),
-            moon_condition=mode,
-            score=score
-        )
+        return result
 
     # ============================================================
     # Compute altitudes (Sun + Moon)

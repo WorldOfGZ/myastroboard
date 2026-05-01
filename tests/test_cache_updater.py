@@ -359,7 +359,12 @@ class TestAdditionalCachePaths:
             "practical": {"data": None, "timestamp": 0},
             "illumination": {"data": None, "timestamp": 0},
         }
-        mock_service.return_value.best_window_tonight.return_value = types.SimpleNamespace(start="21:00", end="23:00", score=80)
+        window = types.SimpleNamespace(start="21:00", end="23:00", score=80)
+        mock_service.return_value.best_windows_all_modes.return_value = {
+            "strict": window,
+            "practical": window,
+            "illumination": window,
+        }
 
         update_best_window_cache()
         assert mock_cache_store.update_shared_cache_entry.call_count == 3
@@ -369,6 +374,7 @@ class TestFullInitialization:
     """Coverage for fully_initialize_caches control-flow."""
 
     @patch("cache_updater.cache_store")
+    @patch("cache_updater.load_config")
     @patch("cache_updater.update_weather_cache")
     @patch("cache_updater.update_best_window_cache")
     @patch("cache_updater.update_sidereal_time_cache")
@@ -382,14 +388,12 @@ class TestFullInitialization:
     @patch("cache_updater.update_solar_eclipse_cache")
     @patch("cache_updater.update_sun_report_cache")
     @patch("cache_updater.update_moon_planner_cache")
-    @patch("cache_updater.update_dark_window_cache")
-    @patch("cache_updater.update_moon_report_cache")
+    @patch("cache_updater.update_moon_caches")
     @patch("cache_updater.check_and_handle_config_changes")
     def test_fully_initialize_caches_success(
         self,
         _check,
-        _moon,
-        _dark,
+        _moon_caches,
         _planner,
         _sun,
         _solar,
@@ -403,9 +407,15 @@ class TestFullInitialization:
         _sidereal,
         _best,
         _weather,
+        mock_load_config,
         mock_cache_store,
     ):
         from cache_updater import fully_initialize_caches
+
+        mock_load_config.return_value = {"location": {"latitude": 48.85, "longitude": 2.35, "timezone": "Europe/Paris"}}
+        # Force all caches to be stale so jobs_to_run is populated
+        mock_cache_store.is_cache_valid.return_value = False
+        mock_cache_store.sync_cache_from_shared.return_value = None
 
         fully_initialize_caches()
 

@@ -179,8 +179,8 @@ async function loadAstroWeather() {
         // Render different sections
         renderCurrentAstroConditions(data.current_conditions);
         renderBestObservationPeriods(data.best_observation_periods);
-        renderAstroWeatherCharts(data.hourly_data);
-        renderWeatherAlerts(data.weather_alerts);
+        renderAstroWeatherCharts(data.hourly_data, data.location?.timezone);
+        renderWeatherAlerts(data.weather_alerts, data.location?.timezone);
         
         // Load horizon graph separately (has its own API call)
         loadHorizonGraph();
@@ -278,7 +278,7 @@ function renderCurrentAstroConditions(conditions) {
 /**
  * Render best observation periods
  */
-function renderBestObservationPeriods(periods) {
+function renderBestObservationPeriods(periods, timezone) {
     const container = document.getElementById('astro-best-periods');
     if (!container) return;
 
@@ -351,12 +351,14 @@ function renderBestObservationPeriods(periods) {
         header.className = 'card-header fw-bold';
         const h5 = document.createElement('h5');
         h5.className = 'card-title mb-0';
-        h5.textContent = `${startTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} - ${endTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}`;
+        h5.textContent = `${formatTimeOnlyInTimezone(period.start, timezone || 'UTC')} - ${formatTimeOnlyInTimezone(period.end, timezone || 'UTC')}`;
         const h6 = document.createElement('h6');
         h6.className = 'card-subtitle mt-1 mb-0 text-muted';
-        const startDate = startTime.toLocaleDateString([], {month: 'short', day: 'numeric'});
-        const endDate = endTime.toLocaleDateString([], {month: 'short', day: 'numeric'});
-        h6.textContent = startTime.toDateString() !== endTime.toDateString() ? `${startDate} - ${endDate}` : startDate;
+        const startDate = startTime.toLocaleDateString(navigator.language, {month: 'short', day: 'numeric', timeZone: timezone || 'UTC'});
+        const endDate = endTime.toLocaleDateString(navigator.language, {month: 'short', day: 'numeric', timeZone: timezone || 'UTC'});
+        const startDateKey = startTime.toLocaleDateString('en-CA', {timeZone: timezone || 'UTC'});
+        const endDateKey = endTime.toLocaleDateString('en-CA', {timeZone: timezone || 'UTC'});
+        h6.textContent = startDateKey !== endDateKey ? `${startDate} - ${endDate}` : startDate;
         header.appendChild(h5);
         header.appendChild(h6);
 
@@ -397,13 +399,10 @@ function renderBestObservationPeriods(periods) {
 /**
  * Render astrophotography weather charts
  */
-function renderAstroWeatherCharts(hourlyData) {
+function renderAstroWeatherCharts(hourlyData, timezone) {
     if (!hourlyData || hourlyData.length === 0) return;
     
-    const labels = hourlyData.map(item => {
-        const date = new Date(item.datetime);
-        return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-    });
+    const labels = hourlyData.map(item => formatTimeOnlyInTimezone(item.datetime, timezone || 'UTC'));
     
     // Seeing and Transparency Chart
     renderSeeingTransparencyChart(labels, hourlyData);
@@ -723,7 +722,7 @@ function renderDewTrackingChart(labels, data) {
 /**
  * Render weather alerts for astrophotography
  */
-function renderWeatherAlerts(alerts) {
+function renderWeatherAlerts(alerts, timezone) {
     const container = document.getElementById('astro-weather-alerts');
     if (!container) return;
 
@@ -759,8 +758,7 @@ function renderWeatherAlerts(alerts) {
 
         const title = document.createElement('div');
         title.className = 'fw-bold';
-        const time = new Date(alertData.time);
-        title.replaceChildren(DOMUtils.createIcon(getSeverityIcon(alertData.severity), 'icon-inline'), document.createTextNode(` ${getWeatherAlertTypeLabel(alertData.type)} ${formatTimeOnly(time)}`));
+        title.replaceChildren(DOMUtils.createIcon(getSeverityIcon(alertData.severity), 'icon-inline'), document.createTextNode(` ${getWeatherAlertTypeLabel(alertData.type)} ${formatTimeOnlyInTimezone(alertData.time, timezone || 'UTC')}`));
 
         const message = document.createElement('div');
         message.textContent = alertData.message;

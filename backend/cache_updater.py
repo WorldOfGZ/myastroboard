@@ -20,6 +20,14 @@ from aurora_predictions import get_aurora_report
 from iss_passes import get_iss_passes_report
 from weather_openmeteo import get_hourly_forecast
 import cache_store
+from constants import (
+    WEATHER_CACHE_TTL,
+    CACHE_TTL_MOON_REPORT, CACHE_TTL_DARK_WINDOW, CACHE_TTL_MOON_PLANNER,
+    CACHE_TTL_SUN_REPORT, CACHE_TTL_BEST_WINDOW, CACHE_TTL_SOLAR_ECLIPSE,
+    CACHE_TTL_LUNAR_ECLIPSE, CACHE_TTL_HORIZON_GRAPH, CACHE_TTL_AURORA,
+    CACHE_TTL_ISS_PASSES, CACHE_TTL_PLANETARY_EVENTS, CACHE_TTL_SPECIAL_PHENOMENA,
+    CACHE_TTL_SOLAR_SYSTEM_EVENTS, CACHE_TTL_SIDEREAL_TIME, CACHE_TTL_SEEING_FORECAST,
+)
 
 # Initialize logger for this module
 logger = get_logger(__name__)
@@ -57,15 +65,34 @@ def check_and_handle_config_changes():
 
 def update_moon_report_cache():
     """
-    Updates the Moon report cache
+    Updates the Moon report cache.
+    Delegates to update_moon_caches() so the MoonService report is computed once.
+    """
+    update_moon_caches()
+
+
+def update_dark_window_cache():
+    """
+    Updates the dark window cache.
+    Delegates to update_moon_caches() so the MoonService report is computed once.
+    """
+    update_moon_caches()
+
+
+def update_moon_caches(config=None):
+    """
+    Computes MoonService.get_report() ONCE and writes both the moon_report and
+    dark_window caches. Calling the two caches separately would instantiate
+    MoonService and run all Astropy calculations twice with identical inputs.
     """
     try:
-        logger.info("Updating Moon report cache...")
-        config = load_config()
-        
+        logger.info("Updating Moon report + Dark window caches (single pass)...")
+        if config is None:
+            config = load_config()
+
         if not config.get("location"):
             raise ValueError("Location configuration is missing")
-        
+
         location = config["location"]
         logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
 
@@ -76,7 +103,9 @@ def update_moon_report_cache():
         )
 
         report = moon.get_report()
+        now_ts = time.time()
 
+        # --- moon_report ---
         report_json = {}
         for k, v in report.__dict__.items():
             if isinstance(v, bytes):
@@ -84,77 +113,47 @@ def update_moon_report_cache():
             else:
                 report_json[k] = v
 
-        response = {
+        moon_response = {
             "location": config["location"],
             "moon": report_json
         }
-
-        # Update global cache
-        cache_store._moon_report_cache["data"] = response
-        cache_store._moon_report_cache["timestamp"] = time.time()
+        cache_store._moon_report_cache["data"] = moon_response
+        cache_store._moon_report_cache["timestamp"] = now_ts
         cache_store.update_shared_cache_entry(
             "moon_report",
             cache_store._moon_report_cache["data"],
             cache_store._moon_report_cache["timestamp"]
         )
 
-        logger.info(f"Moon report cache updated at {datetime.now().isoformat()}")
-
-    except Exception as e:
-        logger.error(f"Failed to update Moon report cache: {e}")
-
-
-def update_dark_window_cache():
-    """
-    Updates the next moonless dark window cache
-    """
-    try:
-        logger.debug("Updating Dark window cache...")
-        config = load_config()
-        
-        if not config.get("location"):
-            raise ValueError("Location configuration is missing")
-        
-        location = config["location"]
-        logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
-
-        moon = MoonService(
-            latitude=location["latitude"],
-            longitude=location["longitude"],
-            timezone=location["timezone"]
-        )
-
-        report = moon.get_report()
-
-        response = {
+        # --- dark_window (derived from the same report) ---
+        dark_response = {
             "next_dark_night": {
                 "start": report.next_dark_night_start,
                 "end": report.next_dark_night_end
             }
         }
-
-        # Mettre à jour le cache global
-        cache_store._dark_window_report_cache["data"] = response
-        cache_store._dark_window_report_cache["timestamp"] = time.time()
+        cache_store._dark_window_report_cache["data"] = dark_response
+        cache_store._dark_window_report_cache["timestamp"] = now_ts
         cache_store.update_shared_cache_entry(
             "dark_window",
             cache_store._dark_window_report_cache["data"],
             cache_store._dark_window_report_cache["timestamp"]
         )
 
-        logger.info(f"Dark window cache updated at {datetime.now().isoformat()}")
+        logger.info(f"Moon report + Dark window caches updated at {datetime.now().isoformat()}")
 
     except Exception as e:
-        logger.error(f"Failed to update dark window cache: {e}")
+        logger.error(f"Failed to update Moon/Dark window caches: {e}")
 
 
-def update_moon_planner_cache():
+def update_moon_planner_cache(config=None):
     """
     Updates the Moon Planner cache (next 7 nights report)
     """
     try:
         logger.debug("Updating Moon Planner cache...")
-        config = load_config()
+        if config is None:
+            config = load_config()
         
         if not config.get("location"):
             raise ValueError("Location configuration is missing")
@@ -195,13 +194,14 @@ def update_moon_planner_cache():
         logger.error(f"Failed to update Moon Planner cache: {e}")
 
 
-def update_sun_report_cache():
+def update_sun_report_cache(config=None):
     """
     Updates the Sun report cache (today report)
     """
     try:
         logger.debug("Updating Sun report cache...")
-        config = load_config()
+        if config is None:
+            config = load_config()
         
         if not config.get("location"):
             raise ValueError("Location configuration is missing")
@@ -241,18 +241,19 @@ def update_sun_report_cache():
         logger.error(f"Failed to update Sun report cache: {e}")
 
 
-def update_best_window_cache():
+def update_best_window_cache(config=None):
     """
-    Met à jour le cache des meilleures fenêtres d'observation pour ce soir
-    (modes : strict, practical, illumination)
+    Updates all three best-window caches (strict, practical, illumination) in a single
+    night scan — altitudes are computed once per time-step instead of once per mode.
     """
     try:
         logger.debug("Updating Best window cache...")
-        config = load_config()
-        
+        if config is None:
+            config = load_config()
+
         if not config.get("location"):
             raise ValueError("Location configuration is missing")
-        
+
         location = config["location"]
         logger.debug(f"Using location: lat={int(location.get('latitude'))}, lon={int(location.get('longitude'))}, tz=***")
 
@@ -262,9 +263,10 @@ def update_best_window_cache():
             timezone=location["timezone"]
         )
 
-        for mode in ["strict", "practical", "illumination"]:
-            window = service.best_window_tonight(mode=mode)
+        # Single-pass: all 3 modes computed with one time-step loop
+        windows = service.best_windows_all_modes()
 
+        for mode, window in windows.items():
             cache_store._best_window_cache[mode]["data"] = {
                 "location": config["location"],
                 "mode": mode,
@@ -319,13 +321,14 @@ def update_weather_cache():
         logger.error(f"Failed to update Weather forecast cache: {e}")
 
 
-def update_solar_eclipse_cache():
+def update_solar_eclipse_cache(config=None):
     """
     Updates the Solar Eclipse cache
     """
     try:
         logger.debug("Updating Solar Eclipse cache...")
-        config = load_config()
+        if config is None:
+            config = load_config()
         
         if not config.get("location"):
             raise ValueError("Location configuration is missing")
@@ -383,13 +386,14 @@ def update_solar_eclipse_cache():
         logger.error(f"Failed to update Solar Eclipse cache: {e}", exc_info=True)
 
 
-def update_lunar_eclipse_cache():
+def update_lunar_eclipse_cache(config=None):
     """
     Updates the Lunar Eclipse cache
     """
     try:
         logger.debug("Updating Lunar Eclipse cache...")
-        config = load_config()
+        if config is None:
+            config = load_config()
         
         if not config.get("location"):
             raise ValueError("Location configuration is missing")
@@ -446,13 +450,14 @@ def update_lunar_eclipse_cache():
     except Exception as e:
         logger.error(f"Failed to update Lunar Eclipse cache: {e}", exc_info=True)
 
-def update_horizon_graph_cache():
+def update_horizon_graph_cache(config=None):
     """
     Updates the Horizon Graph cache (sun and moon positions throughout the day)
     """
     try:
         logger.info("Updating Horizon Graph cache...")
-        config = load_config()
+        if config is None:
+            config = load_config()
         
         if not config.get("location"):
             raise ValueError("Location configuration is missing")
@@ -512,13 +517,14 @@ def update_horizon_graph_cache():
         logger.error(f"Failed to update Horizon Graph cache: {e}", exc_info=True)
 
 
-def update_aurora_cache():
+def update_aurora_cache(config=None):
     """
     Updates the Aurora Borealis predictions cache
     """
     try:
         logger.info("Updating Aurora Borealis predictions cache...")
-        config = load_config()
+        if config is None:
+            config = load_config()
         
         if not config.get("location"):
             raise ValueError("Location configuration is missing")
@@ -551,13 +557,14 @@ def update_aurora_cache():
         logger.error(f"Failed to update Aurora cache: {e}", exc_info=True)
 
 
-def update_iss_passes_cache(days: int = 20):
+def update_iss_passes_cache(days: int = 20, config=None):
     """
     Updates the ISS passes cache.
     """
     try:
         logger.info("Updating ISS passes cache...")
-        config = load_config()
+        if config is None:
+            config = load_config()
 
         if not config.get("location"):
             raise ValueError("Location configuration is missing")
@@ -591,14 +598,15 @@ def update_iss_passes_cache(days: int = 20):
         logger.warning(f"Failed to update ISS passes cache: {e}")
 
 
-def update_planetary_events_cache():
+def update_planetary_events_cache(config=None):
     """
     Updates the Planetary Events cache
     Calculates planetary conjunctions, oppositions, elongations, and retrograde motion
     """
     try:
         logger.debug("Updating Planetary Events cache...")
-        config = load_config()
+        if config is None:
+            config = load_config()
         
         if not config.get("location"):
             raise ValueError("Location configuration is missing")
@@ -643,14 +651,15 @@ def update_planetary_events_cache():
         logger.error(f"Failed to update Planetary events cache: {e}", exc_info=True)
 
 
-def update_special_phenomena_cache():
+def update_special_phenomena_cache(config=None):
     """
     Updates the Special Phenomena cache
     Calculates equinoxes, solstices, zodiacal light windows, and Milky Way visibility
     """
     try:
         logger.debug("Updating Special Phenomena cache...")
-        config = load_config()
+        if config is None:
+            config = load_config()
         
         if not config.get("location"):
             raise ValueError("Location configuration is missing")
@@ -695,14 +704,15 @@ def update_special_phenomena_cache():
         logger.error(f"Failed to update Special phenomena cache: {e}", exc_info=True)
 
 
-def update_solar_system_events_cache():
+def update_solar_system_events_cache(config=None):
     """
     Updates the Solar System Events cache
     Calculates meteor shower peaks, comet appearances, and asteroid occultations
     """
     try:
         logger.debug("Updating Solar System Events cache...")
-        config = load_config()
+        if config is None:
+            config = load_config()
         
         if not config.get("location"):
             raise ValueError("Location configuration is missing")
@@ -747,14 +757,15 @@ def update_solar_system_events_cache():
         logger.error(f"Failed to update Solar system events cache: {e}", exc_info=True)
 
 
-def update_sidereal_time_cache():
+def update_sidereal_time_cache(config=None):
     """
     Updates the Sidereal Time cache
     Provides sidereal time information for current observation planning
     """
     try:
         logger.debug("Updating Sidereal Time cache...")
-        config = load_config()
+        if config is None:
+            config = load_config()
         
         if not config.get("location"):
             raise ValueError("Location configuration is missing")
@@ -805,7 +816,7 @@ def update_sidereal_time_cache():
         logger.error(f"Failed to update Sidereal time cache: {e}", exc_info=True)
 
 
-def update_seeing_forecast_cache():
+def update_seeing_forecast_cache(config=None):
     """
     Updates the Seeing Forecast cache
     Provides atmospheric seeing conditions for planetary imaging
@@ -813,7 +824,8 @@ def update_seeing_forecast_cache():
     """
     try:
         logger.debug("Updating Seeing Forecast cache...")
-        config = load_config()
+        if config is None:
+            config = load_config()
         
         if not config.get("location"):
             raise ValueError("Location configuration is missing")
@@ -864,59 +876,103 @@ def update_seeing_forecast_cache():
 
 def fully_initialize_caches():
     """
-    Updates all cache entries with fresh calculations.
-    Automatically resets caches if location configuration has changed.
-    This is called:
-    - On container/server startup
-    - On schedule (every CACHE_TTL interval)
-    - When location configuration changes
+    Selectively refreshes cache entries whose individual TTL has expired.
+    Each job has its own TTL (see constants.py) — heavy/slow jobs run far less
+    frequently than time-sensitive ones, reducing CPU/memory pressure on startup
+    and during periodic scheduler cycles.
+
+    Optimisations applied per refresh cycle:
+    - Config file is read ONCE and forwarded to every update function.
+    - moon_report + dark_window share a single MoonService.get_report() call
+      (update_moon_caches) and are therefore a single job entry here.
+    - best_window runs all 3 modes in one Astropy night-scan pass.
+
+    Automatically resets all caches if location configuration has changed.
+    Called on startup and by the cache scheduler every ~25 minutes.
     """
+    from functools import partial
     logger.debug("Starting cache refresh cycle...")
     start_time = datetime.now()
-    
+
     try:
-        # Check if location has changed and reset caches if needed
+        # Reset all caches when location changes; skip-logic below still applies
+        # because reset_all_caches() zeros all timestamps so every job will be stale
         check_and_handle_config_changes()
-        
-        # All cache update functions
-        cache_functions = [
-            ("moon_report", update_moon_report_cache),
-            ("dark_window", update_dark_window_cache),
-            ("moon_planner", update_moon_planner_cache),
-            ("sun_report", update_sun_report_cache),
-            ("solar_eclipse", update_solar_eclipse_cache),
-            ("lunar_eclipse", update_lunar_eclipse_cache),
-            ("horizon_graph", update_horizon_graph_cache),
-            ("aurora", update_aurora_cache),
-            ("iss_passes", update_iss_passes_cache),
-            ("planetary_events", update_planetary_events_cache),
-            ("special_phenomena", update_special_phenomena_cache),
-            ("solar_system_events", update_solar_system_events_cache),
-            ("sidereal_time", update_sidereal_time_cache),
-            ("seeing_forecast", update_seeing_forecast_cache),
-            ("best_window", update_best_window_cache),
-            ("weather_forecast", update_weather_cache)
+
+        # Load config ONCE per refresh cycle — shared across all update functions
+        config = load_config()
+
+        # (name, shared_sync_key, update_fn, ttl_seconds, cache_entry_ref)
+        # cache_entry_ref is the in-memory dict used for TTL validation.
+        # Notes:
+        #  - moon_caches covers both moon_report and dark_window in one MoonService pass;
+        #    moon_report is used as TTL proxy (both have the same TTL).
+        #  - best_window uses best_window_strict as TTL proxy (all modes refreshed together).
+        cache_jobs = [
+            ("moon_report",        "moon_report",         partial(update_moon_caches,             config=config), CACHE_TTL_MOON_REPORT,         cache_store._moon_report_cache),
+            ("moon_planner",        "moon_planner",        partial(update_moon_planner_cache,       config=config), CACHE_TTL_MOON_PLANNER,        cache_store._moon_planner_report_cache),
+            ("sun_report",          "sun_report",          partial(update_sun_report_cache,         config=config), CACHE_TTL_SUN_REPORT,          cache_store._sun_report_cache),
+            ("solar_eclipse",       "solar_eclipse",       partial(update_solar_eclipse_cache,      config=config), CACHE_TTL_SOLAR_ECLIPSE,       cache_store._solar_eclipse_cache),
+            ("lunar_eclipse",       "lunar_eclipse",       partial(update_lunar_eclipse_cache,      config=config), CACHE_TTL_LUNAR_ECLIPSE,       cache_store._lunar_eclipse_cache),
+            ("horizon_graph",       "horizon_graph",       partial(update_horizon_graph_cache,      config=config), CACHE_TTL_HORIZON_GRAPH,       cache_store._horizon_graph_cache),
+            ("aurora",              "aurora",              partial(update_aurora_cache,             config=config), CACHE_TTL_AURORA,              cache_store._aurora_cache),
+            ("iss_passes",          "iss_passes",          partial(update_iss_passes_cache,         config=config), CACHE_TTL_ISS_PASSES,          cache_store._iss_passes_cache),
+            ("planetary_events",    "planetary_events",    partial(update_planetary_events_cache,   config=config), CACHE_TTL_PLANETARY_EVENTS,    cache_store._planetary_events_cache),
+            ("special_phenomena",   "special_phenomena",   partial(update_special_phenomena_cache,  config=config), CACHE_TTL_SPECIAL_PHENOMENA,   cache_store._special_phenomena_cache),
+            ("solar_system_events", "solar_system_events", partial(update_solar_system_events_cache,config=config), CACHE_TTL_SOLAR_SYSTEM_EVENTS, cache_store._solar_system_events_cache),
+            ("sidereal_time",       "sidereal_time",       partial(update_sidereal_time_cache,      config=config), CACHE_TTL_SIDEREAL_TIME,       cache_store._sidereal_time_cache),
+            ("seeing_forecast",     "seeing_forecast",     partial(update_seeing_forecast_cache,    config=config), CACHE_TTL_SEEING_FORECAST,     cache_store._seeing_forecast_cache),
+            ("best_window",         "best_window_strict",  partial(update_best_window_cache,        config=config), CACHE_TTL_BEST_WINDOW,         cache_store._best_window_cache["strict"]),
+            ("weather_forecast",    None,                  update_weather_cache,                                    WEATHER_CACHE_TTL,             cache_store._weather_cache),
         ]
-        
-        total_steps = len(cache_functions)
+
+        # Determine which jobs actually need to run
+        jobs_to_run = []
+        for job_name, shared_key, update_fn, ttl, cache_entry in cache_jobs:
+            # Sync in-memory entry from shared file to get the persisted timestamp
+            if shared_key is not None:
+                cache_store.sync_cache_from_shared(shared_key, cache_entry)
+            if cache_store.is_cache_valid(cache_entry, ttl):
+                logger.debug("Cache '%s' still valid (TTL=%ds), skipping", job_name, ttl)
+            else:
+                jobs_to_run.append((job_name, update_fn, ttl))
+
+        if not jobs_to_run:
+            logger.debug("All caches are still valid — no refresh needed this cycle")
+            return
+
+        total_steps = len(jobs_to_run)
         success_count = 0
-        
-        for index, (cache_name, cache_function) in enumerate(cache_functions, start=1):
+
+        for index, (job_name, update_fn, ttl) in enumerate(jobs_to_run, start=1):
+            cache_store.set_cache_initialization_in_progress(
+                True,
+                current_step=index,
+                total_steps=total_steps,
+                step_name=job_name,
+            )
+            job_start = time.time()
             try:
-                # Update progress before starting each cache update
-                cache_store.set_cache_initialization_in_progress(
-                    True, 
-                    current_step=index, 
-                    total_steps=total_steps, 
-                    step_name=cache_name
-                )
-                cache_function()
+                update_fn()
+                duration = time.time() - job_start
+                cache_store.record_cache_execution(job_name, duration, True)
+                # moon_report and dark_window are computed together — mirror metrics
+                if job_name == "moon_report":
+                    cache_store.record_cache_execution("dark_window", duration, True)
                 success_count += 1
+                logger.debug("Cache '%s' refreshed in %.2fs", job_name, duration)
             except Exception as e:
-                logger.error(f"Failed to update {cache_name} cache: {e}", exc_info=True)
-        
+                duration = time.time() - job_start
+                cache_store.record_cache_execution(job_name, duration, False)
+                if job_name == "moon_report":
+                    cache_store.record_cache_execution("dark_window", duration, False)
+                logger.error("Failed to update '%s' cache after %.2fs: %s", job_name, duration, e, exc_info=True)
+
         duration = (datetime.now() - start_time).total_seconds()
-        logger.info(f"Cache refresh cycle completed: {success_count}/{len(cache_functions)} caches updated successfully in {duration:.2f} seconds")
-        
+        logger.info(
+            "Cache refresh cycle: %d/%d jobs ran, %d/%d succeeded in %.2fs",
+            total_steps, len(cache_jobs), success_count, total_steps, duration,
+        )
+
     finally:
         cache_store.set_cache_initialization_in_progress(False)

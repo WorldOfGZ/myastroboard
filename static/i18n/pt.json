@@ -1025,7 +1025,19 @@
     "scheduler_night_end": "Fim da noite",
     "scheduler_dso_count": "Objetos do céu profundo",
     "scheduler_bodies_count": "Corpos",
-    "scheduler_comets_count": "Cometas"
+    "scheduler_comets_count": "Cometas",
+    "cache_jobs_title": "Jobs de cache",
+    "cache_jobs_info": "Cada job tem o seu próprio TTL. O agendador verifica a cada 25 min mas executa apenas os jobs expirados.",
+    "cache_job_name": "Job",
+    "cache_job_ttl": "TTL",
+    "cache_job_status": "Estado",
+    "cache_job_last_run": "Última execução",
+    "cache_job_duration": "Duração",
+    "cache_jobs_loading": "A carregar métricas…",
+    "cache_status_valid": "Válido",
+    "cache_status_stale": "Expirado",
+    "cache_status_failed": "Falhou",
+    "cache_status_unknown": "–"
   },
   "equipment": {
     "combinations": "Combinações",
@@ -1326,6 +1338,7 @@
     "step_solar_system_events": "Eventos do sistema solar",
     "step_sidereal_time": "Tempo sideral",
     "step_best_window": "Melhor janela",
+    "step_seeing_forecast": "Previsão do seeing",
     "step_weather_forecast": "Previsão do tempo"
   },
   "scheduler": {

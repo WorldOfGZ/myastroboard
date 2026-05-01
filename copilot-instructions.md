@@ -1130,9 +1130,52 @@ return jsonify({
 - Verify language parameter is being passed properly
 - Check translation files exist in `/app/static/i18n/`
 
-## Resources & References
+## Cache System Rules
 
-### Astronomy
+The background cache is **selective-refresh**: the scheduler polls every 25 min but only runs jobs whose individual TTL has elapsed. Full documentation: [docs/CACHE_SYSTEM.md](docs/CACHE_SYSTEM.md).
+
+### Per-Job TTLs (defined in `backend/constants.py`)
+| Job | Constant | TTL |
+|-----|----------|-----|
+| `moon_report` | `CACHE_TTL_MOON_REPORT` | 1 hour |
+| `dark_window` | `CACHE_TTL_DARK_WINDOW` | 1 hour |
+| `moon_planner` | `CACHE_TTL_MOON_PLANNER` | 2 hours |
+| `sun_report` | `CACHE_TTL_SUN_REPORT` | 1 hour |
+| `best_window` | `CACHE_TTL_BEST_WINDOW` | 1 hour |
+| `solar_eclipse` | `CACHE_TTL_SOLAR_ECLIPSE` | 24 hours |
+| `lunar_eclipse` | `CACHE_TTL_LUNAR_ECLIPSE` | 24 hours |
+| `horizon_graph` | `CACHE_TTL_HORIZON_GRAPH` | 1 hour |
+| `aurora` | `CACHE_TTL_AURORA` | 1 hour |
+| `iss_passes` | `CACHE_TTL_ISS_PASSES` | 6 hours |
+| `planetary_events` | `CACHE_TTL_PLANETARY_EVENTS` | 24 hours |
+| `special_phenomena` | `CACHE_TTL_SPECIAL_PHENOMENA` | 24 hours |
+| `solar_system_events` | `CACHE_TTL_SOLAR_SYSTEM_EVENTS` | 24 hours |
+| `sidereal_time` | `CACHE_TTL_SIDEREAL_TIME` | 1 hour |
+| `seeing_forecast` | `CACHE_TTL_SEEING_FORECAST` | 6 hours |
+| `weather_forecast` | `WEATHER_CACHE_TTL` | 1 hour |
+
+### Computation Optimisations (do not regress)
+- **Config loaded once per cycle**: `fully_initialize_caches()` calls `load_config()` once and passes the result to every update function via `functools.partial(fn, config=config)`. All `update_*_cache()` functions accept `config=None` and fall back to `load_config()` only when called directly.
+- **Moon caches merged**: `update_moon_caches(config=None)` in `cache_updater.py` instantiates `MoonService` and calls `get_report()` once, then writes both `moon_report` and `dark_window` caches. The individual `update_moon_report_cache()` / `update_dark_window_cache()` functions delegate to it and exist only for direct/test compatibility.
+- **Best-window single pass**: `AstroTonightService.best_windows_all_modes()` in `moon_astrotonight.py` runs one 12-hour night-scan loop, computing Astropy AltAz transforms once per step while evaluating all three modes simultaneously. `best_window_tonight(mode)` delegates to it.
+- Execution metrics for `moon_report` **and** `dark_window` are both recorded (same timing) because they are computed together — the `moon_report` job entry records both after success or failure.
+
+### Mandatory Rules for New Cache Jobs
+1. **Add a `CACHE_TTL_<NAME>` constant** in `constants.py` — never reuse the generic `CACHE_TTL`; choose TTL based on how frequently the underlying data actually changes
+2. **Register** in `cache_updater.py` → `fully_initialize_caches()` `cache_jobs` list with `(name, shared_key, partial(fn, config=config), ttl, cache_entry_ref)`
+3. **Accept `config=None`** in the update function and guard with `if config is None: config = load_config()`
+4. **Add validity check** in `cache_store.is_astronomical_cache_ready()` and `get_cache_init_status()` using the job's own TTL constant
+5. **Add to `reset_all_caches()`** and `_write_all_astronomical_caches_to_shared()` in `cache_store.py`
+6. **Document TTL rationale** in `docs/CACHE_SYSTEM.md` TTL table
+
+### Cache Metrics
+- Per-job execution timing is persisted to `data/cache/astro_cache.json` under `_cache_metrics`
+- `cache_store.record_cache_execution(name, duration_s, success)` records each run
+- `GET /api/cache` response includes `details.execution_metrics` and `details.ttls`
+- The **Metrics** tab shows a **Cache Jobs** table with TTL, status (Valid/Stale), last run time, and duration
+- **Never** remove `record_cache_execution()` calls from `fully_initialize_caches()`
+
+## Resources & References
 - [Astropy Documentation](https://docs.astropy.org/)
 - [Astroplan Documentation](https://astroplan.readthedocs.io/)
 - [Coordinate Systems](https://docs.astropy.org/en/stable/coordinates/)
