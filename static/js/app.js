@@ -122,9 +122,14 @@ function applyUserStartupPreferences(force = false) {
 // Initialize the application — called by auth.js once authentication is confirmed.
 // This prevents any authenticated API calls (e.g. scheduler status) from firing
 // before the session is validated, which would generate spurious 401 warnings.
-function initializeAuthenticatedApp() {
+async function initializeAuthenticatedApp() {
     cleanupReconnectQueryParam();
-    initializeApp();
+    // Await full initialization so that loadConfiguration() and i18n are ready
+    // before applyUserStartupPreferences() runs at the end of initializeApp().
+    // Without this await, syncNavigationHash() below would read the HTML-default
+    // active state (forecast-astro) and set the URL hash *before* user preferences
+    // are applied, causing applyUserStartupPreferences to early-return and ignore them.
+    await initializeApp();
     handleHashNavigation();
     window.addEventListener('hashchange', handleHashNavigation);
     syncNavigationHash({ replace: true });

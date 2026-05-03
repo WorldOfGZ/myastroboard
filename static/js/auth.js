@@ -77,9 +77,6 @@ async function checkAuthStatus() {
             if (typeof window.initializeAuthenticatedApp === 'function') {
                 window.initializeAuthenticatedApp();
             }
-            if (typeof window.applyUserStartupPreferences === 'function') {
-                window.applyUserStartupPreferences(true);
-            }
             
             // Show warning if using default password
             if (data.using_default_password) {
