@@ -662,8 +662,19 @@ function _renderAstronauts(container, data) {
 
     // All astronauts in space
     const astronauts = (data.astronauts_in_space && data.astronauts_in_space.results) || [];
-    if (astronauts.length === 0 && !expedition) {
-        _sfError(container, 'spaceflight.no_data', 'No data available.');
+    const hasExpeditionCrew = expedition && expedition.crew && expedition.crew.length > 0;
+
+    if (astronauts.length === 0 && !hasExpeditionCrew) {
+        const noData = document.createElement('div');
+        noData.className = 'alert alert-info d-flex align-items-center gap-2';
+        const noDataIcon = document.createElement('i');
+        noDataIcon.className = 'bi bi-info-circle flex-shrink-0';
+        noData.appendChild(noDataIcon);
+        const noDataMsg = document.createElement('span');
+        noDataMsg.textContent = i18n.t('spaceflight.no_data', 'No astronaut data available at this time.');
+        noData.appendChild(noDataMsg);
+        container.appendChild(noData);
+        container.appendChild(_sfSourceAttribution());
         return;
     }
 

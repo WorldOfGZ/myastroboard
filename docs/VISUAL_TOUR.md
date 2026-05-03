@@ -9,9 +9,10 @@ A visual walkthrough of MyAstroBoard's interface and capabilities.
 4. [SkyTonight](#skytonight)
 5. [Plan My Night](#plan-my-night)
 6. [Astrodex Collections](#astrodex-collections)
-7. [Equipment Profiles](#equipment-profiles)
-8. [Administration](#administration)
-9. [Advanced Features](#advanced-features)
+7. [Spaceflight](#spaceflight)
+8. [Equipment Profiles](#equipment-profiles)
+9. [Administration](#administration)
+10. [Advanced Features](#advanced-features)
 
 ---
 
@@ -55,11 +56,6 @@ Indicate future events.
 Compute informations to predict aurora borealis
 
 ![Aurora](img/astrophoto_aurora.png)
-
-### ISS Passes
-Want to observe ISS? We provide lot of usesull informations regarding your location.
-
-![ISS](img/astrophoto_iss.png)
 
 ### Celestar events
 Because there is lot of thinks in the deep sky, this page indicate you lot of futures events, with some usefull parameters.
@@ -171,6 +167,34 @@ Manage completely your equipment:
 ![Add telescope](img/equipment_telescopes.png)
 
 ![Equipment accessories](img/equipment_accessories_popup.png)
+
+---
+
+## Spaceflight
+
+**For space enthusiast!**
+
+### Launches
+Get some details info about future and previous launch. Sometimes, it's also possible to see live broadcast!
+
+![Launches](img/spaceflight_launches.png)
+
+![Launches](img/spaceflight_launches_popup.png)
+
+### Astronauts
+Who is on space?
+
+![Astronauts](img/spaceflight_astronauts.png)
+
+### Space Events
+Learn more about missions.
+
+![Space envents](img/spaceflight_spaceevents.png)
+
+### ISS Passes
+Want to observe ISS? We provide lot of usesull informations regarding your location.
+
+![ISS](img/spaceflight_iss.png)
 
 ---
 
