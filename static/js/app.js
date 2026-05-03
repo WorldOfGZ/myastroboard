@@ -81,6 +81,18 @@ function applyUserStartupPreferences(force = false) {
         return;
     }
 
+    // If the URL already contains a valid navigable hash (set by handleHashNavigation),
+    // don't override it with stored startup preferences.
+    const hash = window.location.hash.replace(/^#/, '').toLowerCase();
+    if (hash) {
+        const firstSegment = hash.split('/')[0];
+        const navigableMains = ['forecast-astro', 'forecast-weather', 'skytonight', 'spaceflight', 'astrodex', 'equipment', 'my-settings', 'parameters', 'weather', 'planmynight', 'plan-my-night'];
+        if (navigableMains.includes(firstSegment) || navigableMains.some(m => hash.startsWith(m + '/'))) {
+            window.__myastroboardStartupApplied = true;
+            return;
+        }
+    }
+
     const { startupMainTab, startupSubtab } = getStartupPreferenceValues();
     const targetMainButton = document.querySelector(`.main-tab-btn[data-tab="${startupMainTab}"]`);
     const effectiveMainTab = targetMainButton ? startupMainTab : 'forecast-astro';
