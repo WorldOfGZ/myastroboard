@@ -1410,7 +1410,8 @@
     "step_weather_forecast": "Wettervorhersage",
     "step_spaceflight_launches": "Raumflugstarts",
     "step_spaceflight_astronauts": "Astronauten im Weltall",
-    "step_spaceflight_events": "Weltraumveranstaltungen"
+    "step_spaceflight_events": "Weltraumveranstaltungen",
+    "step_parallel_network": "Parallele Netzwerkanfragen"
   },
   "scheduler": {
     "processing_catalogues": "SkyTonight Kataloge werden bearbeitet...",

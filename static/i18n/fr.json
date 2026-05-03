@@ -1431,7 +1431,8 @@
     "step_weather_forecast": "Prévisions météo",
     "step_spaceflight_launches": "Lancements spatiaux",
     "step_spaceflight_astronauts": "Astronautes dans l'espace",
-    "step_spaceflight_events": "Événements spatiaux"
+    "step_spaceflight_events": "Événements spatiaux",
+    "step_parallel_network": "Requêtes réseau parallèles"
   },
   
   "scheduler": {

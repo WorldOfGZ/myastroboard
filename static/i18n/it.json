@@ -1409,7 +1409,8 @@
     "step_weather_forecast": "Previsioni del tempo",
     "step_spaceflight_launches": "Lanci spaziali",
     "step_spaceflight_astronauts": "Astronauti nello spazio",
-    "step_spaceflight_events": "Eventi spaziali"
+    "step_spaceflight_events": "Eventi spaziali",
+    "step_parallel_network": "Richieste di rete parallele"
   },
   "scheduler": {
     "processing_catalogues": "Elaborazione cataloghi SkyTonight...",
