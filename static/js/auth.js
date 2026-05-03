@@ -18,9 +18,10 @@ const DEFAULT_USER_PREFERENCES = {
 };
 
 const startupSubtabsByMain = {
-    'forecast-astro': ['astro-weather', 'window', 'moon', 'sun', 'aurora', 'iss', 'calendar'],
+    'forecast-astro': ['astro-weather', 'window', 'moon', 'sun', 'aurora', 'calendar'],
     'forecast-weather': ['weather', 'seeing', 'trend'],
     'skytonight': [],
+    'spaceflight': ['launches', 'astronauts', 'space-events', 'iss'],
     'astrodex': ['astrodex', 'plan-my-night'],
     'equipment': ['combinations', 'fov', 'telescopes', 'cameras', 'mounts', 'filters', 'accessories'],
     'my-settings': ['customize', 'security'],
@@ -255,6 +256,9 @@ function getSubtabLabelKey(subtabName) {
         'aurora': 'navbar.aurora',
         'seeing': 'navbar.seeing',
         'iss': 'navbar.iss',
+        'launches': 'spaceflight.subtab_launches',
+        'astronauts': 'spaceflight.subtab_astronauts',
+        'space-events': 'spaceflight.subtab_events',
         'calendar': 'navbar.calendar',
         'weather': 'navbar.weather',
         'trend': 'weather.observation_conditions',

@@ -4,6 +4,7 @@
     "title_html": "MyAstroBoard - Planungstool für astronomische Beobachtungen",
     "slogan": "Planungstool für astronomische Beobachtungen",
     "loading": "Laden...",
+    "cache_not_ready": "Daten werden abgerufen. Bitte versuchen Sie es gleich erneut.",
     "error": "Fehler",
     "success": "Erfolg",
     "warning": "Warnung",
@@ -60,7 +61,8 @@
     "seeing": "Seeing-Vorhersage",
     "iss": "ISS",
     "calendar": "Veranstaltungskalender",
-    "plan_my_night": "Plane meine Nacht"
+    "plan_my_night": "Plane meine Nacht",
+    "spaceflight": "Raumfahrt"
   },
   "planets": {
     "mercury": "Merkur",
@@ -386,7 +388,45 @@
     "map_loading": "ISS-Echtzeit-Position wird geladen...",
     "map_error": "ISS-Position konnte nicht geladen werden.",
     "map_past_track": "Vergangene Bahn",
-    "map_future_track": "Nächste Bahn"
+    "map_future_track": "Nächste Bahn",
+    "map_your_location": "Ihr Standort",
+    "map_visible": "Sichtbar",
+    "map_not_visible": "Nicht sichtbar"
+  },
+
+  "spaceflight": {
+    "subtab_launches": "Starts",
+    "subtab_astronauts": "Astronauten",
+    "subtab_events": "Weltraumevents",
+    "launches_title": "Startzeitplan",
+    "astronauts_title": "Astronauten & bemannte Raumfahrt",
+    "events_title": "Weltraumevents",
+    "next_launch": "N\u00e4chster Start",
+    "upcoming_title": "Bevorstehende Starts",
+    "past_title": "Vergangene Starts",
+    "t_minus": "T\u2212",
+    "countdown_d": "T",
+    "countdown_h": "h",
+    "countdown_m": "m",
+    "iss_crew_title": "Aktuelle ISS-Besatzung",
+    "all_in_space": "Personen derzeit im Weltall",
+    "no_data": "Keine Daten verf\u00fcgbar.",
+    "no_events": "Keine bevorstehenden Weltraumevents gefunden.",
+    "launches_error": "Startdaten konnten nicht geladen werden.",
+    "astronauts_error": "Astronautendaten konnten nicht geladen werden.",
+    "events_error": "Weltraumevents konnten nicht geladen werden.",
+    "data_source": "Daten bereitgestellt von <a href=\"https://thespacedevs.com/\" target=\"_blank\" rel=\"noopener\">The Space Devs</a> via Launch Library 2",
+    "english_only_notice": "Dieser Inhalt ist nur auf Englisch verf\u00fcgbar.",
+    "webcast_live": "Livestream",
+    "launched": "Gestartet!",
+    "window": "Startfenster",
+    "agency": "Agentur",
+    "mission": "Mission",
+    "mission_type": "Missionstyp",
+    "orbit": "Orbit",
+    "pad": "Startrampe",
+    "watch_live": "Live ansehen",
+    "more_info": "Mehr Infos"
   },
   "calendar": {
     "no_significant_events": "Keine nennenswerten astronomischen Ereignisse in den nächsten 30 Tagen.",
@@ -1367,7 +1407,10 @@
     "step_sidereal_time": "Sternzeit",
     "step_best_window": "Bestes Fenster",
     "step_seeing_forecast": "Seeing-Vorhersage",
-    "step_weather_forecast": "Wettervorhersage"
+    "step_weather_forecast": "Wettervorhersage",
+    "step_spaceflight_launches": "Raumflugstarts",
+    "step_spaceflight_astronauts": "Astronauten im Weltall",
+    "step_spaceflight_events": "Weltraumveranstaltungen"
   },
   "scheduler": {
     "processing_catalogues": "SkyTonight Kataloge werden bearbeitet...",

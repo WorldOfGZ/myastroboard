@@ -36,7 +36,8 @@ from txtconf_loader import get_repo_version
 from repo_config import load_config, save_config
 from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, CACHE_TTL, WEATHER_CACHE_TTL, SKYTONIGHT_LOGS_DIR, SKYTONIGHT_SCHEDULER_STATUS_FILE, \
     CACHE_TTL_MOON_PLANNER, CACHE_TTL_SOLAR_ECLIPSE, CACHE_TTL_LUNAR_ECLIPSE, CACHE_TTL_AURORA, \
-    CACHE_TTL_ISS_PASSES, CACHE_TTL_PLANETARY_EVENTS, CACHE_TTL_SPECIAL_PHENOMENA, CACHE_TTL_SOLAR_SYSTEM_EVENTS
+    CACHE_TTL_ISS_PASSES, CACHE_TTL_PLANETARY_EVENTS, CACHE_TTL_SPECIAL_PHENOMENA, CACHE_TTL_SOLAR_SYSTEM_EVENTS, \
+    CACHE_TTL_SPACEFLIGHT_LAUNCHES, CACHE_TTL_SPACEFLIGHT_ASTRONAUTS, CACHE_TTL_SPACEFLIGHT_EVENTS
 from logging_config import get_logger
 from version_checker import check_for_updates
 from metrics_collector import collect_metrics
@@ -59,6 +60,9 @@ from cache_updater import (
     update_special_phenomena_cache,
     update_solar_system_events_cache,
     update_sidereal_time_cache,
+    update_spaceflight_launches_cache,
+    update_spaceflight_astronauts_cache,
+    update_spaceflight_events_cache,
 )
 
 #Cache for heavy computations
@@ -1504,7 +1508,16 @@ def get_iss_passes_api():
 def get_iss_location_api():
     """Return current ISS ground position and ±50-minute orbit track, computed from cached TLE."""
     try:
-        position = iss_passes.get_current_position()
+        config = load_config()
+        location = config.get("location", {})
+        lat = location.get("latitude")
+        lon = location.get("longitude")
+        elev = float(location.get("elevation", 0) or 0)
+        position = iss_passes.get_current_position(
+            latitude=float(lat) if lat is not None else None,
+            longitude=float(lon) if lon is not None else None,
+            elevation_m=elev,
+        )
         return jsonify(position)
     except RuntimeError as exc:
         logger.exception("Runtime error computing ISS location")
@@ -1512,6 +1525,95 @@ def get_iss_location_api():
     except Exception as exc:
         logger.error(f"Error computing ISS location: {exc}")
         return jsonify({'error': 'Internal server error'}), 500
+
+
+@app.route("/api/spaceflight/launches", methods=["GET"])
+@login_required
+def get_spaceflight_launches_api():
+    """Return upcoming and past launches from the Launch Library 2 cache."""
+    try:
+        if cache_store.is_cache_valid(cache_store._spaceflight_launches_cache, CACHE_TTL_SPACEFLIGHT_LAUNCHES):
+            return jsonify(cache_store._spaceflight_launches_cache["data"])
+        cache_store.sync_cache_from_shared("spaceflight_launches", cache_store._spaceflight_launches_cache)
+        if cache_store.is_cache_valid(cache_store._spaceflight_launches_cache, CACHE_TTL_SPACEFLIGHT_LAUNCHES):
+            return jsonify(cache_store._spaceflight_launches_cache["data"])
+        # Cache not ready in this worker -> attempt to refresh just this cache
+        update_spaceflight_launches_cache()
+        if cache_store.is_cache_valid(cache_store._spaceflight_launches_cache, CACHE_TTL_SPACEFLIGHT_LAUNCHES):
+            return jsonify(cache_store._spaceflight_launches_cache["data"])
+        return jsonify({"error": "cache_not_ready"}), 503
+    except Exception as exc:
+        logger.error(f"Error fetching spaceflight launches: {exc}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/spaceflight/astronauts", methods=["GET"])
+@login_required
+def get_spaceflight_astronauts_api():
+    """Return ISS crew and astronauts in space from the Launch Library 2 cache."""
+    try:
+        if cache_store.is_cache_valid(cache_store._spaceflight_astronauts_cache, CACHE_TTL_SPACEFLIGHT_ASTRONAUTS):
+            return jsonify(cache_store._spaceflight_astronauts_cache["data"])
+        cache_store.sync_cache_from_shared("spaceflight_astronauts", cache_store._spaceflight_astronauts_cache)
+        if cache_store.is_cache_valid(cache_store._spaceflight_astronauts_cache, CACHE_TTL_SPACEFLIGHT_ASTRONAUTS):
+            return jsonify(cache_store._spaceflight_astronauts_cache["data"])
+        # Cache not ready in this worker -> attempt to refresh just this cache
+        update_spaceflight_astronauts_cache()
+        if cache_store.is_cache_valid(cache_store._spaceflight_astronauts_cache, CACHE_TTL_SPACEFLIGHT_ASTRONAUTS):
+            return jsonify(cache_store._spaceflight_astronauts_cache["data"])
+        return jsonify({"error": "cache_not_ready"}), 503
+    except Exception as exc:
+        logger.error(f"Error fetching spaceflight astronauts: {exc}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/spaceflight/events", methods=["GET"])
+@login_required
+def get_spaceflight_events_api():
+    """Return upcoming space events from the Launch Library 2 cache."""
+    try:
+        if cache_store.is_cache_valid(cache_store._spaceflight_events_cache, CACHE_TTL_SPACEFLIGHT_EVENTS):
+            return jsonify(cache_store._spaceflight_events_cache["data"])
+        cache_store.sync_cache_from_shared("spaceflight_events", cache_store._spaceflight_events_cache)
+        if cache_store.is_cache_valid(cache_store._spaceflight_events_cache, CACHE_TTL_SPACEFLIGHT_EVENTS):
+            return jsonify(cache_store._spaceflight_events_cache["data"])
+        # Cache not ready in this worker -> attempt to refresh just this cache
+        update_spaceflight_events_cache()
+        if cache_store.is_cache_valid(cache_store._spaceflight_events_cache, CACHE_TTL_SPACEFLIGHT_EVENTS):
+            return jsonify(cache_store._spaceflight_events_cache["data"])
+        return jsonify({"error": "cache_not_ready"}), 503
+    except Exception as exc:
+        logger.error(f"Error fetching spaceflight events: {exc}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/api/spaceflight/img/<filename>", methods=["GET"])
+@login_required
+def spaceflight_image(filename):
+    """Serve a locally cached spaceflight/astronaut image."""
+    import re
+    if not re.match(r'^[a-f0-9]{32}\.(jpg|jpeg|png|webp|gif)$', filename):
+        return jsonify({"error": "Invalid filename"}), 400
+    img_dir = os.path.join(DATA_DIR_CACHE, 'spaceflight_images')
+    return send_from_directory(img_dir, filename, max_age=86400)
+
+
+@app.route("/api/spaceflight/launch/<launch_id>/vidurls", methods=["GET"])
+@login_required
+def get_spaceflight_launch_vidurls(launch_id):
+    """Return live video URLs for a specific launch from the LL2 detail endpoint.
+    Results are cached in-process for 5 minutes to protect the free-tier rate limit.
+    Only call this for launches where webcast_live=true."""
+    import re
+    if not re.match(r'^[0-9a-f-]{36}$', launch_id):
+        return jsonify({"error": "Invalid launch ID"}), 400
+    try:
+        from spaceflight_tracker import get_launch_vidurls
+        vidurls = get_launch_vidurls(launch_id)
+        return jsonify({"vidURLs": vidurls})
+    except Exception as exc:
+        logger.error(f"Error fetching vidURLs for launch {launch_id}: {exc}")
+        return jsonify({"vidURLs": []}), 200
 
 
 @app.route("/api/sun/today", methods=["GET"])

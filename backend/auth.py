@@ -29,14 +29,16 @@ ALLOWED_STARTUP_MAIN_TABS = {
     'forecast-astro',
     'forecast-weather',
     'skytonight',
+    'spaceflight',
     'astrodex',
     'equipment',
     'my-settings',
     'parameters'
 }
 ALLOWED_STARTUP_SUBTABS = {
-    'astro-weather', 'window', 'moon', 'sun', 'aurora', 'iss', 'calendar',
-    'weather', 'trend',
+    'astro-weather', 'window', 'moon', 'sun', 'aurora', 'calendar',
+    'weather', 'seeing', 'trend',
+    'launches', 'astronauts', 'space-events', 'iss',
     'astrodex', 'plan-my-night',
     'combinations', 'fov', 'telescopes', 'cameras', 'mounts', 'filters', 'accessories',
     'customize', 'security',

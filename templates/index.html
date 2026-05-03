@@ -48,6 +48,7 @@
     <link rel="stylesheet" href="/static/css/bs_metrics.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_events.css?v={{ version }}">
     <link rel="stylesheet" href="/static/css/bs_iss.css?v={{ version }}">
+    <link rel="stylesheet" href="/static/css/bs_spaceflight.css?v={{ version }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css" integrity="sha256-QZFpF9DkpabUBLoCc7fQJVCmtag/LaVAfAkUJSfuNyY=" crossorigin="anonymous">
     <link rel="stylesheet" href="/static/css/bs_timeline.css?v={{ version }}">
 </head>
@@ -129,6 +130,12 @@
                                 <span data-i18n="navbar.astrodex">Astrodex</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link main-tab-btn" href="#" data-tab="spaceflight">
+                                <i class="bi bi-rocket-takeoff icon-inline text-danger" aria-hidden="true"></i>
+                                <span data-i18n="navbar.spaceflight">Spaceflight</span>
+                            </a>
+                        </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle main-tab-dropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-person icon-inline text-primary" aria-hidden="true"></i><span id="username-display"></span>
@@ -200,12 +207,6 @@
                         <a class="nav-link sub-tab-btn" href="#" data-subtab="aurora">
                             <i class="bi bi-aurora icon-inline text-success" aria-hidden="true"></i>
                             <span data-i18n="navbar.aurora">Aurora Borealis</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link sub-tab-btn" href="#" data-subtab="iss">
-                            <i class="bi bi-iss icon-inline" aria-hidden="true"></i>
-                            <span data-i18n="navbar.iss">ISS</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -393,16 +394,6 @@
                 </div>
             </div>
 
-            <!-- ISS Sub-tab -->
-            <div id="iss-subtab" class="sub-tab-content">
-                <div class="shadow p-2 mb-3 rounded bg-sub-container">
-                    <h2>
-                        <i class="bi bi-iss icon-inline" aria-hidden="true"></i> <span data-i18n="iss.passes">ISS Passes</span>
-                    </h2>
-                    <div id="iss-display" class="iss-info-card rounded"></div>
-                </div>
-            </div>
-
             <!-- Events Calendar Sub-tab -->
             <div id="calendar-subtab" class="sub-tab-content">
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
@@ -503,6 +494,81 @@
                 </ul>
             </div>
             <!-- sub-tab-content divs are injected by skytonight.js -->
+        </div>
+
+        <!-- Spaceflight Section -->
+        <div id="spaceflight-tab" class="main-tab-content">
+            <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                <ul class="nav nav-pills sub-tabs" id="spaceflight-subtabs">
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn active" href="#" data-subtab="launches">
+                            <i class="bi bi-rocket-takeoff icon-inline text-danger" aria-hidden="true"></i>
+                            <span data-i18n="spaceflight.subtab_launches">Launches</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="astronauts">
+                            <i class="bi bi-person-badge icon-inline text-info" aria-hidden="true"></i>
+                            <span data-i18n="spaceflight.subtab_astronauts">Astronauts</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="space-events">
+                            <i class="bi bi-calendar-event icon-inline text-warning" aria-hidden="true"></i>
+                            <span data-i18n="spaceflight.subtab_events">Space Events</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="iss">
+                            <i class="bi bi-iss icon-inline" aria-hidden="true"></i>
+                            <span data-i18n="navbar.iss">ISS</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Launches Sub-tab -->
+            <div id="launches-subtab" class="sub-tab-content active">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>
+                        <i class="bi bi-rocket-takeoff icon-inline text-danger" aria-hidden="true"></i>
+                        <span data-i18n="spaceflight.launches_title">Launch Timeline</span>
+                    </h2>
+                    <div id="spaceflight-launches-display"></div>
+                </div>
+            </div>
+
+            <!-- Astronauts Sub-tab -->
+            <div id="astronauts-subtab" class="sub-tab-content">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>
+                        <i class="bi bi-person-badge icon-inline text-info" aria-hidden="true"></i>
+                        <span data-i18n="spaceflight.astronauts_title">Astronauts &amp; Human Spaceflight</span>
+                    </h2>
+                    <div id="spaceflight-astronauts-display"></div>
+                </div>
+            </div>
+
+            <!-- Space Events Sub-tab -->
+            <div id="space-events-subtab" class="sub-tab-content">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>
+                        <i class="bi bi-calendar-event icon-inline text-warning" aria-hidden="true"></i>
+                        <span data-i18n="spaceflight.events_title">Space Events</span>
+                    </h2>
+                    <div id="spaceflight-events-display"></div>
+                </div>
+            </div>
+
+            <!-- ISS Sub-tab (moved from forecast-astro) -->
+            <div id="iss-subtab" class="sub-tab-content">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>
+                        <i class="bi bi-iss icon-inline" aria-hidden="true"></i> <span data-i18n="iss.passes">ISS Passes</span>
+                    </h2>
+                    <div id="iss-display" class="iss-info-card rounded"></div>
+                </div>
+            </div>
         </div>
 
         <!-- Astrodex Section -->
@@ -815,6 +881,7 @@
                                     <option value="forecast-astro" data-i18n="navbar.astrophotography">Astrophotography</option>
                                     <option value="forecast-weather" data-i18n="navbar.weather">Weather</option>
                                     <option value="skytonight" data-i18n="navbar.skytonight">SkyTonight</option>
+                                    <option value="spaceflight" data-i18n="navbar.spaceflight">Spaceflight</option>
                                     <option value="astrodex" data-i18n="navbar.astrodex">Astrodex</option>
                                     <option value="equipment" data-i18n="navbar.equipment">Equipment</option>
                                     <option value="my-settings" data-i18n="navbar.my_settings">My settings</option>
@@ -1920,6 +1987,22 @@
         </div>
     </footer>
 
+    <!-- Launch detail modal (Spaceflight section) -->
+    <div class="modal fade" id="sf-launch-modal" tabindex="-1" aria-labelledby="sf-launch-modal-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sf-launch-modal-title"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0" id="sf-launch-modal-body"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal" data-i18n="common.close">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Generic Modal Close Small -->
     <div class="modal fade" id="modal_sm_close" tabindex="-1" role="dialog" aria-labelledby="modalSmall">
         <div class="modal-dialog modal-dialog-scrollable modal-sm modal-dialog-centered" role="document">
@@ -2004,6 +2087,7 @@
     <script src="/static/js/aurora.js?v={{ version }}"></script>
     <script src="/static/js/seeing_forecast.js?v={{ version }}"></script>
     <script src="/static/js/iss.js?v={{ version }}"></script>
+    <script src="/static/js/spaceflight.js?v={{ version }}"></script>
     <script src="/static/js/weather.js?v={{ version }}"></script>
     <script src="/static/js/weather_astro.js?v={{ version }}"></script>
     <script src="/static/js/weather_alerts.js?v={{ version }}"></script>

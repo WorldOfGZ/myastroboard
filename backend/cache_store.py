@@ -15,6 +15,7 @@ from constants import (
     CACHE_TTL_LUNAR_ECLIPSE, CACHE_TTL_HORIZON_GRAPH, CACHE_TTL_AURORA,
     CACHE_TTL_ISS_PASSES, CACHE_TTL_PLANETARY_EVENTS, CACHE_TTL_SPECIAL_PHENOMENA,
     CACHE_TTL_SOLAR_SYSTEM_EVENTS, CACHE_TTL_SIDEREAL_TIME, CACHE_TTL_SEEING_FORECAST,
+    CACHE_TTL_SPACEFLIGHT_LAUNCHES, CACHE_TTL_SPACEFLIGHT_ASTRONAUTS, CACHE_TTL_SPACEFLIGHT_EVENTS,
 )
 
 # Windows-compatible file locking
@@ -43,6 +44,11 @@ _special_phenomena_cache = {"timestamp": 0, "data": None}
 _solar_system_events_cache = {"timestamp": 0, "data": None}
 _sidereal_time_cache = {"timestamp": 0, "data": None}
 _seeing_forecast_cache = {"timestamp": 0, "data": None}
+
+# Spaceflight caches (Launch Library 2)
+_spaceflight_launches_cache = {"timestamp": 0, "data": None}
+_spaceflight_astronauts_cache = {"timestamp": 0, "data": None}
+_spaceflight_events_cache = {"timestamp": 0, "data": None}
 
 # Weather cache (separate TTL)
 _weather_cache = {"timestamp": 0, "data": None}
@@ -165,6 +171,9 @@ def _write_all_astronomical_caches_to_shared():
             "solar_system_events": _solar_system_events_cache,
             "sidereal_time": _sidereal_time_cache,
             "seeing_forecast": _seeing_forecast_cache,
+            "spaceflight_launches": _spaceflight_launches_cache,
+            "spaceflight_astronauts": _spaceflight_astronauts_cache,
+            "spaceflight_events": _spaceflight_events_cache,
         })
         _write_shared_cache(shared_cache)
 
@@ -245,7 +254,8 @@ def reset_all_caches():
     global _moon_planner_report_cache, _dark_window_report_cache
     global _solar_eclipse_cache, _lunar_eclipse_cache, _horizon_graph_cache, _aurora_cache, _iss_passes_cache
     global _planetary_events_cache, _special_phenomena_cache, _solar_system_events_cache, _sidereal_time_cache, _seeing_forecast_cache
-    
+    global _spaceflight_launches_cache, _spaceflight_astronauts_cache, _spaceflight_events_cache
+
     _moon_report_cache = {"timestamp": 0, "data": None}
     _sun_report_cache = {"timestamp": 0, "data": None}
     _best_window_cache = {
@@ -265,6 +275,9 @@ def reset_all_caches():
     _solar_system_events_cache = {"timestamp": 0, "data": None}
     _sidereal_time_cache = {"timestamp": 0, "data": None}
     _seeing_forecast_cache = {"timestamp": 0, "data": None}
+    _spaceflight_launches_cache = {"timestamp": 0, "data": None}
+    _spaceflight_astronauts_cache = {"timestamp": 0, "data": None}
+    _spaceflight_events_cache = {"timestamp": 0, "data": None}
     _write_all_astronomical_caches_to_shared()
 
 
@@ -304,6 +317,9 @@ def is_astronomical_cache_ready():
     sync_cache_from_shared("solar_system_events", _solar_system_events_cache)
     sync_cache_from_shared("sidereal_time", _sidereal_time_cache)
     sync_cache_from_shared("seeing_forecast", _seeing_forecast_cache)
+    sync_cache_from_shared("spaceflight_launches", _spaceflight_launches_cache)
+    sync_cache_from_shared("spaceflight_astronauts", _spaceflight_astronauts_cache)
+    sync_cache_from_shared("spaceflight_events", _spaceflight_events_cache)
     all_valid = (
         is_cache_valid(_moon_report_cache, CACHE_TTL_MOON_REPORT) and
         is_cache_valid(_sun_report_cache, CACHE_TTL_SUN_REPORT) and
@@ -319,7 +335,10 @@ def is_astronomical_cache_ready():
         is_cache_valid(_special_phenomena_cache, CACHE_TTL_SPECIAL_PHENOMENA) and
         is_cache_valid(_solar_system_events_cache, CACHE_TTL_SOLAR_SYSTEM_EVENTS) and
         is_cache_valid(_sidereal_time_cache, CACHE_TTL_SIDEREAL_TIME) and
-        is_cache_valid(_seeing_forecast_cache, CACHE_TTL_SEEING_FORECAST)
+        is_cache_valid(_seeing_forecast_cache, CACHE_TTL_SEEING_FORECAST) and
+        is_cache_valid(_spaceflight_launches_cache, CACHE_TTL_SPACEFLIGHT_LAUNCHES) and
+        is_cache_valid(_spaceflight_astronauts_cache, CACHE_TTL_SPACEFLIGHT_ASTRONAUTS) and
+        is_cache_valid(_spaceflight_events_cache, CACHE_TTL_SPACEFLIGHT_EVENTS)
     )
     return all_valid
 
@@ -343,6 +362,9 @@ def get_cache_init_status():
     sync_cache_from_shared("solar_system_events", _solar_system_events_cache)
     sync_cache_from_shared("sidereal_time", _sidereal_time_cache)
     sync_cache_from_shared("seeing_forecast", _seeing_forecast_cache)
+    sync_cache_from_shared("spaceflight_launches", _spaceflight_launches_cache)
+    sync_cache_from_shared("spaceflight_astronauts", _spaceflight_astronauts_cache)
+    sync_cache_from_shared("spaceflight_events", _spaceflight_events_cache)
     
     # Read in_progress status from shared cache for cross-worker visibility
     shared_cache = _read_shared_cache()
@@ -379,6 +401,9 @@ def get_cache_init_status():
         "solar_system_events": is_cache_valid(_solar_system_events_cache, CACHE_TTL_SOLAR_SYSTEM_EVENTS),
         "sidereal_time": is_cache_valid(_sidereal_time_cache, CACHE_TTL_SIDEREAL_TIME),
         "seeing_forecast": is_cache_valid(_seeing_forecast_cache, CACHE_TTL_SEEING_FORECAST),
+        "spaceflight_launches": is_cache_valid(_spaceflight_launches_cache, CACHE_TTL_SPACEFLIGHT_LAUNCHES),
+        "spaceflight_astronauts": is_cache_valid(_spaceflight_astronauts_cache, CACHE_TTL_SPACEFLIGHT_ASTRONAUTS),
+        "spaceflight_events": is_cache_valid(_spaceflight_events_cache, CACHE_TTL_SPACEFLIGHT_EVENTS),
         "weather_forecast": is_cache_valid(_weather_cache, WEATHER_CACHE_TTL),
         "all_ready": is_astronomical_cache_ready(),
         "in_progress": in_progress,
@@ -402,6 +427,9 @@ def get_cache_init_status():
             "solar_system_events": CACHE_TTL_SOLAR_SYSTEM_EVENTS,
             "sidereal_time": CACHE_TTL_SIDEREAL_TIME,
             "seeing_forecast": CACHE_TTL_SEEING_FORECAST,
+            "spaceflight_launches": CACHE_TTL_SPACEFLIGHT_LAUNCHES,
+            "spaceflight_astronauts": CACHE_TTL_SPACEFLIGHT_ASTRONAUTS,
+            "spaceflight_events": CACHE_TTL_SPACEFLIGHT_EVENTS,
             "weather_forecast": WEATHER_CACHE_TTL,
         },
         "execution_metrics": get_cache_metrics(),

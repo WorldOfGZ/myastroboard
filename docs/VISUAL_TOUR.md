@@ -1,6 +1,6 @@
 ﻿# 📸 MyAstroBoard - Visual Tour
 
-A visual walkthrough of MyAstroBoard's interface and capabilities.
+A visual walkthrough of MyAstroBoard's interface and capabilities — from your first clear-sky forecast to tracking who is orbiting Earth right now.
 
 ## Table of Contents
 1. [Dashboard](#dashboard)
@@ -9,17 +9,16 @@ A visual walkthrough of MyAstroBoard's interface and capabilities.
 4. [SkyTonight](#skytonight)
 5. [Plan My Night](#plan-my-night)
 6. [Astrodex Collections](#astrodex-collections)
-7. [Equipment Profiles](#equipment-profiles)
-8. [Administration](#administration)
-9. [Advanced Features](#advanced-features)
+7. [Spaceflight](#spaceflight)
+8. [Equipment Profiles](#equipment-profiles)
+9. [Administration](#administration)
+10. [Advanced Features](#advanced-features)
 
 ---
 
 ## Dashboard
 
-Your command center for all astronomy activities. The home dashboard provides quick access to current weather, observation conditions, and upcoming observation opportunities.
-
-Discover all possibilities in this visual tour!
+Your command center for all astronomy activities. At a glance, you get current observation conditions, upcoming clear windows, and quick access to every feature — all in one place.
 
 ![MyAstroBoard Home](img/overview.gif)
 
@@ -27,42 +26,35 @@ Discover all possibilities in this visual tour!
 
 ## Astrophotography
 
-This is the entry point of MyAstroBoard. In the first section, you can see all need informations.
+The heart of MyAstroBoard. Everything you need to decide whether tonight is worth setting up the telescope.
 
-### Astrophotography advanced information
-Quick information, and detailled information about weather from astrophoto side.
+### Astrophotography Advanced Information
+Key metrics and detailed weather analysis through an astrophotographer's lens — transparency, seeing, wind, humidity, and more.
 
 ![Astrophoto Info](img/astrophoto_main.png)
 
 ### Alerts & Advanced Weather Analysis
-Comprehensive weather alerts and advanced forecast charts to help you plan your observation sessions with confidence.
+Comprehensive weather alerts and advanced forecast charts so you can plan your sessions with confidence, even days ahead.
 
 ![Advanced Weather Charts](img/weather_main_alerts.png)
 
 ### Moon Information
-Detailed calculations of lunar positions, phases, rise/set times, and altimetry data perfect for planning your observations.
-Indicate future events.
+Detailed lunar positions, phases, rise/set times, and altitude charts. Future events like supermoons and lunar eclipses are highlighted automatically.
 
 ![Moon](img/astrophoto_moon.png)
 
 ### Sun Information
-Detailed calculations of solar positions, phases, rise/set times, and altimetry data perfect for planning your observations.
-Indicate future events.
+Solar positions, phases, rise/set times, and altitude charts. Twilight windows and future solar events are calculated for your location.
 
 ![Sun](img/astrophoto_sun.png)
 
 ### Aurora Borealis
-Compute informations to predict aurora borealis
+Real-time Kp index, geomagnetic activity forecast, and a visibility assessment tailored to your latitude — so you never miss the northern lights.
 
 ![Aurora](img/astrophoto_aurora.png)
 
-### ISS Passes
-Want to observe ISS? We provide lot of usesull informations regarding your location.
-
-![ISS](img/astrophoto_iss.png)
-
-### Celestar events
-Because there is lot of thinks in the deep sky, this page indicate you lot of futures events, with some usefull parameters.
+### Celestial Events
+An exhaustive list of upcoming sky events — conjunctions, oppositions, meteor showers, and more — with key parameters to help you prioritize what to observe.
 
 ![Events](img/astrophoto_events.png)
 
@@ -71,12 +63,17 @@ Because there is lot of thinks in the deep sky, this page indicate you lot of fu
 ## Weather & Conditions
 
 ### Weather Forecast
-Detailed weather information including temperature, precipitation, cloud cover, and atmospheric conditions optimized for night-time astronomy.
+Full weather breakdown optimized for night-time astronomy: temperature curves, precipitation probability, cloud cover layers, and atmospheric pressure — all in a single view.
 
 ![Weather Dashboard](img/weather_weather.png)
 
+### 7Timer Integration
+Seeing and transparency data from 7Timer, rendered directly for your observation location for a quick go/no-go decision.
+
+![7timer](img/weather_7timer.png)
+
 ### Observation Conditions Monitor
-Real-time graphs of atmospheric conditions including transparency, seeing, and other factors critical for successful observations.
+Time-series graphs of atmospheric conditions — transparency, seeing, jet stream influence — so you can identify the sweet spot of your night.
 
 ![Observation Conditions](img/weather_observations.png)
 
@@ -84,33 +81,31 @@ Real-time graphs of atmospheric conditions including transparency, seeing, and o
 
 ## SkyTonight
 
-SkyTonight calculates for you the best targets for next night and give them an AstroScore.
-This tool compute also altitude charts, and can use interesting parameters of your observation location, as custom horizon.
+SkyTonight automatically calculates the best targets for the coming night and scores them with an **AstroScore** based on altitude, darkness, and your equipment. It also generates altitude-over-time charts and respects your custom horizon profile.
 
-### Plot graph
+### Plot Graph
 
-This interactive graph display all objects visible next night.
+An interactive scatter plot of every object visible tonight — hover any point for instant details, or click to open the full altitude chart.
 
 ![Plot](img/skytonight_plot.png)
 
 ### Deep Sky Objects Catalogue
-Browse thousands of deep-sky objects from multiple catalogues with detailed information and observation quality scoring.
+Thousands of deep-sky objects from multiple catalogues, scored and sorted. Filter by type, size, magnitude, or AstroScore to build your target list in seconds.
 
 ![Deep Sky Objects](img/skytonight_dso.png)
 
-### Celestial Bodies View
-Explore celestial bodies with detailed information, ratings, and observation recommendations.
+### Celestial Bodies
+Planets, asteroids, and other solar system objects with rise/set times, magnitude, angular size, and observability ratings — updated nightly.
 
 ![Bodies](img/skytonight_bodies.png)
 
-### Comets View
-Explore comets with detailed information, ratings, and observation recommendations.
+### Comets
+Currently observable comets ranked by visibility, with ephemeris data and altitude charts updated from live orbital elements.
 
-![Bodies](img/skytonight_comets.png)
+![Comets](img/skytonight_comets.png)
 
 ### Altitude Charts
-Charts showing object altitude versus time, helping you identify optimal observation windows.
-For each DSO, Bodies, Comets, and this is interactive!
+Interactive altitude-vs-time charts for every DSO, body, and comet. Spot the exact window when your target peaks above the horizon — and above your custom horizon mask.
 
 ![Altitude Chart](img/skytonight_alttime_popup.png)
 
@@ -119,9 +114,9 @@ For each DSO, Bodies, Comets, and this is interactive!
 ## Plan My Night
 
 ### Build and Follow Your Night Session Timeline
-Plan My Night lets you prepare a complete observation timeline directly from SkyTonight targets. You can define target durations, reorder priorities in one click, follow the current target, and monitor how much of the night is already planned.
+Plan My Night turns your SkyTonight shortlist into a structured observation schedule. Set durations, drag to reorder, and follow along live as the night progresses — with a visual progress bar showing how much of the dark window you've used.
 
-It is designed for practical use in the field with quick timeline updates, readable progress bars, and export options.
+Built for real field use: readable in low light, quick to update, and exportable for your records.
 
 ![Plan My Night](img/astrodex_plan_my_night.png)
 
@@ -129,25 +124,18 @@ It is designed for practical use in the field with quick timeline updates, reada
 
 ## Astrodex Collections
 
-### Your Astrophotography Collection
-Astrodex is your personal tracker for every celestial object you've captured. Browse your collection with detailed metadata and imaging information.
+### Your Astrophotography Logbook
+Astrodex is your personal tracker for every object you've imaged. Browse your collection with rich metadata — coordinates, capture date, equipment, conditions, and your own notes.
 
 ![Astrodex Collection](img/astrodex_astrodex.png)
 
-### Object Editor Interface
-Manage detailed information about each capture including:
-- Target object name and coordinates
-- Capture date and equipment
-- Processing notes and observations
-- Atmospheric conditions at time of capture
-
-### Astrophotography Metadata
-Track comprehensive imaging details:
-- Exposure settings (shutter speed, ISO, aperture)
-- Equipment used (telescope, camera, filters)
-- Post-processing notes
-- Observing conditions (transparency, seeing, temperature)
-- Personal observations and improvements for next time
+### Object Editor
+Log every detail of a capture session:
+- Target name, coordinates, and catalogue reference
+- Capture date and equipment profile used
+- Exposure settings: shutter speed, ISO, aperture
+- Atmospheric conditions: seeing, transparency, temperature
+- Processing notes and ideas for the next session
 
 ![Astrodex Editor](img/astrodex_astrodex_edit.png)
 
@@ -155,18 +143,22 @@ Track comprehensive imaging details:
 
 ## Equipment Profiles
 
-Create your complete equipement catalogue to see details, and pre-fill fields in Astrodex.
+Build a complete catalogue of your gear. Equipment profiles pre-fill fields across Astrodex and feed the SkyTonight scoring engine.
 
 ![Equipment combination](img/equipment_combinations.png)
 
-### Manage your equipment
-Manage completely your equipment: 
-- Telescopes
-- Camera
-- Mounting
+SkyTonight uses your active equipment combination to weight the AstroScore — a rich-field refractor and a long focal-length SCT will see different "best targets" for the same sky.
+
+![Equipment rate](img/skytonight_more_info.png)
+
+### Manage Your Equipment
+Track everything in your kit:
+- Telescopes & optical tubes
+- Cameras (DSLR, mirrorless, dedicated ASI)
+- Mounts
 - Filters
 - Accessories
-- **Combine all these elements to create a equipment**
+- **Combine any of the above into a named equipment profile**
 
 ![Add telescope](img/equipment_telescopes.png)
 
@@ -174,38 +166,60 @@ Manage completely your equipment:
 
 ---
 
+## Spaceflight
+
+**For space enthusiasts — stay connected to what's happening above the atmosphere.**
+
+### Launches
+Upcoming and recent launches from every major agency and operator. Open any launch for a detailed breakdown, and watch the live webcast directly inside the app when a stream is available.
+
+![Launches](img/spaceflight_launches.png)
+
+![Launch detail](img/spaceflight_launches_popup.png)
+
+### Astronauts in Space
+See exactly who is orbiting Earth right now, which vehicle they arrived in, their mission role, and how long they've been up there.
+
+![Astronauts](img/spaceflight_astronauts.png)
+
+### Space Events
+Mission milestones, EVAs, dockings, and other spaceflight events — curated so you can follow the story behind the launches.
+
+![Space events](img/spaceflight_spaceevents.png)
+
+### ISS Passes
+Precise ISS fly-over predictions for your location: azimuth, elevation, duration, and a brightness estimate. Never miss a visible pass again.
+
+![ISS](img/spaceflight_iss.png)
+
+---
+
 ## Administration
 
-### User settings
-
-User can personalize his experience.
+### User Settings
+Each user can personalise their experience: startup tab, display density, time format, and colour theme.
 
 ![User settings](img/user_custom.png)
 
-### Global & advanced settings
-
-Global settings & advanced settings to configure MyAstroBoard to your need.
+### Global & Advanced Settings
+Configure MyAstroBoard for your site: coordinates, timezone, catalogue paths, and low-level tuning options.
 
 ![Param settings](img/params_settings.png)
 
-![Advance settings](img/params_advanced.png)
+![Advanced settings](img/params_advanced.png)
 
-### User managments
-
-Create and manage users with specific roles. You can even create user with read-only rights.
+### User Management
+Create and manage accounts with role-based access. Assign **read-only** access for household members or guests, or full **admin** rights for yourself.
 
 ![Users](img/params_users.png)
 
 ### Metrics
-
-Monitor your system.
+Monitor scheduler health, cache job timings, and system performance at a glance.
 
 ![Metrics](img/params_metrics.png)
 
-### Backup, logs, issues
-
-Easy backup & restore your collection & parameters.
-Check your logs, and easy export them to share on github in case of issue.
+### Backup, Logs & Issue Reporting
+One-click backup and restore of your collection and configuration. Browse logs live in the browser and export them as a single file to attach to a GitHub issue.
 
 ![Backup](img/params_backup_restore.png)
 
@@ -218,24 +232,24 @@ Check your logs, and easy export them to share on github in case of issue.
 ## Advanced Features
 
 ### Smart Scheduling
-- Automated SkyTonight execution with configurable intervals
+- Automated SkyTonight runs with configurable intervals
 - Per-catalogue processing for multiple target lists
-- Weather updates before each processing run
-- Version notifications and update management
+- Weather refresh before each calculation run
+- Version notifications and in-app update prompts
 
 ### Configuration System
-- Easy setup of location and coordinates
-- Catalogue selection and filtering
-- Custom target list management
+- Simple location and coordinate setup
+- Catalogue selection and filtering by type or source
+- Custom horizon profile import for obstructed sites
 
 ### Data Analytics
-- Historical trend analysis
-- Observation success metrics
-- Weather pattern recognition
-- Clear night predictions
+- Historical trend analysis across observation sessions
+- Observation success rate metrics
+- Weather pattern recognition for your location
+- Clear-night predictions based on local patterns
 
 ### Mobile Responsive
-All features work seamlessly on:
+Every feature works on any screen size:
 - Desktop computers
 - Tablets
 - Mobile devices
@@ -245,25 +259,25 @@ All features work seamlessly on:
 
 ## 🎯 Start Your Journey
 
-New to MyAstroBoard? Follow these steps:
+New to MyAstroBoard? Here's the quick path to your first observation session:
 
-1. **Install**: See [Installation Guide](1.INSTALLATION.md)
-2. **Configure**: Set up your location and preferences
-3. **Explore**: Browse celestial objects using the catalogues
-4. **Plan**: Check weather and conditions for observation sessions
-5. **Track**: Build your Astrodex collection of captures
+1. **Install** — See [Installation Guide](1.INSTALLATION.md)
+2. **Configure** — Set your location, timezone, and catalogues
+3. **Explore** — Browse tonight's targets in SkyTonight
+4. **Plan** — Check the weather and build your observation timeline
+5. **Track** — Log your captures in Astrodex and grow your collection
 
 ---
 
 ## 💡 Pro Tips
 
-- Use the weather and conditions dashboards together to find optimal observation windows
-- Check altitude charts to ensure targets will be well-positioned in your sky
-- Log your captures in Astrodex to build a comprehensive imaging record
-- Set up automated catalogue updates to always have fresh target data
-- Configure alerts for good observation nights so you never miss clear skies
+- Cross-reference the weather and astrophotography dashboards to find the true sweet spot of a night
+- Use altitude charts to avoid slewing to a target that's already past its peak
+- Assign an equipment profile before opening SkyTonight — the AstroScore adapts to your focal length and aperture
+- Set your startup tab to whichever section you open first every session
+- Export your Astrodex before major upgrades as a quick safety backup
 
 ---
 
-*Explore the cosmos with MyAstroBoard - Your personal astronomy command center!*
+*Explore the cosmos with MyAstroBoard — your personal astronomy command center.*
 

@@ -81,6 +81,18 @@ function applyUserStartupPreferences(force = false) {
         return;
     }
 
+    // If the URL already contains a valid navigable hash (set by handleHashNavigation),
+    // don't override it with stored startup preferences.
+    const hash = window.location.hash.replace(/^#/, '').toLowerCase();
+    if (hash) {
+        const firstSegment = hash.split('/')[0];
+        const navigableMains = ['forecast-astro', 'forecast-weather', 'skytonight', 'spaceflight', 'astrodex', 'equipment', 'my-settings', 'parameters', 'weather', 'planmynight', 'plan-my-night'];
+        if (navigableMains.includes(firstSegment) || navigableMains.some(m => hash.startsWith(m + '/'))) {
+            window.__myastroboardStartupApplied = true;
+            return;
+        }
+    }
+
     const { startupMainTab, startupSubtab } = getStartupPreferenceValues();
     const targetMainButton = document.querySelector(`.main-tab-btn[data-tab="${startupMainTab}"]`);
     const effectiveMainTab = targetMainButton ? startupMainTab : 'forecast-astro';
@@ -146,6 +158,11 @@ function handleHashNavigation() {
         subTab = hash.split('/')[1];
     } else if (hash.startsWith('forecast-astro/')) {
         mainTab = 'forecast-astro';
+        subTab = hash.split('/')[1];
+    } else if (hash === 'spaceflight') {
+        mainTab = 'spaceflight';
+    } else if (hash.startsWith('spaceflight/')) {
+        mainTab = 'spaceflight';
         subTab = hash.split('/')[1];
     } else if (hash.startsWith('skytonight/')) {
         mainTab = 'skytonight';
@@ -263,6 +280,8 @@ function switchMainTab(tabName, options = {}) {
         loadSkyTonightResultsTabs();
     } else if (tabName === 'astrodex') {
         loadAstrodex();
+    } else if (tabName === 'spaceflight') {
+        // nothing extra — subtab switch below handles initial load
     } else if (tabName === 'forecast-weather') {
         loadWeather();
     }
@@ -341,10 +360,15 @@ function switchSubTab(parentTab, subtabName, options = {}) {
         loadSolarEclipse();
     } else if (subtabName === 'aurora') { //Astro Forecast tab - Aurora Borealis
         loadAurora();
-    } else if (subtabName === 'seeing') { //Astro Forecast tab - Seeing Forecast
-        loadSeeingForecast();
-    } else if (subtabName === 'iss') { //Astro Forecast tab - ISS
+    } else if (subtabName === 'iss') { //Spaceflight tab - ISS
         loadIss();
+        loadSeeingForecast();
+    } else if (subtabName === 'launches') { //Spaceflight tab - Launches
+        loadSpaceflightLaunches();
+    } else if (subtabName === 'astronauts') { //Spaceflight tab - Astronauts
+        loadSpaceflightAstronauts();
+    } else if (subtabName === 'space-events') { //Spaceflight tab - Space Events
+        loadSpaceflightEvents();
     } else if (subtabName === 'calendar') { //Astro Forecast tab - Events Calendar
         clearEventsCache();
         loadAndDisplayEvents();

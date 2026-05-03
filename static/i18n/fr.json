@@ -4,6 +4,7 @@
     "title_html": "MyAstroBoard - Outil de planification d'observation astronomique",
     "slogan": "Outil de planification d'observation astronomique",
     "loading": "Chargement...",
+    "cache_not_ready": "Les données sont en cours de récupération. Veuillez réessayer dans un instant.",
     "error": "Erreur",
     "success": "Succès",
     "warning": "Avertissement",
@@ -61,7 +62,8 @@
     "seeing": "Prévisions de seeing",
     "iss": "ISS",
     "calendar": "Calendrier des événements",
-    "plan_my_night": "Planifie ma nuit"
+    "plan_my_night": "Planifie ma nuit",
+    "spaceflight": "Vols spatiaux"
   },
 
   "planets": {
@@ -395,7 +397,45 @@
     "map_loading": "Chargement de la position en temps réel de l'ISS...",
     "map_error": "Impossible de charger la position de l'ISS.",
     "map_past_track": "Orbite passée",
-    "map_future_track": "Orbite à venir"
+    "map_future_track": "Orbite à venir",
+    "map_your_location": "Votre position",
+    "map_visible": "Visible",
+    "map_not_visible": "Non visible"
+  },
+
+  "spaceflight": {
+    "subtab_launches": "Lancements",
+    "subtab_astronauts": "Astronautes",
+    "subtab_events": "\u00c9v\u00e9nements spatiaux",
+    "launches_title": "Calendrier des lancements",
+    "astronauts_title": "Astronautes & vols habit\u00e9s",
+    "events_title": "\u00c9v\u00e9nements spatiaux",
+    "next_launch": "Prochain lancement",
+    "upcoming_title": "Lancements \u00e0 venir",
+    "past_title": "Lancements r\u00e9cents",
+    "t_minus": "T\u2212",
+    "countdown_d": "j",
+    "countdown_h": "h",
+    "countdown_m": "m",
+    "iss_crew_title": "\u00c9quipage ISS actuel",
+    "all_in_space": "Personnes actuellement dans l'espace",
+    "no_data": "Aucune donn\u00e9e disponible.",
+    "no_events": "Aucun \u00e9v\u00e9nement spatial \u00e0 venir trouv\u00e9.",
+    "launches_error": "Impossible de charger les donn\u00e9es de lancement.",
+    "astronauts_error": "Impossible de charger les donn\u00e9es des astronautes.",
+    "events_error": "Impossible de charger les \u00e9v\u00e9nements spatiaux.",
+    "data_source": "Donn\u00e9es fournies par <a href=\"https://thespacedevs.com/\" target=\"_blank\" rel=\"noopener\">The Space Devs</a> via Launch Library 2",
+    "english_only_notice": "Ce contenu est uniquement disponible en anglais.",
+    "webcast_live": "Diffusion en direct",
+    "launched": "Lancé !",
+    "window": "Fen\u00eatre de tir",
+    "agency": "Agence",
+    "mission": "Mission",
+    "mission_type": "Type de mission",
+    "orbit": "Orbite",
+    "pad": "Rampe de lancement",
+    "watch_live": "Voir en direct",
+    "more_info": "Plus d'infos"
   },
 
   "calendar": {
@@ -1388,7 +1428,10 @@
     "step_sidereal_time": "Temps sidéral",
     "step_best_window": "Meilleure fenêtre",
     "step_seeing_forecast": "Prévisions de seeing",
-    "step_weather_forecast": "Prévisions météo"
+    "step_weather_forecast": "Prévisions météo",
+    "step_spaceflight_launches": "Lancements spatiaux",
+    "step_spaceflight_astronauts": "Astronautes dans l'espace",
+    "step_spaceflight_events": "Événements spatiaux"
   },
   
   "scheduler": {

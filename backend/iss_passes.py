@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List, Tuple, cast
 from zoneinfo import ZoneInfo
 import os
+import threading
 import time
 
 import json
@@ -55,6 +56,12 @@ VISIBILITY_SAMPLE_SECONDS = 5
 ISS_TLE_CACHE_FILE = os.path.join(DATA_DIR_CACHE, 'iss_tle_cache.json')
 ISS_TLE_MAX_AGE_SECONDS = 6 * 60 * 60
 ISS_TLE_FAILURE_COOLDOWN_SECONDS = 3 * 60 * 60
+
+# Server-side ground-track cache: recompute the ±50-min orbit path at most once per 5 min.
+# The current ISS position is always computed fresh (1 propagation per request).
+_TRACK_CACHE: Dict[str, Any] = {}
+_TRACK_CACHE_LOCK = threading.Lock()
+_TRACK_CACHE_TTL_SECONDS = 300  # 5 minutes
 
 
 def _utc_timestamp() -> int:
@@ -498,7 +505,11 @@ def get_iss_passes_report(
         return None
 
 
-def get_current_position() -> Dict[str, Any]:
+def get_current_position(
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    elevation_m: float = 0.0,
+) -> Dict[str, Any]:
     """Compute current ISS ground position and ±50-minute ground track from cached TLE.
 
     Returns a dict with keys:
@@ -507,6 +518,7 @@ def get_current_position() -> Dict[str, Any]:
       future_track - list of [lat, lon] for the next 50 minutes (1-min steps),
                      starting at the current position
       timestamp    - ISO 8601 UTC instant used for the computation
+      observer      - (optional) visibility data from the configured location
     """
     cached = _get_cached_tle(max_age_seconds=None)
     if cached is None:
@@ -517,25 +529,39 @@ def get_current_position() -> Dict[str, Any]:
     satellite = EarthSatellite(line1, line2, "ISS (ZARYA)", ts)
 
     now_utc = datetime.now(timezone.utc)
-    subpoint = wgs84.subpoint(satellite.at(ts.from_datetime(now_utc)))
+    now_t = ts.from_datetime(now_utc)
+    subpoint = wgs84.subpoint(satellite.at(now_t))
     lat = float(subpoint.latitude.degrees)  # type: ignore[arg-type]
     lon = float(subpoint.longitude.degrees)  # type: ignore[arg-type]
     alt_km = float(subpoint.elevation.km)  # type: ignore[arg-type]
 
-    past_track: List[List[float]] = []
-    for delta_min in range(-50, 0):
-        t = ts.from_datetime(now_utc + timedelta(minutes=delta_min))
-        sp = wgs84.subpoint(satellite.at(t))
-        past_track.append([float(sp.latitude.degrees), float(sp.longitude.degrees)])  # type: ignore[arg-type]
+    # Ground track: use cached value when fresh, recompute otherwise.
+    # This avoids 101 propagations per request and limits track computation to once per 5 min.
+    now_ts = _utc_timestamp()
+    with _TRACK_CACHE_LOCK:
+        cache_age = now_ts - int(_TRACK_CACHE.get("computed_at", 0))
+        if cache_age < _TRACK_CACHE_TTL_SECONDS and _TRACK_CACHE.get("past_track") is not None:
+            past_track = _TRACK_CACHE["past_track"]
+            future_track = _TRACK_CACHE["future_track"]
+        else:
+            past_track = []
+            for delta_min in range(-50, 0):
+                t = ts.from_datetime(now_utc + timedelta(minutes=delta_min))
+                sp = wgs84.subpoint(satellite.at(t))
+                past_track.append([float(sp.latitude.degrees), float(sp.longitude.degrees)])  # type: ignore[arg-type]
 
-    # Future track starts at the current position so the two polylines connect
-    future_track: List[List[float]] = [[lat, lon]]
-    for delta_min in range(1, 51):
-        t = ts.from_datetime(now_utc + timedelta(minutes=delta_min))
-        sp = wgs84.subpoint(satellite.at(t))
-        future_track.append([float(sp.latitude.degrees), float(sp.longitude.degrees)])  # type: ignore[arg-type]
+            # Future track starts at the current position so the two polylines connect
+            future_track = [[lat, lon]]
+            for delta_min in range(1, 51):
+                t = ts.from_datetime(now_utc + timedelta(minutes=delta_min))
+                sp = wgs84.subpoint(satellite.at(t))
+                future_track.append([float(sp.latitude.degrees), float(sp.longitude.degrees)])  # type: ignore[arg-type]
 
-    return {
+            _TRACK_CACHE["past_track"] = past_track
+            _TRACK_CACHE["future_track"] = future_track
+            _TRACK_CACHE["computed_at"] = now_ts
+
+    result: Dict[str, Any] = {
         "latitude": lat,
         "longitude": lon,
         "altitude_km": round(alt_km, 1),
@@ -543,3 +569,49 @@ def get_current_position() -> Dict[str, Any]:
         "future_track": future_track,
         "timestamp": now_utc.isoformat(),
     }
+
+    # Observer-relative geometry and current visibility (only when location is configured)
+    if latitude is not None and longitude is not None:
+        observer = wgs84.latlon(latitude, longitude, elevation_m=elevation_m)
+        topocentric = (satellite - observer).at(now_t)
+        _obs_alt, _obs_az, _ = topocentric.altaz()
+        obs_altitude_deg = float(_obs_alt.degrees)  # type: ignore[arg-type]
+        obs_azimuth_deg = float(_obs_az.degrees)  # type: ignore[arg-type]
+
+        eph = None
+        try:
+            eph = SKYFIELD_LOADER('de421.bsp')
+        except Exception:
+            pass
+
+        if eph is not None:
+            earth = eph["earth"]
+            sun_obj = eph["sun"]
+            obs_loc_skyfield = wgs84.latlon(latitude, longitude, elevation_m=elevation_m)
+            sun_astrometric = (earth + obs_loc_skyfield).at(now_t).observe(sun_obj)
+            sun_altitude_deg = float(sun_astrometric.apparent().altaz()[0].degrees)
+            is_sunlit = bool(topocentric.is_sunlit(eph))
+        else:
+            obs_earth_loc = EarthLocation(lat=latitude * u.deg, lon=longitude * u.deg, height=elevation_m * u.m)
+            astro_time = AstroTime(now_utc)
+            frame = AltAz(obstime=astro_time, location=obs_earth_loc)
+            sun_altitude_deg = float(cast(Angle, get_sun(astro_time).transform_to(frame).alt).deg)  # type: ignore[arg-type]
+            is_sunlit = True
+
+        is_visible = (
+            obs_altitude_deg >= MIN_EVENT_ALTITUDE_DEG
+            and sun_altitude_deg <= MAX_VISIBLE_SKY_SUN_ALTITUDE_DEG
+            and is_sunlit
+        )
+
+        result["observer"] = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "elevation_m": elevation_m,
+            "iss_altitude_deg": round(obs_altitude_deg, 1),
+            "iss_azimuth_deg": round(obs_azimuth_deg, 1),
+            "sun_altitude_deg": round(sun_altitude_deg, 1),
+            "is_visible": is_visible,
+        }
+
+    return result

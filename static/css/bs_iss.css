@@ -36,6 +36,49 @@
 .iss-legend-past   { background: #f97316; opacity: 0.6; }
 .iss-legend-future { background: #6366f1; }
 
+/* ---- ISS marker: icon + visibility ring ---- */
+
+.iss-marker-icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+}
+
+/* Semi-transparent circle indicating naked-eye visibility */
+.iss-visibility-ring {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid;
+    pointer-events: none;
+}
+
+.iss-visibility-ring.iss-visible {
+    border-color: #22c55e;
+    background: rgba(34, 197, 94, 0.18);
+}
+
+.iss-visibility-ring.iss-not-visible {
+    border-color: #6b7280;
+    background: rgba(107, 114, 128, 0.12);
+}
+
+/* ---- User location pin ---- */
+
+.iss-user-location-pin {
+    display: block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #3b82f6;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+}
+
 .iss-pass-table thead th {
     white-space: nowrap;
     vertical-align: middle;
