@@ -342,50 +342,72 @@ function switchSubTab(parentTab, subtabName, options = {}) {
     }
 
     // Load subtab-specific content
-    if (subtabName === 'logs') { //Parameters tab - Logs
-        loadLogs();
-    } else if (subtabName === 'users') { //Parameters tab - Users
-        loadUsers();
-    } else if (subtabName === 'metrics') { //Parameters tab - Metrics
-        startMetricsAutoRefresh();
-    } else if (subtabName === 'weather') { //Weather Forecast tab - Weather
-        loadWeather();
-    } else if (subtabName === 'astro-weather') { //Astro Forecast tab - Astrophotography Weather
-        loadAstroWeather();
-    } else if (subtabName === 'window') { //Astro Forecast tab - Best Observation Window
-        loadBestDarkWindow();
-    } else if (subtabName === 'trend') { //Weather Forecast tab - Observation Conditions
-        loadAstronomicalCharts();
-    } else if (subtabName === 'moon') { //Astro Forecast tab - Moon
-        loadMoon();
-        loadNextMoonPhases();
-        loadLunarEclipse();
-    } else if (subtabName === 'sun') { //Astro Forecast tab - Sun
-        loadSun();
-        loadSolarEclipse();
-    } else if (subtabName === 'aurora') { //Astro Forecast tab - Aurora Borealis
-        loadAurora();
-    } else if (subtabName === 'iss') { //Spaceflight tab - ISS
-        loadIss();
-        loadSeeingForecast();
-    } else if (subtabName === 'launches') { //Spaceflight tab - Launches
-        loadSpaceflightLaunches();
-    } else if (subtabName === 'astronauts') { //Spaceflight tab - Astronauts
-        loadSpaceflightAstronauts();
-    } else if (subtabName === 'space-events') { //Spaceflight tab - Space Events
-        loadSpaceflightEvents();
-    } else if (subtabName === 'calendar') { //Astro Forecast tab - Events Calendar
-        clearEventsCache();
-        loadAndDisplayEvents();
-    } else if (subtabName === 'plan-my-night') { //Astrodex tab - Plan My Night
-        loadPlanMyNight();
-    } else if (subtabName === 'log-export') { //Parameters tab - Log Export
-        loadLogLevel();
-    } else if (subtabName.startsWith('skytonight-')) { //SkyTonight section tabs
-        const skytSection = subtabName.slice('skytonight-'.length);
-        if (typeof _showSkyTonightSectionData === 'function') {
-            _showSkyTonightSectionData(skytSection);
-        }
+    switch (subtabName) {
+        case 'logs':
+            loadLogs();
+            break; // Parameters tab
+        case 'users':
+            loadUsers();
+            break; // Parameters tab
+        case 'metrics':
+            startMetricsAutoRefresh();
+            break; // Parameters tab
+        case 'log-export':
+            loadLogLevel();
+            break; // Parameters tab
+        case 'weather':
+            loadWeather();
+            break; // Weather Forecast tab
+        case 'seeing':
+            loadSeeingForecast();
+            break; // Weather Forecast tab
+        case 'trend':
+            loadAstronomicalCharts();
+            break; // Weather Forecast tab
+        case 'astro-weather':
+            loadAstroWeather();
+            break; // Astro Forecast tab
+        case 'window':
+            loadBestDarkWindow();
+            break; // Astro Forecast tab
+        case 'moon':
+            loadMoon();
+            loadNextMoonPhases();
+            loadLunarEclipse();
+            break; // Astro Forecast tab
+        case 'sun':
+            loadSun();
+            loadSolarEclipse();
+            break; // Astro Forecast tab
+        case 'aurora':
+            loadAurora();
+            break; // Astro Forecast tab
+        case 'calendar':
+            clearEventsCache();
+            loadAndDisplayEvents();
+            break; // Astro Forecast tab
+        case 'iss':
+            loadIss();
+            break; // Spaceflight tab
+        case 'launches':
+            loadSpaceflightLaunches();
+            break; // Spaceflight tab
+        case 'astronauts':
+            loadSpaceflightAstronauts();
+            break; // Spaceflight tab
+        case 'space-events':
+            loadSpaceflightEvents();
+            break; // Spaceflight tab
+        case 'plan-my-night':
+            loadPlanMyNight();
+            break; // Astrodex tab
+        default:
+            if (subtabName.startsWith('skytonight-')) { // SkyTonight section tabs
+                const skytSection = subtabName.slice('skytonight-'.length);
+                if (typeof _showSkyTonightSectionData === 'function') {
+                    _showSkyTonightSectionData(skytSection);
+                }
+            }
     }
 
     if (syncHistory) {
