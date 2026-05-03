@@ -10,6 +10,7 @@ Docs:      https://thespacedevs.com/llapi
 import hashlib
 import os
 import time
+import urllib.parse
 import requests
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -313,8 +314,15 @@ def get_launch_vidurls(launch_id: str) -> List[Dict[str, Any]]:
     ]
 
     # Sort: YouTube first (embeddable), then by descending priority
+    def _is_youtube(url: str) -> bool:
+        try:
+            host = urllib.parse.urlparse(url).hostname or ""
+            return host == "www.youtube.com" or host == "youtube.com"
+        except Exception:
+            return False
+
     def _sort_key(v):
-        is_yt = 1 if "youtube.com" in (v.get("url") or "") else 0
+        is_yt = 1 if _is_youtube(v.get("url") or "") else 0
         return (-is_yt, -(v.get("priority") or 0))
 
     result.sort(key=_sort_key)
