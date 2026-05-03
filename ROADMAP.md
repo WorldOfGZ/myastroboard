@@ -25,14 +25,6 @@ This document describes features that could potentially be integrated into MyAst
 ### User profile
 - Notification (when/if available in future)
 
-### Space tabs
-**New tab with space information**
-Launch Library provide for example API with low rate but free to use
-Example which could be implemented in subtabs: 
-- Launch
-- Space Events
-- Astronauts in ISS
-
 ## Upgrade Features
 
 ### PWA application
