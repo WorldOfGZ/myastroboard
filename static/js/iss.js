@@ -5,6 +5,7 @@
 // ---- Map module state ----
 let _issMap = null;
 let _issMarker = null;
+let _userLocationMarker = null;
 let _issPastLines = [];
 let _issFutureLines = [];
 let _issMapInterval = null;
@@ -50,9 +51,29 @@ function _updateIssMapContent(data) {
 
     // Update marker position (no setView – avoids the infinite-tiles zoom loop)
     _issMarker.setLatLng([lat, lon]);
-    _issMarker.getPopup().setContent(
-        `<b>ISS</b><br>${i18n.t('iss.map_altitude_label')}: ${data.altitude_km} km`
-    );
+
+    // Build popup content including observer visibility when available
+    const obs = data.observer;
+    let popupHtml = `<b>ISS</b><br>${i18n.t('iss.map_altitude_label')}: ${data.altitude_km} km`;
+    if (obs) {
+        const visLabel = obs.is_visible
+            ? `<span style="color:#22c55e">&#9679; ${i18n.t('iss.map_visible')}</span>`
+            : `<span style="color:#6b7280">&#9675; ${i18n.t('iss.map_not_visible')}</span>`;
+        popupHtml += `<br>${visLabel}`;
+        if (obs.iss_altitude_deg > 0) {
+            popupHtml += `<br>Alt: ${obs.iss_altitude_deg}° Az: ${obs.iss_azimuth_deg}°`;
+        }
+    }
+    _issMarker.getPopup().setContent(popupHtml);
+
+    // Update the visibility ring colour via DOM (avoids full icon redraw)
+    const markerEl = _issMarker.getElement();
+    if (markerEl) {
+        const ring = markerEl.querySelector('.iss-visibility-ring');
+        if (ring) {
+            ring.className = 'iss-visibility-ring ' + (obs && obs.is_visible ? 'iss-visible' : 'iss-not-visible');
+        }
+    }
 
     // Redraw tracks
     _clearIssTrackLines();
@@ -145,12 +166,12 @@ async function _createIssMapCard(container) {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
     }).addTo(_issMap);
 
-    // Custom ISS icon
+    // Custom ISS icon with a visibility ring (green = visible, grey = not visible)
     const issIcon = L.divIcon({
         className: '',
-        html: '<span class="iss-marker-icon" aria-label="ISS"><i class="bi bi-iss" style="font-size:1.6rem;color:#f97316;text-shadow:0 0 4px #000a"></i></span>',
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
+        html: '<span class="iss-marker-icon" aria-label="ISS"><span class="iss-visibility-ring iss-not-visible"></span><i class="bi bi-iss" style="font-size:1.6rem;color:#f97316;text-shadow:0 0 4px #000a"></i></span>',
+        iconSize: [44, 44],
+        iconAnchor: [22, 22],
     });
 
     _issMarker = L.marker([0, 0], { icon: issIcon })
@@ -165,6 +186,19 @@ async function _createIssMapCard(container) {
             if (data && data.latitude !== undefined) {
                 _updateIssMapContent(data);
                 _issMap.setView([data.latitude, data.longitude], 2);
+
+                // Add user location pin once (from observer data returned by backend)
+                if (data.observer && data.observer.latitude !== undefined && !_userLocationMarker) {
+                    const userIcon = L.divIcon({
+                        className: '',
+                        html: `<span class="iss-user-location-pin" title="${i18n.t('iss.map_your_location')}"></span>`,
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10],
+                    });
+                    _userLocationMarker = L.marker([data.observer.latitude, data.observer.longitude], { icon: userIcon, zIndexOffset: 500 })
+                        .addTo(_issMap)
+                        .bindPopup(`<b>${i18n.t('iss.map_your_location')}</b>`);
+                }
             }
         } else {
             metaBar.textContent = i18n.t('iss.map_error');
@@ -173,9 +207,9 @@ async function _createIssMapCard(container) {
         metaBar.textContent = i18n.t('iss.map_error');
     }
 
-    // Auto-refresh every 10 s
+    // Auto-refresh every 15 s (position is computed locally from TLE – no external API per poll)
     _stopIssMapRefresh();
-    _issMapInterval = setInterval(_pollIssLocation, 10000);
+    _issMapInterval = setInterval(_pollIssLocation, 15000);
 }
 
 
@@ -236,6 +270,7 @@ async function loadIss() {
     _stopIssMapRefresh();
     _issMap = null;
     _issMarker = null;
+    _userLocationMarker = null;
     _issPastLines = [];
     _issFutureLines = [];
 

@@ -395,7 +395,10 @@
     "map_loading": "Loading ISS real-time position...",
     "map_error": "Unable to load ISS position.",
     "map_past_track": "Past orbit",
-    "map_future_track": "Upcoming orbit"
+    "map_future_track": "Upcoming orbit",
+    "map_your_location": "Your location",
+    "map_visible": "Visible",
+    "map_not_visible": "Not visible"
   },
 
   "calendar": {

@@ -386,7 +386,10 @@
     "map_loading": "Caricamento della posizione ISS in tempo reale...",
     "map_error": "Impossibile caricare la posizione ISS.",
     "map_past_track": "Orbita passata",
-    "map_future_track": "Orbita prossima"
+    "map_future_track": "Orbita prossima",
+    "map_your_location": "La tua posizione",
+    "map_visible": "Visibile",
+    "map_not_visible": "Non visibile"
   },
   "calendar": {
     "no_significant_events": "Nessun evento astronomico significativo nei prossimi 30 giorni.",

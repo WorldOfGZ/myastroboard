@@ -395,7 +395,10 @@
     "map_loading": "Chargement de la position en temps réel de l'ISS...",
     "map_error": "Impossible de charger la position de l'ISS.",
     "map_past_track": "Orbite passée",
-    "map_future_track": "Orbite à venir"
+    "map_future_track": "Orbite à venir",
+    "map_your_location": "Votre position",
+    "map_visible": "Visible",
+    "map_not_visible": "Non visible"
   },
 
   "calendar": {

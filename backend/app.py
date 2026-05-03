@@ -1457,7 +1457,16 @@ def get_iss_passes_api():
 def get_iss_location_api():
     """Return current ISS ground position and ±50-minute orbit track, computed from cached TLE."""
     try:
-        position = iss_passes.get_current_position()
+        config = load_config()
+        location = config.get("location", {})
+        lat = location.get("latitude")
+        lon = location.get("longitude")
+        elev = float(location.get("elevation", 0) or 0)
+        position = iss_passes.get_current_position(
+            latitude=float(lat) if lat is not None else None,
+            longitude=float(lon) if lon is not None else None,
+            elevation_m=elev,
+        )
         return jsonify(position)
     except RuntimeError as exc:
         logger.exception("Runtime error computing ISS location")

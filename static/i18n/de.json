@@ -386,7 +386,10 @@
     "map_loading": "ISS-Echtzeit-Position wird geladen...",
     "map_error": "ISS-Position konnte nicht geladen werden.",
     "map_past_track": "Vergangene Bahn",
-    "map_future_track": "Nächste Bahn"
+    "map_future_track": "Nächste Bahn",
+    "map_your_location": "Ihr Standort",
+    "map_visible": "Sichtbar",
+    "map_not_visible": "Nicht sichtbar"
   },
   "calendar": {
     "no_significant_events": "Keine nennenswerten astronomischen Ereignisse in den nächsten 30 Tagen.",
