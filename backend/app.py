@@ -1423,6 +1423,53 @@ def get_seeing_forecast_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
+@app.route('/api/object/<path:identifier>', methods=['GET'])
+@login_required
+def get_object_info_api(identifier):
+    """Return metadata, image URL and localized description for a deep-sky object.
+
+    Query parameters:
+      lang  (str, optional) — Wikipedia language code, default 'en'
+
+    Response (200):
+    {
+      "id": "NGC 2632",
+      "name": "Praesepe",
+      "aliases": ["M44", "Beehive Cluster", ...],
+      "type": "Open Cluster",
+      "coordinates": {"ra": 130.1, "dec": 19.67},
+      "description": "...",
+      "description_title": "Beehive Cluster",
+      "image": {"url": "...", "credit": "DSS2 / SkyView (NASA GSFC)"}
+    }
+
+    If the object is not found, returns 404 with {"error": "not_found"}.
+    If the identifier is invalid, returns 400 with {"error": "invalid_identifier"}.
+    """
+    import object_info as _object_info
+
+    lang = request.args.get('lang', 'en', type=str)
+    # Sanitize lang to a safe value
+    lang = str(lang).strip()[:8]
+
+    # Validate identifier characters before any processing
+    if not _object_info.is_safe_identifier(identifier):
+        return jsonify({'error': 'invalid_identifier'}), 400
+
+    try:
+        data = _object_info.get_object_info(identifier, lang=lang)
+    except Exception as exc:
+        logger.error(f'Error fetching object info for {identifier!r}: {exc}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+    error = data.get('error')
+    if error == 'invalid_identifier':
+        return jsonify(data), 400
+    # not_found is a normal outcome (Moon, comets, personal objects not in SIMBAD)
+    # return 200 so browsers don't log a console error
+    return jsonify(data)
+
+
 @app.route("/api/iss/passes", methods=["GET"])
 @login_required
 def get_iss_passes_api():

@@ -13,6 +13,7 @@ let _skytFilteredData = {};       // sectionKey -> filtered row array (null = no
 let _skytFilterState = {};        // sectionKey -> saved filter values for cross-page persistence
 let _skytHasTelescopesCache = null;
 let _skytHasTelescopesPromise = null;
+const _skytListenerTimers = {};  // catalogue+type -> pending setTimeout id (cancelled on re-render)
 
 function tSkyTonightCompat(key, params = {}) {
     const skytonightKey = `skytonight.${key}`;
@@ -1393,9 +1394,11 @@ async function showMorePopupFromRowData(moreData) {
     tableDiv.appendChild(table);
     contentEl.appendChild(tableDiv);
 
-    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
-        backdrop: 'static', focus: true, keyboard: true
-    });
+    const _modalEl1 = document.getElementById('modal_lg_close');
+    let bs_modal = bootstrap.Modal.getInstance(_modalEl1);
+    if (!bs_modal) {
+        bs_modal = new bootstrap.Modal(_modalEl1, { backdrop: true, focus: true, keyboard: true });
+    }
     bs_modal.show();
 
     const hasTelescopes = await _skytUserHasTelescopes();
@@ -1496,10 +1499,8 @@ async function _reRenderTablePage(sectionKey, page) {
 
     const displayAstrodex = await getSkyTonightDisplayAstrodex();
     // Use filtered data if a filter is active, otherwise the full cached array
-    const tableData = (_skytFilteredData[sectionKey] !== null && _skytFilteredData[sectionKey] !== undefined)
-        ? _skytFilteredData[sectionKey]
-        : cachedData[sectionKey];
-    if (!Array.isArray(tableData) || tableData.length === 0) return;
+    const isFiltered = _skytFilteredData[sectionKey] !== null && _skytFilteredData[sectionKey] !== undefined;
+    const tableData = isFiltered ? _skytFilteredData[sectionKey] : cachedData[sectionKey];
 
     // Target only the table sub-div so the filter controls in skyt-ctrl-… are
     // never cleared — the filter input keeps its DOM node, its value, and focus
@@ -1508,6 +1509,17 @@ async function _reRenderTablePage(sectionKey, page) {
     const tblDiv = document.getElementById(`skyt-tbl-SkyTonight-${tableType}`);
     const targetDiv = tblDiv || dataDiv;
     DOMUtils.clear(targetDiv);
+
+    // Empty result from an active filter — show a message instead of leaving the old table
+    if (!Array.isArray(tableData) || tableData.length === 0) {
+        const msg = document.createElement('div');
+        msg.className = 'alert alert-info mt-3';
+        msg.textContent = isFiltered
+            ? tSkyTonightCompat('no_target_in_report')
+            : tSkyTonightCompat('no_data_available');
+        targetDiv.appendChild(msg);
+        return;
+    }
 
     if (cachedData.in_progress) {
         const banner = document.createElement('div');
@@ -1810,10 +1822,8 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
                     displayValue += col.unit;
                 }
                 
-                // Make ID or Target name clickable for alttime popup if file exists
+                // Make ID or Target name clickable
                 if ((col.key === 'id' || col.key === 'target name')) {
-                    // Use ID if available, otherwise use target name for generating alttime filename
-                    const alttimeSource = row['id'] || row['target name'];
                     // Messier badge: shown in the target name cell when the object is in the Messier catalogue
                     const messierNum = (col.key === 'target name')
                         ? (row['catalogue_names'] && row['catalogue_names']['Messier'] ? row['catalogue_names']['Messier'] : null)
@@ -1821,8 +1831,16 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
                     const messierBadge = messierNum
                         ? `<span class="messier-badge" title="${escapeHtml(messierNum)}">${escapeHtml(messierNum)}</span>`
                         : '';
-                    if (alttimeSource && row['alttime_file'] != '') {
-                        const alttimeTargetId = encodeURIComponent(row['alttime_file']);
+                    // For DSO (report): ID cell opens object-info modal; target name cell opens alttime
+                    if (col.key === 'id' && type === 'report') {
+                        const infoId = (row['id'] || row['target name'] || '').trim();
+                        if (infoId) {
+                            html += `<td style="text-align: ${col.align}">${messierBadge}<a href="#" class="link-underline link-underline-opacity-0 skyt-info-link" data-identifier="${escapeHtml(infoId)}">${displayValue}</a></td>`;
+                        } else {
+                            html += `<td style="text-align: ${col.align}">${messierBadge}${displayValue}</td>`;
+                        }
+                    } else if (row['alttime_file'] != '') {
+                        const alttimeSource = row['id'] || row['target name'];
                         html += `
                         <td style="text-align: ${col.align}" class="alttime-check" data-alttime-id="${escapeHtml(row['alttime_file'])}" data-title="${escapeHtml(alttimeSource)} - ${escapeHtml(tSkyTonightCompat('altitude_time_title'))}">
                             ${messierBadge}<a href="#" class="link-underline link-underline-opacity-0 alttime-popup-link">${displayValue}</a>
@@ -1850,7 +1868,11 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
     if (!isRerender) html += `</div>`; // closes skyt-tbl div
 
     // Add event listeners for filtering
-    setTimeout(() => {
+    // Cancel any previous pending timer for this table key to avoid duplicate listeners
+    // when rapid re-renders (pagination, filter) fire before the previous timer expires.
+    const _timerKey = `${catalogue}-${type}`;
+    clearTimeout(_skytListenerTimers[_timerKey]);
+    _skytListenerTimers[_timerKey] = setTimeout(() => {
         const filterInput = document.getElementById(`filter-${catalogue}-${type}`);
         const fotoCheckbox = document.getElementById(`foto-filter-${catalogue}-${type}`);
         const fotoValueInput = document.getElementById(`foto-value-${catalogue}-${type}`);
@@ -1880,32 +1902,42 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
                 if (constellationSelect) constellationSelect.value  = _savedFilter.constellation;
                 if (typeSelect)          typeSelect.value           = _savedFilter.typeVal;
             }
+        }
 
-            if (filterInput) {
-                filterInput.addEventListener('input', () => _skytApplyFilter(catalogue, type));
-            }
-            if (fotoCheckbox) {
-                fotoCheckbox.addEventListener('change', () => {
-                    localStorage.setItem('fotoFilterEnabled', fotoCheckbox.checked);
-                    syncFotoCheckboxes(fotoCheckbox.checked);
-                    _skytApplyFilter(catalogue, type);
-                });
-            }
-            if (fotoValueInput) {
-                fotoValueInput.addEventListener('input', () => {
-                    const normalizedFotoValue = sanitizeFotoFilterValue(fotoValueInput.value);
-                    fotoValueInput.value = normalizedFotoValue;
-                    localStorage.setItem('fotoFilterValue', normalizedFotoValue);
-                    syncFotoValues(normalizedFotoValue);
-                    _skytApplyFilter(catalogue, type);
-                });
-            }
-            if (constellationSelect) {
-                constellationSelect.addEventListener('change', () => _skytApplyFilter(catalogue, type));
-            }
-            if (typeSelect) {
-                typeSelect.addEventListener('change', () => _skytApplyFilter(catalogue, type));
-            }
+        // Attach filter/select listeners whenever the element is new (not yet marked).
+        // Using a per-element flag prevents duplicate listeners when the same DOM node
+        // (in skyt-ctrl-* which is never cleared on re-render) passes through this timer
+        // more than once. On full re-renders (initial or section revisit) elements are new
+        // and will always receive a listener.
+        if (filterInput && !filterInput._skytListened) {
+            filterInput._skytListened = true;
+            filterInput.addEventListener('input', () => _skytApplyFilter(catalogue, type));
+        }
+        if (fotoCheckbox && !fotoCheckbox._skytListened) {
+            fotoCheckbox._skytListened = true;
+            fotoCheckbox.addEventListener('change', () => {
+                localStorage.setItem('fotoFilterEnabled', fotoCheckbox.checked);
+                syncFotoCheckboxes(fotoCheckbox.checked);
+                _skytApplyFilter(catalogue, type);
+            });
+        }
+        if (fotoValueInput && !fotoValueInput._skytListened) {
+            fotoValueInput._skytListened = true;
+            fotoValueInput.addEventListener('input', () => {
+                const normalizedFotoValue = sanitizeFotoFilterValue(fotoValueInput.value);
+                fotoValueInput.value = normalizedFotoValue;
+                localStorage.setItem('fotoFilterValue', normalizedFotoValue);
+                syncFotoValues(normalizedFotoValue);
+                _skytApplyFilter(catalogue, type);
+            });
+        }
+        if (constellationSelect && !constellationSelect._skytListened) {
+            constellationSelect._skytListened = true;
+            constellationSelect.addEventListener('change', () => _skytApplyFilter(catalogue, type));
+        }
+        if (typeSelect && !typeSelect._skytListened) {
+            typeSelect._skytListened = true;
+            typeSelect.addEventListener('change', () => _skytApplyFilter(catalogue, type));
         }
 
         // Add event listeners for Astrodex "Add" buttons
@@ -2051,6 +2083,17 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
                 const moreKey = link.getAttribute('data-more-key');
                 const moreData = _skytMoreRowData[moreKey];
                 if (moreData) await showMorePopupFromRowData(moreData);
+            });
+        });
+
+        // DSO ID link: open object-info modal
+        document.querySelectorAll('.skyt-info-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const identifier = link.getAttribute('data-identifier');
+                if (identifier && typeof showObjectInfoModal === 'function') {
+                    showObjectInfoModal(identifier);
+                }
             });
         });
 
@@ -2650,11 +2693,11 @@ function showMorePopup(popupId) {
             contentElement.appendChild(node.cloneNode(true));
         });
 
-        const bs_modal = new bootstrap.Modal('#modal_lg_close', {
-            backdrop: 'static',
-            focus: true,
-            keyboard: true
-        });
+        const _modalEl2 = document.getElementById('modal_lg_close');
+        let bs_modal = bootstrap.Modal.getInstance(_modalEl2);
+        if (!bs_modal) {
+            bs_modal = new bootstrap.Modal(_modalEl2, { backdrop: true, focus: true, keyboard: true });
+        }
         bs_modal.show();
 
     }
@@ -2756,11 +2799,8 @@ async function openCapturedAstrodexItem(itemData) {
         return;
     }
 
-    const hasPictures = Array.isArray(retryMatchedItem.pictures) && retryMatchedItem.pictures.length > 0;
-    if (hasPictures && typeof showPictureSlideshow === 'function') {
+    if (typeof showPictureSlideshow === 'function') {
         showPictureSlideshow(retryMatchedItem.id);
-    } else if (typeof showAstrodexItemDetail === 'function') {
-        showAstrodexItemDetail(retryMatchedItem.id);
     }
 }
 

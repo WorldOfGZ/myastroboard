@@ -1,0 +1,359 @@
+"""
+Deep Sky Object metadata and image integration.
+
+Provides:
+  Phase 1 — Object resolution via SIMBAD TAP (identifier → name, type, RA/DEC, aliases)
+  Phase 2 — Image URL construction via SkyView/DSS (no download, link only)
+  Phase 3 — Localized description via Wikipedia REST API with language fallback chain
+"""
+
+import re
+import urllib.parse
+from typing import Any, Dict, List, Optional
+
+import requests
+
+from logging_config import get_logger
+
+logger = get_logger(__name__)
+
+# ──────────────────────────────────────────────
+# Constants
+# ──────────────────────────────────────────────
+
+REQUEST_TIMEOUT = 10  # seconds
+
+# Whitelist of Wikipedia language codes that the endpoint accepts.
+_ALLOWED_LANGS: frozenset = frozenset([
+    'en', 'fr', 'de', 'es', 'it', 'pt', 'nl', 'ru', 'ja', 'zh',
+    'pl', 'sv', 'uk', 'ar', 'cs', 'ko', 'hu', 'fi', 'no', 'da',
+])
+
+# Allowed characters in an astronomical object identifier.
+# Permits: letters, digits, space, +, -, ., *, /, '  (e.g. "NGC 2632", "alpha Cen")
+_IDENT_RE = re.compile(r"^[A-Za-z0-9 +\-_.*/']+$")
+
+# Pre-built Wikipedia base URLs keyed by lang code — the hostname is never
+# constructed from user input, which prevents SSRF (CodeQL CWE-918).
+_WIKIPEDIA_BASES: Dict[str, str] = {
+    lang: f'https://{lang}.wikipedia.org/api/rest_v1/page/summary/'
+    for lang in [
+        'en', 'fr', 'de', 'es', 'it', 'pt', 'nl', 'ru', 'ja', 'zh',
+        'pl', 'sv', 'uk', 'ar', 'cs', 'ko', 'hu', 'fi', 'no', 'da',
+    ]
+}
+SIMBAD_TAP_URL = 'https://simbad.cds.unistra.fr/simbad/sim-tap/sync'
+HIPS2FITS_URL = 'https://alasky.cds.unistra.fr/hips-image-services/hips2fits'
+
+
+# ──────────────────────────────────────────────
+# Input validation
+# ──────────────────────────────────────────────
+
+def is_safe_identifier(identifier: str) -> bool:
+    """Return True only if *identifier* contains safe characters for an object name."""
+    return (
+        bool(identifier)
+        and len(identifier) <= 64
+        and bool(_IDENT_RE.match(identifier))
+    )
+
+
+def _sanitize_lang(lang: str) -> str:
+    """Return *lang* if it is in the allowed set, otherwise 'en'."""
+    return lang if lang in _ALLOWED_LANGS else 'en'
+
+
+# ──────────────────────────────────────────────
+# Phase 1 — Object resolution (SIMBAD TAP)
+# ──────────────────────────────────────────────
+
+def _simbad_query(adql: str) -> Optional[Dict]:
+    """Execute an ADQL query against the SIMBAD TAP endpoint and return the JSON payload."""
+    try:
+        resp = requests.get(
+            SIMBAD_TAP_URL,
+            params={
+                'REQUEST': 'doQuery',
+                'LANG': 'ADQL',
+                'FORMAT': 'json',
+                'QUERY': adql,
+            },
+            timeout=REQUEST_TIMEOUT,
+            headers={'Accept': 'application/json'},
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except requests.RequestException as exc:
+        logger.warning(f'SIMBAD TAP request failed: {exc}')
+        return None
+
+
+def _resolve_via_simbad(identifier: str) -> Optional[Dict[str, Any]]:
+    """
+    Resolve *identifier* through SIMBAD TAP.
+
+    Returns a dict:
+    {
+        'id': str,           # SIMBAD main identifier
+        'name': str,         # same as id
+        'type': str,         # human-readable object type
+        'ra': float | None,  # degrees J2000
+        'dec': float | None, # degrees J2000
+        'aliases': list[str] # up to 20 alternative identifiers
+    }
+    or None if the object is not found.
+    """
+    # Escape single quotes for ADQL injection safety
+    safe_id = identifier.replace("'", "''")
+
+    main_query = (
+        "SELECT b.main_id, b.otype_txt, b.ra, b.dec "
+        "FROM basic AS b "
+        "JOIN ident AS i ON b.oid = i.oidref "
+        f"WHERE i.id = '{safe_id}'"
+    )
+    result = _simbad_query(main_query)
+    if not result or not result.get('data'):
+        return None
+
+    row = result['data'][0]
+    cols = [c['name'] for c in result.get('metadata', [])]
+    row_dict = dict(zip(cols, row))
+
+    main_id = str(row_dict.get('main_id') or '').strip()
+    obj_type = str(row_dict.get('otype_txt') or '').strip()
+    ra_raw = row_dict.get('ra')
+    dec_raw = row_dict.get('dec')
+
+    # Fetch all alternative identifiers
+    safe_main = main_id.replace("'", "''")
+    alias_query = (
+        "SELECT i.id "
+        "FROM ident AS i "
+        "JOIN ident AS ref ON i.oidref = ref.oidref "
+        f"WHERE ref.id = '{safe_main}'"
+    )
+    alias_result = _simbad_query(alias_query)
+    aliases: List[str] = []
+    if alias_result and alias_result.get('data'):
+        for alias_row in alias_result['data']:
+            alias_val = str(alias_row[0]).strip()
+            if alias_val and alias_val != main_id:
+                aliases.append(alias_val)
+
+    return {
+        'id': main_id,
+        'name': main_id,
+        'type': obj_type,
+        'ra': float(ra_raw) if ra_raw is not None else None,
+        'dec': float(dec_raw) if dec_raw is not None else None,
+        'aliases': aliases[:20],
+    }
+
+
+# ──────────────────────────────────────────────
+# Phase 2 — Image URL (SkyView / DSS)
+# ──────────────────────────────────────────────
+
+def _get_dss_image_url(ra: float, dec: float, size_deg: float = 0.5) -> str:
+    """
+    Construct a CDS hips2fits URL for a DSS2 Red image at the given coordinates.
+
+    The URL returns a JPEG image directly (no HTML wrapper).
+    """
+    params = {
+        'hips': 'CDS/P/DSS2/red',
+        'width': '400',
+        'height': '400',
+        'fov': f'{size_deg:.3f}',
+        'projection': 'TAN',
+        'coordsys': 'icrs',
+        'ra': f'{ra:.6f}',
+        'dec': f'{dec:.6f}',
+        'format': 'jpg',
+    }
+    return f"{HIPS2FITS_URL}?{urllib.parse.urlencode(params)}"
+
+# ──────────────────────────────────────────────
+# Phase 3 — Localized description (Wikipedia)
+# ──────────────────────────────────────────────
+
+# Regex matching SIMBAD catalog-style designations that Wikipedia will never have
+# e.g. "[LB2005] NGC 3031 X1", "[HB89] 0951+699"
+_SIMBAD_CATALOG_RE = re.compile(r'^\[.*?\]')
+
+
+def _is_wikipedia_candidate(term: str) -> bool:
+    """Return False for terms that are SIMBAD catalog designations unlikely to exist on Wikipedia."""
+    return not _SIMBAD_CATALOG_RE.match(term.strip())
+
+
+def _normalize_wikipedia_term(term: str) -> str:
+    """Collapse repeated whitespace in a search term before URL-encoding."""
+    return ' '.join(term.split())
+
+
+def _get_wikipedia_summary(search_term: str, lang: str = 'en') -> Optional[Dict[str, str]]:
+    """
+    Fetch a Wikipedia page summary for *search_term* in the given *lang*.
+
+    Only languages from _ALLOWED_LANGS are accepted; others fall back to 'en'.
+
+    Returns:
+    {
+        'title': str,
+        'description': str,   # short tagline
+        'extract': str        # paragraph summary
+    }
+    or None if not found.
+    """
+    lang = _sanitize_lang(lang)
+    safe_term = urllib.parse.quote(_normalize_wikipedia_term(search_term), safe='')
+    # Use the pre-built base URL so the hostname is never derived from user input.
+    base = _WIKIPEDIA_BASES[lang]  # lang is guaranteed in _ALLOWED_LANGS after _sanitize_lang
+    url = base + safe_term
+    try:
+        resp = requests.get(
+            url,
+            timeout=REQUEST_TIMEOUT,
+            headers={
+                'Accept': 'application/json',
+                'User-Agent': 'MyAstroBoard/1.0 (https://github.com/WorldOfGZ/myastroboard)',
+            },
+        )
+        if resp.status_code in (404, 403):
+            return None
+        resp.raise_for_status()
+        data = resp.json()
+        extract = data.get('extract', '').strip()
+        if not extract:
+            return None
+        return {
+            'title': data.get('title', ''),
+            'description': data.get('description', ''),
+            'extract': extract,
+        }
+    except requests.RequestException as exc:
+        logger.warning(f'Wikipedia request failed ({lang}/{search_term}): {exc}')
+        return None
+
+
+def _wikipedia_with_fallback(aliases: List[str], lang: str) -> Optional[Dict[str, str]]:
+    """
+    Try each term in *aliases* for the requested *lang*, then fall back to
+    English if nothing is found.
+    """
+    for term in aliases:
+        if not _is_wikipedia_candidate(term):
+            continue
+        result = _get_wikipedia_summary(term, lang)
+        if result:
+            return result
+    if lang != 'en':
+        for term in aliases:
+            if not _is_wikipedia_candidate(term):
+                continue
+            result = _get_wikipedia_summary(term, 'en')
+            if result:
+                return result
+    return None
+
+
+# ──────────────────────────────────────────────
+# Public API
+# ──────────────────────────────────────────────
+
+def get_object_info(identifier: str, lang: str = 'en') -> Dict[str, Any]:
+    """
+    Return full metadata for an astronomical object.
+
+    Steps:
+      1. Validate *identifier* (safe characters, max 64 chars).
+      2. Resolve via SIMBAD → name, type, RA/DEC, aliases.
+      3. Build SkyView image URL from RA/DEC.
+      4. Fetch Wikipedia description (requested lang → English fallback).
+
+    Returns a dict matching the feature spec:
+    {
+        "id": str,
+        "name": str,
+        "aliases": list[str],
+        "type": str | None,
+        "coordinates": {"ra": float, "dec": float} | None,
+        "description": str | None,
+        "description_title": str | None,
+        "image": {"url": str, "credit": str} | None
+    }
+    """
+    lang = _sanitize_lang(lang)
+
+    if not is_safe_identifier(identifier):
+        logger.warning(f'get_object_info: unsafe identifier rejected: {identifier!r}')
+        return {
+            'id': '',
+            'name': '',
+            'aliases': [],
+            'type': None,
+            'coordinates': None,
+            'description': None,
+            'description_title': None,
+            'image': None,
+            'error': 'invalid_identifier',
+        }
+
+    # ── Phase 1: object resolution ──────────────────
+    resolved = _resolve_via_simbad(identifier)
+    if not resolved:
+        return {
+            'id': identifier,
+            'name': identifier,
+            'aliases': [],
+            'type': None,
+            'coordinates': None,
+            'description': None,
+            'description_title': None,
+            'image': None,
+            'error': 'not_found',
+        }
+
+    ra = resolved.get('ra')
+    dec = resolved.get('dec')
+
+    # ── Phase 2: image ──────────────────────────────
+    image = None
+    if ra is not None and dec is not None:
+        image = {
+            'url': _get_dss_image_url(ra, dec),
+            'credit': 'DSS2 Red / CDS HiPS',
+        }
+
+    # ── Phase 3: Wikipedia description ─────────────
+    # Build candidate search terms: original identifier first (e.g. 'NGC 3034'
+    # resolves to SIMBAD main name 'M  82' which Wikipedia rejects with a space),
+    # then SIMBAD main name, then recognisable aliases.
+    # Also add compact (no-space) variant for Messier-style names like 'M 82' → 'M82'.
+    _seen: set = set()
+    search_terms: List[str] = []
+    for _t in [identifier, resolved['name']] + resolved.get('aliases', [])[:8]:
+        _norm = _normalize_wikipedia_term(_t)
+        if _norm not in _seen:
+            _seen.add(_norm)
+            search_terms.append(_norm)
+        # For 'M 82' style names also try 'M82' (no space) — French Wikipedia needs it
+        _compact = _norm.replace(' ', '')
+        if _compact != _norm and _compact not in _seen:
+            _seen.add(_compact)
+            search_terms.append(_compact)
+    wiki_data = _wikipedia_with_fallback(search_terms, lang)
+
+    return {
+        'id': resolved['id'],
+        'name': resolved['name'],
+        'aliases': resolved.get('aliases', []),
+        'type': resolved.get('type'),
+        'coordinates': {'ra': ra, 'dec': dec} if ra is not None else None,
+        'description': wiki_data.get('extract') if wiki_data else None,
+        'description_title': wiki_data.get('title') if wiki_data else None,
+        'image': image,
+    }

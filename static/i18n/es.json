@@ -1589,5 +1589,25 @@
     "checking_connection": "Comprobando conexion...",
     "still_offline": "Sigues sin conexion. Verifica tu red e intentalo de nuevo.",
     "auto_retry_in": "Reintento automatico en {seconds}s"
+  },
+
+  "object_info": {
+    "title": "Información del objeto",
+    "loading": "Cargando datos del objeto...",
+    "not_found": "Objeto no encontrado",
+    "not_found_detail": "No se encontraron datos para \"{{identifier}}\" en la base de datos SIMBAD.",
+    "invalid_identifier": "Identificador de objeto no válido",
+    "type_label": "Tipo",
+    "coordinates_label": "Coordenadas",
+    "aliases_label": "También conocido como",
+    "description_label": "Descripción",
+    "image_label": "Imagen",
+    "image_credit": "Crédito de imagen",
+    "image_unavailable": "Imagen no disponible",
+    "description_unavailable": "Descripción no disponible",
+    "source_simbad": "Fuente: SIMBAD (CDS, Estrasburgo)",
+    "source_wikipedia": "Descripción: Wikipedia",
+    "source_skyview": "Imagen: DSS2 / SkyView (NASA GSFC)",
+    "error_loading": "No se pudo cargar la información del objeto."
   }
 }

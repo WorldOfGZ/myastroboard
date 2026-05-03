@@ -482,7 +482,7 @@
     "backup_restore": "Backup/Restauração",
     "log_export": "Exportação de registros",
     "location": "Configurações de localização",
-    "location_info": "Os parâmetros de localização são usados ​​para clima preciso, cálculos astronômicos e programação SkyTonight.",
+    "location_info": "Os parâmetros de localização são usados para clima preciso, cálculos astronômicos e programação SkyTonight.",
     "location_name": "Nome do local:",
     "location_name_placeholder": "Meu Observatório",
     "latitude": "Latitude (DMS ou Decimal):",
@@ -515,7 +515,7 @@
     "feature_comets_info": "Calcular e traçar cometas",
     "feature_alttime": "Gráficos de altitude/tempo",
     "feature_alttime_info": "Calcule e plote diagramas de altitude versus tempo",
-    "skytonight_info": "Esses parâmetros são usados ​​por internos SkyTonight.",
+    "skytonight_info": "Esses parâmetros são usados por internos SkyTonight.",
     "constraints": "Restrições",
     "use_constraints": "Usar restrições",
     "altitude_min": "Altitude mínima (°):",
@@ -1420,7 +1420,7 @@
     "processing": "Processamento",
     "current": "Atual:",
     "complete": "Execução concluída!",
-    "success": "Todos os catálogos foram processados ​​com sucesso.",
+    "success": "Todos os catálogos foram processados com sucesso.",
     "manual_complete": "SkyTonight execução do agendador concluída!",
     "scheduled_complete": "SkyTonight execução agendada concluída!",
     "run_now": "Execute SkyTonight agora",
@@ -1586,5 +1586,25 @@
     "checking_connection": "Verificando conexão...",
     "still_offline": "Ainda off-line. Verifique sua rede e tente novamente.",
     "auto_retry_in": "Nova tentativa automática em {seconds}s"
+  },
+
+  "object_info": {
+    "title": "Informações do objeto",
+    "loading": "Carregando dados do objeto...",
+    "not_found": "Objeto não encontrado",
+    "not_found_detail": "Nenhum dado encontrado para \"{{identifier}}\" no banco de dados SIMBAD.",
+    "invalid_identifier": "Identificador de objeto inválido",
+    "type_label": "Tipo",
+    "coordinates_label": "Coordenadas",
+    "aliases_label": "Também conhecido como",
+    "description_label": "Descrição",
+    "image_label": "Imagem",
+    "image_credit": "Crédito da imagem",
+    "image_unavailable": "Imagem não disponível",
+    "description_unavailable": "Descrição não disponível",
+    "source_simbad": "Fonte: SIMBAD (CDS, Estrasburgo)",
+    "source_wikipedia": "Descrição: Wikipédia",
+    "source_skyview": "Imagem: DSS2 / SkyView (NASA GSFC)",
+    "error_loading": "Não foi possível carregar as informações do objeto."
   }
 }
