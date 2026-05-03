@@ -31,8 +31,8 @@ Example output for a night (on API call):
 
 import datetime
 from zoneinfo import ZoneInfo
-from typing import Any, Optional, cast
 
+import numpy as np
 import astropy.units as u
 from astropy.time import Time
 from astropy.coordinates import EarthLocation, AltAz, get_sun, get_body
@@ -64,23 +64,20 @@ class MoonPlanner:
 
         for i in range(7):
             date = today + datetime.timedelta(days=i)
-
-            strict = self._dark_hours(date, mode="strict")
-            practical = self._dark_hours(date, mode="practical")
-            illum = self._dark_hours(date, mode="illumination")
+            night = self._night_data(date)
 
             results.append({
                 "date": str(date),
                 "dark_hours": {
-                    "strict": round(strict["hours"], 2),
-                    "practical": round(practical["hours"], 2),
-                    "illumination": round(illum["hours"], 2),
+                    "strict": round(night["hours_strict"], 2),
+                    "practical": round(night["hours_practical"], 2),
+                    "illumination": round(night["hours_illumination"], 2),
                 },
                 "moon": {
-                    "max_altitude": round(strict["moon_max_alt"], 1),
-                    "illumination_percent": round(strict["illumination"], 1)
+                    "max_altitude": round(night["moon_max_alt"], 1),
+                    "illumination_percent": round(night["illumination"], 1)
                 },
-                "astrophoto_score": self._score(strict["hours"])
+                "astrophoto_score": self._score(night["hours_strict"])
             })
 
         return results
@@ -89,15 +86,19 @@ class MoonPlanner:
     # Core computation
     # ============================================================
 
-    def _dark_hours(self, date, mode="strict"):
+    def _night_data(self, date):
+        """Compute all 3 darkness modes for one night in a single vectorized pass.
 
-        # Night window: 18:00 → 06:00 local time
+        Instead of calling _dark_hours 3 times (3 × 73 individual Astropy calls),
+        we build an array of all time points and let Astropy transform the whole
+        array at once.  That yields 2 vectorized calls (sun + moon) per night
+        instead of 146 individual ones — ~50× fewer coordinate transforms.
+        """
         start = datetime.datetime.combine(
             date,
             datetime.time(18, 0),
             tzinfo=self.timezone
         )
-
         end = datetime.datetime.combine(
             date + datetime.timedelta(days=1),
             datetime.time(6, 0),
@@ -107,75 +108,37 @@ class MoonPlanner:
         step_minutes = 10
         step = datetime.timedelta(minutes=step_minutes)
 
-        dark_minutes = 0
-        moon_max_alt = -999
-
-        # Compute illumination once per night
-        illum_percent = self._moon_illumination(start)
-
+        # Build array of UTC time points
+        utc_times = []
         dt = start
         while dt <= end:
-
-            # Convert local → UTC
-            utc_dt = dt.astimezone(datetime.timezone.utc)
-
-            # Astropy Time object
-            t = Time(utc_dt)
-
-            # AltAz frame
-            frame = AltAz(obstime=t, location=self.location)
-
-            # Sun altitude
-            sun_alt = self._coord_altitude_deg(get_sun(t), frame)
-
-            # Moon altitude
-            moon_alt = self._coord_altitude_deg(get_body("moon", t), frame)
-
-            if sun_alt is None or moon_alt is None:
-                dt += step
-                continue
-
-            moon_max_alt = max(moon_max_alt, moon_alt)
-
-            # Always require astronomical night
-            if sun_alt < -18:
-
-                ok = False
-
-                if mode == "strict":
-                    ok = moon_alt < 0
-
-                elif mode == "practical":
-                    ok = moon_alt < 5
-
-                elif mode == "illumination":
-                    ok = illum_percent < 15
-
-                if ok:
-                    dark_minutes += step_minutes
-
+            utc_times.append(dt.astimezone(datetime.timezone.utc))
             dt += step
 
+        # Single vectorized Astropy call per celestial body
+        t_arr = Time(utc_times)
+        frame = AltAz(obstime=t_arr, location=self.location)
+        sun_alts = np.asarray(get_sun(t_arr).transform_to(frame).alt.deg)
+        moon_alts = np.asarray(get_body("moon", t_arr).transform_to(frame).alt.deg)
+
+        # Illumination is constant across the night (computed once)
+        illum_percent = self._moon_illumination(start)
+        moon_max_alt = float(np.max(moon_alts))
+
+        astro_night = sun_alts < -18
+        hours_strict = float(np.sum(astro_night & (moon_alts < 0)) * step_minutes / 60)
+        hours_practical = float(np.sum(astro_night & (moon_alts < 5)) * step_minutes / 60)
+        hours_illumination = (
+            float(np.sum(astro_night) * step_minutes / 60) if illum_percent < 15 else 0.0
+        )
+
         return {
-            "hours": dark_minutes / 60,
+            "hours_strict": hours_strict,
+            "hours_practical": hours_practical,
+            "hours_illumination": hours_illumination,
             "moon_max_alt": moon_max_alt,
-            "illumination": illum_percent
+            "illumination": illum_percent,
         }
-
-    def _coord_altitude_deg(self, coord: Any, frame: AltAz) -> Optional[float]:
-        if coord is None:
-            return None
-
-        transformed = coord.transform_to(frame)
-        alt = getattr(transformed, "alt", None)
-        if alt is None:
-            return None
-
-        value = alt.to_value(u.deg) if hasattr(alt, "to_value") else None
-        if value is None:
-            return None
-
-        return float(cast(Any, value))
 
     # ============================================================
     # Moon illumination (official astroplan)

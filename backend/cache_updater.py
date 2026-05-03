@@ -6,6 +6,7 @@ Automatically resets astronomical caches when location parameters change.
 
 from datetime import datetime
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from logging_config import get_logger
 
 from repo_config import load_config
@@ -1040,40 +1041,43 @@ def fully_initialize_caches():
         # Load config ONCE per refresh cycle — shared across all update functions
         config = load_config()
 
-        # (name, shared_sync_key, update_fn, ttl_seconds, cache_entry_ref)
-        # cache_entry_ref is the in-memory dict used for TTL validation.
-        # Notes:
-        #  - moon_caches covers both moon_report and dark_window in one MoonService pass;
-        #    moon_report is used as TTL proxy (both have the same TTL).
-        #  - best_window uses best_window_strict as TTL proxy (all modes refreshed together).
+        # (name, shared_sync_key, update_fn, ttl_seconds, cache_entry_ref, day_sensitive)
+        # day_sensitive=True: cache is invalidated when the local calendar day changes,
+        # regardless of TTL. This prevents serving stale "today's data" after midnight
+        # when a long TTL (≥2h) would otherwise keep the cache alive into the next day.
         cache_jobs = [
-            ("moon_report",        "moon_report",         partial(update_moon_caches,             config=config), CACHE_TTL_MOON_REPORT,         cache_store._moon_report_cache),
-            ("moon_planner",        "moon_planner",        partial(update_moon_planner_cache,       config=config), CACHE_TTL_MOON_PLANNER,        cache_store._moon_planner_report_cache),
-            ("sun_report",          "sun_report",          partial(update_sun_report_cache,         config=config), CACHE_TTL_SUN_REPORT,          cache_store._sun_report_cache),
-            ("solar_eclipse",       "solar_eclipse",       partial(update_solar_eclipse_cache,      config=config), CACHE_TTL_SOLAR_ECLIPSE,       cache_store._solar_eclipse_cache),
-            ("lunar_eclipse",       "lunar_eclipse",       partial(update_lunar_eclipse_cache,      config=config), CACHE_TTL_LUNAR_ECLIPSE,       cache_store._lunar_eclipse_cache),
-            ("horizon_graph",       "horizon_graph",       partial(update_horizon_graph_cache,      config=config), CACHE_TTL_HORIZON_GRAPH,       cache_store._horizon_graph_cache),
-            ("aurora",              "aurora",              partial(update_aurora_cache,             config=config), CACHE_TTL_AURORA,              cache_store._aurora_cache),
-            ("iss_passes",          "iss_passes",          partial(update_iss_passes_cache,         config=config), CACHE_TTL_ISS_PASSES,          cache_store._iss_passes_cache),
-            ("planetary_events",    "planetary_events",    partial(update_planetary_events_cache,   config=config), CACHE_TTL_PLANETARY_EVENTS,    cache_store._planetary_events_cache),
-            ("special_phenomena",   "special_phenomena",   partial(update_special_phenomena_cache,  config=config), CACHE_TTL_SPECIAL_PHENOMENA,   cache_store._special_phenomena_cache),
-            ("solar_system_events", "solar_system_events", partial(update_solar_system_events_cache,config=config), CACHE_TTL_SOLAR_SYSTEM_EVENTS, cache_store._solar_system_events_cache),
-            ("sidereal_time",       "sidereal_time",       partial(update_sidereal_time_cache,      config=config), CACHE_TTL_SIDEREAL_TIME,       cache_store._sidereal_time_cache),
-            ("seeing_forecast",       "seeing_forecast",       partial(update_seeing_forecast_cache,     config=config), CACHE_TTL_SEEING_FORECAST,         cache_store._seeing_forecast_cache),
-            ("spaceflight_launches",  "spaceflight_launches",  update_spaceflight_launches_cache,                        CACHE_TTL_SPACEFLIGHT_LAUNCHES,    cache_store._spaceflight_launches_cache),
-            ("spaceflight_astronauts","spaceflight_astronauts",update_spaceflight_astronauts_cache,                      CACHE_TTL_SPACEFLIGHT_ASTRONAUTS,  cache_store._spaceflight_astronauts_cache),
-            ("spaceflight_events",    "spaceflight_events",    update_spaceflight_events_cache,                          CACHE_TTL_SPACEFLIGHT_EVENTS,      cache_store._spaceflight_events_cache),
-            ("best_window",           "best_window_strict",    partial(update_best_window_cache,         config=config), CACHE_TTL_BEST_WINDOW,             cache_store._best_window_cache["strict"]),
-            ("weather_forecast",      None,                    update_weather_cache,                                     WEATHER_CACHE_TTL,                 cache_store._weather_cache),
+            ("moon_report",        "moon_report",         partial(update_moon_caches,             config=config), CACHE_TTL_MOON_REPORT,         cache_store._moon_report_cache,             True),
+            ("moon_planner",        "moon_planner",        partial(update_moon_planner_cache,       config=config), CACHE_TTL_MOON_PLANNER,        cache_store._moon_planner_report_cache,     True),
+            ("sun_report",          "sun_report",          partial(update_sun_report_cache,         config=config), CACHE_TTL_SUN_REPORT,          cache_store._sun_report_cache,              True),
+            ("solar_eclipse",       "solar_eclipse",       partial(update_solar_eclipse_cache,      config=config), CACHE_TTL_SOLAR_ECLIPSE,       cache_store._solar_eclipse_cache,           False),
+            ("lunar_eclipse",       "lunar_eclipse",       partial(update_lunar_eclipse_cache,      config=config), CACHE_TTL_LUNAR_ECLIPSE,       cache_store._lunar_eclipse_cache,           False),
+            ("horizon_graph",       "horizon_graph",       partial(update_horizon_graph_cache,      config=config), CACHE_TTL_HORIZON_GRAPH,       cache_store._horizon_graph_cache,           True),
+            ("aurora",              "aurora",              partial(update_aurora_cache,             config=config), CACHE_TTL_AURORA,              cache_store._aurora_cache,                  False),
+            ("iss_passes",          "iss_passes",          partial(update_iss_passes_cache,         config=config), CACHE_TTL_ISS_PASSES,          cache_store._iss_passes_cache,              False),
+            ("planetary_events",    "planetary_events",    partial(update_planetary_events_cache,   config=config), CACHE_TTL_PLANETARY_EVENTS,    cache_store._planetary_events_cache,        False),
+            ("special_phenomena",   "special_phenomena",   partial(update_special_phenomena_cache,  config=config), CACHE_TTL_SPECIAL_PHENOMENA,   cache_store._special_phenomena_cache,       False),
+            ("solar_system_events", "solar_system_events", partial(update_solar_system_events_cache,config=config), CACHE_TTL_SOLAR_SYSTEM_EVENTS, cache_store._solar_system_events_cache,     False),
+            ("sidereal_time",       "sidereal_time",       partial(update_sidereal_time_cache,      config=config), CACHE_TTL_SIDEREAL_TIME,       cache_store._sidereal_time_cache,           True),
+            ("seeing_forecast",       "seeing_forecast",       partial(update_seeing_forecast_cache,     config=config), CACHE_TTL_SEEING_FORECAST,         cache_store._seeing_forecast_cache,        False),
+            ("spaceflight_launches",  "spaceflight_launches",  update_spaceflight_launches_cache,                        CACHE_TTL_SPACEFLIGHT_LAUNCHES,    cache_store._spaceflight_launches_cache,   False),
+            ("spaceflight_astronauts","spaceflight_astronauts",update_spaceflight_astronauts_cache,                      CACHE_TTL_SPACEFLIGHT_ASTRONAUTS,  cache_store._spaceflight_astronauts_cache, False),
+            ("spaceflight_events",    "spaceflight_events",    update_spaceflight_events_cache,                          CACHE_TTL_SPACEFLIGHT_EVENTS,      cache_store._spaceflight_events_cache,     False),
+            ("best_window",           "best_window_strict",    partial(update_best_window_cache,         config=config), CACHE_TTL_BEST_WINDOW,             cache_store._best_window_cache["strict"],  True),
+            ("weather_forecast",      None,                    update_weather_cache,                                     WEATHER_CACHE_TTL,                 cache_store._weather_cache,                False),
         ]
 
         # Determine which jobs actually need to run
         jobs_to_run = []
-        for job_name, shared_key, update_fn, ttl, cache_entry in cache_jobs:
+        for job_name, shared_key, update_fn, ttl, cache_entry, day_sensitive in cache_jobs:
             # Sync in-memory entry from shared file to get the persisted timestamp
             if shared_key is not None:
                 cache_store.sync_cache_from_shared(shared_key, cache_entry)
-            if cache_store.is_cache_valid(cache_entry, ttl):
+            valid = (
+                cache_store.is_cache_valid_for_today(cache_entry, ttl)
+                if day_sensitive
+                else cache_store.is_cache_valid(cache_entry, ttl)
+            )
+            if valid:
                 logger.debug("Cache '%s' still valid (TTL=%ds), skipping", job_name, ttl)
             else:
                 jobs_to_run.append((job_name, update_fn, ttl))
@@ -1082,10 +1086,51 @@ def fully_initialize_caches():
             logger.debug("All caches are still valid — no refresh needed this cycle")
             return
 
+        # Network-bound jobs that can run concurrently (pure API calls, no shared state).
+        # The clients (requests lib) are thread-safe; no Astropy state is mutated here.
+        PARALLELIZABLE_JOBS = {
+            "aurora",
+            "iss_passes",
+            "seeing_forecast",
+            "spaceflight_launches",
+            "spaceflight_astronauts",
+            "spaceflight_events",
+        }
+
+        sequential = [(n, fn, ttl) for n, fn, ttl in jobs_to_run if n not in PARALLELIZABLE_JOBS]
+        parallel   = [(n, fn, ttl) for n, fn, ttl in jobs_to_run if n in PARALLELIZABLE_JOBS]
+
         total_steps = len(jobs_to_run)
         success_count = 0
 
-        for index, (job_name, update_fn, ttl) in enumerate(jobs_to_run, start=1):
+        # --- Parallel network jobs ---
+        if parallel:
+            parallel_names = ", ".join(n for n, _, _ in parallel)
+            logger.debug("Launching %d network jobs in parallel: %s", len(parallel), parallel_names)
+            cache_store.set_cache_initialization_in_progress(
+                True,
+                current_step=0,
+                total_steps=total_steps,
+                step_name="parallel_network",
+            )
+            with ThreadPoolExecutor(max_workers=min(len(parallel), 6)) as executor:
+                futures = {executor.submit(fn): (name, ttl) for name, fn, ttl in parallel}
+                for future in as_completed(futures):
+                    job_name, ttl = futures[future]
+                    job_start = time.time()
+                    try:
+                        future.result()
+                        duration = time.time() - job_start
+                        cache_store.record_cache_execution(job_name, duration, True)
+                        success_count += 1
+                        logger.debug("Parallel cache '%s' refreshed in %.2fs", job_name, duration)
+                    except Exception as e:
+                        duration = time.time() - job_start
+                        cache_store.record_cache_execution(job_name, duration, False)
+                        logger.error("Parallel cache '%s' failed after %.2fs: %s", job_name, duration, e, exc_info=True)
+
+        # --- Sequential compute jobs (Astropy — kept single-threaded for safety) ---
+        for index, (job_name, update_fn, ttl) in enumerate(sequential, start=len(parallel) + 1):
             cache_store.set_cache_initialization_in_progress(
                 True,
                 current_step=index,
@@ -1111,8 +1156,8 @@ def fully_initialize_caches():
 
         duration = (datetime.now() - start_time).total_seconds()
         logger.info(
-            "Cache refresh cycle: %d/%d jobs ran, %d/%d succeeded in %.2fs",
-            total_steps, len(cache_jobs), success_count, total_steps, duration,
+            "Cache refresh cycle: %d/%d jobs ran (%d parallel, %d sequential), %d/%d succeeded in %.2fs",
+            total_steps, len(cache_jobs), len(parallel), len(sequential), success_count, total_steps, duration,
         )
 
     finally:

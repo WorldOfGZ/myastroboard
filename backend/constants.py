@@ -40,14 +40,14 @@ CACHE_TTL = 1800  # seconds (legacy default, prefer per-job TTLs below)
 
 # Per-job cache TTLs — each cache is refreshed only when its own TTL expires.
 # The scheduler polls every ~25 min but only runs a job if its TTL has elapsed.
-CACHE_TTL_MOON_REPORT         = 3600    # 1 hour  — moon phase changes gradually
-CACHE_TTL_DARK_WINDOW         = 3600    # 1 hour  — derived from moon report
+CACHE_TTL_MOON_REPORT         = 7200    # 2 hours — moon phase changes gradually (~0.5%/h)
+CACHE_TTL_DARK_WINDOW         = 7200    # 2 hours — derived from moon report (same TTL)
 CACHE_TTL_MOON_PLANNER        = 7200    # 2 hours — 7-night forecast, daily precision
-CACHE_TTL_SUN_REPORT          = 3600    # 1 hour  — sunrise/sunset changes slowly
-CACHE_TTL_BEST_WINDOW         = 3600    # 1 hour  — observation window for tonight
+CACHE_TTL_SUN_REPORT          = 21600   # 6 hours — sunrise/sunset changes ~1 min/day
+CACHE_TTL_BEST_WINDOW         = 10800   # 3 hours — observation window changes slowly
 CACHE_TTL_SOLAR_ECLIPSE       = 86400   # 24 hours — next event is months away
 CACHE_TTL_LUNAR_ECLIPSE       = 86400   # 24 hours — next event is months away
-CACHE_TTL_HORIZON_GRAPH       = 3600    # 1 hour  — daily arc of sun/moon
+CACHE_TTL_HORIZON_GRAPH       = 21600   # 6 hours — daily arc computed for the full day
 CACHE_TTL_AURORA              = 3600    # 1 hour  — geomagnetic forecast updates hourly
 CACHE_TTL_ISS_PASSES          = 21600   # 6 hours — 20-day window, stable predictions
 CACHE_TTL_PLANETARY_EVENTS    = 86400   # 24 hours — 365-day planetary forecast

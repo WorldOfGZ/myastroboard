@@ -79,8 +79,30 @@ def _ensure_data_dir():
 
 
 @contextmanager
-def _cache_file_lock():
-    """Cross-platform exclusive lock for shared cache file"""
+def _cache_file_read_lock():
+    """Cross-platform SHARED lock — multiple concurrent readers allowed."""
+    _ensure_data_dir()
+    lock_file = open(_SHARED_CACHE_LOCK, "a+")
+    try:
+        if sys.platform == "win32":
+            # msvcrt has no native shared lock; fall back to exclusive on Windows.
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+        else:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_SH)
+        yield
+    finally:
+        try:
+            if sys.platform == "win32":
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+        finally:
+            lock_file.close()
+
+
+@contextmanager
+def _cache_file_write_lock():
+    """Cross-platform EXCLUSIVE lock — for writes only."""
     _ensure_data_dir()
     lock_file = open(_SHARED_CACHE_LOCK, "a+")
     try:
@@ -97,6 +119,10 @@ def _cache_file_lock():
                 fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
         finally:
             lock_file.close()
+
+
+# Keep the old name as an alias so any external callers are unaffected.
+_cache_file_lock = _cache_file_write_lock
 
 
 def _read_shared_cache():
@@ -121,7 +147,7 @@ def _write_shared_cache(shared_cache):
 
 def update_shared_cache_entry(key, data, timestamp):
     """Update a single shared cache entry"""
-    with _cache_file_lock():
+    with _cache_file_write_lock():
         shared_cache = _read_shared_cache()
         shared_cache[key] = {"timestamp": timestamp, "data": data}
         _write_shared_cache(shared_cache)
@@ -129,7 +155,7 @@ def update_shared_cache_entry(key, data, timestamp):
 
 def load_shared_cache_entry(key):
     """Load a single cache entry from shared cache"""
-    with _cache_file_lock():
+    with _cache_file_read_lock():
         shared_cache = _read_shared_cache()
         entry = shared_cache.get(key)
         if not isinstance(entry, dict):
@@ -151,7 +177,7 @@ def sync_cache_from_shared(key, cache_entry):
 
 def _write_all_astronomical_caches_to_shared():
     """Persist all astronomical caches to shared file"""
-    with _cache_file_lock():
+    with _cache_file_write_lock():
         shared_cache = _read_shared_cache()
         shared_cache.update({
             "moon_report": _moon_report_cache,
@@ -298,28 +324,57 @@ def is_cache_valid(cache_entry, ttl_seconds):
     return elapsed < ttl_seconds
 
 
+def is_cache_valid_for_today(cache_entry, ttl_seconds):
+    """Like is_cache_valid, but also invalidates when the local calendar day has changed.
+
+    Use this for caches that are computed for 'today' (sun report, horizon graph,
+    moon report, etc.) — a 6h TTL would otherwise serve stale day-N data well into
+    day N+1 if the cache was last populated late in the evening.
+    """
+    if not is_cache_valid(cache_entry, ttl_seconds):
+        return False
+    cache_date = datetime.fromtimestamp(cache_entry["timestamp"]).date()
+    return cache_date == datetime.today().date()
+
+
+def _sync_all_from_shared():
+    """Read astro_cache.json ONCE and sync all in-memory caches in a single pass."""
+    with _cache_file_read_lock():
+        shared = _read_shared_cache()
+
+    mapping = {
+        "moon_report":              _moon_report_cache,
+        "sun_report":               _sun_report_cache,
+        "moon_planner":             _moon_planner_report_cache,
+        "dark_window":              _dark_window_report_cache,
+        "best_window_strict":       _best_window_cache["strict"],
+        "best_window_practical":    _best_window_cache["practical"],
+        "best_window_illumination": _best_window_cache["illumination"],
+        "solar_eclipse":            _solar_eclipse_cache,
+        "lunar_eclipse":            _lunar_eclipse_cache,
+        "horizon_graph":            _horizon_graph_cache,
+        "aurora":                   _aurora_cache,
+        "iss_passes":               _iss_passes_cache,
+        "planetary_events":         _planetary_events_cache,
+        "special_phenomena":        _special_phenomena_cache,
+        "solar_system_events":      _solar_system_events_cache,
+        "sidereal_time":            _sidereal_time_cache,
+        "seeing_forecast":          _seeing_forecast_cache,
+        "spaceflight_launches":     _spaceflight_launches_cache,
+        "spaceflight_astronauts":   _spaceflight_astronauts_cache,
+        "spaceflight_events":       _spaceflight_events_cache,
+    }
+    for key, cache_entry in mapping.items():
+        entry = shared.get(key)
+        if isinstance(entry, dict) and entry.get("data") is not None:
+            cache_entry["data"]      = entry["data"]
+            cache_entry["timestamp"] = entry.get("timestamp", 0)
+    return shared
+
+
 def is_astronomical_cache_ready():
     """Check if all astronomical caches are valid and ready"""
-    sync_cache_from_shared("moon_report", _moon_report_cache)
-    sync_cache_from_shared("sun_report", _sun_report_cache)
-    sync_cache_from_shared("moon_planner", _moon_planner_report_cache)
-    sync_cache_from_shared("dark_window", _dark_window_report_cache)
-    sync_cache_from_shared("best_window_strict", _best_window_cache["strict"])
-    sync_cache_from_shared("best_window_practical", _best_window_cache["practical"])
-    sync_cache_from_shared("best_window_illumination", _best_window_cache["illumination"])
-    sync_cache_from_shared("solar_eclipse", _solar_eclipse_cache)
-    sync_cache_from_shared("lunar_eclipse", _lunar_eclipse_cache)
-    sync_cache_from_shared("horizon_graph", _horizon_graph_cache)
-    sync_cache_from_shared("aurora", _aurora_cache)
-    sync_cache_from_shared("iss_passes", _iss_passes_cache)
-    sync_cache_from_shared("planetary_events", _planetary_events_cache)
-    sync_cache_from_shared("special_phenomena", _special_phenomena_cache)
-    sync_cache_from_shared("solar_system_events", _solar_system_events_cache)
-    sync_cache_from_shared("sidereal_time", _sidereal_time_cache)
-    sync_cache_from_shared("seeing_forecast", _seeing_forecast_cache)
-    sync_cache_from_shared("spaceflight_launches", _spaceflight_launches_cache)
-    sync_cache_from_shared("spaceflight_astronauts", _spaceflight_astronauts_cache)
-    sync_cache_from_shared("spaceflight_events", _spaceflight_events_cache)
+    _sync_all_from_shared()
     all_valid = (
         is_cache_valid(_moon_report_cache, CACHE_TTL_MOON_REPORT) and
         is_cache_valid(_sun_report_cache, CACHE_TTL_SUN_REPORT) and
@@ -345,29 +400,9 @@ def is_astronomical_cache_ready():
 
 def get_cache_init_status():
     """Get detailed cache initialization status"""
-    sync_cache_from_shared("moon_report", _moon_report_cache)
-    sync_cache_from_shared("sun_report", _sun_report_cache)
-    sync_cache_from_shared("moon_planner", _moon_planner_report_cache)
-    sync_cache_from_shared("dark_window", _dark_window_report_cache)
-    sync_cache_from_shared("best_window_strict", _best_window_cache["strict"])
-    sync_cache_from_shared("best_window_practical", _best_window_cache["practical"])
-    sync_cache_from_shared("best_window_illumination", _best_window_cache["illumination"])
-    sync_cache_from_shared("solar_eclipse", _solar_eclipse_cache)
-    sync_cache_from_shared("lunar_eclipse", _lunar_eclipse_cache)
-    sync_cache_from_shared("horizon_graph", _horizon_graph_cache)
-    sync_cache_from_shared("aurora", _aurora_cache)
-    sync_cache_from_shared("iss_passes", _iss_passes_cache)
-    sync_cache_from_shared("planetary_events", _planetary_events_cache)
-    sync_cache_from_shared("special_phenomena", _special_phenomena_cache)
-    sync_cache_from_shared("solar_system_events", _solar_system_events_cache)
-    sync_cache_from_shared("sidereal_time", _sidereal_time_cache)
-    sync_cache_from_shared("seeing_forecast", _seeing_forecast_cache)
-    sync_cache_from_shared("spaceflight_launches", _spaceflight_launches_cache)
-    sync_cache_from_shared("spaceflight_astronauts", _spaceflight_astronauts_cache)
-    sync_cache_from_shared("spaceflight_events", _spaceflight_events_cache)
-    
+    shared_cache = _sync_all_from_shared()
+
     # Read in_progress status from shared cache for cross-worker visibility
-    shared_cache = _read_shared_cache()
     in_progress = False
     current_step = 0
     total_steps = 0
@@ -405,7 +440,26 @@ def get_cache_init_status():
         "spaceflight_astronauts": is_cache_valid(_spaceflight_astronauts_cache, CACHE_TTL_SPACEFLIGHT_ASTRONAUTS),
         "spaceflight_events": is_cache_valid(_spaceflight_events_cache, CACHE_TTL_SPACEFLIGHT_EVENTS),
         "weather_forecast": is_cache_valid(_weather_cache, WEATHER_CACHE_TTL),
-        "all_ready": is_astronomical_cache_ready(),
+        "all_ready": (
+            is_cache_valid(_moon_report_cache, CACHE_TTL_MOON_REPORT) and
+            is_cache_valid(_sun_report_cache, CACHE_TTL_SUN_REPORT) and
+            is_cache_valid(_best_window_cache["strict"], CACHE_TTL_BEST_WINDOW) and
+            is_cache_valid(_moon_planner_report_cache, CACHE_TTL_MOON_PLANNER) and
+            is_cache_valid(_dark_window_report_cache, CACHE_TTL_DARK_WINDOW) and
+            is_cache_valid(_solar_eclipse_cache, CACHE_TTL_SOLAR_ECLIPSE) and
+            is_cache_valid(_lunar_eclipse_cache, CACHE_TTL_LUNAR_ECLIPSE) and
+            is_cache_valid(_horizon_graph_cache, CACHE_TTL_HORIZON_GRAPH) and
+            is_cache_valid(_aurora_cache, CACHE_TTL_AURORA) and
+            is_cache_valid(_iss_passes_cache, CACHE_TTL_ISS_PASSES) and
+            is_cache_valid(_planetary_events_cache, CACHE_TTL_PLANETARY_EVENTS) and
+            is_cache_valid(_special_phenomena_cache, CACHE_TTL_SPECIAL_PHENOMENA) and
+            is_cache_valid(_solar_system_events_cache, CACHE_TTL_SOLAR_SYSTEM_EVENTS) and
+            is_cache_valid(_sidereal_time_cache, CACHE_TTL_SIDEREAL_TIME) and
+            is_cache_valid(_seeing_forecast_cache, CACHE_TTL_SEEING_FORECAST) and
+            is_cache_valid(_spaceflight_launches_cache, CACHE_TTL_SPACEFLIGHT_LAUNCHES) and
+            is_cache_valid(_spaceflight_astronauts_cache, CACHE_TTL_SPACEFLIGHT_ASTRONAUTS) and
+            is_cache_valid(_spaceflight_events_cache, CACHE_TTL_SPACEFLIGHT_EVENTS)
+        ),
         "in_progress": in_progress,
         "current_step": current_step,
         "total_steps": total_steps,
@@ -438,7 +492,7 @@ def get_cache_init_status():
 
 def set_cache_initialization_in_progress(value, current_step=0, total_steps=0, step_name=""):
     """Set the cache initialization progress flag in shared cache for cross-worker visibility"""
-    with _cache_file_lock():
+    with _cache_file_write_lock():
         shared_cache = _read_shared_cache()
         shared_cache["_cache_in_progress"] = {
             "status": value,
@@ -452,7 +506,7 @@ def set_cache_initialization_in_progress(value, current_step=0, total_steps=0, s
 
 def record_cache_execution(job_name, duration_seconds, success):
     """Persist per-job execution timing and result to shared cache for metrics reporting."""
-    with _cache_file_lock():
+    with _cache_file_write_lock():
         shared = _read_shared_cache()
         if "_cache_metrics" not in shared:
             shared["_cache_metrics"] = {}

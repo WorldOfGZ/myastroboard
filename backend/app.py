@@ -29,6 +29,14 @@ import shutil
 
 # Add backend to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
+
+# Disable Astropy's automatic IERS Earth-orientation data download.
+# The bundled IERS-B table is sufficient for the arc-minute precision used here,
+# and the auto-download produces noisy timeout warnings in Docker containers.
+from astropy.utils import iers as _iers
+_iers.conf.auto_download = False
+_iers.conf.auto_max_age = None  # suppress age warnings
+
 from weather_openmeteo import get_hourly_forecast
 from events_aggregator import EventsAggregator
 from i18n_utils import I18nManager
@@ -37,7 +45,7 @@ from repo_config import load_config, save_config
 from constants import DATA_DIR, DATA_DIR_CACHE, CONFIG_FILE, CACHE_TTL, WEATHER_CACHE_TTL, SKYTONIGHT_LOGS_DIR, SKYTONIGHT_SCHEDULER_STATUS_FILE, \
     CACHE_TTL_MOON_PLANNER, CACHE_TTL_SOLAR_ECLIPSE, CACHE_TTL_LUNAR_ECLIPSE, CACHE_TTL_AURORA, \
     CACHE_TTL_ISS_PASSES, CACHE_TTL_PLANETARY_EVENTS, CACHE_TTL_SPECIAL_PHENOMENA, CACHE_TTL_SOLAR_SYSTEM_EVENTS, \
-    CACHE_TTL_SPACEFLIGHT_LAUNCHES, CACHE_TTL_SPACEFLIGHT_ASTRONAUTS, CACHE_TTL_SPACEFLIGHT_EVENTS
+    CACHE_TTL_SPACEFLIGHT_LAUNCHES, CACHE_TTL_SPACEFLIGHT_ASTRONAUTS, CACHE_TTL_SPACEFLIGHT_EVENTS, CACHE_TTL_SIDEREAL_TIME
 from logging_config import get_logger
 from version_checker import check_for_updates
 from metrics_collector import collect_metrics
@@ -1478,20 +1486,16 @@ def get_iss_passes_api():
         days = request.args.get("days", default=20, type=int)
         days = max(1, min(days, 30))
 
-        if cache_store.is_cache_valid(cache_store._iss_passes_cache, CACHE_TTL):
+        if cache_store.is_cache_valid(cache_store._iss_passes_cache, CACHE_TTL_ISS_PASSES):
             cached_data = cache_store._iss_passes_cache["data"]
             if isinstance(cached_data, dict) and cached_data.get("window_days") == days:
                 return jsonify(cached_data)
 
         if cache_store.sync_cache_from_shared("iss_passes", cache_store._iss_passes_cache):
-            if cache_store.is_cache_valid(cache_store._iss_passes_cache, CACHE_TTL):
+            if cache_store.is_cache_valid(cache_store._iss_passes_cache, CACHE_TTL_ISS_PASSES):
                 cached_data = cache_store._iss_passes_cache["data"]
                 if isinstance(cached_data, dict) and cached_data.get("window_days") == days:
                     return jsonify(cached_data)
-
-        update_iss_passes_cache(days=days)
-        if cache_store.is_cache_valid(cache_store._iss_passes_cache, CACHE_TTL):
-            return jsonify(cache_store._iss_passes_cache["data"])
 
         return jsonify({
             "status": "pending",
@@ -1966,19 +1970,46 @@ def _translate_solar_system_events(data: Dict[str, Any], language: str) -> Dict[
 @app.route("/api/astro/sidereal-time", methods=["GET"])
 @login_required
 def get_sidereal_time_api():
-    """Return sidereal time information for observation planning"""
+    """Return sidereal time information for observation planning.
+
+    `current` is always computed live (a few ms) so it is never stale.
+    `hourly_forecast` is served from the scheduler cache (day-sensitive TTL).
+    """
     try:
-        if cache_store.is_cache_valid(cache_store._sidereal_time_cache, CACHE_TTL):
-            return jsonify(cache_store._sidereal_time_cache["data"])
+        config = load_config()
+        location = config.get("location") if config else None
+        if not location:
+            return jsonify({'error': 'Location not configured'}), 400
 
-        # Try shared cache first
-        if cache_store.sync_cache_from_shared("sidereal_time", cache_store._sidereal_time_cache):
-            if cache_store.is_cache_valid(cache_store._sidereal_time_cache, CACHE_TTL):
-                return jsonify(cache_store._sidereal_time_cache["data"])
+        from sidereal_time import SiderealTimeService
+        svc = SiderealTimeService(
+            latitude=location["latitude"],
+            longitude=location["longitude"],
+            elevation=location.get("elevation", 0),
+            timezone=location.get("timezone", "UTC"),
+        )
 
-        # Cache not ready -> refresh it
-        update_sidereal_time_cache()
-        return jsonify(cache_store._sidereal_time_cache.get("data", {"current": {}}))
+        # current — always fresh, no cache needed
+        current_info = svc.get_current_sidereal_info()
+
+        # hourly_forecast — from scheduler cache (day-sensitive, refreshed at day change)
+        hourly_forecast = None
+        cached = cache_store._sidereal_time_cache
+        if not cache_store.is_cache_valid_for_today(cached, CACHE_TTL_SIDEREAL_TIME):
+            cache_store.sync_cache_from_shared("sidereal_time", cached)
+        if cache_store.is_cache_valid_for_today(cached, CACHE_TTL_SIDEREAL_TIME) and cached.get("data"):
+            hourly_forecast = cached["data"].get("hourly_forecast")
+
+        return jsonify({
+            "location": location,
+            "current": current_info,
+            "hourly_forecast": hourly_forecast,
+            "units": {
+                "sidereal_time": "hours (0-24, where 24h = 1 sidereal day = 23h56m4s solar time)",
+                "coordinates": "degrees",
+                "elevation": "meters"
+            }
+        })
 
     except Exception as e:
         logger.error(f"Error retrieving sidereal time: {e}")
