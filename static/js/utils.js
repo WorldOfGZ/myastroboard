@@ -60,8 +60,9 @@ async function checkCacheStatus() {
         });
 
         if (data.cache_status === true) {
-            // Cache is ready, hide the banner
+            // Cache is ready, hide the banner and keep polling slowly for future refresh cycles
             banner.style.display = 'none';
+            setTimeout(checkCacheStatus, 30000);
         } else if (data.in_progress === true) {
             // Cache is actively being initialized/refreshed
             banner.style.display = 'block';

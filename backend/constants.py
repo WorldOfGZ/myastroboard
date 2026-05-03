@@ -56,6 +56,11 @@ CACHE_TTL_SOLAR_SYSTEM_EVENTS = 86400   # 24 hours — annual events (meteor sho
 CACHE_TTL_SIDEREAL_TIME       = 3600    # 1 hour  — hourly precision is sufficient
 CACHE_TTL_SEEING_FORECAST     = 21600   # 6 hours — 7Timer API resolution
 
+# Spaceflight cache TTLs (Launch Library 2 free tier: ~15 req/h — keep calls minimal)
+CACHE_TTL_SPACEFLIGHT_LAUNCHES    = 7200    # 2 hours — free tier ~15 req/h; 3 endpoints per cycle → max 2 cycles/h
+CACHE_TTL_SPACEFLIGHT_ASTRONAUTS  = 21600   # 6 hours — crew changes are rare
+CACHE_TTL_SPACEFLIGHT_EVENTS      = 7200    # 2 hours — free tier budget; events timeline changes slowly
+
 # Weather API configuration
 WEATHER_CACHE_TTL = 3600  # seconds (1 hour)
 

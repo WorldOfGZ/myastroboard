@@ -1,0 +1,205 @@
+/* ==========================================================================
+   bs_spaceflight.css — Spaceflight section styles
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Next Launch Hero Card
+   -------------------------------------------------------------------------- */
+.sf-next-launch {
+    border-left: 4px solid var(--bs-danger);
+    background: var(--bs-body-bg);
+    overflow: hidden;
+}
+
+.sf-next-launch:hover {
+    box-shadow: 0 0 0 2px rgba(var(--bs-danger-rgb), 0.35);
+}
+
+.sf-hero-img {
+    width: 160px;
+    flex-shrink: 0;
+    align-self: stretch;
+    object-fit: cover;
+    object-position: center center;
+    display: block;
+}
+
+.sf-next-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.sf-countdown {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--bs-danger);
+    margin-bottom: 0.25rem;
+}
+
+/* --------------------------------------------------------------------------
+   Launch Cards
+   -------------------------------------------------------------------------- */
+.sf-launch-card-img {
+    width: 110px;
+    flex-shrink: 0;
+    align-self: stretch;
+    object-fit: cover;
+    object-position: center center;
+    display: block;
+}
+
+.sf-launch-card:hover {
+    box-shadow: 0 0 0 2px rgba(var(--bs-danger-rgb), 0.25);
+}
+
+/* --------------------------------------------------------------------------
+   Webcast Live badge
+   -------------------------------------------------------------------------- */
+.sf-webcast-badge {
+    animation: sf-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes sf-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.6; }
+}
+
+/* --------------------------------------------------------------------------
+   Launch detail modal
+   -------------------------------------------------------------------------- */
+.sf-modal-img {
+    width: 100%;
+    aspect-ratio: 16 / 7;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+}
+
+.sf-modal-iframe {
+    aspect-ratio: 16 / 9;
+    border: none;
+    display: block;
+}
+
+/* --------------------------------------------------------------------------
+   Status badges
+   -------------------------------------------------------------------------- */
+.sf-status-badge {
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+}
+
+/* --------------------------------------------------------------------------
+   Launch Cards
+   -------------------------------------------------------------------------- */
+.sf-launch-card {
+    border: 1px solid var(--bs-border-color);
+    transition: box-shadow 0.15s ease;
+}
+
+.sf-launch-card:hover {
+    box-shadow: 0 0 0 2px rgba(var(--bs-danger-rgb), 0.25);
+}
+
+.sf-launch-past {
+    opacity: 0.75;
+}
+
+/* --------------------------------------------------------------------------
+   Crew / Astronaut Cards
+   -------------------------------------------------------------------------- */
+.sf-crew-card,
+.sf-astronaut-card {
+    border: 1px solid var(--bs-border-color);
+    transition: box-shadow 0.15s ease;
+}
+
+.sf-crew-card:hover,
+.sf-astronaut-card:hover {
+    box-shadow: 0 0 0 2px rgba(var(--bs-info-rgb), 0.3);
+}
+
+.sf-crew-img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    object-position: top center;
+    border-radius: 0.375rem 0.375rem 0 0;
+    /* skeleton shimmer while loading */
+    background: linear-gradient(90deg, var(--bs-secondary-bg) 25%, var(--bs-tertiary-bg) 50%, var(--bs-secondary-bg) 75%);
+    background-size: 200% 100%;
+    animation: sf-shimmer 1.4s infinite;
+}
+
+.sf-crew-img.sf-img-loaded {
+    animation: none;
+    background: none;
+}
+
+.sf-crew-placeholder {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bs-secondary-bg);
+    border-radius: 0.375rem 0.375rem 0 0;
+    font-size: 3.5rem;
+    color: var(--bs-secondary-color);
+}
+
+.sf-astronaut-bio {
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-align: left;
+    line-height: 1.4;
+}
+
+@keyframes sf-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* --------------------------------------------------------------------------
+   Space Events
+   -------------------------------------------------------------------------- */
+.sf-event-card {
+    border-left: 3px solid var(--bs-warning);
+}
+
+.sf-event-countdown {
+    color: var(--bs-warning);
+    font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   Data Source Attribution
+   -------------------------------------------------------------------------- */
+.sf-data-source {
+    border-top: 1px solid var(--bs-border-color);
+    padding-top: 0.75rem;
+    opacity: 0.7;
+}
+
+.sf-data-source a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.sf-data-source a:hover {
+    opacity: 1;
+    color: var(--bs-link-color);
+}
+
+/* --------------------------------------------------------------------------
+   Responsive tweaks
+   -------------------------------------------------------------------------- */
+@media (max-width: 575.98px) {
+    .sf-countdown {
+        font-size: 1.1rem;
+    }
+}

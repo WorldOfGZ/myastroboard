@@ -46,7 +46,7 @@ Each cache job has an individual TTL defined in `backend/constants.py`:
 1. Syncs each in-memory cache entry from the shared JSON file (gets persisted timestamp)
 2. Checks each job's TTL individually
 3. **Skips jobs whose TTL has not yet expired**
-4. Only runs stale jobs — often just 2–4 jobs per poll cycle
+4. Only runs stale jobs — often just 2-4 jobs per poll cycle
 
 On a typical steady-state machine, a scheduler poll cycle at the 25-minute mark will skip all jobs because the shortest TTL is 1 hour. Only at the 1-hour mark will hourly jobs run; daily jobs run at most once every 24 hours.
 
@@ -239,12 +239,12 @@ A "Failed" badge appears in the Duration column if the last execution threw an e
 - **Full observability** — per-job last run time and duration visible in Metrics tab
 
 ### Cache Sizes (Typical)
-- Moon report: ~5–10 KB
-- Sun report: ~3–5 KB
-- Best windows: ~5–8 KB each (×3 modes)
-- Moon planner: ~20–30 KB
-- Dark window: ~1–2 KB
-- Total: ~50–100 KB in memory + shared JSON file on disk
+- Moon report: ~5-10 KB
+- Sun report: ~3-5 KB
+- Best windows: ~5-8 KB each (×3 modes)
+- Moon planner: ~20-30 KB
+- Dark window: ~1-2 KB
+- Total: ~50-100 KB in memory + shared JSON file on disk
 
 ## Troubleshooting
 

@@ -4,7 +4,7 @@ This document describes features that could potentially be integrated into MyAst
 
 ## 🗓️ Release Plan
 
-### v1.0 – Stabilization & Overall Quality
+### v1.0 - Stabilization & Overall Quality
 **Objective: First stable release + smooth user experience**
 - Stabilization of critical bugs
 - Improved mobile interface (responsive)

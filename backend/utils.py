@@ -23,7 +23,7 @@ class _NumpySafeEncoder(json.JSONEncoder):
 
     def default(self, obj: object) -> object:  # type: ignore[override]
         try:
-            import numpy as np  # local import – optional dependency
+            import numpy as np  # local import - optional dependency
             if isinstance(obj, np.integer):
                 return int(obj)
             if isinstance(obj, np.floating):

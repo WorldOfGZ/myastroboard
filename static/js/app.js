@@ -147,6 +147,11 @@ function handleHashNavigation() {
     } else if (hash.startsWith('forecast-astro/')) {
         mainTab = 'forecast-astro';
         subTab = hash.split('/')[1];
+    } else if (hash === 'spaceflight') {
+        mainTab = 'spaceflight';
+    } else if (hash.startsWith('spaceflight/')) {
+        mainTab = 'spaceflight';
+        subTab = hash.split('/')[1];
     } else if (hash.startsWith('skytonight/')) {
         mainTab = 'skytonight';
         subTab = hash.split('/')[1];
@@ -263,6 +268,8 @@ function switchMainTab(tabName, options = {}) {
         loadSkyTonightResultsTabs();
     } else if (tabName === 'astrodex') {
         loadAstrodex();
+    } else if (tabName === 'spaceflight') {
+        // nothing extra — subtab switch below handles initial load
     } else if (tabName === 'forecast-weather') {
         loadWeather();
     }
@@ -341,10 +348,15 @@ function switchSubTab(parentTab, subtabName, options = {}) {
         loadSolarEclipse();
     } else if (subtabName === 'aurora') { //Astro Forecast tab - Aurora Borealis
         loadAurora();
-    } else if (subtabName === 'seeing') { //Astro Forecast tab - Seeing Forecast
-        loadSeeingForecast();
-    } else if (subtabName === 'iss') { //Astro Forecast tab - ISS
+    } else if (subtabName === 'iss') { //Spaceflight tab - ISS
         loadIss();
+        loadSeeingForecast();
+    } else if (subtabName === 'launches') { //Spaceflight tab - Launches
+        loadSpaceflightLaunches();
+    } else if (subtabName === 'astronauts') { //Spaceflight tab - Astronauts
+        loadSpaceflightAstronauts();
+    } else if (subtabName === 'space-events') { //Spaceflight tab - Space Events
+        loadSpaceflightEvents();
     } else if (subtabName === 'calendar') { //Astro Forecast tab - Events Calendar
         clearEventsCache();
         loadAndDisplayEvents();

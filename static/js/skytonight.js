@@ -291,8 +291,8 @@ function _astroScoreBadgeHtml(score) {
 function _astroScoreLegendHtml() {
     const tiers = [
         { key: 'astroscore_exceptional', cls: 'bg-success',           range: '≥ 85%' },
-        { key: 'astroscore_good',        cls: 'bg-primary',           range: '65–84%' },
-        { key: 'astroscore_average',     cls: 'bg-warning text-dark', range: '45–64%' },
+        { key: 'astroscore_good',        cls: 'bg-primary',           range: '65-84%' },
+        { key: 'astroscore_average',     cls: 'bg-warning text-dark', range: '45-64%' },
         { key: 'astroscore_poor',        cls: 'bg-danger',            range: '< 45%' },
     ];
     let html = `<div class="d-flex flex-wrap gap-2 mb-2 align-items-center small mt-3">`;
@@ -1363,7 +1363,7 @@ async function showMorePopupFromRowData(moreData) {
         }
 
         const hasValue = value !== null && value !== undefined && value !== '';
-        let displayValue = hasValue ? String(value) : '–';
+        let displayValue = hasValue ? String(value) : '-';
 
         // Comet-specific field formatting
         if (type === 'comets') {
@@ -2079,7 +2079,7 @@ function sanitizeFotoFilterValue(value, fallback = 80) {
     if (!Number.isFinite(numericValue)) {
         return String(fallback);
     }
-    // Migrate legacy 0–1 decimal values to 0–100 percentage
+    // Migrate legacy 0-1 decimal values to 0-100 percentage
     const pctValue = numericValue <= 1.0 ? numericValue * 100 : numericValue;
     const clampedValue = Math.min(100, Math.max(0, Math.round(pctValue)));
     return String(clampedValue);
@@ -2480,7 +2480,7 @@ async function showAlttimePopup(title, targetId) {
         col.className = 'col-auto ms-auto';
         const span = document.createElement('span');
         span.className = 'text-muted';
-        span.textContent = `${tSkyTonightCompat('altitude_time_night_window')}: ${nightStart} – ${nightEnd}`;
+        span.textContent = `${tSkyTonightCompat('altitude_time_night_window')}: ${nightStart} - ${nightEnd}`;
         col.appendChild(span);
         footerRow.appendChild(col);
     }

@@ -27,6 +27,7 @@ from constants import (
     CACHE_TTL_LUNAR_ECLIPSE, CACHE_TTL_HORIZON_GRAPH, CACHE_TTL_AURORA,
     CACHE_TTL_ISS_PASSES, CACHE_TTL_PLANETARY_EVENTS, CACHE_TTL_SPECIAL_PHENOMENA,
     CACHE_TTL_SOLAR_SYSTEM_EVENTS, CACHE_TTL_SIDEREAL_TIME, CACHE_TTL_SEEING_FORECAST,
+    CACHE_TTL_SPACEFLIGHT_LAUNCHES, CACHE_TTL_SPACEFLIGHT_ASTRONAUTS, CACHE_TTL_SPACEFLIGHT_EVENTS,
 )
 
 # Initialize logger for this module
@@ -873,7 +874,143 @@ def update_seeing_forecast_cache(config=None):
 
     except Exception as e:
         logger.error(f"Failed to update Seeing forecast cache: {e}", exc_info=True)
-        
+
+
+def update_spaceflight_launches_cache():
+    """Fetch upcoming and recent launches from Launch Library 2 and cache results."""
+    try:
+        logger.debug("Updating Spaceflight launches cache...")
+        from spaceflight_tracker import get_upcoming_launches, get_past_launches
+
+        upcoming = get_upcoming_launches(limit=12)
+        past = get_past_launches(limit=10)
+
+        if upcoming is None and past is None:
+            # API unavailable (rate-limited or down) — keep existing data but
+            # refresh the timestamp so the scheduler won't retry every cycle.
+            # The backoff in spaceflight_tracker._get() already prevents real
+            # HTTP calls until the backoff window expires.
+            if cache_store._spaceflight_launches_cache.get("data"):
+                cache_store._spaceflight_launches_cache["timestamp"] = time.time()
+                cache_store.update_shared_cache_entry(
+                    "spaceflight_launches",
+                    cache_store._spaceflight_launches_cache["data"],
+                    cache_store._spaceflight_launches_cache["timestamp"],
+                )
+            logger.warning("Spaceflight launches fetch returned no data (kept existing cache)")
+            return
+
+        response = {
+            "upcoming": upcoming or {"count": 0, "results": []},
+            "past": past or {"count": 0, "results": []},
+        }
+
+        cache_store._spaceflight_launches_cache["data"] = response
+        cache_store._spaceflight_launches_cache["timestamp"] = time.time()
+        cache_store.update_shared_cache_entry(
+            "spaceflight_launches",
+            cache_store._spaceflight_launches_cache["data"],
+            cache_store._spaceflight_launches_cache["timestamp"],
+        )
+        logger.info(f"Spaceflight launches cache updated at {datetime.now().isoformat()}")
+    except Exception as e:
+        logger.error(f"Failed to update Spaceflight launches cache: {e}", exc_info=True)
+
+
+def update_spaceflight_astronauts_cache():
+    """Fetch current ISS crew and all astronauts in space from Launch Library 2."""
+    try:
+        logger.debug("Updating Spaceflight astronauts cache...")
+        from spaceflight_tracker import get_iss_crew, get_astronauts_in_space
+
+        iss_crew = get_iss_crew()
+        astronauts = get_astronauts_in_space()
+
+        if iss_crew is None and astronauts is None:
+            if cache_store._spaceflight_astronauts_cache.get("data"):
+                cache_store._spaceflight_astronauts_cache["timestamp"] = time.time()
+                cache_store.update_shared_cache_entry(
+                    "spaceflight_astronauts",
+                    cache_store._spaceflight_astronauts_cache["data"],
+                    cache_store._spaceflight_astronauts_cache["timestamp"],
+                )
+            logger.warning("Spaceflight astronauts fetch returned no data (kept existing cache)")
+            return
+
+        response = {
+            "iss_crew": iss_crew or {},
+            "astronauts_in_space": astronauts or {"count": 0, "results": []},
+        }
+
+        cache_store._spaceflight_astronauts_cache["data"] = response
+        cache_store._spaceflight_astronauts_cache["timestamp"] = time.time()
+        cache_store.update_shared_cache_entry(
+            "spaceflight_astronauts",
+            cache_store._spaceflight_astronauts_cache["data"],
+            cache_store._spaceflight_astronauts_cache["timestamp"],
+        )
+        logger.info(f"Spaceflight astronauts cache updated at {datetime.now().isoformat()}")
+    except Exception as e:
+        logger.error(f"Failed to update Spaceflight astronauts cache: {e}", exc_info=True)
+
+
+def update_spaceflight_events_cache():
+    """Fetch upcoming space events (dockings, EVAs, milestones) from Launch Library 2."""
+    try:
+        logger.debug("Updating Spaceflight events cache...")
+        from spaceflight_tracker import get_upcoming_space_events
+
+        events = get_upcoming_space_events(limit=15)
+
+        if events is None:
+            if cache_store._spaceflight_events_cache.get("data"):
+                cache_store._spaceflight_events_cache["timestamp"] = time.time()
+                cache_store.update_shared_cache_entry(
+                    "spaceflight_events",
+                    cache_store._spaceflight_events_cache["data"],
+                    cache_store._spaceflight_events_cache["timestamp"],
+                )
+            logger.warning("Spaceflight events fetch returned no data (kept existing cache)")
+            return
+
+        response = events
+
+        cache_store._spaceflight_events_cache["data"] = response
+        cache_store._spaceflight_events_cache["timestamp"] = time.time()
+        cache_store.update_shared_cache_entry(
+            "spaceflight_events",
+            cache_store._spaceflight_events_cache["data"],
+            cache_store._spaceflight_events_cache["timestamp"],
+        )
+        logger.info(f"Spaceflight events cache updated at {datetime.now().isoformat()}")
+
+        # Prune stale images from the three spaceflight caches
+        try:
+            from spaceflight_tracker import prune_image_cache
+            import itertools, re as _re
+
+            def _collect_images(obj):
+                """Recursively yield all string values that look like cached image paths."""
+                if isinstance(obj, dict):
+                    for v in obj.values():
+                        yield from _collect_images(v)
+                elif isinstance(obj, list):
+                    for v in obj:
+                        yield from _collect_images(v)
+                elif isinstance(obj, str) and obj.startswith("/api/spaceflight/img/"):
+                    yield obj
+
+            active = list(itertools.chain(
+                _collect_images(cache_store._spaceflight_launches_cache.get("data") or {}),
+                _collect_images(cache_store._spaceflight_astronauts_cache.get("data") or {}),
+                _collect_images(cache_store._spaceflight_events_cache.get("data") or {}),
+            ))
+            prune_image_cache(active)
+        except Exception as _prune_exc:
+            logger.warning("Spaceflight image prune failed: %s", _prune_exc)
+    except Exception as e:
+        logger.error(f"Failed to update Spaceflight events cache: {e}", exc_info=True)
+
 
 def fully_initialize_caches():
     """
@@ -922,9 +1059,12 @@ def fully_initialize_caches():
             ("special_phenomena",   "special_phenomena",   partial(update_special_phenomena_cache,  config=config), CACHE_TTL_SPECIAL_PHENOMENA,   cache_store._special_phenomena_cache),
             ("solar_system_events", "solar_system_events", partial(update_solar_system_events_cache,config=config), CACHE_TTL_SOLAR_SYSTEM_EVENTS, cache_store._solar_system_events_cache),
             ("sidereal_time",       "sidereal_time",       partial(update_sidereal_time_cache,      config=config), CACHE_TTL_SIDEREAL_TIME,       cache_store._sidereal_time_cache),
-            ("seeing_forecast",     "seeing_forecast",     partial(update_seeing_forecast_cache,    config=config), CACHE_TTL_SEEING_FORECAST,     cache_store._seeing_forecast_cache),
-            ("best_window",         "best_window_strict",  partial(update_best_window_cache,        config=config), CACHE_TTL_BEST_WINDOW,         cache_store._best_window_cache["strict"]),
-            ("weather_forecast",    None,                  update_weather_cache,                                    WEATHER_CACHE_TTL,             cache_store._weather_cache),
+            ("seeing_forecast",       "seeing_forecast",       partial(update_seeing_forecast_cache,     config=config), CACHE_TTL_SEEING_FORECAST,         cache_store._seeing_forecast_cache),
+            ("spaceflight_launches",  "spaceflight_launches",  update_spaceflight_launches_cache,                        CACHE_TTL_SPACEFLIGHT_LAUNCHES,    cache_store._spaceflight_launches_cache),
+            ("spaceflight_astronauts","spaceflight_astronauts",update_spaceflight_astronauts_cache,                      CACHE_TTL_SPACEFLIGHT_ASTRONAUTS,  cache_store._spaceflight_astronauts_cache),
+            ("spaceflight_events",    "spaceflight_events",    update_spaceflight_events_cache,                          CACHE_TTL_SPACEFLIGHT_EVENTS,      cache_store._spaceflight_events_cache),
+            ("best_window",           "best_window_strict",    partial(update_best_window_cache,         config=config), CACHE_TTL_BEST_WINDOW,             cache_store._best_window_cache["strict"]),
+            ("weather_forecast",      None,                    update_weather_cache,                                     WEATHER_CACHE_TTL,                 cache_store._weather_cache),
         ]
 
         # Determine which jobs actually need to run

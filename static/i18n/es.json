@@ -4,6 +4,7 @@
     "title_html": "MyAstroBoard - Herramienta de planificación de observaciones astronómicas",
     "slogan": "Herramienta de planificación de observación astronómica",
     "loading": "Cargando...",
+    "cache_not_ready": "Los datos se están obteniendo. Por favor, inténtelo de nuevo en breve.",
     "error": "Error",
     "success": "Éxito",
     "warning": "Advertencia",
@@ -60,7 +61,8 @@
     "seeing": "Pronóstico de seeing",
     "iss": "ISS",
     "calendar": "Calendario de eventos",
-    "plan_my_night": "Planifica mi noche"
+    "plan_my_night": "Planifica mi noche",
+    "spaceflight": "Vuelos espaciales"
   },
   "planets": {
     "mercury": "Mercurio",
@@ -390,6 +392,41 @@
     "map_your_location": "Tu ubicación",
     "map_visible": "Visible",
     "map_not_visible": "No visible"
+  },
+
+  "spaceflight": {
+    "subtab_launches": "Lanzamientos",
+    "subtab_astronauts": "Astronautas",
+    "subtab_events": "Eventos espaciales",
+    "launches_title": "Cronolog\u00eda de lanzamientos",
+    "astronauts_title": "Astronautas y vuelos tripulados",
+    "events_title": "Eventos espaciales",
+    "next_launch": "Pr\u00f3ximo lanzamiento",
+    "upcoming_title": "Pr\u00f3ximos lanzamientos",
+    "past_title": "Lanzamientos recientes",
+    "t_minus": "T\u2212",
+    "countdown_d": "d",
+    "countdown_h": "h",
+    "countdown_m": "m",
+    "iss_crew_title": "Tripulaci\u00f3n actual de la ISS",
+    "all_in_space": "Personas actualmente en el espacio",
+    "no_data": "No hay datos disponibles.",
+    "no_events": "No se encontraron eventos espaciales pr\u00f3ximos.",
+    "launches_error": "Error al cargar los datos de lanzamiento.",
+    "astronauts_error": "Error al cargar los datos de astronautas.",
+    "events_error": "Error al cargar los eventos espaciales.",
+    "data_source": "Datos proporcionados por <a href=\"https://thespacedevs.com/\" target=\"_blank\" rel=\"noopener\">The Space Devs</a> v\u00eda Launch Library 2",
+    "english_only_notice": "Este contenido solo est\u00e1 disponible en ingl\u00e9s.",
+    "webcast_live": "Emisi\u00f3n en vivo",
+    "launched": "\u00a1Lanzado!",
+    "window": "Ventana de lanzamiento",
+    "agency": "Agencia",
+    "mission": "Misi\u00f3n",
+    "mission_type": "Tipo de misi\u00f3n",
+    "orbit": "\u00d3rbita",
+    "pad": "Plataforma de lanzamiento",
+    "watch_live": "Ver en vivo",
+    "more_info": "M\u00e1s informaci\u00f3n"
   },
   "calendar": {
     "no_significant_events": "No habrá eventos astronómicos significativos en los próximos 30 días.",
@@ -1065,7 +1102,7 @@
     "cache_status_valid": "Válido",
     "cache_status_stale": "Caducado",
     "cache_status_failed": "Fallo",
-    "cache_status_unknown": "–"
+    "cache_status_unknown": "-"
   },
   "equipment": {
     "combinations": "Combinaciones",
@@ -1371,7 +1408,10 @@
     "step_sidereal_time": "Tiempo sidéreo",
     "step_best_window": "Mejor ventana",
     "step_seeing_forecast": "Previsión de seeing",
-    "step_weather_forecast": "Pronóstico del tiempo"
+    "step_weather_forecast": "Pronóstico del tiempo",
+    "step_spaceflight_launches": "Lanzamientos espaciales",
+    "step_spaceflight_astronauts": "Astronautas en el espacio",
+    "step_spaceflight_events": "Eventos espaciales"
   },
   "scheduler": {
     "processing_catalogues": "Procesando catálogos SkyTonight...",

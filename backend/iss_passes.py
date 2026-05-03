@@ -38,9 +38,9 @@ logger.info(f"Skyfield cache directory: {SKYFIELD_CACHE_DIR}")
 ISS_TLE_URLS = [
     # Primary: Celestrak GP catalog (most specific, JSON-capable via FORMAT=TLE)
     "https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE",
-    # Alternative 1: independent aggregator – returns JSON {line1, line2}
+    # Alternative 1: independent aggregator - returns JSON {line1, line2}
     "https://tle.ivanstanojevic.me/api/tle/25544",
-    # Alternative 2: wheretheiss.at – returns JSON {line1, line2}
+    # Alternative 2: wheretheiss.at - returns JSON {line1, line2}
     "https://api.wheretheiss.at/v1/satellites/25544/tles",
     # Celestrak group / legacy fallbacks
     "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle",
@@ -228,7 +228,7 @@ class ISSPassService:
 
     def _parse_iss_tle_from_response(self, response_text: str) -> Tuple[str, str]:
         """Extract ISS TLE pair from a response payload (JSON or plain-text)."""
-        # Attempt JSON first – tle.ivanstanojevic.me and wheretheiss.at return
+        # Attempt JSON first - tle.ivanstanojevic.me and wheretheiss.at return
         # {"line1": "1 25544...", "line2": "2 25544..."}
         try:
             data = json.loads(response_text)
@@ -513,12 +513,12 @@ def get_current_position(
     """Compute current ISS ground position and ±50-minute ground track from cached TLE.
 
     Returns a dict with keys:
-      latitude, longitude, altitude_km  – current sub-satellite point
-      past_track   – list of [lat, lon] for the past 50 minutes (1-min steps)
-      future_track – list of [lat, lon] for the next 50 minutes (1-min steps),
+      latitude, longitude, altitude_km  - current sub-satellite point
+      past_track   - list of [lat, lon] for the past 50 minutes (1-min steps)
+      future_track - list of [lat, lon] for the next 50 minutes (1-min steps),
                      starting at the current position
-      timestamp    – ISO 8601 UTC instant used for the computation
-      observer      – (optional) visibility data from the configured location
+      timestamp    - ISO 8601 UTC instant used for the computation
+      observer      - (optional) visibility data from the configured location
     """
     cached = _get_cached_tle(max_age_seconds=None)
     if cached is None:
@@ -574,9 +574,9 @@ def get_current_position(
     if latitude is not None and longitude is not None:
         observer = wgs84.latlon(latitude, longitude, elevation_m=elevation_m)
         topocentric = (satellite - observer).at(now_t)
-        obs_alt, obs_az, _ = topocentric.altaz()
-        obs_altitude_deg = float(obs_alt.degrees)
-        obs_azimuth_deg = float(obs_az.degrees)
+        _obs_alt, _obs_az, _ = topocentric.altaz()
+        obs_altitude_deg = float(_obs_alt.degrees)  # type: ignore[arg-type]
+        obs_azimuth_deg = float(_obs_az.degrees)  # type: ignore[arg-type]
 
         eph = None
         try:
@@ -595,7 +595,7 @@ def get_current_position(
             obs_earth_loc = EarthLocation(lat=latitude * u.deg, lon=longitude * u.deg, height=elevation_m * u.m)
             astro_time = AstroTime(now_utc)
             frame = AltAz(obstime=astro_time, location=obs_earth_loc)
-            sun_altitude_deg = float(cast(Angle, get_sun(astro_time).transform_to(frame).alt).deg)
+            sun_altitude_deg = float(cast(Angle, get_sun(astro_time).transform_to(frame).alt).deg)  # type: ignore[arg-type]
             is_sunlit = True
 
         is_visible = (

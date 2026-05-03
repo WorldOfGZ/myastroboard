@@ -49,7 +49,7 @@ function _updateIssMapContent(data) {
     const lat = Number(data.latitude);
     const lon = Number(data.longitude);
 
-    // Update marker position (no setView – avoids the infinite-tiles zoom loop)
+    // Update marker position (no setView - avoids the infinite-tiles zoom loop)
     _issMarker.setLatLng([lat, lon]);
 
     // Build popup content including observer visibility when available
@@ -100,7 +100,7 @@ async function _pollIssLocation() {
         if (data && data.latitude !== undefined) {
             _updateIssMapContent(data);
         }
-    } catch (_) { /* silent – map just stays stale */ }
+    } catch (_) { /* silent - map just stays stale */ }
 }
 
 /** Stop the auto-refresh interval for the ISS map. */
@@ -207,7 +207,7 @@ async function _createIssMapCard(container) {
         metaBar.textContent = i18n.t('iss.map_error');
     }
 
-    // Auto-refresh every 15 s (position is computed locally from TLE – no external API per poll)
+    // Auto-refresh every 15 s (position is computed locally from TLE - no external API per poll)
     _stopIssMapRefresh();
     _issMapInterval = setInterval(_pollIssLocation, 15000);
 }

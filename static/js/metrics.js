@@ -252,7 +252,7 @@ async function updateCacheJobsMetrics() {
             if (isValid === null) {
                 const b = document.createElement('span');
                 b.className = 'badge bg-secondary';
-                b.textContent = i18n.t('metrics.cache_status_unknown') || '–';
+                b.textContent = i18n.t('metrics.cache_status_unknown') || '-';
                 tdStatus.appendChild(b);
             } else if (isValid) {
                 const b = document.createElement('span');
