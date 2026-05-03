@@ -71,6 +71,11 @@ Detailed weather information including temperature, precipitation, cloud cover, 
 
 ![Weather Dashboard](img/weather_weather.png)
 
+### 7timer integration
+Informations coming from 7timers are included on your observation location
+
+![7timer](img/weather_7timer.png)
+
 ### Observation Conditions Monitor
 Real-time graphs of atmospheric conditions including transparency, seeing, and other factors critical for successful observations.
 
