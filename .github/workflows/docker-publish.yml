@@ -24,8 +24,6 @@ jobs:
             platform_slug: linux-amd64
           - platform: linux/arm64
             platform_slug: linux-arm64
-    outputs:
-      UNIQUE_TAGS: ${{ steps.dedup_tags.outputs.unique_tags }}
 
     steps:
       - name: Checkout repository
@@ -88,12 +86,6 @@ jobs:
             manifest:org.opencontainers.image.description=Self-hosted astronomy dashboard for observation planning and astrophotography
             manifest:org.opencontainers.image.title=MyAstroBoard
 
-      - name: Deduplicate tags
-        id: dedup_tags
-        run: |
-          UNIQUE_TAGS=$(echo "${{ steps.meta.outputs.tags }}" | tr ' ' '\n' | sort -u | tr '\n' ' ')
-          echo "unique_tags=$UNIQUE_TAGS" >> $GITHUB_OUTPUT
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
 
@@ -125,8 +117,6 @@ jobs:
     permissions:
       contents: write
       packages: write
-    env:
-      TAGS: ${{ needs.build-and-push.outputs.UNIQUE_TAGS }}
 
     steps:
       - name: Checkout repository
@@ -182,6 +172,12 @@ jobs:
             --annotation "index:org.opencontainers.image.source=https://github.com/WorldOfGZ/myastroboard"
             --annotation "index:org.opencontainers.image.licenses=AGPL-3.0"
             --annotation "index:org.opencontainers.image.version=$VERSION"
+            --annotation "manifest-descriptor:org.opencontainers.image.title=MyAstroBoard"
+            --annotation "manifest-descriptor:org.opencontainers.image.description=$DESC"
+            --annotation "manifest-descriptor:org.opencontainers.image.url=https://github.com/WorldOfGZ/myastroboard"
+            --annotation "manifest-descriptor:org.opencontainers.image.source=https://github.com/WorldOfGZ/myastroboard"
+            --annotation "manifest-descriptor:org.opencontainers.image.licenses=AGPL-3.0"
+            --annotation "manifest-descriptor:org.opencontainers.image.version=$VERSION"
           )
 
           echo "Creating and pushing multi-arch manifest to ghcr.io..."
