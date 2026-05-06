@@ -75,12 +75,23 @@ async function checkCacheStatus() {
                 
                 if (totalSteps > 0) {
                     const translatedStep = i18n.t(`cache.step_${stepName}`, {}, stepName);
-                    bannerText.textContent = i18n.t('cache.updating_data_details', {
-                        currentStep,
-                        totalSteps,
-                        progress,
-                        stepName: translatedStep
-                    });
+                    if (stepName === 'parallel_network') {
+                        const remainingTasks = Math.max(0, totalSteps - currentStep);
+                        bannerText.textContent = i18n.t('cache.updating_data_parallel_details', {
+                            completedTasks: currentStep,
+                            totalTasks: totalSteps,
+                            remainingTasks,
+                            progress,
+                            stepName: translatedStep
+                        });
+                    } else {
+                        bannerText.textContent = i18n.t('cache.updating_data_details', {
+                            currentStep,
+                            totalSteps,
+                            progress,
+                            stepName: translatedStep
+                        });
+                    }
                 } else {
                     bannerText.textContent = i18n.t('cache.updating_data');
                 }
