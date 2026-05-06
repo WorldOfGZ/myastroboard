@@ -1388,6 +1388,7 @@
   "cache": {
     "updating_data": "Aggiornamento dei dati astronomici, attendere prego...",
     "updating_data_details": "Aggiornamento dati astronomici ({currentStep}/{totalSteps}) {progress}% - {stepName}",
+    "updating_data_parallel_details": "Aggiornamento dei dati astronomici ({remainingTasks} attività rimanenti, {completedTasks}/{totalTasks} completate) {progress}% - {stepName}",
     "cache_valid": "La cache è aggiornata",
     "cache_updating": "Aggiornamento della cache...",
     "cache_error": "Aggiornamento della cache non riuscito",

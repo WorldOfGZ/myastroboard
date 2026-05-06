@@ -1110,11 +1110,12 @@ def fully_initialize_caches():
             cache_store.set_cache_initialization_in_progress(
                 True,
                 current_step=0,
-                total_steps=total_steps,
+                total_steps=len(parallel),
                 step_name="parallel_network",
             )
             with ThreadPoolExecutor(max_workers=min(len(parallel), 6)) as executor:
                 futures = {executor.submit(fn): (name, ttl) for name, fn, ttl in parallel}
+                completed_parallel = 0
                 for future in as_completed(futures):
                     job_name, ttl = futures[future]
                     job_start = time.time()
@@ -1128,6 +1129,14 @@ def fully_initialize_caches():
                         duration = time.time() - job_start
                         cache_store.record_cache_execution(job_name, duration, False)
                         logger.error("Parallel cache '%s' failed after %.2fs: %s", job_name, duration, e, exc_info=True)
+                    finally:
+                        completed_parallel += 1
+                        cache_store.set_cache_initialization_in_progress(
+                            True,
+                            current_step=completed_parallel,
+                            total_steps=len(parallel),
+                            step_name="parallel_network",
+                        )
 
         # --- Sequential compute jobs (Astropy — kept single-threaded for safety) ---
         for index, (job_name, update_fn, ttl) in enumerate(sequential, start=len(parallel) + 1):
