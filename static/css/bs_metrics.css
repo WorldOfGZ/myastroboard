@@ -23,6 +23,23 @@
     padding-bottom: 0.5rem;
 }
 
+#metrics-subtab .metrics-kv-item {
+    gap: 0.75rem;
+}
+
+#metrics-subtab .metrics-kv-label {
+    min-width: 0;
+    flex: 0 1 auto;
+}
+
+#metrics-subtab .metrics-kv-value {
+    min-width: 0;
+    max-width: 60%;
+    text-align: right;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
 #metrics-subtab .disk-usage-item {
     padding: 0.1rem 0;
 }
@@ -105,6 +122,20 @@
 
 #metrics-subtab .processes-show-all {
     margin-bottom: 0;
+}
+
+@media (max-width: 576px) {
+    #metrics-subtab .metrics-kv-item {
+        align-items: flex-start !important;
+        flex-wrap: wrap;
+    }
+
+    #metrics-subtab .metrics-kv-value {
+        max-width: 100%;
+        width: 100%;
+        text-align: left;
+        margin-top: 0.25rem;
+    }
 }
 
 #metrics-subtab .processes-table-wrap {
