@@ -25,6 +25,13 @@ If you want see more, maybe look at the [visual tour](docs/VISUAL_TOUR.md).
 - Multi-user auth system with admin/user roles
 - i18n support (English/French plus community translations)
 
+### Also for space enthusiasts
+
+- **Spaceflight tracker**: upcoming and past rocket launches with video links (via Launch Library 2)
+- **ISS real-time tracking**: live ISS position and upcoming visible passes for your location
+- **Astronauts in space**: current ISS crew and all humans currently in orbit
+- **Space events**: upcoming spacewalks, dockings, and other spaceflight milestones
+
 ## Quick Start
 
 - Installation: [docs/1.INSTALLATION.md](docs/1.INSTALLATION.md)
