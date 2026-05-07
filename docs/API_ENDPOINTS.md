@@ -1,12 +1,13 @@
 ﻿# API Endpoints
 
-This page lists the HTTP routes currently declared in `backend/app.py`.
+This page lists the HTTP routes currently declared in `backend/app.py` and `backend/skytonight_api.py`.
 
 ## Web & PWA Routes
 
 - `GET /`
 - `GET /login`
 - `GET /manifest.webmanifest`
+- `GET /manifest.<lang>.webmanifest`
 - `GET /sw.js`
 - `GET /offline.html`
 - `GET /robots.txt`
@@ -56,8 +57,8 @@ This page lists the HTTP routes currently declared in `backend/app.py`.
 
 ## Scheduler
 
-- `GET /api/scheduler/status`
-- `POST /api/scheduler/trigger`
+- `GET /api/scheduler/status` (legacy alias mapped to SkyTonight scheduler status)
+- `POST /api/scheduler/trigger` (legacy alias mapped to SkyTonight scheduler trigger)
 
 ## SkyTonight
 
@@ -69,6 +70,7 @@ This page lists the HTTP routes currently declared in `backend/app.py`.
 - `GET /api/skytonight/reports`
 - `GET /api/skytonight/reports/<catalogue>`
 - `GET /api/skytonight/alttime/<target_id>`
+- `POST /api/skytonight/telescope-recommendations`
 - `GET /api/skytonight/skymap`
 - `GET /api/skytonight/data/dso`
 - `GET /api/skytonight/data/bodies`
@@ -82,11 +84,13 @@ This page lists the HTTP routes currently declared in `backend/app.py`.
 - `GET /api/weather/astro-analysis`
 - `GET /api/weather/astro-current`
 - `GET /api/weather/alerts`
+- `GET /api/seeing-forecast`
 - `GET /api/moon/report`
 - `GET /api/moon/dark-window`
 - `GET /api/moon/next-7-nights`
 - `GET /api/aurora/predictions`
 - `GET /api/iss/passes`
+- `GET /api/iss/location`
 - `GET /api/sun/today`
 - `GET /api/sun/next-eclipse`
 - `GET /api/moon/next-eclipse`
@@ -97,6 +101,18 @@ This page lists the HTTP routes currently declared in `backend/app.py`.
 - `GET /api/astro/sidereal-time`
 - `GET /api/astro/horizon-graph`
 - `GET /api/tonight/best-window`
+
+## Spaceflight
+
+- `GET /api/spaceflight/launches`
+- `GET /api/spaceflight/astronauts`
+- `GET /api/spaceflight/events`
+- `GET /api/spaceflight/img/<filename>`
+- `GET /api/spaceflight/launch/<launch_id>/vidurls`
+
+## Object Lookup
+
+- `GET /api/object/<path:identifier>`
 
 ## Astrodex
 
@@ -114,15 +130,19 @@ This page lists the HTTP routes currently declared in `backend/app.py`.
 - `GET /api/astrodex/images/<filename>`
 - `GET /api/astrodex/check/<item_name>`
 - `GET /api/astrodex/constellations`
+- `GET /api/astrodex/catalogue-lookup`
 
 ## Plan My Night
 
+- `GET /api/plan-my-night/list`
 - `GET /api/plan-my-night`
+- `PATCH /api/plan-my-night`
 - `POST /api/plan-my-night/targets`
 - `PUT /api/plan-my-night/targets/<entry_id>`
 - `POST /api/plan-my-night/targets/<entry_id>/reorder`
 - `DELETE /api/plan-my-night/targets/<entry_id>`
 - `DELETE /api/plan-my-night/clear`
+- `DELETE /api/plan-my-night/clear-all`
 - `POST /api/plan-my-night/targets/<entry_id>/add-to-astrodex`
 - `GET /api/plan-my-night/export.csv`
 - `GET /api/plan-my-night/export.pdf`

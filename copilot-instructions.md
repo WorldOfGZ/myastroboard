@@ -381,7 +381,7 @@ except Exception as e:
 ### 5. API Design
 - **Pattern**: RESTful JSON API with role-based access control
 - **Endpoint Coverage**:
-  - Routes are defined in `backend/app.py` and grouped by domain: auth, users, config, logs/metrics, scheduler, skytonight, weather, astronomy, events, astrodex, plan-my-night, and equipment.
+    - Routes are defined in `backend/app.py` and `backend/skytonight_api.py`, grouped by domain: auth, users, config, logs/metrics, scheduler, skytonight, weather, astronomy, events, spaceflight, object lookup, astrodex, plan-my-night, and equipment.
   - The current endpoint inventory is maintained in `docs/API_ENDPOINTS.md` and should be updated whenever a route is added, removed, or renamed.
   - Key security constraints:
     - Most `/api/*` routes require login (`@login_required`).
@@ -389,16 +389,26 @@ except Exception as e:
     - User update/delete route is `/api/users/<user_id>` (not `<username>`).
     - Self-service endpoints include `/api/auth/change-password` and `/api/auth/preferences`.
 - **SkyTonight endpoints** (all `@login_required`):
+    - Legacy aliases also exist for scheduler compatibility: `GET /api/scheduler/status` and `POST /api/scheduler/trigger`.
   - `GET /api/skytonight/scheduler/status`
   - `POST /api/skytonight/scheduler/trigger` (`@admin_required`)
   - `GET /api/skytonight/dataset/status`
   - `POST /api/skytonight/dataset/rebuild` (`@admin_required`)
+    - `POST /api/skytonight/telescope-recommendations`
   - `GET /api/skytonight/data/dso`
   - `GET /api/skytonight/data/bodies`
   - `GET /api/skytonight/data/comets`
   - `GET /api/skytonight/alttime/<id>`
   - `GET /api/skytonight/skymap`
   - `GET /api/skytonight/log`
+- **Other key feature endpoints** (`@login_required` unless noted):
+    - Seeing forecast: `GET /api/seeing-forecast`
+    - ISS tracking: `GET /api/iss/passes`, `GET /api/iss/location`
+    - Spaceflight: `GET /api/spaceflight/launches`, `GET /api/spaceflight/astronauts`, `GET /api/spaceflight/events`, `GET /api/spaceflight/img/<filename>`, `GET /api/spaceflight/launch/<launch_id>/vidurls`
+    - Object lookup: `GET /api/object/<path:identifier>`
+    - Astrodex helpers: `GET /api/astrodex/catalogue-lookup`
+    - Plan My Night helpers: `GET /api/plan-my-night/list`, `PATCH /api/plan-my-night`, `DELETE /api/plan-my-night/clear-all`
+    - Localized manifest route: `GET /manifest.<lang>.webmanifest` (public)
 - **Error Handling**: Return appropriate HTTP status codes with JSON error objects
   - 401 Unauthorized - Not authenticated
   - 403 Forbidden - Insufficient permissions (not admin)
