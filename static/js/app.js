@@ -172,6 +172,22 @@ function handleHashNavigation() {
     } else if (hash.startsWith('skytonight/')) {
         mainTab = 'skytonight';
         subTab = hash.split('/')[1];
+    } else {
+        // Generic resolver for all tabs (including dropdown tabs like
+        // parameters, my-settings and equipment) to keep F5/hash reload stable.
+        const [candidateMain, candidateSub] = hash.split('/');
+        const mainButton = document.querySelector(`.main-tab-btn[data-tab="${candidateMain}"]`);
+        if (mainButton) {
+            mainTab = candidateMain;
+            if (candidateSub) {
+                const subButton = document.querySelector(
+                    `#${candidateMain}-tab .sub-tab-btn[data-subtab="${candidateSub}"]`
+                );
+                if (subButton) {
+                    subTab = candidateSub;
+                }
+            }
+        }
     }
 
     if (!mainTab) {
