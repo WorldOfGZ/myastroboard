@@ -436,6 +436,22 @@ function setupCustomizeForm() {
     });
 }
 
+function setupThemePickerSync() {
+    const footerPicker = document.getElementById('theme-select-footer');
+    if (!footerPicker) return;
+
+    footerPicker.addEventListener('change', async (event) => {
+        if (!currentUserPreferences) return;
+        const newTheme = event.target.value;
+        try {
+            const updated = { ...currentUserPreferences, theme_mode: newTheme };
+            currentUserPreferences = await saveUserPreferences(updated);
+        } catch (_) {
+            // Non-blocking: theme is already applied locally via theme.js
+        }
+    });
+}
+
 function populateSecurityUsername() {
     const usernameInput = document.getElementById('security-username');
     if (!usernameInput || !currentUser?.username) {
@@ -1321,6 +1337,7 @@ if (document.readyState === 'loading') {
         setupLogoutButton();
         setupCreateUserForm();
         setupCustomizeForm();
+        setupThemePickerSync();
         setupSecurityPasswordForm();
         setupGlobalErrorHandler();
     });
@@ -1329,6 +1346,7 @@ if (document.readyState === 'loading') {
     setupLogoutButton();
     setupCreateUserForm();
     setupCustomizeForm();
+    setupThemePickerSync();
     setupSecurityPasswordForm();
     setupGlobalErrorHandler();
 }

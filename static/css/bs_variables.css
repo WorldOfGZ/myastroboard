@@ -341,6 +341,81 @@ html[data-theme="dark"] {
     --info-card-inner-list-border: rgba(148, 163, 184, 0.35);
 
     --photo-badge-bg: rgba(0, 0, 0, 0.6);
+
+    /* Bootstrap secondary text - must be readable on dark backgrounds */
+    --bs-secondary-color: #a1a1aa;
+    --bs-body-secondary-color: #a1a1aa;
+
+    /* Bootstrap primary - use the accent purple instead of the harsh default blue */
+    --bs-primary: #8b5cf6;
+    --bs-primary-rgb: 139, 92, 246;
+    --bs-primary-bg-subtle: rgba(139, 92, 246, 0.2);
+    --bs-primary-border-subtle: rgba(139, 92, 246, 0.45);
+    --bs-primary-text-emphasis: #c4b5fd;
+    --bs-link-color: #a78bfa;
+    --bs-link-hover-color: #c4b5fd;
+
+    /* success-50 used by timeline */
+    --success-50: rgba(16, 185, 129, 0.3);
+
+    /* Quality colors - dark mode: translucent tinted backgrounds + bright text */      
+    --quality-excellent: rgba(16, 185, 129, 0.18);
+    --quality-excellent-text: #6ee7b7;
+    --quality-good: rgba(59, 130, 246, 0.18);
+    --quality-good-text: #93c5fd;
+    --quality-fair: rgba(245, 158, 11, 0.18);
+    --quality-fair-text: #fcd34d;
+    --quality-poor: rgba(234, 88, 12, 0.18);
+    --quality-poor-text: #fdba74;
+    --quality-bad: rgba(239, 68, 68, 0.18);
+    --quality-bad-text: #fca5a5;
+
+    --quality-excellent-overlay: rgba(16, 185, 129, 0.28);
+    --quality-excellent-border: rgba(16, 185, 129, 0.45);
+    --quality-excellent-shadow: rgba(16, 185, 129, 0.2);
+    --quality-excellent-shadow-hover: rgba(16, 185, 129, 0.35);
+    --quality-good-overlay: rgba(59, 130, 246, 0.28);
+    --quality-good-border: rgba(59, 130, 246, 0.45);
+    --quality-good-shadow: rgba(59, 130, 246, 0.2);
+    --quality-good-shadow-hover: rgba(59, 130, 246, 0.35);
+    --quality-fair-overlay: rgba(245, 158, 11, 0.28);
+    --quality-fair-border: rgba(245, 158, 11, 0.45);
+    --quality-fair-shadow: rgba(245, 158, 11, 0.2);
+    --quality-fair-shadow-hover: rgba(245, 158, 11, 0.35);
+    --quality-poor-overlay: rgba(234, 88, 12, 0.28);
+    --quality-poor-border: rgba(234, 88, 12, 0.45);
+    --quality-poor-shadow: rgba(234, 88, 12, 0.2);
+    --quality-poor-shadow-hover: rgba(234, 88, 12, 0.35);
+    --quality-bad-overlay: rgba(239, 68, 68, 0.28);
+    --quality-bad-border: rgba(239, 68, 68, 0.45);
+    --quality-bad-shadow: rgba(239, 68, 68, 0.2);
+    --quality-bad-shadow-hover: rgba(239, 68, 68, 0.35);
+
+    /* Dew colors - dark mode */
+    --dew-minimal-bg: rgba(4, 120, 87, 0.18);
+    --dew-minimal-text: #6ee7b7;
+    --dew-minimal-overlay: rgba(4, 120, 87, 0.28);
+    --dew-minimal-border: rgba(4, 120, 87, 0.45);
+    --dew-low-bg: rgba(22, 163, 74, 0.18);
+    --dew-low-text: #86efac;
+    --dew-low-overlay: rgba(22, 163, 74, 0.28);
+    --dew-low-border: rgba(22, 163, 74, 0.45);
+    --dew-moderate-bg: rgba(202, 138, 4, 0.18);
+    --dew-moderate-text: #fde047;
+    --dew-moderate-overlay: rgba(202, 138, 4, 0.28);
+    --dew-moderate-border: rgba(202, 138, 4, 0.45);
+    --dew-high-bg: rgba(234, 88, 12, 0.18);
+    --dew-high-text: #fdba74;
+    --dew-high-overlay: rgba(234, 88, 12, 0.28);
+    --dew-high-border: rgba(234, 88, 12, 0.45);
+    --dew-critical-bg: rgba(220, 38, 38, 0.18);
+    --dew-critical-text: #fca5a5;
+    --dew-critical-overlay: rgba(220, 38, 38, 0.28);
+    --dew-critical-border: rgba(220, 38, 38, 0.45);
+    --dew-unknown-bg: rgba(100, 116, 139, 0.18);
+    --dew-unknown-text: #cbd5e1;
+    --dew-unknown-overlay: rgba(100, 116, 139, 0.28);
+    --dew-unknown-border: rgba(100, 116, 139, 0.45);
 }
 
 html[data-theme="red"] {
@@ -440,4 +515,65 @@ html[data-theme="red"] {
     --info-card-inner-list-border: rgba(255, 120, 120, 0.35);
 
     --photo-badge-bg: rgba(0, 0, 0, 0.55);
+
+    /* Bootstrap secondary text - must be readable on red dark background */
+    --bs-secondary-color: #e6a3a3;
+    --bs-body-secondary-color: #e6a3a3;
+
+    /* Bootstrap primary - red mode already sets these below, ensure badge contrast */
+    --bs-primary-bg-subtle: rgba(255, 77, 77, 0.2);
+    --bs-primary-border-subtle: rgba(255, 77, 77, 0.45);
+    --bs-primary-text-emphasis: #ffb3b3;
+
+    /* success-50 used by timeline */
+    --success-50: rgba(255, 90, 90, 0.3);
+
+    /* Quality colors - red mode: tinted backgrounds + light text */
+    --quality-excellent: rgba(16, 185, 129, 0.18);
+    --quality-excellent-text: #6ee7b7;
+    --quality-good: rgba(255, 90, 90, 0.18);
+    --quality-good-text: #ffb3b3;
+    --quality-fair: rgba(245, 158, 11, 0.18);
+    --quality-fair-text: #fcd34d;
+    --quality-poor: rgba(234, 88, 12, 0.18);
+    --quality-poor-text: #fdba74;
+    --quality-bad: rgba(239, 68, 68, 0.2);
+    --quality-bad-text: #fca5a5;
+
+    --quality-excellent-overlay: rgba(16, 185, 129, 0.28);
+    --quality-excellent-border: rgba(16, 185, 129, 0.45);
+    --quality-good-overlay: rgba(255, 90, 90, 0.28);
+    --quality-good-border: rgba(255, 90, 90, 0.45);
+    --quality-fair-overlay: rgba(245, 158, 11, 0.28);
+    --quality-fair-border: rgba(245, 158, 11, 0.45);
+    --quality-poor-overlay: rgba(234, 88, 12, 0.28);
+    --quality-poor-border: rgba(234, 88, 12, 0.45);
+    --quality-bad-overlay: rgba(239, 68, 68, 0.3);
+    --quality-bad-border: rgba(239, 68, 68, 0.5);
+
+    /* Dew colors - red mode */
+    --dew-minimal-bg: rgba(4, 120, 87, 0.18);
+    --dew-minimal-text: #6ee7b7;
+    --dew-minimal-overlay: rgba(4, 120, 87, 0.28);
+    --dew-minimal-border: rgba(4, 120, 87, 0.45);
+    --dew-low-bg: rgba(22, 163, 74, 0.18);
+    --dew-low-text: #86efac;
+    --dew-low-overlay: rgba(22, 163, 74, 0.28);
+    --dew-low-border: rgba(22, 163, 74, 0.45);
+    --dew-moderate-bg: rgba(202, 138, 4, 0.18);
+    --dew-moderate-text: #fde047;
+    --dew-moderate-overlay: rgba(202, 138, 4, 0.28);
+    --dew-moderate-border: rgba(202, 138, 4, 0.45);
+    --dew-high-bg: rgba(234, 88, 12, 0.18);
+    --dew-high-text: #fdba74;
+    --dew-high-overlay: rgba(234, 88, 12, 0.28);
+    --dew-high-border: rgba(234, 88, 12, 0.45);
+    --dew-critical-bg: rgba(220, 38, 38, 0.2);
+    --dew-critical-text: #fca5a5;
+    --dew-critical-overlay: rgba(220, 38, 38, 0.3);
+    --dew-critical-border: rgba(220, 38, 38, 0.5);
+    --dew-unknown-bg: rgba(255, 120, 120, 0.15);
+    --dew-unknown-text: #ffd1d1;
+    --dew-unknown-overlay: rgba(255, 120, 120, 0.25);
+    --dew-unknown-border: rgba(255, 120, 120, 0.4);
 }

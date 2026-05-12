@@ -103,7 +103,7 @@
     font-size: 0.74rem;
     font-weight: var(--font-bold);
     letter-spacing: 0.02em;
-    color: var(--quality-good-text);
+    color: #ffffff;
     background-color: var(--bs-info);
 }
 

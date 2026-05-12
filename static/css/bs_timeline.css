@@ -1,5 +1,5 @@
 .timeline-with-icons {
-  border-left: 1px solid var(--success-50);
+  border-left: 1px solid var(--surface-border-strong);
   position: relative;
   list-style: none;
 }
@@ -7,6 +7,9 @@
 .timeline-with-icons .timeline-item {
   position: relative;
   background-color: var(--surface-card);
+  border: 1px solid var(--surface-border-strong);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-surface-sm);
 }
 
 .timeline-with-icons .timeline-item:after {
@@ -18,8 +21,8 @@
 .timeline-with-icons .timeline-icon {
   position: absolute;
   left: -48px;
-  background-color: var(--success-50);
-  color: var(--quality-good-text);
+  background-color: var(--accent-soft-strong);
+  color: var(--text-color);
   border-radius: 50%;
   height: 31px;
   width: 31px;
