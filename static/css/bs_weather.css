@@ -459,8 +459,8 @@
 }
 
 @keyframes moon-glow-pulse {
-    0%, 100% { opacity: 0.8; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.15); }
+    0%, 100% { opacity: 0.8; width: 80%; height: 80%; }
+    50% { opacity: 1; width: 92%; height: 92%; }
 }
 
 .moon-visual {
