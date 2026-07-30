@@ -24,6 +24,8 @@ When you add an item by name, Astrodex looks up the name in the SkyTonight catal
 
 The **check duplicate** endpoint (`GET /api/astrodex/check/<name>`) lets the UI warn before adding a name that already exists.
 
+For names the local SkyTonight dataset doesn't know (mostly stars, e.g. "Vega", "HIP 91262"), `GET /api/astrodex/catalogue-lookup` falls back to a SIMBAD TAP query. The resolved name prefers SIMBAD's `NAME …` proper name when the object has one (surfaced as `CommonName`, e.g. "Vega" rather than the obscure Flamsteed designation "* 3 Lyr"), then a Bayer-style designation ("* alf Lyr") over a bare Flamsteed number, then catalogue numbers (HD/HIP/SAO/TYC). The full set of resolved alternate names is captured client-side and submitted as `external_aliases` when the item is created, so the item detail popup's "Catalogue names" section — otherwise sourced live from the DSO dataset via `catalogue_aliases` and empty for any star — has something to show (see `enrich_item_with_catalogue_aliases()`).
+
 ---
 
 ## Item data model
@@ -41,8 +43,11 @@ Each item stored in `data/astrodex/<user_id>.json` has the following fields:
 | `pictures` | array | List of picture objects (see below) |
 | `location_id` | UUID string or `null` | v1.2: the location preset active when the item was created — best-effort link, only trusted while the preset still exists |
 | `location_name` | string or `null` | v1.2: frozen plain-text snapshot of the location name at creation. The UI always trusts this field for display; it survives preset renames and deletions (Astrodex items are **never** deleted with a location — see [LOCATIONS.md](LOCATIONS.md)) |
+| `external_aliases` | object or absent | `{catalogue_key: name}` alternate names captured at add-time for objects the local DSO dataset doesn't cover (mainly stars resolved via the SIMBAD fallback, e.g. `{"CommonName": "Vega", "HD": "HD 172167", "HIP": "HIP 91262"}`). Used as a fallback source for the "Catalogue names" popup section - see Catalogue integration above |
 | `created_at` | ISO 8601 | When the item was added to the collection |
 | `updated_at` | ISO 8601 | Last modification time |
+
+Additionally, `catalogue_aliases` is attached to every item **at read time only** (never persisted) — either from the live SkyTonight DSO catalogue lookup, or, when that finds nothing, from the item's own `external_aliases`. It powers the item popup's "Catalogue names" section and the "use this name" switch action.
 
 ### Picture data model
 

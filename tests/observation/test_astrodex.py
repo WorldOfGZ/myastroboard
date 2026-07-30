@@ -659,6 +659,63 @@ class TestAstrodexAliases:
         assert 'catalogue_group_id' not in enriched
         assert enriched.get('catalogue_aliases', {}).get('OpenNGC') == 'NGC 3031'
 
+    def test_create_astrodex_item_persists_external_aliases(self, temp_data_dir):
+        """SIMBAD-derived alternate names submitted at add-time are stored on the item."""
+        item = astrodex.create_astrodex_item('testuser', {
+            'name': 'Vega',
+            'type': 'Star',
+            'catalogue': 'CommonName',
+            'external_aliases': {'CommonName': 'Vega', 'HD': 'HD 172167', 'HIP': 'HIP 91262'},
+        })
+        assert item is not None
+        assert item['external_aliases'] == {'CommonName': 'Vega', 'HD': 'HD 172167', 'HIP': 'HIP 91262'}
+
+    def test_create_astrodex_item_drops_invalid_external_aliases(self, temp_data_dir):
+        """Non-dict/non-string entries are filtered out; an empty result omits the field."""
+        item = astrodex.create_astrodex_item('testuser', {
+            'name': 'Odd Star',
+            'external_aliases': {'HD': 123, 'valid': 'kept', '': 'no key', 5: 'no string key'},
+        })
+        assert item is not None
+        assert item['external_aliases'] == {'valid': 'kept'}
+
+        item2 = astrodex.create_astrodex_item('testuser', {
+            'name': 'Not A Dict Star',
+            'external_aliases': 'nope',
+        })
+        assert item2 is not None
+        assert 'external_aliases' not in item2
+
+    def test_enrich_item_with_catalogue_aliases_falls_back_to_external_aliases(self, temp_data_dir, monkeypatch):
+        """Stars aren't in the DSO dataset, so the live lookup misses and the item's own
+        persisted external_aliases (captured from SIMBAD at add-time) is used instead."""
+        monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', lambda c, n: {})
+
+        item = astrodex.create_astrodex_item('testuser', {
+            'name': 'Vega',
+            'catalogue': 'CommonName',
+            'external_aliases': {'CommonName': 'Vega', 'HIP': 'HIP 91262'},
+        })
+        assert item is not None
+
+        enriched = astrodex.enrich_item_with_catalogue_aliases(item)
+        assert enriched['catalogue_aliases'] == {'CommonName': 'Vega', 'HIP': 'HIP 91262'}
+
+    def test_enrich_item_with_catalogue_aliases_prefers_live_lookup(self, temp_data_dir, monkeypatch):
+        """When the live DSO lookup finds an entry, it wins over external_aliases."""
+        monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', self._fake_alias_entry)
+
+        item = astrodex.create_astrodex_item('testuser', {
+            'name': 'M81',
+            'catalogue': 'GaryImm',
+            'external_aliases': {'Stale': 'Should not be used'},
+        })
+        assert item is not None
+
+        enriched = astrodex.enrich_item_with_catalogue_aliases(item)
+        assert enriched['catalogue_aliases'].get('OpenNGC') == 'NGC 3031'
+        assert 'Stale' not in enriched['catalogue_aliases']
+
     def test_save_sanitizes_legacy_transient_and_unused_fields(self, temp_data_dir):
         """Test persisted astrodex drops transient aliases/group and unused data fields."""
         item = astrodex.create_astrodex_item('testuser', {'name': 'M42', 'type': 'Nebula'})
@@ -726,6 +783,23 @@ class TestAstrodexAliases:
 
         with pytest.raises(ValueError):
             astrodex.switch_item_catalogue_name('testuser', first_item['id'], 'OpenNGC')
+
+    def test_switch_item_catalogue_name_uses_external_aliases_for_stars(self, temp_data_dir, monkeypatch):
+        """A star item (not in the DSO dataset) can still switch between its
+        SIMBAD-derived external_aliases, e.g. from CommonName to a HIP number."""
+        monkeypatch.setattr(catalogue_aliases, 'get_alias_entry', lambda c, n: {})
+
+        item = astrodex.create_astrodex_item('testuser', {
+            'name': 'Vega',
+            'catalogue': 'CommonName',
+            'external_aliases': {'CommonName': 'Vega', 'HIP': 'HIP 91262'},
+        })
+        assert item is not None
+
+        updated = astrodex.switch_item_catalogue_name('testuser', item['id'], 'HIP')
+        assert updated is not None
+        assert updated['name'] == 'HIP 91262'
+        assert updated['catalogue'] == 'HIP'
 
 
 class TestAstrodexVisibilityModes:

@@ -126,6 +126,28 @@ def test_sort_aliases_preserves_all_entries():
     assert set(result) == set(aliases)
 
 
+def test_sort_aliases_name_identifier_comes_first():
+    """SIMBAD's "NAME Vega" (proper/common name) outranks every other identifier,
+    including Bayer/Flamsteed star designations and catalogue numbers."""
+    aliases = ['* alf Lyr', '* 3 Lyr', 'HD 172167', 'HIP 91262', 'NAME Vega']
+    result = _sort_aliases(aliases)
+    assert result[0] == 'NAME Vega'
+
+
+def test_sort_aliases_bayer_before_flamsteed():
+    """Bayer designation "* alf Lyr" (recognisable as "Alpha Lyrae") should outrank
+    the more obscure bare-number Flamsteed designation "* 3 Lyr" for the same star."""
+    aliases = ['* 3 Lyr', '* alf Lyr']
+    result = _sort_aliases(aliases)
+    assert result[0] == '* alf Lyr'
+
+
+def test_sort_aliases_bayer_before_catalogue_numbers():
+    aliases = ['HD 172167', 'HIP 91262', '* alf Lyr']
+    result = _sort_aliases(aliases)
+    assert result[0] == '* alf Lyr'
+
+
 # ---------------------------------------------------------------------------
 # build_catalogue_names_from_aliases
 # ---------------------------------------------------------------------------
@@ -155,6 +177,19 @@ def test_build_catalogue_names_falls_back_to_simbad_for_unknown():
 def test_build_catalogue_names_no_duplicate_catalogue_keys():
     result = build_catalogue_names_from_aliases('M 31', ['M 31', 'M 31'])
     assert list(result.keys()).count('Messier') == 1
+
+
+def test_build_catalogue_names_recognises_simbad_name_as_common_name():
+    result = build_catalogue_names_from_aliases('Vega', ['NAME Vega', '* alf Lyr', 'HIP 91262'])
+    assert result['CommonName'] == 'Vega'
+    assert result['HIP'] == 'HIP 91262'
+    # The raw "NAME Vega" identifier itself is not stored verbatim as a value.
+    assert 'NAME Vega' not in result.values()
+
+
+def test_build_catalogue_names_common_name_takes_first_occurrence():
+    result = build_catalogue_names_from_aliases('NAME Vega', ['NAME Alpha Lyrae'])
+    assert result['CommonName'] == 'Vega'
 
 
 # ---------------------------------------------------------------------------

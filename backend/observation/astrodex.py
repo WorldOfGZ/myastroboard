@@ -41,6 +41,32 @@ DEFAULT_IMAGE = 'default_astro_object.png'
 TRANSIENT_ITEM_FIELDS = {'catalogue_aliases', 'catalogue_group_id'}
 UNUSED_ITEM_FIELDS = {'ra', 'dec', 'magnitude', 'size'}
 
+MAX_EXTERNAL_ALIASES = 20
+MAX_EXTERNAL_ALIAS_STRING_LENGTH = 80
+
+
+def _sanitize_external_aliases(value) -> Dict[str, str]:
+    """Validate/clean a client-supplied external_aliases mapping (catalogue key -> name).
+
+    Persists SIMBAD-derived alternate names (CommonName, HD, HIP, SAO, TYC, …) captured
+    at add-time for objects resolved via the Astrodex catalogue-lookup SIMBAD fallback -
+    mainly stars, which aren't in the local SkyTonight DSO dataset and so never get a
+    catalogue_aliases entry from it. See enrich_item_with_catalogue_aliases().
+    """
+    if not isinstance(value, dict):
+        return {}
+    cleaned: Dict[str, str] = {}
+    for key, val in value.items():
+        if len(cleaned) >= MAX_EXTERNAL_ALIASES:
+            break
+        if not isinstance(key, str) or not isinstance(val, str):
+            continue
+        key = key.strip()[:40]
+        val = val.strip()[:MAX_EXTERNAL_ALIAS_STRING_LENGTH]
+        if key and val:
+            cleaned[key] = val
+    return cleaned
+
 
 def _normalize_name(name: str) -> str:
     """Normalize names for resilient comparisons."""
@@ -736,6 +762,10 @@ def create_astrodex_item(user_id: str, item_data: Dict, username: Optional[str] 
         'updated_at': datetime.now(timezone.utc).isoformat(),
     }
 
+    external_aliases = _sanitize_external_aliases(item_data.get('external_aliases'))
+    if external_aliases:
+        new_item['external_aliases'] = external_aliases
+
     astrodex['items'].append(new_item)
 
     if save_user_astrodex(user_id, astrodex, username=username):
@@ -1288,8 +1318,18 @@ def is_item_in_preloaded_astrodex(astrodex_data: dict, item_name: str, catalogue
 
 
 def enrich_item_with_catalogue_aliases(item: Dict) -> Dict:
-    """Attach aliases metadata at runtime (not persisted)."""
-    return catalogue_aliases.merge_item_with_alias_entry(item)
+    """Attach aliases metadata at runtime (not persisted).
+
+    Prefers the live SkyTonight DSO catalogue lookup; falls back to the item's own
+    persisted `external_aliases` (SIMBAD-derived alternate names captured at add-time,
+    mainly for stars - see _sanitize_external_aliases) when that lookup finds nothing.
+    """
+    catalogue_aliases.merge_item_with_alias_entry(item)
+    if not item.get('catalogue_aliases'):
+        external = item.get('external_aliases')
+        if isinstance(external, dict) and external:
+            item['catalogue_aliases'] = dict(external)
+    return item
 
 
 def switch_item_catalogue_name(user_id: str, item_id: str, target_catalogue: str) -> Optional[Dict]:

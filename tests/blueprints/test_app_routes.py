@@ -1978,6 +1978,23 @@ class TestAstrodexCrud:
         resp = client_admin.post('/api/astrodex/items', json={'type': 'Galaxy'})
         assert resp.status_code == 400
 
+    def test_add_item_persists_external_aliases(self, client_admin):
+        """external_aliases submitted alongside a SIMBAD-resolved star round-trips onto the item."""
+        import uuid as _uuid
+
+        resp = client_admin.post(
+            '/api/astrodex/items',
+            json={
+                'name': f'Vega_{_uuid.uuid4().hex[:6]}',
+                'type': 'Star',
+                'catalogue': 'CommonName',
+                'external_aliases': {'CommonName': 'Vega', 'HD': 'HD 172167', 'HIP': 'HIP 91262'},
+            },
+        )
+        assert resp.status_code == 200
+        item = resp.get_json()['item']
+        assert item['external_aliases'] == {'CommonName': 'Vega', 'HD': 'HD 172167', 'HIP': 'HIP 91262'}
+
     def test_update_item_nonexistent_returns_404(self, client_admin):
         resp = client_admin.put('/api/astrodex/items/nonexistent-id', json={'notes': 'test'})
         assert resp.status_code in (404, 401)
@@ -6345,7 +6362,9 @@ class TestSpaceflightMoreRoutes:
         )
         resp = client_admin.get('/api/astrodex/catalogue-lookup?name=M31')
         assert resp.status_code == 200
-        assert resp.get_json()['found'] is True
+        data = resp.get_json()
+        assert data['found'] is True
+        assert data['source'] == 'local'
 
     def test_catalogue_lookup_empty_name_returns_not_found(self, client_admin):
         resp = client_admin.get('/api/astrodex/catalogue-lookup?name=')
@@ -8077,7 +8096,33 @@ class TestCatalogueLookupSimbad:
         assert resp.status_code == 200
         data = resp.get_json()
         assert data['found'] is True
+        assert data['source'] == 'simbad'
         assert data['preferred_name'] == 'HIP 12345'
+
+    def test_simbad_lookup_prefers_common_name(self, client_admin, monkeypatch):
+        """Covers the Vega case: a SIMBAD "NAME …" identifier wins as preferred_name
+        over an obscure Flamsteed/Bayer designation, surfaced as 'CommonName'."""
+        from skytonight import skytonight_targets as _skt
+        from observation import object_info as _oi
+
+        monkeypatch.setattr(_skt, 'get_lookup_entry', lambda *a, **kw: None)
+        monkeypatch.setattr(_oi, 'is_safe_identifier', lambda name: True)
+        monkeypatch.setattr(
+            _oi, 'resolve_identifier_for_catalogue_lookup',
+            lambda name: {
+                'aliases': ['NAME Vega', '* alf Lyr', '* 3 Lyr', 'HIP 91262'],
+                'object_type': 'Star',
+                'constellation': 'Lyr',
+            },
+        )
+
+        resp = client_admin.get('/api/astrodex/catalogue-lookup?name=Vega')
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data['found'] is True
+        assert data['preferred_name'] == 'Vega'
+        assert data['catalogue_names']['CommonName'] == 'Vega'
+        assert data['catalogue_names']['HIP'] == 'HIP 91262'
 
     def test_simbad_lookup_name_not_in_catalogue(self, client_admin, monkeypatch):
         """Covers SIMBAD path where name does NOT match any catalogue value → use alias."""

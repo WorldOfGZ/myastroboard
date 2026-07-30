@@ -924,6 +924,7 @@ async function showAddAstrodexItemModal() {
                 <label for="item-name" class="form-label">${i18n.t('astrodex.form_object_name')} *</label>
                 <input type="text" id="item-name" class="form-control" required autocomplete="off">
                 <input type="hidden" id="item-catalogue" value="">
+                <input type="hidden" id="item-external-aliases" value="">
             </div>
             <div class="col-md-6">
                 <label for="item-type" class="form-label">${i18n.t('astrodex.form_object_type')}</label>
@@ -1002,6 +1003,7 @@ async function showAddAstrodexItemModal() {
             const typeSelect = document.getElementById('item-type');
             const constSelect = document.getElementById('item-constellation');
             const catInput = document.getElementById('item-catalogue');
+            const extAliasesInput = document.getElementById('item-external-aliases');
 
             if (nameInput) nameInput.value = res.preferred_name || val;
 
@@ -1011,6 +1013,16 @@ async function showAddAstrodexItemModal() {
                 if (catName === res.preferred_name) { matchedCat = cat; break; }
             }
             if (catInput) catInput.value = matchedCat;
+
+            // Stash the resolved alternate names so the item's "Catalogue names" popup
+            // section still has something to show for objects the local SkyTonight DSO
+            // dataset doesn't cover (mainly stars) - only needed for the SIMBAD fallback
+            // path, since local (DSO) objects already get this live from that dataset.
+            if (extAliasesInput) {
+                extAliasesInput.value = res.source === 'simbad' && res.catalogue_names
+                    ? JSON.stringify(res.catalogue_names)
+                    : '';
+            }
 
             if (typeSelect) {
                 const mappedType = _mapCatalogueType(res.object_type);
@@ -1063,6 +1075,13 @@ async function showAddAstrodexItemModal() {
             constellation: document.getElementById('item-constellation').value,
             notes: document.getElementById('item-notes').value
         };
+
+        const rawExternalAliases = document.getElementById('item-external-aliases')?.value || '';
+        if (rawExternalAliases) {
+            try {
+                itemData.external_aliases = JSON.parse(rawExternalAliases);
+            } catch (_) { /* stale/invalid stash - just omit it */ }
+        }
 
         const success = await addToAstrodex(itemData);
         if (success) {

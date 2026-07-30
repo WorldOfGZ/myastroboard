@@ -267,11 +267,14 @@ def _sort_aliases(aliases: List[str]) -> List[str]:
     and noisy survey identifiers (NVSS, TGSS, Gaia, 2MASS, SDSS, …) come last.
 
     Priority tiers (lower = shown earlier):
+     -1 - SIMBAD proper/common name ("NAME Vega", "NAME Polaris", …)
       0 - Messier (M \\d)
       1 - NGC / IC
       2 - Caldwell (C \\d), named common names without survey keywords
       3 - Other recognisable catalogue prefixes (UGC, MCG, PGC, LMC, SMC, …)
-      4 - Everything else
+          and Bayer-style star designations ("* alf Lyr")
+      4 - Everything else (incl. Flamsteed star designations "* 3 Lyr" and
+          HD/HIP/SAO/TYC catalogue numbers)
       5 - Known noisy survey prefixes (NVSS, TGSS, Gaia, 2MASS, SDSS, WISE, …)
     """
     _SURVEY_PREFIXES = (
@@ -309,9 +312,18 @@ def _sort_aliases(aliases: List[str]) -> List[str]:
 
     def _priority(alias: str) -> tuple:
         up = alias.upper()
+        if up.startswith('NAME '):
+            return (-1, alias.lower())
         for prefix, tier in _KNOWN_PREFIXES:
             if up.startswith(prefix.upper()):
                 return (tier, alias.lower())
+        if alias.startswith('* '):
+            # Star designation: "* alf Lyr" (Bayer) vs "* 3 Lyr" (Flamsteed).
+            # Bayer letters are recognisable ("Alpha Lyrae"); bare Flamsteed
+            # numbers are obscure, so only the lettered form is promoted.
+            first_token = alias[2:].strip().split(' ', 1)[0]
+            if first_token and first_token[0].isalpha():
+                return (3, alias.lower())
         for survey in _SURVEY_PREFIXES:
             if up.startswith(survey):
                 return (5, alias.lower())
@@ -405,12 +417,21 @@ def build_catalogue_names_from_aliases(identifier: str, aliases: List[str]) -> D
     """Build a {catalogue_key: identifier} dict from a SIMBAD alias list.
 
     The input identifier is always included under its detected catalog key (or 'Simbad').
+    A SIMBAD "NAME <common name>" identifier (e.g. "NAME Vega") is recognised as the
+    object's CommonName, stripped of the "NAME " prefix - mirroring the CommonName key
+    already used throughout the SkyTonight catalogue system for the same purpose.
     """
     result: Dict[str, str] = {}
     for name in [identifier] + aliases:
+        stripped = name.strip()
+        if 'CommonName' not in result and stripped.upper().startswith('NAME '):
+            common = stripped[5:].strip()
+            if common:
+                result['CommonName'] = common
+                continue
         for pattern, key in _CATALOGUE_ALIAS_PATTERNS:
-            if key not in result and pattern.match(name.strip()):
-                result[key] = name.strip()
+            if key not in result and pattern.match(stripped):
+                result[key] = stripped
                 break
     if not result:
         result['Simbad'] = identifier

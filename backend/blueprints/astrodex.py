@@ -800,6 +800,7 @@ def astrodex_catalogue_lookup():
             return jsonify(
                 {
                     'found': True,
+                    'source': 'local',
                     'preferred_name': entry.get('preferred_name', ''),
                     'object_type': entry.get('object_type', ''),
                     'constellation': full_constellation,
@@ -818,15 +819,20 @@ def astrodex_catalogue_lookup():
             simbad = resolve_identifier_for_catalogue_lookup(name)
             if simbad:
                 catalogue_names = build_catalogue_names_from_aliases(name, simbad['aliases'])
-                # preferred_name: the typed identifier if it maps to a known catalog,
+                # preferred_name: SIMBAD's common name if it has one (e.g. "Vega" for
+                # "* 3 Lyr"/"* alf Lyr" - mirrors SkyTonight's CommonName-first order),
+                # otherwise the typed identifier if it maps to a known catalog,
                 # otherwise the best sorted alias, otherwise the typed identifier as-is.
-                if any(v == name for v in catalogue_names.values()):
+                if 'CommonName' in catalogue_names:
+                    preferred_name = catalogue_names['CommonName']
+                elif any(v == name for v in catalogue_names.values()):
                     preferred_name = name
                 else:
                     preferred_name = simbad['aliases'][0] if simbad['aliases'] else name
                 return jsonify(
                     {
                         'found': True,
+                        'source': 'simbad',
                         'preferred_name': preferred_name,
                         'object_type': simbad['object_type'],
                         'constellation': simbad['constellation'],
