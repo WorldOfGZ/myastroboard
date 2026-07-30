@@ -1192,6 +1192,8 @@
     "type_star_cluster": "Cúmulo de estrellas",
     "type_comet": "Cometa",
     "type_sun": "Sol",
+    "type_milky_way": "Vía Láctea",
+    "type_nightscape": "Paisaje nocturno / Gran campo",
     "type_other": "Otro",
     "type_ass": "*Culo",
     "type_bn_oc": "BN+OC",

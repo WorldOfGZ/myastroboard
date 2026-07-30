@@ -1192,6 +1192,8 @@
     "type_star_cluster": "Aglomerado Estelar",
     "type_comet": "Cometa",
     "type_sun": "Sol",
+    "type_milky_way": "Via Láctea",
+    "type_nightscape": "Paisagem noturna / Grande campo",
     "type_other": "Outro",
     "type_ass": "*Bunda",
     "type_bn_oc": "BN+OC",

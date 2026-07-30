@@ -1192,6 +1192,8 @@
     "type_star_cluster": "Ammasso stellare",
     "type_comet": "Cometa",
     "type_sun": "Sole",
+    "type_milky_way": "Via Lattea",
+    "type_nightscape": "Paesaggio notturno / Grande campo",
     "type_other": "Altro",
     "type_ass": "*Culo",
     "type_bn_oc": "BN+OC",

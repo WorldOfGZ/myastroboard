@@ -34,6 +34,8 @@ function getObjectTypeOptionsHtml(selectedType = '') {
         ['Moon', 'type_moon'],
         ['Sun', 'type_sun'],
         ['Comet', 'type_comet'],
+        ['Milky Way', 'type_milky_way'],
+        ['Nightscape', 'type_nightscape'],
         ['Other', 'type_other'],
     ];
 

@@ -1192,6 +1192,8 @@
     "type_star_cluster": "Sternhaufen",
     "type_comet": "Komet",
     "type_sun": "Sonne",
+    "type_milky_way": "Milchstraße",
+    "type_nightscape": "Nachtlandschaft / Weitwinkel",
     "type_other": "Andere",
     "type_ass": "*Arsch",
     "type_bn_oc": "BN+OC",

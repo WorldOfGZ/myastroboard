@@ -1,0 +1,1 @@
+- Add "Milky Way" and "Nightscape / Wide-field" on astrodex type

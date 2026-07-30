@@ -1192,6 +1192,8 @@
     "type_star_cluster": "Amas d'étoiles",
     "type_comet": "Comète",
     "type_sun": "Soleil",
+    "type_milky_way": "Voie lactée",
+    "type_nightscape": "Paysage nocturne / Grand champ",
     "type_other": "Autre",
     "type_ass": "*Ass",
     "type_bn_oc": "BN+OC",

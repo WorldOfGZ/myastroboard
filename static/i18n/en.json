@@ -1192,6 +1192,8 @@
     "type_star_cluster": "Star Cluster",
     "type_comet": "Comet",
     "type_sun": "Sun",
+    "type_milky_way": "Milky Way",
+    "type_nightscape": "Nightscape / Wide-field",
     "type_other": "Other",
     "type_ass": "*Ass",
     "type_bn_oc": "BN+OC",
