@@ -36,50 +36,88 @@ def _build_combination_photo_index_for_current_user(user, user_id):
     return astrodex.build_combination_photo_index(user_id, user.username, private_mode, usernames_by_id)
 
 
+def _validate_numeric_ranges(data, specs):
+    """Shared range-check helper: specs is a list of (field, lo, hi, unit) tuples.
+    Returns an error message string for the first out-of-range/non-numeric field found among
+    those present in ``data``, else None. Mirrors the min/max attributes on the matching
+    frontend number inputs in equipment.js so the API rejects what the UI already disallows.
+    """
+    for field, lo, hi, unit in specs:
+        if field in data and data[field] not in (None, ''):
+            try:
+                val = float(data[field])
+                if not (lo <= val <= hi):
+                    return f'{field} must be between {lo} and {hi} {unit}'.strip()
+            except (TypeError, ValueError):
+                return f'{field} must be a number'
+    return None
+
+
 def _validate_telescope_data(data):
     """Return an error message string if telescope numeric fields are out of range, else None."""
-    if 'aperture_mm' in data:
-        try:
-            aperture = float(data['aperture_mm'])
-            if not (10 <= aperture <= 5000):
-                return 'aperture_mm must be between 10 and 5000 mm'
-        except (TypeError, ValueError):
-            return 'aperture_mm must be a number'
-
-    if 'focal_length_mm' in data:
-        try:
-            focal = float(data['focal_length_mm'])
-            if not (100 <= focal <= 50000):
-                return 'focal_length_mm must be between 100 and 50000 mm'
-        except (TypeError, ValueError):
-            return 'focal_length_mm must be a number'
-
-    if 'reducer_barlow_factor' in data:
-        try:
-            factor = float(data['reducer_barlow_factor'])
-            if not (0.1 <= factor <= 3.0):
-                return 'reducer_barlow_factor must be between 0.1 and 3.0'
-        except (TypeError, ValueError):
-            return 'reducer_barlow_factor must be a number'
-
-    return None
+    return _validate_numeric_ranges(
+        data,
+        [
+            ('aperture_mm', 10, 5000, 'mm'),
+            ('focal_length_mm', 100, 50000, 'mm'),
+            ('reducer_barlow_factor', 0.1, 3.0, ''),
+            ('weight_kg', 0, 100, 'kg'),
+        ],
+    )
 
 
 def _validate_camera_data(data):
     """Return an error message string if camera numeric fields are out of range, else None."""
-    for field, label, lo, hi in [
-        ('sensor_width_mm', 'sensor_width_mm', 1, 100),
-        ('sensor_height_mm', 'sensor_height_mm', 1, 100),
-    ]:
-        if field in data:
-            try:
-                val = float(data[field])
-                if not (lo <= val <= hi):
-                    return f'{label} must be between {lo} and {hi} mm'
-            except (TypeError, ValueError):
-                return f'{label} must be a number'
+    return _validate_numeric_ranges(
+        data,
+        [
+            ('sensor_width_mm', 1, 100, 'mm'),
+            ('sensor_height_mm', 1, 100, 'mm'),
+            ('pixel_size_um', 1, 10, 'um'),
+            ('resolution_width_px', 640, 16000, 'px'),
+            ('resolution_height_px', 480, 12000, 'px'),
+            ('min_temperature_c', -50, 0, 'C'),
+            ('weight_kg', 0, 50, 'kg'),
+        ],
+    )
 
-    return None
+
+def _validate_mount_data(data):
+    """Return an error message string if mount numeric fields are out of range, else None."""
+    return _validate_numeric_ranges(
+        data,
+        [
+            ('payload_capacity_kg', 0.1, 100, 'kg'),
+            ('tracking_accuracy_arcsec', 0.1, 10, 'arcsec'),
+        ],
+    )
+
+
+def _validate_filter_data(data):
+    """Return an error message string if filter numeric fields are out of range, else None."""
+    return _validate_numeric_ranges(
+        data,
+        [
+            ('central_wavelength_nm', 300, 2000, 'nm'),
+            ('bandwidth_nm', 1, 1000, 'nm'),
+        ],
+    )
+
+
+def _validate_accessory_data(data):
+    """Return an error message string if accessory numeric fields are out of range, else None."""
+    return _validate_numeric_ranges(data, [('weight_kg', 0, 50, 'kg')])
+
+
+def _validate_combination_data(data):
+    """Return an error message string if combination numeric fields are out of range, else None."""
+    return _validate_numeric_ranges(
+        data,
+        [
+            ('lens_focal_length_mm', 1, 2000, 'mm'),
+            ('lens_focal_ratio', 0.5, 32, ''),
+        ],
+    )
 
 
 # Telescopes
@@ -365,6 +403,9 @@ def create_mount():
             return jsonify({'error': 'User not authenticated'}), 401
 
         mount_data = request.json
+        err = _validate_mount_data(mount_data)
+        if err:
+            return jsonify({'error': err}), 400
         new_mount = equipment_profiles.create_mount(user_id, mount_data)
 
         if new_mount:
@@ -408,6 +449,9 @@ def update_mount(mount_id):
             return jsonify({'error': 'User not authenticated'}), 401
 
         mount_data = request.json
+        err = _validate_mount_data(mount_data)
+        if err:
+            return jsonify({'error': err}), 400
         shared = equipment_profiles.load_all_shared_equipment('mounts', user_id)
         if any(m['id'] == mount_id for m in shared):
             return jsonify({'error': 'Cannot modify shared equipment owned by another user'}), 403
@@ -482,6 +526,9 @@ def create_filter():
             return jsonify({'error': 'User not authenticated'}), 401
 
         filter_data = request.json
+        err = _validate_filter_data(filter_data)
+        if err:
+            return jsonify({'error': err}), 400
         new_filter = equipment_profiles.create_filter(user_id, filter_data)
 
         if new_filter:
@@ -525,6 +572,9 @@ def update_filter(filter_id):
             return jsonify({'error': 'User not authenticated'}), 401
 
         filter_data = request.json
+        err = _validate_filter_data(filter_data)
+        if err:
+            return jsonify({'error': err}), 400
         shared = equipment_profiles.load_all_shared_equipment('filters', user_id)
         if any(f['id'] == filter_id for f in shared):
             return jsonify({'error': 'Cannot modify shared equipment owned by another user'}), 403
@@ -599,6 +649,9 @@ def create_accessory():
             return jsonify({'error': 'User not authenticated'}), 401
 
         accessory_data = request.json
+        err = _validate_accessory_data(accessory_data)
+        if err:
+            return jsonify({'error': err}), 400
         new_accessory = equipment_profiles.create_accessory(user_id, accessory_data)
 
         if new_accessory:
@@ -642,6 +695,9 @@ def update_accessory(accessory_id):
             return jsonify({'error': 'User not authenticated'}), 401
 
         accessory_data = request.json
+        err = _validate_accessory_data(accessory_data)
+        if err:
+            return jsonify({'error': err}), 400
         shared = equipment_profiles.load_all_shared_equipment('accessories', user_id)
         if any(a['id'] == accessory_id for a in shared):
             return jsonify({'error': 'Cannot modify shared equipment owned by another user'}), 403
@@ -730,6 +786,9 @@ def create_combination():
             return jsonify({'error': 'User not authenticated'}), 401
 
         combination_data = request.json
+        err = _validate_combination_data(combination_data)
+        if err:
+            return jsonify({'error': err}), 400
         new_combination = equipment_profiles.create_combination(user_id, combination_data)
 
         if new_combination:
@@ -796,6 +855,9 @@ def update_combination(combination_id):
             return jsonify({'error': 'User not authenticated'}), 401
 
         combination_data = request.json
+        err = _validate_combination_data(combination_data)
+        if err:
+            return jsonify({'error': err}), 400
         updated_combination = equipment_profiles.update_combination(user_id, combination_id, combination_data)
 
         if updated_combination:

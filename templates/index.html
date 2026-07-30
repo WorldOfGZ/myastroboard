@@ -1669,32 +1669,32 @@
                     <div class="row g-3 mt-1 mb-2" id="constraints-fields">
                         <div id="max-targets-field" class="col-md-3">
                             <label for="altitude-min" class="form-label" data-i18n="settings.altitude_min">Min Altitude (&deg;):</label>
-                            <input type="number" id="altitude-min" class="form-control" value="30" step="1" inputmode="numeric" title="Minimum altitude in degrees above horizon (typical: 30&deg;)" data-i18n-title="settings.altitude_min_title">
+                            <input type="number" id="altitude-min" class="form-control" value="30" step="1" min="0" max="90" inputmode="numeric" title="Minimum altitude in degrees above horizon (typical: 30&deg;)" data-i18n-title="settings.altitude_min_title">
                             <div class="form-text" data-i18n="settings.altitude_min_info">Degrees above horizon</div>
                         </div>
                         <div class="col-md-3">
                             <label for="altitude-max" class="form-label" data-i18n="settings.altitude_max">Max Altitude (&deg;):</label>
-                            <input type="number" id="altitude-max" class="form-control" value="80" step="1" inputmode="numeric" title="Maximum altitude in degrees above horizon (typical: 80&deg;)" data-i18n-title="settings.altitude_max_title">
+                            <input type="number" id="altitude-max" class="form-control" value="80" step="1" min="0" max="90" inputmode="numeric" title="Maximum altitude in degrees above horizon (typical: 80&deg;)" data-i18n-title="settings.altitude_max_title">
                             <div class="form-text" data-i18n="settings.altitude_max_info">Degrees above horizon</div>
                         </div>
                         <div class="col-md-3">
                             <label for="airmass" class="form-label" data-i18n="settings.airmass_constraint">Airmass Constraint:</label>
-                            <input type="number" id="airmass" class="form-control" value="2" step="0.1" inputmode="decimal" title="Maximum airmass (2 = 60&deg; zenith angle, 3 = 70.5&deg;)" data-i18n-title="settings.airmass_constraint_title">
+                            <input type="number" id="airmass" class="form-control" value="2" step="0.1" min="1" max="10" inputmode="decimal" title="Maximum airmass (2 = 60&deg; zenith angle, 3 = 70.5&deg;)" data-i18n-title="settings.airmass_constraint_title">
                             <div class="form-text" data-i18n="settings.airmass_constraint_info">2 = 1/cos(60&deg;)</div>
                         </div>
                         <div class="col-md-3">
                             <label for="size-min" class="form-label" data-i18n="settings.size_min">Min Size (arcmin):</label>
-                            <input type="number" id="size-min" class="form-control" value="10" step="1" inputmode="numeric">
+                            <input type="number" id="size-min" class="form-control" value="10" step="1" min="0" max="1000" inputmode="numeric">
                             <div class="form-text" data-i18n="settings.size_min_info">Minimum object size in arc minutes</div>
                         </div>
                         <div class="col-md-3">
                             <label for="size-max" class="form-label" data-i18n="settings.size_max">Max Size (arcmin):</label>
-                            <input type="number" id="size-max" class="form-control" value="300" step="1" inputmode="numeric">
+                            <input type="number" id="size-max" class="form-control" value="300" step="1" min="0" max="1000" inputmode="numeric">
                             <div class="form-text" data-i18n="settings.size_max_info">Maximum object size in arc minutes</div>
                         </div>
                         <div class="col-md-3">
                             <label for="moon-sep" class="form-label" data-i18n="settings.moon_sep">Min Moon Separation (&deg;):</label>
-                            <input type="number" id="moon-sep" class="form-control" value="45" step="1" inputmode="numeric">
+                            <input type="number" id="moon-sep" class="form-control" value="45" step="1" min="0" max="180" inputmode="numeric">
                             <div class="form-text" data-i18n="settings.moon_sep_info">Minimum separation from moon in degrees (overridden if 'Use Moon Illumination' is checked)</div>
                         </div>
                         <div class="col-md-3">
@@ -1950,7 +1950,7 @@
 
                             <div class="col-12">
                                 <label class="visually-hidden" for="new-password" data-i18n="users.password">Password</label>
-                                <input type="password" class="form-control" id="new-password" required autocomplete="off" placeholder="Password" data-i18n-placeholder="users.password">
+                                <input type="password" class="form-control" id="new-password" required minlength="6" autocomplete="off" placeholder="Password" data-i18n-placeholder="users.password">
                             </div>
 
                             <div class="col-12">

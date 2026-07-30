@@ -377,8 +377,26 @@ class UserManager:
             return False, f"Invalid theme_mode: {theme_mode}"
 
         notifications = preferences.get('notifications')
-        if notifications is not None and not isinstance(notifications, dict):
-            return False, "Invalid notifications: must be a dictionary"
+        if notifications is not None:
+            if not isinstance(notifications, dict):
+                return False, "Invalid notifications: must be a dictionary"
+            for trigger_id, trigger_prefs in notifications.items():
+                if not isinstance(trigger_prefs, dict):
+                    continue
+                # Mirrors the fixed <select> option ranges backing #notif-lead-<id> (1 min to 7
+                # days) and #notif-kp-threshold (Kp index, standardized 0-9) in templates/index.html.
+                lead_minutes = trigger_prefs.get('lead_minutes')
+                if lead_minutes is not None:
+                    if not isinstance(lead_minutes, (int, float)) or isinstance(lead_minutes, bool):
+                        return False, f"Invalid notifications.{trigger_id}.lead_minutes: must be a number"
+                    if not (1 <= lead_minutes <= 10080):
+                        return False, f"Invalid notifications.{trigger_id}.lead_minutes: must be between 1 and 10080"
+                kp_threshold = trigger_prefs.get('kp_threshold')
+                if kp_threshold is not None:
+                    if not isinstance(kp_threshold, (int, float)) or isinstance(kp_threshold, bool):
+                        return False, f"Invalid notifications.{trigger_id}.kp_threshold: must be a number"
+                    if not (0 <= kp_threshold <= 9):
+                        return False, f"Invalid notifications.{trigger_id}.kp_threshold: must be between 0 and 9"
 
         first_day_of_week = preferences.get('first_day_of_week')
         if first_day_of_week is not None and first_day_of_week not in ALLOWED_FIRST_DAY_OF_WEEK:

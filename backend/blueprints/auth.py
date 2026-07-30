@@ -249,6 +249,14 @@ def create_user():
                 400,
             )
 
+        # Matches minlength="6" on #new-password and the same rule self-service password
+        # changes enforce (change_own_password) - admin-created accounts must not be weaker.
+        if len(password) < 6:
+            return (
+                jsonify({'error': 'Password must be at least 6 characters', 'error_key': 'users.password_too_short'}),
+                400,
+            )
+
         user = user_manager.create_user(username, password, role)
         return jsonify(
             {'status': 'success', 'user': {'username': user.username, 'role': user.role, 'created_at': user.created_at}}
@@ -282,6 +290,12 @@ def update_user(user_id):
         if not username and not password and not role:
             return (
                 jsonify({'error': 'Username, password or role required', 'error_key': 'users.required_update_payload'}),
+                400,
+            )
+
+        if password and len(password) < 6:
+            return (
+                jsonify({'error': 'Password must be at least 6 characters', 'error_key': 'users.password_too_short'}),
                 400,
             )
 

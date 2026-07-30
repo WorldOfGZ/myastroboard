@@ -122,6 +122,52 @@ def _validate_location_payload(payload, partial=False):
     return cleaned, None
 
 
+# Mirrors the min/max attributes on the matching #altitude-min/#altitude-max/#airmass/
+# #size-min/#size-max/#moon-sep/#time-threshold number inputs in templates/index.html, so the
+# API rejects what the settings UI already disallows.
+_CONSTRAINTS_RANGES = {
+    'altitude_constraint_min': (0, 90, 'deg'),
+    'altitude_constraint_max': (0, 90, 'deg'),
+    'airmass_constraint': (1, 10, ''),
+    'size_constraint_min': (0, 1000, 'arcmin'),
+    'size_constraint_max': (0, 1000, 'arcmin'),
+    'moon_separation_min': (0, 180, 'deg'),
+    'fraction_of_time_observable_threshold': (0, 1, ''),
+}
+
+
+def _validate_constraints_payload(payload):
+    """Validate an incoming ``skytonight.constraints`` payload. Returns (cleaned, error).
+
+    Only keys present in the payload are checked/copied - this is always merged onto the
+    existing constraints block by the caller, so a partial update (e.g. from an older client)
+    must not be rejected just because it omits fields it isn't touching.
+    """
+    if not isinstance(payload, dict):
+        return None, "constraints payload must be a dictionary"
+    cleaned = dict(payload)
+
+    for field, (lo, hi, unit) in _CONSTRAINTS_RANGES.items():
+        if field in payload:
+            try:
+                value = float(payload[field])
+            except (TypeError, ValueError):
+                return None, f"constraints.{field} must be a number"
+            if not (lo <= value <= hi):
+                return None, f"constraints.{field} must be between {lo} and {hi} {unit}".strip()
+            cleaned[field] = value
+
+    if 'altitude_constraint_min' in cleaned and 'altitude_constraint_max' in cleaned:
+        if cleaned['altitude_constraint_min'] >= cleaned['altitude_constraint_max']:
+            return None, "constraints.altitude_constraint_min must be less than altitude_constraint_max"
+
+    if 'size_constraint_min' in cleaned and 'size_constraint_max' in cleaned:
+        if cleaned['size_constraint_min'] > cleaned['size_constraint_max']:
+            return None, "constraints.size_constraint_min must not be greater than size_constraint_max"
+
+    return cleaned, None
+
+
 @locations_bp.route('/api/config', methods=['POST'])
 @admin_required
 def update_config_api():
@@ -134,6 +180,27 @@ def update_config_api():
     of its coordinates resets that preset's caches only.
     """
     config = request.json
+
+    # Validate numeric constraints up front (both the modern skytonight.constraints location
+    # and the legacy top-level 'constraints' payload some older clients may still send).
+    # A malformed (non-dict) container is left untouched here - the merge logic below already
+    # tolerates and discards garbage top-level shapes; this only tightens validation for the
+    # well-formed dict payloads the settings UI actually sends.
+    _top_constraints = config.get('constraints')
+    if isinstance(_top_constraints, dict):
+        _cleaned, _error = _validate_constraints_payload(_top_constraints)
+        if _error:
+            return jsonify({"error": _error}), 400
+        config['constraints'] = _cleaned
+
+    _incoming_skytonight_block = config.get('skytonight')
+    if isinstance(_incoming_skytonight_block, dict):
+        _nested_constraints = _incoming_skytonight_block.get('constraints')
+        if isinstance(_nested_constraints, dict):
+            _cleaned, _error = _validate_constraints_payload(_nested_constraints)
+            if _error:
+                return jsonify({"error": _error}), 400
+            _incoming_skytonight_block['constraints'] = _cleaned
 
     # Load old config to detect changes
     old_config = load_config()

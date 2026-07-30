@@ -5611,7 +5611,7 @@ class TestUserManagementEdgeCases:
         import app as _a
 
         monkeypatch.setattr(_a.user_manager, 'create_user', lambda *_: (_ for _ in ()).throw(RuntimeError("db fail")))
-        resp = client_admin.post('/api/users', json={'username': 'u', 'password': 'p', 'role': 'user'})
+        resp = client_admin.post('/api/users', json={'username': 'u', 'password': 'password1', 'role': 'user'})
         assert resp.status_code == 500
 
     def test_update_user_success_returns_200(self, client_admin, monkeypatch):

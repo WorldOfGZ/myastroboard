@@ -1170,7 +1170,7 @@ function changePassword(userId, username) {
     newPasswordInput.type = 'password';
     newPasswordInput.id = 'new-password-input';
     newPasswordInput.required = true;
-    newPasswordInput.minLength = 4;
+    newPasswordInput.minLength = 6;
     newPasswordInput.placeholder = i18n.t('users.new_password_placeholder');
     newPasswordInput.autocomplete = 'new-password';
     newPasswordInput.className = 'form-control';

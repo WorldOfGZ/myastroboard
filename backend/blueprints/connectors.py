@@ -1,5 +1,6 @@
 """Connectors (AllSky) Blueprint. Routes: /api/connectors/*"""
 
+import re
 import time
 
 from flask import Blueprint, request, jsonify, abort, Response, stream_with_context
@@ -13,6 +14,12 @@ from utils.repo_config import load_config
 logger = get_logger(__name__)
 
 connectors_bp = Blueprint('connectors', __name__)
+
+# AllSky image/video files are named after the session date (YYYYMMDD). date_str is
+# interpolated directly into the upstream URL path (see AllSkyConnector._keogram_url and
+# friends) which the backend then fetches server-side - an unvalidated value would let a
+# caller inject path segments (e.g. "..") into a request made on the server's behalf.
+_ALLSKY_DATE_PATTERN = re.compile(r'^\d{8}$')
 
 
 @connectors_bp.route('/api/connectors', methods=['GET'])
@@ -145,6 +152,8 @@ def allsky_urls_api():
         return jsonify({"error": "AllSky connector not configured"}), 404
 
     date_str = request.args.get("date")
+    if date_str and not _ALLSKY_DATE_PATTERN.match(date_str):
+        return jsonify({"error": "date must be in YYYYMMDD format"}), 400
     from connectors.allsky_connector import AllSkyConnector
 
     direct_urls = AllSkyConnector(allsky_cfg).get_module_urls(date_str=date_str)
@@ -174,6 +183,8 @@ def allsky_proxy_api():
         return abort(503)
 
     date_str = request.args.get("date")
+    if date_str and not _ALLSKY_DATE_PATTERN.match(date_str):
+        return jsonify({"error": "date must be in YYYYMMDD format"}), 400
     from connectors.allsky_connector import AllSkyConnector
     import requests as _req
 
