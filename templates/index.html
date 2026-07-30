@@ -2997,6 +2997,27 @@
                             <span data-i18n="settings.horizon_profile">Custom Horizon Profile</span>
                         </h6>
                         <div class="form-text mb-2" data-i18n="settings.horizon_profile_info">Define the minimum observable altitude at each azimuth direction to exclude targets blocked by trees, hills, or buildings. Leave empty to use the flat altitude minimum.</div>
+
+                        <button class="btn btn-sm btn-outline-secondary mb-2" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#horizon-profile-guide"
+                                aria-expanded="false" aria-controls="horizon-profile-guide">
+                            <i class="bi bi-question-circle me-1" aria-hidden="true"></i>
+                            <span data-i18n="settings.horizon_profile_guide_toggle">How does this work?</span>
+                        </button>
+                        <div class="collapse mb-3" id="horizon-profile-guide">
+                            <div class="p-2 rounded chart-card-bg">
+                                <canvas id="guide-horizon-profile" class="guide-canvas tall"></canvas>
+                                <p class="form-text mt-2 mb-2" data-i18n="settings.horizon_profile_guide_desc">Each point sets the minimum altitude the sky is actually open at that azimuth; the app draws a straight line between consecutive points and treats everything below it as blocked. You don't need a point per degree, just enough to trace the outline of what blocks your view, as in the example above: a handful of points for the smooth hill, more around the tree cluster, and one point right before and after each sharp building edge so the cutoff stays clean.</p>
+                                <p class="small fw-semibold mb-1" data-i18n="settings.horizon_profile_how_to_title">How to measure your real horizon:</p>
+                                <ol class="small mb-0 ps-3">
+                                    <li data-i18n="settings.horizon_profile_step1">On site, open a compass app (or use a real compass) and pick the azimuths you want to measure. Every 30-45&deg; is enough for a rough profile; go tighter wherever the skyline changes sharply.</li>
+                                    <li data-i18n="settings.horizon_profile_step2">Face that direction and estimate the angle from the flat horizon to the top of whatever blocks it (tree line, roof, hill). A fist held at arm's length spans about 10&deg;; many compass apps also include a clinometer/level for a precise reading.</li>
+                                    <li data-i18n="settings.horizon_profile_step3">Add a row with that azimuth and altitude. Around sharp edges, like a building corner or a gap between trees, add one point just before and one just after so the line follows the real cutoff instead of cutting the corner.</li>
+                                    <li data-i18n="settings.horizon_profile_step4">Save once you have a handful of points spanning the full circle (0-360&deg;). Leave the table empty to keep using the flat altitude minimum everywhere.</li>
+                                </ol>
+                            </div>
+                        </div>
+
                         <div class="table-responsive mb-2" id="horizon-profile-table-wrapper" style="display:none">
                             <table class="table table-sm align-middle" id="horizon-profile-table">
                                 <thead>

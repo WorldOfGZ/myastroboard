@@ -11,3 +11,4 @@ A full pass over user-facing inputs closed several gaps where the backend accept
 #### Various changes
 
 - Add "Milky Way" and "Nightscape / Wide-field" on astrodex type
+- The Custom Horizon Profile editor (Locations) now has a "How does this work?" diagram and step-by-step instructions for measuring your real horizon (compass app, fist-width/clinometer angle estimate, bracketing sharp edges)

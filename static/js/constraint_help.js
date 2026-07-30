@@ -427,6 +427,95 @@
         ctx.fillText('← fraction of night target is above constraints', w / 2, barY + barH + 28);
     }
 
+    // ── Diagram 6: Custom horizon profile (Location settings) ────────────────
+    // Purely illustrative - does not read any input. Shows how a handful of
+    // (azimuth, altitude) points a user would actually enter approximate a
+    // real obstructed skyline (hill, trees, building).
+    function drawHorizonProfileGuide(canvas) {
+        const c = _themeColors();
+        const { ctx, w, h } = _setup(canvas);
+        ctx.clearRect(0, 0, w, h);
+
+        const ML = 26, MR = 8, MT = 12, MB = 20;
+        const pw = w - ML - MR, ph = h - MT - MB;
+        const maxAlt = 40;
+        const azToX  = az  => ML + pw * (az / 360);
+        const altToY = alt => MT + ph * (1 - Math.min(maxAlt, Math.max(0, alt)) / maxAlt);
+
+        // Sky background
+        const grad = ctx.createLinearGradient(ML, MT, ML, MT + ph);
+        grad.addColorStop(0, c.sky);
+        grad.addColorStop(1, c.skyMid);
+        ctx.fillStyle = grad;
+        ctx.fillRect(ML, MT, pw, ph);
+
+        // Altitude gridlines (0° / 20° / 40°)
+        ctx.setLineDash([3, 3]); ctx.lineWidth = 0.7;
+        [0, 20, 40].forEach(a => {
+            const y = altToY(a);
+            ctx.strokeStyle = c.gridLine;
+            ctx.beginPath(); ctx.moveTo(ML, y); ctx.lineTo(ML + pw, y); ctx.stroke();
+            ctx.fillStyle = c.muted; ctx.font = '9px system-ui'; ctx.textAlign = 'right';
+            _skyText(ctx, `${a}°`, ML - 3, y + 3);
+        });
+        ctx.setLineDash([]);
+
+        // Illustrative real skyline: open field, a hill, a tree cluster, a building
+        const skyline = [
+            [0, 2], [45, 2], [60, 12], [75, 22], [90, 16], [105, 5], [125, 2],
+            [140, 2], [150, 19], [158, 9], [166, 26], [174, 8], [182, 23], [190, 2],
+            [205, 2], [233, 2],
+            [236, 2], [239, 27], [268, 27], [271, 2],
+            [300, 2], [330, 3], [360, 2],
+        ];
+        ctx.beginPath();
+        ctx.moveTo(azToX(0), MT + ph);
+        skyline.forEach(([az, alt]) => ctx.lineTo(azToX(az), altToY(alt)));
+        ctx.lineTo(azToX(360), MT + ph);
+        ctx.closePath();
+        ctx.fillStyle = c.ground;
+        ctx.fill();
+
+        // Feature labels on the silhouette - always on the dark sky gradient
+        // regardless of page theme, so use a fixed bright color (not c.text).
+        ctx.font = '9px system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        _skyText(ctx, 'hill', azToX(75), altToY(22) - 6);
+        _skyText(ctx, 'trees', azToX(166), altToY(26) - 6);
+        _skyText(ctx, 'building', azToX(254), altToY(27) - 6);
+
+        // Points a user would actually enter - sparse, straight segments between
+        // them. Note the pairs bracketing the building's sharp edges.
+        const userPoints = [
+            [0, 2], [70, 21], [95, 14], [122, 2],
+            [150, 19], [166, 26], [182, 21], [203, 2],
+            [235, 2], [239, 27], [268, 27], [272, 2],
+            [330, 3], [360, 2],
+        ];
+        ctx.strokeStyle = c.accent; ctx.lineWidth = 1.5; ctx.setLineDash([4, 2]);
+        ctx.beginPath();
+        userPoints.forEach(([az, alt], i) => {
+            const x = azToX(az), y = altToY(alt);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = c.accent;
+        userPoints.forEach(([az, alt]) => {
+            ctx.beginPath(); ctx.arc(azToX(az), altToY(alt), 2.5, 0, 2 * Math.PI); ctx.fill();
+        });
+
+        // Azimuth axis ticks (translated cardinal labels)
+        ctx.font = '9px system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = c.muted;
+        [0, 90, 180, 270].forEach(az => {
+            const label = (typeof getCardinalDirection === 'function') ? getCardinalDirection(az) : ['N', 'E', 'S', 'W'][az / 90];
+            _skyText(ctx, label, azToX(az), MT + ph + 13);
+        });
+
+        // Axis border
+        ctx.strokeStyle = c.gridLine; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(ML, MT); ctx.lineTo(ML, MT + ph); ctx.lineTo(ML + pw, MT + ph); ctx.stroke();
+    }
+
     // ── Draw all ──────────────────────────────────────────────────────────────
     function _drawAll() {
         const map = {
@@ -435,6 +524,7 @@
             'guide-size':     drawSize,
             'guide-moon':     drawMoon,
             'guide-time':     drawTime,
+            'guide-horizon-profile': drawHorizonProfileGuide,
         };
         for (const [id, fn] of Object.entries(map)) {
             const el = document.getElementById(id);
@@ -454,6 +544,7 @@
 
         // Initial draw when the collapse is first opened
         document.getElementById('constraint-guides')?.addEventListener('shown.bs.collapse', _drawAll);
+        document.getElementById('horizon-profile-guide')?.addEventListener('shown.bs.collapse', _drawAll);
 
         // Redraw after window resize
         let _resizeTimer = null;
