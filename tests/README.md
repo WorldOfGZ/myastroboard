@@ -16,8 +16,9 @@ The test suite mirrors `backend/`'s package layout, one subdirectory per package
 - **`space/`**: ISS/CSS pass prediction and spaceflight tracking
 - **`equipment/`**: Equipment profiles and the exposure-calculator formula
 - **`connectors/`**: AllSky connector
+- **`e2e/`**: Browser end-to-end tests (Playwright) driving a real running instance of the app through a real Chromium browser - see "Browser E2E Tests" below. Does not mirror `backend/`'s layout (it exercises `static/js/*` + full request/response cycles, not individual backend modules).
 
-Test files follow `backend/<package>/<module>.py` → `tests/<package>/test_<module>.py`.
+Test files follow `backend/<package>/<module>.py` → `tests/<package>/test_<module>.py` (except `e2e/`, see above).
 
 ## Running Tests
 
@@ -101,6 +102,38 @@ Tests automatically configure environment variables to avoid permissions issues 
 - `DATA_DIR`, `OUTPUT_DIR`, `CONFIG_DIR`: Set to temporary directories
 - `LOG_LEVEL`, `CONSOLE_LOG_LEVEL`: Set to ERROR to reduce noise
 
+## Browser E2E Tests
+
+`tests/e2e/` covers `static/js/*` navigation/UI behavior end-to-end by driving a real
+Chromium browser (Playwright) against a real instance of the Flask app, rather than
+mocking the DOM or using Flask's test client. They are **excluded from the default
+`pytest` run** (`pytest.ini` sets `addopts = ... -m "not e2e"`) because they're slower
+and need a browser binary installed - the rest of this README's commands are unaffected.
+
+```bash
+# One-time setup (after `pip install -r requirements-dev.txt`)
+playwright install chromium
+
+# Run only the e2e suite
+pytest tests/e2e/ -m e2e
+
+# Run everything, including e2e
+pytest -m e2e
+pytest tests/ -m ""
+```
+
+`tests/e2e/conftest.py` boots the real Flask app (`backend/app.py`) on a background
+thread bound to an OS-assigned localhost port (`live_server_url` fixture) - it reuses
+the same DATA_DIR isolation as the rest of the suite (see `tests/conftest.py`), so no
+real user data is touched. The `login` / `logged_in_page` fixtures authenticate as the
+default `admin`/`admin` user via the API directly (faster and avoids racing login.js's
+own post-login redirect timer) and pre-complete the Guided Setup Wizard so it doesn't
+pop up over tab content mid-test; the real login `<form>` itself (fill/submit,
+success/error handling) has its own dedicated tests in `test_auth.py`.
+`open_authenticated_page(hash_fragment)` opens a fresh, already-authenticated page whose
+first navigation lands directly on a given URL hash - used to test hash deep-links
+(PWA shortcuts) the way a real cold start would exercise them.
+
 ## Requirements
 
 Test dependencies are listed in `requirements-dev.txt`:
@@ -112,6 +145,7 @@ pip install -r requirements-dev.txt
 Main testing packages:
 - `pytest>=7.4.0`: Test framework
 - `pytest-cov>=4.1.0`: Coverage reporting
+- `playwright` / `pytest-playwright`: Browser e2e tests (`tests/e2e/` only, see above) - also run `playwright install chromium` once
 
 ## CI/CD Integration
 

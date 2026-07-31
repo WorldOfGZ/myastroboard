@@ -411,6 +411,26 @@ def test_parse_coordinates_invalid_format():
         parse_coordinates("invalid", "coordinates")
 ```
 
+### Browser E2E Tests
+
+`tests/e2e/` drives a real Chromium browser (Playwright) against a real running
+instance of the app, for behavior that only shows up in an actual browser
+(navigation, URL hash sync, console warnings) rather than backend logic.
+They are excluded from the default `pytest` run (`pytest.ini` deselects the
+`e2e` marker) since they're slower and need a browser binary - the commands
+above are unaffected.
+
+```bash
+# One-time setup
+playwright install chromium
+
+# Run only the e2e suite
+pytest tests/e2e/ -m e2e
+```
+
+See `tests/README.md` for details on the fixtures (`live_server_url`, `login`,
+`logged_in_page`).
+
 ### API Route Changes
 
 `tests/blueprints/test_route_inventory.py` maintains the v1.0 API contract: it fails if any route is added, removed, renamed, or changes its HTTP method.
