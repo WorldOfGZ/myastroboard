@@ -97,7 +97,14 @@ function applyUserStartupPreferences(force = false) {
     const targetMainButton = document.querySelector(`.main-tab-btn[data-tab="${startupMainTab}"]`);
     const effectiveMainTab = targetMainButton ? startupMainTab : 'forecast-astro';
 
-    switchMainTab(effectiveMainTab);
+    // On the initial automatic boot call (force=false), the page has not navigated
+    // yet, so pushState here runs in a "trivial session history context" - Chrome
+    // silently downgrades it to replaceState and logs a console warning. The
+    // subsequent syncNavigationHash({replace: true}) in initializeAuthenticatedApp()
+    // already sets the correct hash, so skip history sync here and let that call
+    // handle it. Forced calls (user saving/resetting preferences) happen after real
+    // navigation has occurred, so they keep syncing history normally.
+    switchMainTab(effectiveMainTab, { syncHistory: force });
 
     const requestedSubtabExists = !!document.querySelector(
         `#${effectiveMainTab}-tab .sub-tab-btn[data-subtab="${startupSubtab}"]`
@@ -112,7 +119,7 @@ function applyUserStartupPreferences(force = false) {
             ?.getAttribute('data-subtab');
 
         if (currentlyActiveSubtab !== effectiveSubtab) {
-            switchSubTab(effectiveMainTab, effectiveSubtab);
+            switchSubTab(effectiveMainTab, effectiveSubtab, { syncHistory: force });
         }
     }
 
