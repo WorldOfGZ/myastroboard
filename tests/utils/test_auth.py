@@ -749,6 +749,53 @@ class TestValidateUserPreferences:
         assert not is_valid
         assert 'notifications' in msg
 
+    def test_notification_lead_minutes_non_numeric_fails(self):
+        prefs = {'notifications': {'N1': {'lead_minutes': 'soon'}}}
+        is_valid, msg = auth.UserManager.validate_user_preferences(prefs)
+        assert not is_valid
+        assert 'lead_minutes' in msg
+
+    def test_notification_lead_minutes_bool_fails(self):
+        """bool is an int subclass, so it must be rejected explicitly."""
+        prefs = {'notifications': {'N1': {'lead_minutes': True}}}
+        is_valid, msg = auth.UserManager.validate_user_preferences(prefs)
+        assert not is_valid
+        assert 'lead_minutes' in msg
+
+    def test_notification_lead_minutes_out_of_range_fails(self):
+        prefs = {'notifications': {'N1': {'lead_minutes': 20000}}}
+        is_valid, msg = auth.UserManager.validate_user_preferences(prefs)
+        assert not is_valid
+        assert 'lead_minutes' in msg
+
+    def test_notification_lead_minutes_valid_passes(self):
+        prefs = {'notifications': {'N1': {'lead_minutes': 60}}}
+        is_valid, msg = auth.UserManager.validate_user_preferences(prefs)
+        assert is_valid
+
+    def test_notification_kp_threshold_non_numeric_fails(self):
+        prefs = {'notifications': {'N8': {'kp_threshold': 'high'}}}
+        is_valid, msg = auth.UserManager.validate_user_preferences(prefs)
+        assert not is_valid
+        assert 'kp_threshold' in msg
+
+    def test_notification_kp_threshold_bool_fails(self):
+        prefs = {'notifications': {'N8': {'kp_threshold': False}}}
+        is_valid, msg = auth.UserManager.validate_user_preferences(prefs)
+        assert not is_valid
+        assert 'kp_threshold' in msg
+
+    def test_notification_kp_threshold_out_of_range_fails(self):
+        prefs = {'notifications': {'N8': {'kp_threshold': 15}}}
+        is_valid, msg = auth.UserManager.validate_user_preferences(prefs)
+        assert not is_valid
+        assert 'kp_threshold' in msg
+
+    def test_notification_kp_threshold_valid_passes(self):
+        prefs = {'notifications': {'N8': {'kp_threshold': 5}}}
+        is_valid, msg = auth.UserManager.validate_user_preferences(prefs)
+        assert is_valid
+
     def test_invalid_experience_level_fails(self):
         is_valid, msg = auth.UserManager.validate_user_preferences({'experience_level': 'expert'})
         assert not is_valid

@@ -1357,6 +1357,25 @@ class TestExtractSpecialPhenomenaEvents:
         assert len(events) == 1
         assert events[0].title == "My Custom Event"
 
+    def test_event_with_ended_window_is_skipped(self, aggregator):
+        """A timed event whose visibility window (end_time) has already passed is filtered
+        out entirely rather than lingering as 'happening now'."""
+        peak = (aggregator.local_now - timedelta(hours=2)).isoformat()
+        ended = (aggregator.local_now - timedelta(hours=1)).isoformat()
+        data = {
+            "events": [
+                {
+                    "peak_time": peak,
+                    "end_time": ended,
+                    "event_type": "Milky Way Core Window",
+                    "title": "Milky Way",
+                    "description": "Visible overnight",
+                }
+            ]
+        }
+        events = aggregator._extract_special_phenomena_events(data)
+        assert events == []
+
     def test_malformed_event_hits_except_handler(self, aggregator):
         """non-dict entry triggers AttributeError → except handler."""
         peak = (aggregator.local_now + timedelta(days=1)).isoformat()

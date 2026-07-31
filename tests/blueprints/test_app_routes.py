@@ -1691,6 +1691,62 @@ class TestEquipmentNumericValidation:
         )  # above max 100
         assert resp.status_code == 400
 
+    # --- Mount: invalid numeric fields must be rejected on create and update ---
+
+    def test_create_mount_invalid_payload_capacity_returns_400(self, client_admin):
+        resp = client_admin.post(
+            '/api/equipment/mounts', json={'name': 'M', 'payload_capacity_kg': 500}
+        )  # above max 100
+        assert resp.status_code == 400
+
+    def test_update_mount_invalid_tracking_accuracy_returns_400(self, client_admin):
+        resp = client_admin.put(
+            '/api/equipment/mounts/some-id', json={'tracking_accuracy_arcsec': 50}
+        )  # above max 10
+        assert resp.status_code == 400
+
+    # --- Filter: invalid numeric fields must be rejected on create and update ---
+
+    def test_create_filter_invalid_wavelength_returns_400(self, client_admin):
+        resp = client_admin.post(
+            '/api/equipment/filters', json={'name': 'F', 'central_wavelength_nm': 5000}
+        )  # above max 2000
+        assert resp.status_code == 400
+
+    def test_update_filter_invalid_bandwidth_returns_400(self, client_admin):
+        resp = client_admin.put(
+            '/api/equipment/filters/some-id', json={'bandwidth_nm': 5000}
+        )  # above max 1000
+        assert resp.status_code == 400
+
+    # --- Accessory: invalid numeric fields must be rejected on create and update ---
+
+    def test_create_accessory_invalid_weight_returns_400(self, client_admin):
+        resp = client_admin.post(
+            '/api/equipment/accessories', json={'name': 'A', 'weight_kg': 500}
+        )  # above max 50
+        assert resp.status_code == 400
+
+    def test_update_accessory_invalid_weight_returns_400(self, client_admin):
+        resp = client_admin.put(
+            '/api/equipment/accessories/some-id', json={'weight_kg': -5}
+        )  # below min 0
+        assert resp.status_code == 400
+
+    # --- Combination: invalid numeric fields must be rejected on create and update ---
+
+    def test_create_combination_invalid_focal_length_returns_400(self, client_admin):
+        resp = client_admin.post(
+            '/api/equipment/combinations', json={'lens_focal_length_mm': 5000}
+        )  # above max 2000
+        assert resp.status_code == 400
+
+    def test_update_combination_invalid_focal_ratio_returns_400(self, client_admin):
+        resp = client_admin.put(
+            '/api/equipment/combinations/some-id', json={'lens_focal_ratio': 100}
+        )  # above max 32
+        assert resp.status_code == 400
+
 
 # ---------------------------------------------------------------------------
 # Equipment Profiles — Mounts CRUD
@@ -2366,6 +2422,16 @@ class TestUserCrudErrors:
             json={'username': f'u_{_uuid.uuid4().hex[:6]}', 'password': 'TestPass99!', 'role': 'superadmin'},
         )
         assert resp.status_code == 400
+
+    def test_create_user_short_password_returns_400(self, client_admin):
+        import uuid as _uuid
+
+        resp = client_admin.post(
+            '/api/users',
+            json={'username': f'u_{_uuid.uuid4().hex[:6]}', 'password': 'abc', 'role': 'user'},
+        )
+        assert resp.status_code == 400
+        assert resp.get_json()['error_key'] == 'users.password_too_short'
 
     def test_update_user_empty_body_returns_400(self, client_admin):
         import uuid as _uuid
@@ -5604,8 +5670,9 @@ class TestUserManagementEdgeCases:
         monkeypatch.setattr(
             _a.user_manager, 'create_user', lambda *_: (_ for _ in ()).throw(ValueError("Some other error"))
         )
-        resp = client_admin.post('/api/users', json={'username': 'u', 'password': 'p', 'role': 'user'})
+        resp = client_admin.post('/api/users', json={'username': 'u', 'password': 'password1', 'role': 'user'})
         assert resp.status_code == 400
+        assert resp.get_json()['error_key'] == 'users.invalid_input'
 
     def test_create_user_exception_returns_500(self, client_admin, monkeypatch):
         import app as _a
@@ -5625,6 +5692,11 @@ class TestUserManagementEdgeCases:
         monkeypatch.setattr(_a.user_manager, 'update_user', lambda *_a, **_k: _FakeUser())
         resp = client_admin.put('/api/users/u1', json={'username': 'newname'})
         assert resp.status_code == 200
+
+    def test_update_user_short_password_returns_400(self, client_admin):
+        resp = client_admin.put('/api/users/u1', json={'password': 'abc'})
+        assert resp.status_code == 400
+        assert resp.get_json()['error_key'] == 'users.password_too_short'
 
     def test_update_user_username_taken_returns_400(self, client_admin, monkeypatch):
         import app as _a
@@ -6664,6 +6736,68 @@ class TestUserCrudValueErrors:
         resp = client_admin.delete(f'/api/users/{admin.user_id}')
         assert resp.status_code == 400
         assert resp.get_json()['error_key'] == 'users.cannot_delete_own_account'
+
+
+# ---------------------------------------------------------------------------
+# _validate_constraints_payload - range/type validation
+# ---------------------------------------------------------------------------
+
+
+class TestValidateConstraintsPayload:
+    """Direct tests for the skytonight.constraints range/type validator."""
+
+    def test_non_dict_payload_rejected(self):
+        cleaned, error = _locations_mod._validate_constraints_payload('not-a-dict')
+        assert cleaned is None
+        assert 'dictionary' in error
+
+    def test_non_numeric_value_rejected(self):
+        cleaned, error = _locations_mod._validate_constraints_payload({'airmass_constraint': 'abc'})
+        assert cleaned is None
+        assert 'must be a number' in error
+
+    def test_out_of_range_value_rejected(self):
+        cleaned, error = _locations_mod._validate_constraints_payload({'airmass_constraint': 50})
+        assert cleaned is None
+        assert 'must be between' in error
+
+    def test_altitude_min_must_be_less_than_max(self):
+        cleaned, error = _locations_mod._validate_constraints_payload(
+            {'altitude_constraint_min': 60, 'altitude_constraint_max': 30}
+        )
+        assert cleaned is None
+        assert 'less than' in error
+
+    def test_size_min_must_not_exceed_max(self):
+        cleaned, error = _locations_mod._validate_constraints_payload(
+            {'size_constraint_min': 50, 'size_constraint_max': 10}
+        )
+        assert cleaned is None
+        assert 'greater than' in error
+
+    def test_altitude_min_less_than_max_is_accepted(self):
+        cleaned, error = _locations_mod._validate_constraints_payload(
+            {'altitude_constraint_min': 20, 'altitude_constraint_max': 60}
+        )
+        assert error is None
+        assert cleaned['altitude_constraint_min'] == 20.0
+        assert cleaned['altitude_constraint_max'] == 60.0
+
+    def test_size_min_not_exceeding_max_is_accepted(self):
+        cleaned, error = _locations_mod._validate_constraints_payload(
+            {'size_constraint_min': 10, 'size_constraint_max': 50}
+        )
+        assert error is None
+        assert cleaned['size_constraint_min'] == 10.0
+        assert cleaned['size_constraint_max'] == 50.0
+
+    def test_post_config_rejects_invalid_top_level_constraints(self, client_admin):
+        resp = client_admin.post('/api/config', json={'constraints': {'airmass_constraint': 50}})
+        assert resp.status_code == 400
+
+    def test_post_config_rejects_invalid_nested_skytonight_constraints(self, client_admin):
+        resp = client_admin.post('/api/config', json={'skytonight': {'constraints': {'airmass_constraint': 50}}})
+        assert resp.status_code == 400
 
 
 # ---------------------------------------------------------------------------

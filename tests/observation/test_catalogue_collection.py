@@ -117,6 +117,22 @@ class TestCaughtDetection:
         assert page['caught'] == 0
         assert all(card['caught'] is False for card in page['items'])
 
+    def test_non_dict_astrodex_item_is_ignored(self):
+        """A malformed (non-dict) entry in the astrodex list must not crash the index build."""
+        page = catalogue_collection.get_collection_page('Messier', [None, _item('M 31')])
+        caught = {card['catalogue_id'] for card in page['items'] if card['caught']}
+        assert caught == {'M 31'}
+
+    def test_duplicate_astrodex_item_names_keep_the_first_match(self):
+        """First writer wins when two astrodex items resolve to the same normalized name."""
+        page = catalogue_collection.get_collection_page('Messier', [_item('M 31'), _item('M 31')])
+        caught = {card['catalogue_id'] for card in page['items'] if card['caught']}
+        assert caught == {'M 31'}
+
+    def test_sun_is_counted_as_caught_when_matched(self):
+        catalogues = {entry['id']: entry for entry in catalogue_collection.list_catalogues([_item('Sun')])}
+        assert catalogues['Bodies']['caught'] == 1
+
 
 class TestCardImages:
     """Test which picture a card ends up showing"""
@@ -314,3 +330,42 @@ class TestDictTargets:
         assert page['total'] == 4
         assert page['caught'] == 1
         assert page['items'][0]['catalogue_id'] == 'M 2'
+
+    def test_list_catalogues_supports_dict_shaped_targets(self, monkeypatch):
+        """The catalogue-listing counting pass must also accept plain-dict targets."""
+        monkeypatch.setattr(
+            catalogue_collection.skytonight_targets,
+            'load_targets_dataset',
+            lambda *args, **kwargs: {'targets': [target.to_dict() for target in FAKE_TARGETS]},
+        )
+        catalogues = {entry['id']: entry for entry in catalogue_collection.list_catalogues([_item('M 31')])}
+        assert catalogues['Messier']['caught'] == 1
+
+
+class TestCountingEdgeCases:
+    """Edge cases in the per-catalogue counting pass used by list_catalogues()."""
+
+    def test_entries_with_no_catalogue_names_are_skipped(self, monkeypatch):
+        nameless = _target('dso-nameless', {}, 'Nameless Nebula')
+        monkeypatch.setattr(
+            catalogue_collection.skytonight_targets,
+            'load_targets_dataset',
+            lambda *args, **kwargs: {'targets': FAKE_TARGETS + [nameless]},
+        )
+        catalogues = {entry['id']: entry for entry in catalogue_collection.list_catalogues([])}
+        # The nameless entry contributes to no catalogue and must not affect existing counts.
+        assert catalogues['Messier']['total'] == 4
+
+    def test_uncaught_object_without_coordinates_has_no_image(self, monkeypatch):
+        """An object with neither a caught match nor real coordinates gets no image at all."""
+        no_coords = _target('dso-nocoord', {'Messier': 'M 999'}, 'Coordless Nebula', ra_hours=None)
+        monkeypatch.setattr(
+            catalogue_collection.skytonight_targets,
+            'load_targets_dataset',
+            lambda *args, **kwargs: {'targets': [no_coords]},
+        )
+        page = catalogue_collection.get_collection_page('Messier', [])
+        card = page['items'][0]
+        assert card['caught'] is False
+        assert card['image_url'] is None
+        assert card['image_source'] is None

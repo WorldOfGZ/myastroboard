@@ -475,3 +475,27 @@ def test_collection_page_api_requires_a_catalogue(client):
     """Without a catalogue there is nothing to page through - reject rather than guess."""
     response = client.get('/api/astrodex/collection')
     assert response.status_code == 400
+
+
+def test_collection_catalogues_api_internal_error_returns_500(client, monkeypatch):
+    """An unexpected exception building the catalogue list is caught and returns a generic 500."""
+    def _raise(*args, **kwargs):
+        raise RuntimeError('boom')
+
+    monkeypatch.setattr(astrodex_bp_module.catalogue_collection, 'list_catalogues', _raise)
+
+    response = client.get('/api/astrodex/collection/catalogues')
+    assert response.status_code == 500
+    assert response.get_json()['error'] == 'Internal server error'
+
+
+def test_collection_page_api_internal_error_returns_500(client, monkeypatch):
+    """An unexpected exception building a collection page is caught and returns a generic 500."""
+    def _raise(*args, **kwargs):
+        raise RuntimeError('boom')
+
+    monkeypatch.setattr(astrodex_bp_module.catalogue_collection, 'get_collection_page', _raise)
+
+    response = client.get('/api/astrodex/collection?catalogue=Messier')
+    assert response.status_code == 500
+    assert response.get_json()['error'] == 'Internal server error'

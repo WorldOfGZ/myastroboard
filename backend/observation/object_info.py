@@ -426,7 +426,7 @@ def build_catalogue_names_from_aliases(identifier: str, aliases: List[str]) -> D
         stripped = name.strip()
         if 'CommonName' not in result and stripped.upper().startswith('NAME '):
             common = stripped[5:].strip()
-            if common:
+            if common:  # pragma: no branch - stripped already has no trailing whitespace, so common can't be empty here
                 result['CommonName'] = common
                 continue
         for pattern, key in _CATALOGUE_ALIAS_PATTERNS:

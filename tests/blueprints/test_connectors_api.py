@@ -327,6 +327,12 @@ class TestAllSkyUrls:
         assert resp.status_code == 200
         mock_connector.get_module_urls.assert_called_once_with(date_str='20260101')
 
+    def test_400_when_date_malformed(self, client_user):
+        with patch('blueprints.connectors.load_config', return_value=_config(_CFG_ALLSKY_ENABLED)):
+            resp = client_user.get('/api/connectors/allsky/urls?date=not-a-date')
+        assert resp.status_code == 400
+        assert 'YYYYMMDD' in resp.get_json()['error']
+
     def test_proxy_url_includes_date_suffix(self, client_user):
         direct = {"keogram": "http://allsky.local/keograms/keogram-20260101.jpg"}
         mock_connector = MagicMock()
@@ -362,6 +368,12 @@ class TestAllSkyProxy:
         with patch('blueprints.connectors.load_config', return_value=_config(_CFG_ALLSKY_URL_ONLY)):
             resp = client_user.get('/api/connectors/allsky/proxy?module=live_image')
         assert resp.status_code == 503
+
+    def test_400_when_date_malformed(self, client_user):
+        with patch('blueprints.connectors.load_config', return_value=_config(_CFG_ALLSKY_ENABLED)):
+            resp = client_user.get('/api/connectors/allsky/proxy?module=live_image&date=not-a-date')
+        assert resp.status_code == 400
+        assert 'YYYYMMDD' in resp.get_json()['error']
 
     def test_404_when_module_not_found(self, client_user):
         mock_connector = MagicMock()

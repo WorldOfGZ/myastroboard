@@ -18,6 +18,21 @@ from astroweather.seeing_forecast_7timer import (
 )
 
 
+class TestSafeInt:
+    """Tests for SeeingForecastService._safe_int."""
+
+    def test_none_returns_none(self):
+        assert SeeingForecastService._safe_int(None) is None
+
+    def test_numeric_string_converts(self):
+        assert SeeingForecastService._safe_int("42") == 42
+
+    def test_non_numeric_value_returns_none(self):
+        """A value that can't be coerced to int falls back to None instead of raising."""
+        assert SeeingForecastService._safe_int("not-a-number") is None
+        assert SeeingForecastService._safe_int(["list"]) is None
+
+
 def _astro_point(timepoint, seeing=2, transparency=5, cloudcover=2, wind_speed=2, rh2m=4, prec_type="none"):
     """Build one 7Timer ASTRO dataseries entry with every field the real API returns."""
     return {

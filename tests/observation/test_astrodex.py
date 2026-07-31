@@ -686,6 +686,16 @@ class TestAstrodexAliases:
         assert item2 is not None
         assert 'external_aliases' not in item2
 
+    def test_create_astrodex_item_caps_external_aliases_count(self, temp_data_dir):
+        """More entries than MAX_EXTERNAL_ALIASES are truncated rather than all stored."""
+        many_aliases = {f'Catalogue{i}': f'Name {i}' for i in range(astrodex.MAX_EXTERNAL_ALIASES + 5)}
+        item = astrodex.create_astrodex_item('testuser', {
+            'name': 'Busy Star',
+            'external_aliases': many_aliases,
+        })
+        assert item is not None
+        assert len(item['external_aliases']) == astrodex.MAX_EXTERNAL_ALIASES
+
     def test_enrich_item_with_catalogue_aliases_falls_back_to_external_aliases(self, temp_data_dir, monkeypatch):
         """Stars aren't in the DSO dataset, so the live lookup misses and the item's own
         persisted external_aliases (captured from SIMBAD at add-time) is used instead."""
