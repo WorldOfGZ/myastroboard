@@ -10,17 +10,21 @@ find-or-create) live here rather than in ``observation/observation_sessions.py``
 mirroring where ``blueprints/astrodex.py`` keeps its own equivalents.
 """
 
-from typing import Any, Dict, Optional
+import os
+import re
+from typing import Any, Dict, List, Optional
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 
 from equipment import equipment_profiles
 from observation import astrodex
 from observation import observation_sessions
 from observation import plan_my_night
 from utils.auth import login_required, user_required, get_current_user
+from utils.i18n_utils import I18nManager
 from utils.logging_config import get_logger
 from utils.repo_config import load_config, get_locations_for_user, get_location_by_id
+from blueprints.plan_my_night import _resolve_requested_language
 
 logger = get_logger(__name__)
 
@@ -568,11 +572,13 @@ def attach_astrodex_picture_to_entry(session_id, entry_id):
             'date': payload.get('date') or session.get('date') or '',
             'frames': payload.get('frames') if 'frames' in payload else entry.get('frame_count'),
             'exposition_time': (
-                payload.get('exposition_time') if 'exposition_time' in payload
+                payload.get('exposition_time')
+                if 'exposition_time' in payload
                 else (round(sub_exposure) if sub_exposure is not None else None)
             ),
             'integration_minutes': (
-                payload.get('integration_minutes') if 'integration_minutes' in payload
+                payload.get('integration_minutes')
+                if 'integration_minutes' in payload
                 else entry.get('integration_minutes')
             ),
             'notes': payload.get('notes') if 'notes' in payload else entry.get('notes', ''),
@@ -609,4 +615,120 @@ def attach_astrodex_picture_to_entry(session_id, entry_id):
         )
     except Exception as error:
         logger.error(f'Error attaching picture to entry {entry_id} of session {session_id}: {error}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+# ---------------------------------------------------------------------------
+# PDF export
+# ---------------------------------------------------------------------------
+
+
+def _resolve_entry_image_path(user, entry: Dict) -> Optional[str]:
+    """Absolute path to an entry's attached Astrodex photo, or None when it has no photo,
+    the linked item/picture no longer resolves, or the file is missing on disk.
+
+    ``observation/observation_sessions.py`` never imports astrodex (see its module
+    docstring), so this resolution - the only place a PDF page needs the actual image
+    bytes - lives here, exactly like the astrodex-picture attach route above.
+    """
+    item_id = entry.get('astrodex_item_id')
+    picture_id = entry.get('astrodex_picture_id')
+    if not item_id or not picture_id:
+        return None
+
+    item = astrodex.get_astrodex_item(user.user_id, item_id)
+    if not item:
+        return None
+    picture = next(
+        (pic for pic in item.get('pictures', []) if isinstance(pic, dict) and pic.get('id') == picture_id), None
+    )
+    filename = (picture or {}).get('filename')
+    if not filename:
+        return None
+
+    base_dir = os.path.realpath(astrodex.ASTRODEX_IMAGES_DIR)
+    file_path = os.path.realpath(os.path.join(base_dir, filename))
+    if not file_path.startswith(base_dir + os.sep) or not os.path.isfile(file_path):
+        return None
+    return file_path
+
+
+def _collect_image_paths(user, sessions: List[Dict]) -> Dict[str, str]:
+    """entry id -> resolved image path, across every entry of every given session."""
+    image_paths: Dict[str, str] = {}
+    for session in sessions:
+        for entry in session.get('entries', []):
+            if not isinstance(entry, dict):
+                continue
+            entry_id = entry.get('id')
+            if not entry_id:
+                continue
+            path = _resolve_entry_image_path(user, entry)
+            if path:
+                image_paths[entry_id] = path
+    return image_paths
+
+
+@observation_sessions_bp.route('/api/observation-sessions/<session_id>/export.pdf', methods=['GET'])
+@login_required
+def export_observation_session_pdf(session_id):
+    """Export one session as a print-friendly PDF (common info + every logged target,
+    with its attached photo when there is one)."""
+    try:
+        user = get_current_user()
+        if not user:  # pragma: no cover
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        session = observation_sessions.get_session(user.user_id, session_id)
+        if not session:
+            return jsonify({'error': 'Session not found'}), 404
+
+        i18n = I18nManager(_resolve_requested_language())
+        image_paths = _collect_image_paths(user, [session])
+        buffer = observation_sessions.generate_session_pdf(session, image_paths, i18n)
+
+        pdf_date = (session.get('date') or 'unknown').replace('-', '')
+        return send_file(
+            buffer, as_attachment=True, mimetype='application/pdf', download_name=f'observation-log_{pdf_date}.pdf'
+        )
+    except Exception as error:
+        logger.error(f'Error exporting observation session {session_id} to PDF: {error}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@observation_sessions_bp.route('/api/observation-sessions/export.pdf', methods=['GET'])
+@login_required
+def export_observation_sessions_pdf():
+    """Export every own session in an optional date range as one PDF: a cover page, an
+    aggregate summary table, then each session in full - oldest-to-newest by default."""
+    try:
+        user = get_current_user()
+        if not user:  # pragma: no cover
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        from_date = (request.args.get('from_date') or '').strip() or None
+        to_date = (request.args.get('to_date') or '').strip() or None
+        order = 'desc' if request.args.get('order') == 'desc' else 'asc'
+
+        sessions = observation_sessions.get_user_sessions(user.user_id)
+        if from_date:
+            sessions = [session for session in sessions if str(session.get('date') or '') >= from_date]
+        if to_date:
+            sessions = [session for session in sessions if str(session.get('date') or '') <= to_date]
+
+        i18n = I18nManager(_resolve_requested_language())
+        image_paths = _collect_image_paths(user, sessions)
+        buffer = observation_sessions.generate_sessions_pdf(
+            sessions, image_paths, i18n, from_date=from_date, to_date=to_date, order=order
+        )
+
+        if from_date or to_date:
+            range_part = re.sub(r'[^\w\-]', '', f"{from_date or 'start'}_{to_date or 'end'}")
+            pdf_name = f'observation-log_{range_part}.pdf'
+        else:
+            pdf_name = 'observation-log_all.pdf'
+
+        return send_file(buffer, as_attachment=True, mimetype='application/pdf', download_name=pdf_name)
+    except Exception as error:
+        logger.error(f'Error exporting observation sessions to PDF: {error}')
         return jsonify({'error': 'Internal server error'}), 500

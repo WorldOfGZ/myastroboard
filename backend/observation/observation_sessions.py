@@ -20,9 +20,11 @@ an entry to an Astrodex item is the blueprint layer's job (see
 ``link_entry_to_astrodex()``.
 """
 
+import io
 import json
 import os
 import shutil
+import textwrap
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -893,3 +895,645 @@ def count_sessions_for_location(location_id: str) -> int:
     frozen ``location_name`` snapshot stays valid as display-only history.
     """
     return _count_sessions_matching('location_id', location_id)
+
+
+# ---------------------------------------------------------------------------
+# PDF export
+# ---------------------------------------------------------------------------
+#
+# Visual style (colours, header/footer bar, margins) intentionally mirrors
+# plan_my_night.generate_plan_pdf() so the two exports feel like one product. Kept as a
+# separate implementation rather than a shared helper module: this file never imports
+# plan_my_night (see the module docstring), and the per-entry photo layout has no
+# equivalent on the Plan My Night side.
+#
+# This module never imports astrodex, so it cannot resolve an entry's attached photo to a
+# file path itself. The blueprint layer pre-resolves every entry's picture into
+# ``image_paths`` (entry id -> absolute file path, or absent/None when there is no photo
+# or the file no longer exists) before calling these functions.
+
+_PDF_PAGE_W_IN = 8.27
+_PDF_PAGE_H_IN = 11.69
+_PDF_C_HDR_BG = '#1a1f35'
+_PDF_C_WHITE = '#ffffff'
+_PDF_C_TXT_DRK = '#212121'
+_PDF_C_TXT_MID = '#616161'
+_PDF_C_GRID = '#e0e0e0'
+_PDF_C_BRAND = '#4e9af1'
+_PDF_C_PANEL_BG = '#f4f6fb'
+_PDF_C_PLACEHOLDER_BG = '#f0f0f0'
+_PDF_C_PLACEHOLDER_BORDER = '#d0d0d0'
+
+_PDF_MARGIN_L = 0.10
+_PDF_MARGIN_R = 0.90
+_PDF_HEADER_TOP = 0.985
+_PDF_HEADER_H = 0.045
+_PDF_FOOTER_H = 0.025
+_PDF_CONTENT_TOP = _PDF_HEADER_TOP - _PDF_HEADER_H - 0.015
+_PDF_CONTENT_BOTTOM = _PDF_FOOTER_H + 0.02
+
+_PDF_INFO_PANEL_H = 0.36
+_PDF_ENTRY_ROW_H = 0.19
+_PDF_ENTRY_IMG_W = 0.20
+_PDF_SUMMARY_ROW_H = 0.028
+_PDF_SUMMARY_ROWS_PER_PAGE = 28
+
+
+def _pdf_fmt_hm_utc(value: Any) -> str:
+    """HH:MM out of an ISO timestamp.
+
+    Session start/end times carry no timezone of their own (see the data model docs), so
+    this reads the stored value - UTC, since the frontend converts the browser's local
+    input to UTC before saving - rather than guessing a viewer timezone server-side.
+    """
+    if not value:
+        return '--:--'
+    try:
+        return datetime.fromisoformat(str(value).replace('Z', '+00:00')).strftime('%H:%M')
+    except ValueError:
+        return '--:--'
+
+
+def _pdf_fmt_integration(minutes: Any) -> str:
+    """Compact '1h30' / '45 min' label, or '-' when there is nothing to show."""
+    value = _coerce_optional_float(minutes, 0)
+    if not value:
+        return '-'
+    hours, rest = divmod(int(round(value)), 60)
+    return f'{hours}h{rest:02d}' if hours else f'{rest} min'
+
+
+def _pdf_session_totals(entries: List[Dict]) -> Tuple[float, Optional[float]]:
+    """(total integration minutes, average rating or None) across one session's entries."""
+    total_integration = 0.0
+    rating_sum = 0.0
+    rating_count = 0
+    for entry in entries:
+        integration = _coerce_optional_float(entry.get('integration_minutes'), 0)
+        if integration:
+            total_integration += integration
+        rating = _coerce_optional_float(entry.get('rating'), 0, 5)
+        if rating is not None:
+            rating_sum += rating
+            rating_count += 1
+    average_rating = rating_sum / rating_count if rating_count else None
+    return total_integration, average_rating
+
+
+def _pdf_header(ax, title: str, subtitle: str = '') -> None:
+    ax.axis('off')
+    ax.set_facecolor(_PDF_C_HDR_BG)
+    ax.text(
+        0.015,
+        0.5,
+        'myastroboard',
+        va='center',
+        ha='left',
+        fontsize=10,
+        color=_PDF_C_BRAND,
+        fontweight='bold',
+        transform=ax.transAxes,
+    )
+    full_title = f'{title}  -  {subtitle}' if subtitle else title
+    ax.text(
+        0.5,
+        0.5,
+        full_title,
+        va='center',
+        ha='center',
+        fontsize=11.5,
+        color=_PDF_C_WHITE,
+        fontweight='bold',
+        transform=ax.transAxes,
+    )
+    ax.text(
+        0.985,
+        0.5,
+        'myastroboard.org',
+        va='center',
+        ha='right',
+        fontsize=8,
+        color='#8898cc',
+        transform=ax.transAxes,
+    )
+
+
+def _pdf_footer(ax, label: str) -> None:
+    ax.axis('off')
+    ax.set_facecolor(_PDF_C_HDR_BG)
+    ax.text(0.5, 0.5, label, va='center', ha='center', fontsize=7.5, color='#6a7a99', transform=ax.transAxes)
+
+
+def _pdf_new_page(title: str, subtitle: str = ''):
+    """A blank A4 page with the shared header/footer bars already drawn."""
+    import matplotlib.pyplot as plt
+
+    fig = plt.figure(figsize=(_PDF_PAGE_W_IN, _PDF_PAGE_H_IN))
+    fig.patch.set_facecolor(_PDF_C_WHITE)
+    _pdf_header(
+        fig.add_axes((_PDF_MARGIN_L, _PDF_HEADER_TOP - _PDF_HEADER_H, _PDF_MARGIN_R - _PDF_MARGIN_L, _PDF_HEADER_H)),
+        title,
+        subtitle,
+    )
+    _pdf_footer(fig.add_axes((_PDF_MARGIN_L, 0.01, _PDF_MARGIN_R - _PDF_MARGIN_L, _PDF_FOOTER_H)), 'myastroboard.org')
+    return fig
+
+
+def _pdf_draw_thumbnail(ax_img, image_path: Optional[str], t) -> None:
+    """Draw an entry's attached photo, or a neutral placeholder box when there is none."""
+    ax_img.axis('off')
+    if image_path:
+        try:
+            from PIL import Image, ImageOps
+
+            with Image.open(image_path) as raw:
+                img = ImageOps.exif_transpose(raw)
+                img = img.convert('RGB')
+                img.thumbnail((900, 900))
+                ax_img.imshow(img)
+            return
+        except Exception as error:
+            logger.warning(f'Observation Log PDF: failed to load image {image_path}: {error}')
+
+    from matplotlib.patches import Rectangle
+
+    ax_img.set_facecolor(_PDF_C_PLACEHOLDER_BG)
+    ax_img.add_patch(
+        Rectangle(
+            (0, 0),
+            1,
+            1,
+            transform=ax_img.transAxes,
+            facecolor=_PDF_C_PLACEHOLDER_BG,
+            edgecolor=_PDF_C_PLACEHOLDER_BORDER,
+            linewidth=0.8,
+        )
+    )
+    ax_img.text(
+        0.5,
+        0.5,
+        t('observation_log.export_pdf_no_photo') or 'No photo',
+        ha='center',
+        va='center',
+        fontsize=7.5,
+        color='#9e9e9e',
+        transform=ax_img.transAxes,
+    )
+
+
+def _pdf_render_entry_row(fig, entry: Dict, image_path: Optional[str], row_top: float, row_h: float, t) -> None:
+    """One target: photo (or placeholder) on the left, identity/capture/notes text on the right."""
+    from matplotlib.lines import Line2D
+
+    pad = row_h * 0.08
+    img_h = min(_PDF_ENTRY_IMG_W * _PDF_PAGE_W_IN / _PDF_PAGE_H_IN, row_h - 2 * pad)
+    img_bottom = row_top - row_h + (row_h - img_h) / 2
+    _pdf_draw_thumbnail(fig.add_axes((_PDF_MARGIN_L, img_bottom, _PDF_ENTRY_IMG_W, img_h)), image_path, t)
+
+    text_left = _PDF_MARGIN_L + _PDF_ENTRY_IMG_W + 0.02
+    ax_text = fig.add_axes((text_left, row_top - row_h, _PDF_MARGIN_R - text_left, row_h))
+    ax_text.axis('off')
+    ax_text.set_xlim(0, 1)
+    ax_text.set_ylim(0, 1)
+
+    y = 0.90
+    ax_text.text(
+        0.0,
+        y,
+        entry.get('name') or '?',
+        va='top',
+        ha='left',
+        fontsize=11,
+        color=_PDF_C_TXT_DRK,
+        fontweight='bold',
+        transform=ax_text.transAxes,
+    )
+
+    subtitle_parts = [part for part in (entry.get('type'), entry.get('constellation'), entry.get('catalogue')) if part]
+    if subtitle_parts:
+        y -= 0.16
+        ax_text.text(
+            0.0,
+            y,
+            ' · '.join(subtitle_parts),
+            va='top',
+            ha='left',
+            fontsize=8,
+            color=_PDF_C_TXT_MID,
+            fontstyle='italic',
+            transform=ax_text.transAxes,
+        )
+
+    stats = []
+    if entry.get('frame_count'):
+        stats.append(f"{t('observation_log.frame_count') or 'Frames'}: {entry['frame_count']}")
+    if entry.get('sub_exposure_seconds'):
+        stats.append(f"{t('observation_log.sub_exposure') or 'Sub-exposure'}: {entry['sub_exposure_seconds']:g}s")
+    integration_label = _pdf_fmt_integration(entry.get('integration_minutes'))
+    if integration_label != '-':
+        stats.append(f"{t('observation_log.integration_minutes') or 'Integration'}: {integration_label}")
+    if entry.get('rating') is not None:
+        stats.append(f"{t('observation_log.rating') or 'Rating'}: {entry['rating']:.1f}/5")
+
+    y -= 0.18
+    if stats:
+        ax_text.text(
+            0.0,
+            y,
+            '   '.join(stats),
+            va='top',
+            ha='left',
+            fontsize=8.5,
+            color=_PDF_C_TXT_DRK,
+            transform=ax_text.transAxes,
+        )
+
+    notes = (entry.get('notes') or '').strip()
+    if notes:
+        y -= 0.16
+        wrapped = textwrap.wrap(notes, width=88)
+        shown = wrapped[:3]
+        if len(wrapped) > 3:
+            shown[-1] = shown[-1].rstrip() + '…'
+        ax_text.text(
+            0.0,
+            y,
+            '\n'.join(shown),
+            va='top',
+            ha='left',
+            fontsize=7.5,
+            color=_PDF_C_TXT_MID,
+            linespacing=1.4,
+            transform=ax_text.transAxes,
+        )
+
+    fig.add_artist(
+        Line2D(
+            [_PDF_MARGIN_L, _PDF_MARGIN_R],
+            [row_top - row_h, row_top - row_h],
+            color=_PDF_C_GRID,
+            linewidth=0.7,
+            transform=fig.transFigure,
+        )
+    )
+
+
+def _pdf_render_info_panel(fig, session: Dict, entries: List[Dict], t) -> float:
+    """Session-level 'common information' card. Returns the y (figure-fraction) below
+    which the target list should start."""
+    panel_top = _PDF_CONTENT_TOP
+    panel_bottom = panel_top - _PDF_INFO_PANEL_H
+    ax = fig.add_axes((_PDF_MARGIN_L, panel_bottom, _PDF_MARGIN_R - _PDF_MARGIN_L, _PDF_INFO_PANEL_H))
+    ax.set_facecolor(_PDF_C_PANEL_BG)
+    ax.axis('off')
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+
+    total_integration, average_rating = _pdf_session_totals(entries)
+    seeing = session.get('seeing')
+    transparency = session.get('transparency')
+    not_recorded = t('observation_log.not_recorded') or 'Not recorded'
+
+    fields = [
+        (
+            t('observation_log.location') or 'Location',
+            session.get('location_name') or (t('observation_log.no_location') or 'No location'),
+        ),
+        (
+            t('observation_log.equipment') or 'Equipment',
+            session.get('combination_name') or (t('observation_log.no_equipment') or 'No equipment'),
+        ),
+        (t('observation_log.start_time') or 'Start', _pdf_fmt_hm_utc(session.get('start_time'))),
+        (t('observation_log.end_time') or 'End', _pdf_fmt_hm_utc(session.get('end_time'))),
+        (t('observation_log.sqm') or 'SQM', f"{session['sqm']:g}" if session.get('sqm') is not None else '-'),
+        (
+            t('observation_log.seeing') or 'Seeing',
+            t('observation_log.seeing_value', value=seeing) if seeing is not None else not_recorded,
+        ),
+        (
+            t('observation_log.transparency') or 'Transparency',
+            t('observation_log.transparency_value', value=transparency) if transparency is not None else not_recorded,
+        ),
+        (t('observation_log.total_integration') or 'Total integration', _pdf_fmt_integration(total_integration)),
+    ]
+
+    col_x = [0.02, 0.52]
+    row_y = [0.95, 0.74, 0.53, 0.32]
+    for idx, (label, value) in enumerate(fields):
+        x = col_x[idx // 4]
+        y = row_y[idx % 4]
+        ax.text(x, y, label, va='top', ha='left', fontsize=8, color=_PDF_C_TXT_MID, transform=ax.transAxes)
+        ax.text(
+            x,
+            y - 0.08,
+            value,
+            va='top',
+            ha='left',
+            fontsize=10,
+            color=_PDF_C_TXT_DRK,
+            fontweight='bold',
+            transform=ax.transAxes,
+        )
+
+    stats_y = row_y[3] - 0.08 - 0.06
+    stats_line = t('observation_log.target_count', count=len(entries)) or f'{len(entries)} target(s)'
+    if average_rating is not None:
+        stats_line += f"   -   {t('observation_log.rating') or 'Rating'}: {average_rating:.1f}/5"
+    ax.text(
+        0.02,
+        stats_y,
+        stats_line,
+        va='top',
+        ha='left',
+        fontsize=9,
+        color=_PDF_C_TXT_DRK,
+        fontweight='bold',
+        transform=ax.transAxes,
+    )
+
+    notes = (session.get('notes') or '').strip()
+    if notes:
+        wrapped = textwrap.wrap(notes, width=95)
+        shown = wrapped[:4]
+        if len(wrapped) > 4:
+            shown[-1] = shown[-1].rstrip() + '…'
+        ax.text(
+            0.02,
+            stats_y - 0.07,
+            '\n'.join(shown),
+            va='top',
+            ha='left',
+            fontsize=7.5,
+            color=_PDF_C_TXT_MID,
+            fontstyle='italic',
+            linespacing=1.35,
+            transform=ax.transAxes,
+        )
+
+    return panel_bottom - 0.02
+
+
+def _render_session_section(pdf, session: Dict, image_paths: Dict[str, str], t) -> None:
+    """Append one session's pages (info panel, then every entry with its photo) to an
+    already-open PdfPages. Shared by generate_session_pdf() and generate_sessions_pdf()."""
+    import matplotlib.pyplot as plt
+
+    entries = [entry for entry in session.get('entries', []) if isinstance(entry, dict)]
+    title = t('observation_log.export_pdf_title') or 'MyAstroBoard - Observation Log'
+    subtitle = t('observation_log.session_of', date=session.get('date') or '') or (session.get('date') or '')
+
+    fig = _pdf_new_page(title, subtitle)
+    y_cursor = _pdf_render_info_panel(fig, session, entries, t)
+
+    if not entries:
+        fig.text(
+            _PDF_MARGIN_L,
+            y_cursor,
+            t('observation_log.no_targets') or 'No target logged in this session yet.',
+            fontsize=9.5,
+            color=_PDF_C_TXT_MID,
+            ha='left',
+            va='top',
+        )
+        pdf.savefig(fig)
+        plt.close(fig)
+        return
+
+    fig.text(
+        _PDF_MARGIN_L,
+        y_cursor,
+        t('observation_log.export_pdf_targets_section') or 'Logged targets',
+        fontsize=10,
+        fontweight='bold',
+        color=_PDF_C_TXT_DRK,
+        ha='left',
+        va='top',
+    )
+    y_cursor -= 0.035
+
+    targets_label = t('observation_log.export_pdf_targets_section') or 'Logged targets'
+    for entry in entries:
+        if y_cursor - _PDF_ENTRY_ROW_H < _PDF_CONTENT_BOTTOM:
+            pdf.savefig(fig)
+            plt.close(fig)
+            fig = _pdf_new_page(title, f'{subtitle} - {targets_label}')
+            y_cursor = _PDF_CONTENT_TOP
+        _pdf_render_entry_row(fig, entry, image_paths.get(entry.get('id') or ''), y_cursor, _PDF_ENTRY_ROW_H, t)
+        y_cursor -= _PDF_ENTRY_ROW_H
+
+    pdf.savefig(fig)
+    plt.close(fig)
+
+
+def _pdf_render_cover_page(pdf, sessions: List[Dict], from_date: Optional[str], to_date: Optional[str], t) -> None:
+    import matplotlib.pyplot as plt
+
+    title = t('observation_log.export_pdf_title') or 'MyAstroBoard - Observation Log'
+    fig = _pdf_new_page(title)
+
+    ax = fig.add_axes((_PDF_MARGIN_L, 0.35, _PDF_MARGIN_R - _PDF_MARGIN_L, _PDF_CONTENT_TOP - 0.35))
+    ax.axis('off')
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+
+    ax.text(
+        0.5,
+        0.78,
+        t('observation_log.title') or 'Observation Log',
+        ha='center',
+        va='center',
+        fontsize=26,
+        fontweight='bold',
+        color=_PDF_C_TXT_DRK,
+        transform=ax.transAxes,
+    )
+
+    if from_date and to_date:
+        subtitle = (
+            t('observation_log.export_pdf_cover_range', start_date=from_date, end_date=to_date)
+            or f'{from_date} - {to_date}'
+        )
+    else:
+        subtitle = t('observation_log.export_pdf_cover_all_sessions') or 'All sessions'
+    ax.text(0.5, 0.62, subtitle, ha='center', va='center', fontsize=13, color=_PDF_C_TXT_MID, transform=ax.transAxes)
+
+    generated_at = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
+    ax.text(
+        0.5,
+        0.52,
+        t('observation_log.export_pdf_generated_on', date=generated_at) or generated_at,
+        ha='center',
+        va='center',
+        fontsize=9,
+        color=_PDF_C_TXT_MID,
+        transform=ax.transAxes,
+    )
+
+    all_entries = [entry for session in sessions for entry in session.get('entries', []) if isinstance(entry, dict)]
+    total_integration, average_rating = _pdf_session_totals(all_entries)
+    tiles = [
+        (str(len(sessions)), t('observation_log.stat_sessions') or 'Sessions'),
+        (str(len(all_entries)), t('observation_log.stat_targets') or 'Targets logged'),
+        (_pdf_fmt_integration(total_integration), t('observation_log.stat_integration') or 'Total integration'),
+        (
+            f'{average_rating:.1f}/5' if average_rating is not None else '-',
+            t('observation_log.stat_rating') or 'Average rating',
+        ),
+    ]
+    tile_w = 1.0 / len(tiles)
+    for idx, (value, label) in enumerate(tiles):
+        cx = tile_w * idx + tile_w / 2
+        ax.text(
+            cx,
+            0.30,
+            value,
+            ha='center',
+            va='center',
+            fontsize=17,
+            fontweight='bold',
+            color=_PDF_C_BRAND,
+            transform=ax.transAxes,
+        )
+        ax.text(cx, 0.19, label, ha='center', va='center', fontsize=8.5, color=_PDF_C_TXT_MID, transform=ax.transAxes)
+
+    pdf.savefig(fig)
+    plt.close(fig)
+
+
+def _pdf_render_summary_pages(pdf, sessions: List[Dict], t) -> None:
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Rectangle
+
+    title = t('observation_log.export_pdf_title') or 'MyAstroBoard - Observation Log'
+    summary_title = t('observation_log.export_pdf_summary_title') or 'Summary'
+
+    col_x = [0.0, 0.16, 0.40, 0.62, 0.74, 0.88]
+    col_headers = [
+        t('observation_log.export_pdf_col_date') or 'Date',
+        t('observation_log.export_pdf_col_location') or 'Location',
+        t('observation_log.export_pdf_col_equipment') or 'Equipment',
+        t('observation_log.export_pdf_col_targets') or 'Targets',
+        t('observation_log.export_pdf_col_integration') or 'Integration',
+        t('observation_log.export_pdf_col_rating') or 'Rating',
+    ]
+
+    chunks = [
+        sessions[i : i + _PDF_SUMMARY_ROWS_PER_PAGE] for i in range(0, len(sessions), _PDF_SUMMARY_ROWS_PER_PAGE)
+    ] or [[]]
+
+    for chunk_idx, chunk in enumerate(chunks):
+        fig = _pdf_new_page(title, summary_title if chunk_idx == 0 else f'{summary_title} ({chunk_idx + 1})')
+        ax = fig.add_axes(
+            (_PDF_MARGIN_L, _PDF_CONTENT_BOTTOM, _PDF_MARGIN_R - _PDF_MARGIN_L, _PDF_CONTENT_TOP - _PDF_CONTENT_BOTTOM)
+        )
+        ax.axis('off')
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+
+        y = 0.99
+        for cx, header in zip(col_x, col_headers):
+            ax.text(
+                cx,
+                y,
+                header,
+                va='top',
+                ha='left',
+                fontsize=7.5,
+                fontweight='bold',
+                color=_PDF_C_TXT_MID,
+                transform=ax.transAxes,
+            )
+        y -= 0.014
+        ax.plot([0, 1], [y, y], color=_PDF_C_GRID, lw=0.8, transform=ax.transAxes)
+        y -= 0.014
+
+        if not sessions:
+            ax.text(
+                0.5,
+                0.5,
+                t('observation_log.export_pdf_no_sessions') or 'No session to export.',
+                ha='center',
+                va='center',
+                fontsize=10,
+                color=_PDF_C_TXT_MID,
+                transform=ax.transAxes,
+            )
+
+        for idx, session in enumerate(chunk):
+            row_bg = '#f5f7fc' if idx % 2 == 0 else _PDF_C_WHITE
+            ax.add_patch(
+                Rectangle(
+                    (0.0, y - _PDF_SUMMARY_ROW_H),
+                    1.0,
+                    _PDF_SUMMARY_ROW_H,
+                    transform=ax.transAxes,
+                    facecolor=row_bg,
+                    edgecolor='none',
+                )
+            )
+            entries = [entry for entry in session.get('entries', []) if isinstance(entry, dict)]
+            total_integration, average_rating = _pdf_session_totals(entries)
+            mid_y = y - _PDF_SUMMARY_ROW_H / 2
+            cells = [
+                session.get('date') or '-',
+                (session.get('location_name') or '-')[:22],
+                (session.get('combination_name') or '-')[:22],
+                str(len(entries)),
+                _pdf_fmt_integration(total_integration),
+                f'{average_rating:.1f}' if average_rating is not None else '-',
+            ]
+            for cx, value in zip(col_x, cells):
+                ax.text(
+                    cx, mid_y, value, va='center', ha='left', fontsize=7.5, color=_PDF_C_TXT_DRK, transform=ax.transAxes
+                )
+            y -= _PDF_SUMMARY_ROW_H
+
+        pdf.savefig(fig)
+        plt.close(fig)
+
+
+def generate_session_pdf(session: Dict, image_paths: Dict[str, str], i18n_manager) -> io.BytesIO:
+    """Render one observation session as a print-friendly A4 PDF: common session info,
+    then each logged target with its attached photo (if any).
+
+    ``image_paths`` maps entry id -> absolute image file path, pre-resolved by the
+    blueprint layer (see the module docstring above).
+    """
+    from matplotlib.backends.backend_pdf import PdfPages
+
+    buffer = io.BytesIO()
+    with PdfPages(buffer) as pdf:
+        _render_session_section(pdf, session, image_paths, i18n_manager.t)
+    buffer.seek(0)
+    return buffer
+
+
+def generate_sessions_pdf(
+    sessions: List[Dict],
+    image_paths: Dict[str, str],
+    i18n_manager,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    order: str = 'asc',
+) -> io.BytesIO:
+    """Render every session in *sessions* (already date-filtered by the caller) as one
+    PDF: a cover page, an aggregate summary table, then each session's own pages in full
+    (identical layout to generate_session_pdf), ordered oldest-to-newest by default.
+    """
+    from matplotlib.backends.backend_pdf import PdfPages
+
+    t = i18n_manager.t
+    ordered = sorted(
+        (session for session in sessions if isinstance(session, dict)),
+        key=_session_sort_key,
+        reverse=(order == 'desc'),
+    )
+
+    buffer = io.BytesIO()
+    with PdfPages(buffer) as pdf:
+        _pdf_render_cover_page(pdf, ordered, from_date, to_date, t)
+        _pdf_render_summary_pages(pdf, ordered, t)
+        for session in ordered:
+            _render_session_section(pdf, session, image_paths, t)
+    buffer.seek(0)
+    return buffer

@@ -519,3 +519,103 @@ class TestAttachPicture:
             json={'filename': 'photo.jpg', 'exposition_time': '120x30s'},
         )
         assert response.status_code == 400
+
+
+class TestExportPdf:
+    """GET .../export.pdf (one session) and GET /api/observation-sessions/export.pdf (all)."""
+
+    def test_routes_require_login(self):
+        app.config['TESTING'] = True
+        with app.test_client() as anonymous:
+            assert anonymous.get('/api/observation-sessions/x/export.pdf').status_code == 401
+            assert anonymous.get('/api/observation-sessions/export.pdf').status_code == 401
+
+    def test_unknown_session_is_404(self, client):
+        assert client.get('/api/observation-sessions/missing/export.pdf').status_code == 404
+
+    def test_per_session_pdf(self, client):
+        """A session with a plain (photo-less) entry still exports a valid PDF."""
+        session = _create_session(client)
+        _add_entry(client, session['id'], frame_count=10)
+
+        response = client.get(f"/api/observation-sessions/{session['id']}/export.pdf")
+        assert response.status_code == 200
+        assert response.mimetype == 'application/pdf'
+        assert response.data.startswith(b'%PDF')
+
+    def test_per_session_pdf_with_attached_photo(self, client):
+        """The entry's attached Astrodex photo is resolved to a real file and embedded."""
+        from PIL import Image
+
+        session = _create_session(client)
+        entry = _add_entry(client, session['id'], frame_count=20).get_json()['data']
+
+        os.makedirs(astrodex.ASTRODEX_IMAGES_DIR, exist_ok=True)
+        Image.new('RGB', (80, 60), color='red').save(os.path.join(astrodex.ASTRODEX_IMAGES_DIR, 'photo.jpg'))
+        attach = client.post(
+            f"/api/observation-sessions/{session['id']}/entries/{entry['id']}/astrodex-picture",
+            json={'filename': 'photo.jpg'},
+        )
+        assert attach.status_code == 200
+
+        response = client.get(f"/api/observation-sessions/{session['id']}/export.pdf")
+        assert response.status_code == 200
+        assert response.data.startswith(b'%PDF')
+
+    def test_per_session_pdf_ignores_missing_image_file(self, client):
+        """A picture record whose file vanished from disk degrades to a placeholder, not a 500."""
+        session = _create_session(client)
+        entry = _add_entry(client, session['id']).get_json()['data']
+        client.post(
+            f"/api/observation-sessions/{session['id']}/entries/{entry['id']}/astrodex-picture",
+            json={'filename': 'never-written.jpg'},
+        )
+
+        response = client.get(f"/api/observation-sessions/{session['id']}/export.pdf")
+        assert response.status_code == 200
+        assert response.data.startswith(b'%PDF')
+
+    def test_global_pdf_with_no_sessions(self, client):
+        """An empty log still produces a valid (cover-only) PDF, not an error."""
+        response = client.get('/api/observation-sessions/export.pdf')
+        assert response.status_code == 200
+        assert response.data.startswith(b'%PDF')
+
+    def test_global_pdf_with_date_range_and_order(self, client):
+        _create_session(client, date='2026-01-01')
+        _create_session(client, date='2026-06-01')
+
+        response = client.get(
+            '/api/observation-sessions/export.pdf?from_date=2026-01-01&to_date=2026-12-31&order=desc'
+        )
+        assert response.status_code == 200
+        assert response.mimetype == 'application/pdf'
+        assert response.data.startswith(b'%PDF')
+
+    def test_global_pdf_range_excludes_out_of_window_sessions(self, client, monkeypatch):
+        """from_date/to_date actually filter which sessions are rendered, not just labelled."""
+        _create_session(client, date='2025-01-01')
+        _create_session(client, date='2026-06-01')
+
+        captured = {}
+        original = observation_sessions_bp_module.observation_sessions.generate_sessions_pdf
+
+        def _capture(sessions, *args, **kwargs):
+            captured['count'] = len(sessions)
+            return original(sessions, *args, **kwargs)
+
+        monkeypatch.setattr(observation_sessions_bp_module.observation_sessions, 'generate_sessions_pdf', _capture)
+
+        response = client.get('/api/observation-sessions/export.pdf?from_date=2026-01-01&to_date=2026-12-31')
+        assert response.status_code == 200
+        assert captured['count'] == 1
+
+    def test_global_pdf_other_users_sessions_are_never_included(self, client, admin_user_id):
+        """Only the caller's own sessions are exported."""
+        other_user = str(uuid.uuid4())
+        observation_sessions.create_session(other_user, 'other', {'date': '2026-05-05'})
+        _create_session(client, date='2026-01-01')
+
+        response = client.get('/api/observation-sessions/export.pdf')
+        assert response.status_code == 200
+        assert response.data.startswith(b'%PDF')

@@ -91,6 +91,49 @@ def test_create_session_then_log_a_target_links_it_to_astrodex(logged_in_page):
     page.wait_for_selector('.observation-log-entry-row .badge.bg-success', state="visible")
 
 
+def test_export_session_pdf_downloads_a_file(logged_in_page):
+    """The per-session 'Export PDF' button on the detail view produces a real download."""
+    page = logged_in_page
+    _open_observation_log(page)
+    _create_session(page, '2026-07-14')
+
+    with page.expect_download() as download_info:
+        page.click('#observation-log-export-pdf')
+    download = download_info.value
+
+    assert download.suggested_filename.endswith('.pdf')
+    saved_path = download.path()
+    assert saved_path is not None
+    with open(saved_path, 'rb') as pdf_file:
+        assert pdf_file.read(4) == b'%PDF'
+
+
+def test_export_all_pdf_modal_prefills_range_and_downloads(logged_in_page):
+    """The list-view 'Export all (PDF)' button opens the range/order modal, prefilled
+    with the session's own date, and submitting it downloads a real PDF."""
+    page = logged_in_page
+    _open_observation_log(page)
+    _create_session(page, '2026-07-14')
+
+    page.click('#observation-log-back')
+    page.wait_for_selector('#observation-log-export-all', state="visible")
+    page.click('#observation-log-export-all')
+
+    page.wait_for_selector('#observation-export-pdf-form', state="visible")
+    assert page.input_value('#observation-export-pdf-from') == '2026-07-14'
+    assert page.input_value('#observation-export-pdf-to') == '2026-07-14'
+
+    with page.expect_download() as download_info:
+        page.click('#observation-export-pdf-form button[type="submit"]')
+    download = download_info.value
+
+    assert download.suggested_filename.endswith('.pdf')
+    saved_path = download.path()
+    assert saved_path is not None
+    with open(saved_path, 'rb') as pdf_file:
+        assert pdf_file.read(4) == b'%PDF'
+
+
 def test_filters_narrow_the_session_list(logged_in_page):
     """The client-side search filter refreshes only the results container."""
     page = logged_in_page

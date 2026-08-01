@@ -211,6 +211,8 @@ This page lists the HTTP routes currently declared across `backend/blueprints/*.
 - `PUT /api/observation-sessions/<session_id>/entries/<entry_id>` - Same auto-registration whenever `frame_count` newly becomes `> 0`
 - `DELETE /api/observation-sessions/<session_id>/entries/<entry_id>`
 - `POST /api/observation-sessions/<session_id>/entries/<entry_id>/astrodex-picture` - Manual attach of an image already uploaded through `POST /api/astrodex/upload`
+- `GET /api/observation-sessions/<session_id>/export.pdf` - One session as a PDF (common info + every logged target, with its attached photo when there is one)
+- `GET /api/observation-sessions/export.pdf` - Every own session as one PDF (cover + summary + per-session pages); optional `from_date`/`to_date`/`order` (`asc`/`desc`, default `asc`)
 
 ## Equipment
 

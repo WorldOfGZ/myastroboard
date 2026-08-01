@@ -14,9 +14,10 @@ and Catalogue Collection - so the whole loop stays under one navigational roof.
 3. [Data model](#data-model)
 4. [Storage and write safety](#storage-and-write-safety)
 5. [API endpoints](#api-endpoints)
-6. [Import from Plan](#import-from-plan)
-7. [Deletion and reference counting](#deletion-and-reference-counting)
-8. [Out of scope for v1.3](#out-of-scope-for-v13)
+6. [PDF export](#pdf-export)
+7. [Import from Plan](#import-from-plan)
+8. [Deletion and reference counting](#deletion-and-reference-counting)
+9. [Out of scope for v1.3](#out-of-scope-for-v13)
 
 ---
 
@@ -194,6 +195,46 @@ on failure.
 `{total_sessions, total_entries, total_integration_minutes, average_rating}` (`average_rating` is
 `None` until at least one entry has been rated). Full analytics is v1.5 Session Analytics' job, not
 this feature's.
+
+---
+
+## PDF export
+
+Two routes, both built on the same page-rendering code
+(`backend/observation/observation_sessions.py`'s `_render_session_section()`), styled to match
+Plan My Night's own PDF export (same header/footer bar, palette and A4 layout):
+
+| Method | Path | Produces |
+|---|---|---|
+| `GET` | `/api/observation-sessions/<session_id>/export.pdf` | One session |
+| `GET` | `/api/observation-sessions/export.pdf` | Every own session in an optional date range |
+
+**Per-session PDF** — a button on the session detail view. First page: the session's common
+information (date, location, equipment, start/end time, SQM, seeing, transparency, notes) plus a
+one-line summary (target count, average rating). Then every logged target, one per row, with its
+attached Astrodex photo when it has one (a neutral "No photo" placeholder otherwise) alongside its
+identity, capture numbers (frames, sub-exposure, integration) and notes.
+
+**Global PDF** — a button on the session list, shown only once at least one session exists (nothing
+to configure otherwise). It opens a modal asking for a date range - prefilled with the earliest and
+latest observation dates across all of the user's sessions, so the untouched default is "every
+session" - and a sort order (`asc`/oldest-first is the default, `desc` available). The resulting PDF
+is: a cover page (title, date range or "All sessions", generation timestamp, and aggregate stats -
+sessions/targets/integration/average rating), a summary table (one row per session: date, location,
+equipment, target count, integration, rating), then every session in the range rendered exactly like
+the per-session export, in the requested order.
+
+Both routes are `@login_required` (read action, no `@user_required` gate) and only ever operate on
+the caller's own sessions. `from_date`/`to_date` filter on the session's `date` field (inclusive,
+string comparison against `YYYY-MM-DD`); an empty range means every session. `lang` (or
+`Accept-Language`) selects the PDF's own translated labels, independently of the query's paging.
+
+An entry's photo is resolved by the blueprint layer (`_resolve_entry_image_path()`), never by the
+storage module - `observation/observation_sessions.py` never imports `astrodex` (see its module
+docstring), so the PDF generators receive a pre-built `{entry_id: absolute_file_path}` map instead of
+resolving Astrodex links themselves. A picture whose file has since been deleted, or whose linked
+Astrodex item/picture no longer resolves, degrades to the "No photo" placeholder rather than failing
+the export.
 
 ---
 
