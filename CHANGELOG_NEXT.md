@@ -34,7 +34,10 @@ thumbnail on its entry, plus a "Photos" button opens every photo in the session;
 4th stat is now the average rating rather than a raw frame-count total; and both a session and the
 whole log can now be exported to a print-friendly PDF (per-session button on the detail view; a
 list-view button opens a date-range + sort-order modal for a cover + summary + all-sessions export),
-styled to match Plan My Night's own PDF export and including each target's attached photo.
+styled to match Plan My Night's own PDF export and including each target's attached photo; and the
+altitude-vs-time chart button on an entry now only shows while the session's start/end time window
+is current, since the underlying chart data is recalculated nightly for "tonight" and no longer
+represents the logged observation once it's over.
 
 #### Astrodex picture capture fields
 
