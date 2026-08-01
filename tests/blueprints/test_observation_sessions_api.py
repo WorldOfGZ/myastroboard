@@ -440,7 +440,9 @@ class TestAttachPicture:
     def test_attach_picture_creates_item_and_picture(self, client, admin_user_id):
         """Attaching resolves the item (creating it if needed) and stores both ids."""
         session = _create_session(client, location_name='Backyard')
-        entry = _add_entry(client, session['id'], frame_count=20, sub_exposure_seconds=180).get_json()['data']
+        entry = _add_entry(
+            client, session['id'], frame_count=20, sub_exposure_seconds=180, integration_minutes=60
+        ).get_json()['data']
 
         response = client.post(
             f"/api/observation-sessions/{session['id']}/entries/{entry['id']}/astrodex-picture",
@@ -455,8 +457,11 @@ class TestAttachPicture:
         picture = item['pictures'][0]
         assert picture['filename'] == 'photo.jpg'
         assert picture['date'] == '2026-07-14'
-        assert picture['frames'] == '20'
-        assert picture['exposition_time'] == '180s'
+        # frames/exposition_time/integration_minutes are plain numbers (v1.3+), carried
+        # straight over from the entry's own frame_count/sub_exposure_seconds/integration_minutes.
+        assert picture['frames'] == 20
+        assert picture['exposition_time'] == 180
+        assert picture['integration_minutes'] == 60
         assert picture['location_name'] == 'Backyard'
 
         stored = client.get(f"/api/observation-sessions/{session['id']}").get_json()
@@ -502,5 +507,15 @@ class TestAttachPicture:
         response = client.post(
             f"/api/observation-sessions/{session['id']}/entries/{entry['id']}/astrodex-picture",
             json={'filename': 'photo.jpg', 'rating': 42},
+        )
+        assert response.status_code == 400
+
+    def test_attach_picture_rejects_bad_exposition_time_override(self, client):
+        """An explicit exposition_time override must be a whole number of seconds."""
+        session = _create_session(client)
+        entry = _add_entry(client, session['id']).get_json()['data']
+        response = client.post(
+            f"/api/observation-sessions/{session['id']}/entries/{entry['id']}/astrodex-picture",
+            json={'filename': 'photo.jpg', 'exposition_time': '120x30s'},
         )
         assert response.status_code == 400

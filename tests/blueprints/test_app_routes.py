@@ -3861,6 +3861,76 @@ class TestAstrodexPictureEquipment:
         assert resp.status_code == 200
         assert resp.get_json()['picture']['combination_id'] == combo['id']
 
+    def test_add_picture_with_valid_capture_fields(self, client_admin):
+        """exposition_time/frames/integration_minutes (v1.3+) are stored as plain numbers."""
+        item_id = self._create_item(client_admin)
+        resp = self._add_picture(client_admin, item_id, exposition_time=180, frames=20, integration_minutes=60)
+        assert resp.status_code == 200
+        picture = resp.get_json()['picture']
+        assert picture['exposition_time'] == 180
+        assert picture['frames'] == 20
+        assert picture['integration_minutes'] == 60
+
+    def test_add_picture_without_capture_fields_defaults_to_none(self, client_admin):
+        item_id = self._create_item(client_admin)
+        resp = self._add_picture(client_admin, item_id)
+        assert resp.status_code == 200
+        picture = resp.get_json()['picture']
+        assert picture['exposition_time'] is None
+        assert picture['frames'] is None
+        assert picture['integration_minutes'] is None
+
+    def test_add_picture_with_non_integer_exposition_time_returns_400(self, client_admin):
+        """The field is tightened to whole seconds (v1.3+) - old free-text formats like
+        "120x30s" are no longer accepted from a fresh add/edit."""
+        item_id = self._create_item(client_admin)
+        resp = self._add_picture(client_admin, item_id, exposition_time='120x30s')
+        assert resp.status_code == 400
+
+    def test_add_picture_with_negative_frames_returns_400(self, client_admin):
+        item_id = self._create_item(client_admin)
+        resp = self._add_picture(client_admin, item_id, frames=-5)
+        assert resp.status_code == 400
+
+    def test_add_picture_with_non_numeric_integration_minutes_returns_400(self, client_admin):
+        item_id = self._create_item(client_admin)
+        resp = self._add_picture(client_admin, item_id, integration_minutes='a lot')
+        assert resp.status_code == 400
+
+    def test_update_picture_can_change_capture_fields(self, client_admin):
+        item_id = self._create_item(client_admin)
+        picture = self._add_picture(client_admin, item_id, exposition_time=60, frames=10).get_json()['picture']
+
+        resp = client_admin.put(
+            f"/api/astrodex/items/{item_id}/pictures/{picture['id']}",
+            json={'exposition_time': 90, 'frames': 15, 'integration_minutes': 22.5},
+        )
+        assert resp.status_code == 200
+        updated = resp.get_json()['picture']
+        assert updated['exposition_time'] == 90
+        assert updated['frames'] == 15
+        assert updated['integration_minutes'] == 22.5
+
+    def test_update_picture_with_invalid_frames_returns_400(self, client_admin):
+        item_id = self._create_item(client_admin)
+        picture = self._add_picture(client_admin, item_id).get_json()['picture']
+        resp = client_admin.put(f"/api/astrodex/items/{item_id}/pictures/{picture['id']}", json={'frames': 'many'})
+        assert resp.status_code == 400
+
+    def test_update_picture_without_capture_keys_leaves_them_untouched(self, client_admin):
+        item_id = self._create_item(client_admin)
+        picture = self._add_picture(
+            client_admin, item_id, exposition_time=180, frames=20
+        ).get_json()['picture']
+
+        resp = client_admin.put(
+            f"/api/astrodex/items/{item_id}/pictures/{picture['id']}", json={'notes': 'unrelated edit'}
+        )
+        assert resp.status_code == 200
+        updated = resp.get_json()['picture']
+        assert updated['exposition_time'] == 180
+        assert updated['frames'] == 20
+
 
 # ---------------------------------------------------------------------------
 # Push test with actual subscriptions (via monkeypatching)

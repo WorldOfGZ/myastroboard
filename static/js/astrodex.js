@@ -62,6 +62,56 @@ function mapCatalogueObjectType(rawType) {
     return 'Other';
 }
 
+/** Bidirectional frames <-> integration-minutes calculator pivoting on sub-exposure
+ * seconds (any two of the three determine the third). Shared by the Observation Log's
+ * Add Target form and Astrodex's own Add/Edit Photo forms - whichever of
+ * frames/integration the user hasn't typed by hand gets derived from the other two. */
+function recomputeCaptureTriad(framesId, subExposureSecondsId, integrationMinutesId) {
+    const framesInput = document.getElementById(framesId);
+    const subExposureInput = document.getElementById(subExposureSecondsId);
+    const integrationInput = document.getElementById(integrationMinutesId);
+    if (!framesInput || !subExposureInput || !integrationInput) return;
+
+    const subExposure = Number(subExposureInput.value);
+    if (!subExposureInput.value || !Number.isFinite(subExposure) || subExposure <= 0) return;
+
+    const framesValue = Number(framesInput.value);
+    const hasFrames = framesInput.value !== '' && Number.isFinite(framesValue);
+    const integrationValue = Number(integrationInput.value);
+    const hasIntegration = integrationInput.value !== '' && Number.isFinite(integrationValue);
+
+    if (integrationInput.dataset.userEdited !== 'true' && hasFrames) {
+        integrationInput.value = String(Math.round((framesValue * subExposure / 60) * 100) / 100);
+    } else if (framesInput.dataset.userEdited !== 'true' && hasIntegration) {
+        framesInput.value = String(Math.round((integrationValue * 60) / subExposure));
+    }
+}
+
+/** Wire up recomputeCaptureTriad() on a `${prefix}-frames`/`${prefix}-exposition`/
+ * `${prefix}-integration` input trio (Astrodex's Add/Edit Photo forms). */
+function _wireCaptureTriadInputs(prefix) {
+    const framesInput = document.getElementById(`${prefix}-frames`);
+    const expositionInput = document.getElementById(`${prefix}-exposition`);
+    const integrationInput = document.getElementById(`${prefix}-integration`);
+    if (!framesInput || !expositionInput || !integrationInput) return;
+
+    const recompute = () => recomputeCaptureTriad(`${prefix}-frames`, `${prefix}-exposition`, `${prefix}-integration`);
+    framesInput.addEventListener('input', () => { framesInput.dataset.userEdited = 'true'; recompute(); });
+    expositionInput.addEventListener('input', recompute);
+    integrationInput.addEventListener('input', () => { integrationInput.dataset.userEdited = 'true'; recompute(); });
+}
+
+/** A picture's exposition_time is a plain integer number of seconds (v1.3+). Older
+ * pictures may still carry a pre-v1.3 free-text value (e.g. "1h (10sec)") - shown
+ * as-is, since it can't be reinterpreted as seconds without the uploader's input. */
+function formatPictureExpositionTime(value) {
+    if (value === null || value === undefined || value === '') return '';
+    if (typeof value === 'number' || /^\d+$/.test(String(value).trim())) {
+        return `${value}s`;
+    }
+    return String(value);
+}
+
 // ============================================
 // Equipment Integration
 // ============================================
@@ -1280,7 +1330,7 @@ function renderPicturesGrid(item) {
                     <div class="card-body">
                         <p class="card-text">
                             ${picture.date ? `<div><i class="bi bi-calendar-event text-danger icon-inline" aria-hidden="true"></i>${escapeHtml(formatStringToDate(picture.date))}</div>` : ''}
-                            ${picture.exposition_time ? `<div><i class="bi bi-stopwatch icon-inline" aria-hidden="true"></i>${escapeHtml(picture.exposition_time)}</div>` : ''}
+                            ${picture.exposition_time ? `<div><i class="bi bi-stopwatch icon-inline" aria-hidden="true"></i>${escapeHtml(formatPictureExpositionTime(picture.exposition_time))}</div>` : ''}
                             ${picture.device ? `<div><i class="bi bi-binoculars icon-inline" aria-hidden="true"></i>${escapeHtml(picture.device)}</div>` : ''}
                             ${picture.location_name ? `<div><i class="bi bi-pin-map icon-inline" aria-hidden="true"></i>${escapeHtml(picture.location_name)}</div>` : ''}
                         </p>
@@ -1649,11 +1699,15 @@ async function showAddPictureModal(itemId) {
             ${_buildPictureSectionHeaderHtml(i18n.t('astrodex.section_photo_info'))}
             <div class="col-md-6">
                 <label for="picture-exposition" class="form-label">${i18n.t('astrodex.exposition_time')}</label>
-                <input type="text" class="form-control" id="picture-exposition" placeholder="${i18n.t('astrodex.exposition_time_placeholder')}">
+                <input type="number" class="form-control" id="picture-exposition" min="0" step="1" placeholder="180">
             </div>
             <div class="col-md-6">
                 <label for="picture-frames" class="form-label">${i18n.t('astrodex.number_of_frames')}</label>
-                <input type="text" class="form-control" id="picture-frames">
+                <input type="number" class="form-control" id="picture-frames" min="0" step="1">
+            </div>
+            <div class="col-md-6">
+                <label for="picture-integration" class="form-label">${i18n.t('astrodex.integration_minutes')}</label>
+                <input type="number" class="form-control" id="picture-integration" min="0" step="any">
             </div>
             <div class="col-md-6">
                 <label for="picture-iso" class="form-label">${i18n.t('astrodex.iso')}</label>
@@ -1662,7 +1716,6 @@ async function showAddPictureModal(itemId) {
                     ${isoOptions}
                 </datalist>
             </div>
-            <div class="col-md-6"></div>
             <div class="col-md-12">
                 <label class="form-label d-block">${i18n.t('astrodex.rating')}</label>
                 <div id="picture-rating-container"></div>
@@ -1687,6 +1740,7 @@ async function showAddPictureModal(itemId) {
 
     document.getElementById('picture-rating-container')?.appendChild(_buildRatingWidget('picture', null));
     _wirePictureEquipmentSection('picture', null, null);
+    _wireCaptureTriadInputs('picture');
 
     // Leaflet must measure a fully laid-out, visible container - initializing
     // while the modal is still mid fade-in transition gives it the wrong
@@ -1759,6 +1813,7 @@ async function uploadPicture(itemId) {
             exposition_time: document.getElementById('picture-exposition').value,
             iso: document.getElementById('picture-iso').value,
             frames: document.getElementById('picture-frames').value,
+            integration_minutes: document.getElementById('picture-integration').value,
             rating: _getRatingWidgetValue('picture'),
             notes: document.getElementById('picture-notes').value,
             ..._collectPictureEquipmentFields('picture'),
@@ -1921,6 +1976,15 @@ async function showEditPictureModal(itemId, pictureId) {
     const locationCustomFields = _renderLocationCustomFields('edit-picture', picture);
     const locationMapField = _renderLocationMapField('edit-picture');
 
+    // Pre-v1.3 pictures may carry a free-text exposition_time (e.g. "1h (10sec)") from
+    // before the field was tightened to a plain integer number of seconds - it can't be
+    // reinterpreted automatically, so the field is left blank with an explanatory notice
+    // rather than silently dropping or misparsing the old value.
+    const expositionRaw = picture.exposition_time;
+    const isLegacyExposition = expositionRaw != null && expositionRaw !== ''
+        && !(typeof expositionRaw === 'number' || /^\d+$/.test(String(expositionRaw).trim()));
+    const expositionInputValue = isLegacyExposition ? '' : escapeHtml(expositionRaw ?? '');
+
     createModal(i18n.t('astrodex.edit_photo'), `
         <form id="edit-picture-form" class="form row g-3 align-items-end">
             ${_buildPictureSectionHeaderHtml(i18n.t('astrodex.section_date_location'))}
@@ -1933,13 +1997,24 @@ async function showEditPictureModal(itemId, pictureId) {
             ${locationMapField}
             ${equipmentSectionHtml}
             ${_buildPictureSectionHeaderHtml(i18n.t('astrodex.section_photo_info'))}
+            ${isLegacyExposition ? `
+                <div class="col-md-12">
+                    <div class="alert alert-warning small mb-0">
+                        ${i18n.t('astrodex.exposition_time_legacy_notice', { value: escapeHtml(String(expositionRaw)) })}
+                    </div>
+                </div>
+            ` : ''}
             <div class="col-md-6">
                 <label for="edit-picture-exposition" class="form-label">${i18n.t('astrodex.exposition_time')}</label>
-                <input type="text" class="form-control" id="edit-picture-exposition" placeholder="e.g., 120x30s" value="${escapeHtml(picture.exposition_time || '')}">
+                <input type="number" class="form-control" id="edit-picture-exposition" min="0" step="1" placeholder="180" value="${expositionInputValue}">
             </div>
             <div class="col-md-6">
                 <label for="edit-picture-frames" class="form-label">${i18n.t('astrodex.number_of_frames')}</label>
-                <input type="text" class="form-control" id="edit-picture-frames" value="${escapeHtml(picture.frames || '')}">
+                <input type="number" class="form-control" id="edit-picture-frames" min="0" step="1" value="${escapeHtml(picture.frames || '')}">
+            </div>
+            <div class="col-md-6">
+                <label for="edit-picture-integration" class="form-label">${i18n.t('astrodex.integration_minutes')}</label>
+                <input type="number" class="form-control" id="edit-picture-integration" min="0" step="any" value="${escapeHtml(picture.integration_minutes ?? '')}">
             </div>
             <div class="col-md-6">
                 <label for="edit-picture-iso" class="form-label">${i18n.t('astrodex.iso')}</label>
@@ -1948,7 +2023,6 @@ async function showEditPictureModal(itemId, pictureId) {
                     ${isoOptions}
                 </datalist>
             </div>
-            <div class="col-md-6"></div>
             <div class="col-md-12">
                 <label class="form-label d-block">${i18n.t('astrodex.rating')}</label>
                 <div id="edit-picture-rating-container"></div>
@@ -1975,6 +2049,7 @@ async function showEditPictureModal(itemId, pictureId) {
         _buildRatingWidget('edit-picture', picture.rating)
     );
     _wirePictureEquipmentSection('edit-picture', picture.combination_id || null, picture.combination_used_components);
+    _wireCaptureTriadInputs('edit-picture');
 
     // See showAddPictureModal - wait for the modal to finish its show
     // transition before Leaflet measures the container, or the map only
@@ -2014,6 +2089,7 @@ async function updatePicture(itemId, pictureId) {
             exposition_time: document.getElementById('edit-picture-exposition').value,
             iso: document.getElementById('edit-picture-iso').value,
             frames: document.getElementById('edit-picture-frames').value,
+            integration_minutes: document.getElementById('edit-picture-integration').value,
             rating: _getRatingWidgetValue('edit-picture'),
             notes: document.getElementById('edit-picture-notes').value,
             ..._collectPictureEquipmentFields('edit-picture', existingPicture?.combination_id),
@@ -2133,7 +2209,18 @@ function _mountPictureSlideshow(slideshowPictures, opts) {
                             <div class="me-3 fs-4"><i class="bi bi-stopwatch" aria-hidden="true"></i></div>
                             <div>
                                 <small class="text-muted d-block">${i18n.t('astrodex.exposition_time')}</small>
-                                <strong>${escapeHtml(picture.exposition_time)}</strong>
+                                <strong>${escapeHtml(formatPictureExpositionTime(picture.exposition_time))}</strong>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+                ${picture.integration_minutes != null ? `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="d-flex align-items-center p-2 rounded shadow-sm astrodex-slideshow-tile">
+                            <div class="me-3 fs-4"><i class="bi bi-hourglass-split" aria-hidden="true"></i></div>
+                            <div>
+                                <small class="text-muted d-block">${i18n.t('astrodex.integration_minutes')}</small>
+                                <strong>${escapeHtml(picture.integration_minutes)}</strong>
                             </div>
                         </div>
                     </div>

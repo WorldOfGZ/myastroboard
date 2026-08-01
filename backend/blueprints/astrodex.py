@@ -37,7 +37,7 @@ _EMPTY_PICTURE_LOCATION = {
 def _safe_picture_coordinate(value, min_value, max_value):
     """Best-effort float parse for a manually-typed coordinate. Returns None
     for anything empty, unparseable, or out of range - a bad value is simply
-    dropped (same low-stakes trust level as notes/exposition_time), not a 400."""
+    dropped (same low-stakes trust level as notes), not a 400."""
     if value is None or value == '':
         return None
     try:
@@ -70,6 +70,59 @@ def _validate_and_coerce_picture_rating(picture_data: Dict) -> Any:
     return None
 
 
+def _validate_and_coerce_picture_capture(picture_data: Dict) -> Any:
+    """Validate/coerce picture_data['exposition_time'], ['frames'] and
+    ['integration_minutes'] in place. Only touches keys actually present, so a PUT that
+    edits unrelated fields (notes, iso, ...) never disturbs these.
+
+    Unlike coordinates/notes, these are structured numeric fields entered through
+    dedicated number inputs (v1.3+, tightened from free text) so a bad value is rejected
+    (400) rather than silently dropped - same trust level as rating. A pre-v1.3 picture's
+    legacy free-text exposition_time is left untouched by whatever created it and is
+    never sent back by the edit form (it shows a notice instead), so it can't reach here.
+    """
+    if 'exposition_time' in picture_data:
+        value = picture_data['exposition_time']
+        if value is None or value == '':
+            picture_data['exposition_time'] = None
+        else:
+            try:
+                seconds = int(value)
+            except (TypeError, ValueError):
+                return 'exposition_time must be a whole number of seconds'
+            if seconds < 0:
+                return 'exposition_time must be a whole number of seconds'
+            picture_data['exposition_time'] = seconds
+
+    if 'frames' in picture_data:
+        value = picture_data['frames']
+        if value is None or value == '':
+            picture_data['frames'] = None
+        else:
+            try:
+                frames = int(value)
+            except (TypeError, ValueError):
+                return 'frames must be a whole number'
+            if frames < 0:
+                return 'frames must be a whole number'
+            picture_data['frames'] = frames
+
+    if 'integration_minutes' in picture_data:
+        value = picture_data['integration_minutes']
+        if value is None or value == '':
+            picture_data['integration_minutes'] = None
+        else:
+            try:
+                integration = float(value)
+            except (TypeError, ValueError):
+                return 'integration_minutes must be a number'
+            if integration < 0:
+                return 'integration_minutes must be a number'
+            picture_data['integration_minutes'] = integration
+
+    return None
+
+
 def _resolve_picture_combination_reference(combination_id, user_id) -> Optional[str]:
     """Return combination_id if it resolves to an accessible (own or shared) combination for this
     user, else None. Resolved server-side so a picture can never end up tagged with a combination
@@ -96,7 +149,7 @@ def _resolve_picture_location_snapshot(
     client - and restricted to locations the user can actually access, so a
     picture can't be tagged with coordinates the uploader has no attribution
     to. A custom label's coordinates are optional and exactly what the
-    uploader typed (same trust level as notes/exposition_time - it's a label
+    uploader typed (same trust level as notes - it's a label
     on their own picture, not an access-control boundary). Everything empty
     resolves to "no location" rather than an error, since clearing a
     picture's location is a valid choice.
@@ -458,6 +511,10 @@ def add_picture_to_astrodex_item(item_id):
         if rating_error:
             return jsonify({'error': rating_error}), 400
 
+        capture_error = _validate_and_coerce_picture_capture(picture_data)
+        if capture_error:
+            return jsonify({'error': capture_error}), 400
+
         # Equipment: either a real combination (validated/resolved server-side, same trust model
         # as location below) or the free-text "Other equipment" path - never both meaningfully,
         # though the backend stays permissive about device/filters like any other free-text field.
@@ -514,6 +571,10 @@ def update_picture_api(item_id, picture_id):
             rating_error = _validate_and_coerce_picture_rating(updates)
             if rating_error:
                 return jsonify({'error': rating_error}), 400
+
+        capture_error = _validate_and_coerce_picture_capture(updates)
+        if capture_error:
+            return jsonify({'error': capture_error}), 400
 
         # Equipment fields, like location below, are only touched if this edit explicitly
         # included them - editing unrelated fields (notes, exposure, ...) must never disturb an

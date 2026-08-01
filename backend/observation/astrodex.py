@@ -986,7 +986,13 @@ def add_picture_to_item(user_id: str, item_id: str, picture_data: Dict) -> Optio
         picture_data: Dictionary containing:
             - filename: Image filename
             - date: Observation date
-            - exposition_time: Exposition time
+            - exposition_time: Sub-exposure length in whole seconds, or None (v1.3+;
+              validated server-side in blueprints/astrodex.py - a pre-v1.3 picture may
+              still carry a free-text legacy value, shown as-is but never reinterpreted)
+            - frames: Number of sub-exposures, or None (validated server-side)
+            - integration_minutes: Total integration time in minutes, or None - the third
+              leg of the frames/exposition_time/integration_minutes triangle, auto-computed
+              client-side from whichever two of the three are known
             - device: Device/telescope used
             - filters: Filters used
             - notes: Picture notes
@@ -1022,11 +1028,12 @@ def add_picture_to_item(user_id: str, item_id: str, picture_data: Dict) -> Optio
                 'id': str(uuid.uuid4()),
                 'filename': picture_data.get('filename', ''),
                 'date': picture_data.get('date', ''),
-                'exposition_time': picture_data.get('exposition_time', ''),
+                'exposition_time': picture_data.get('exposition_time'),
                 'device': picture_data.get('device', ''),
                 'filters': picture_data.get('filters', ''),
                 'iso': picture_data.get('iso', ''),
-                'frames': picture_data.get('frames', ''),
+                'frames': picture_data.get('frames'),
+                'integration_minutes': picture_data.get('integration_minutes'),
                 'notes': picture_data.get('notes', ''),
                 'location_id': picture_data.get('location_id') or None,
                 'location_name': picture_data.get('location_name') or None,
@@ -1075,6 +1082,7 @@ def update_picture(user_id: str, item_id: str, picture_id: str, updates: Dict) -
                         'filters',
                         'iso',
                         'frames',
+                        'integration_minutes',
                         'notes',
                         'location_id',
                         'location_name',

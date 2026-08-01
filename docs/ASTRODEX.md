@@ -64,6 +64,9 @@ Each picture attached to an item:
 | `combination_id` | UUID string or `null` | Linked [equipment combination](EQUIPMENT.md#equipment-combinations), resolved and access-checked server-side. Mutually exclusive with the free-text `device`/`filters` fields ("Other equipment" path) - never both. |
 | `combination_used_components` | object or `null` | Frozen snapshot of which parts of the combination were actually used for this photo (e.g. `{"telescope": true, "camera": true, "filter_ids": [...]}`) - purely informational, set once at save time and never recomputed even if the combination is edited later. |
 | `rating` | number or `null` | User's own 0.0-5.0 rating in 0.5 steps, or `null` if not yet rated. Feeds a combination's average-rating badge in the Equipment tab (see [EQUIPMENT.md](EQUIPMENT.md#equipment-combinations)). |
+| `exposition_time` | integer (seconds) or `null` | Sub-exposure length. v1.3+: a validated whole number of seconds, entered through a dedicated number input - a picture created before v1.3 may still carry a free-text legacy value (e.g. `"1h (10sec)"`), shown as-is but never reinterpreted or accepted back from the edit form. |
+| `frames` | integer or `null` | Number of sub-exposures. Validated server-side (v1.3+). |
+| `integration_minutes` | number or `null` | Total integration time in minutes (v1.3+). Any two of `frames`/`exposition_time`/`integration_minutes` determine the third - the Add/Edit Picture modal computes the one you leave blank, mirroring the Observation Log entry model's own frame_count/sub_exposure_seconds/integration_minutes trio. |
 
 Images are stored in `data/astrodex/images/` and served by `GET /api/astrodex/images/<filename>`.
 
