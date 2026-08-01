@@ -91,9 +91,13 @@ or cascaded, and no reverse delete-guard is added to `astrodex.py`.
 ### Consequence for v1.5 Session Analytics
 
 Aggregation ("total integration hours", "objects captured") should read from Observation Log
-sessions/entries as the **primary** source: `integration_minutes` and `frame_count` are real
-numbers, whereas Astrodex's `frames` / `exposition_time` are loose free-text fields that are not
-reliably summable. Cross-reference Astrodex only for gallery/photo display.
+sessions/entries as the **primary** source, not from Astrodex pictures. Astrodex's
+`frames` / `exposition_time` / `integration_minutes` (v1.3+: validated numeric fields, mirroring
+this module's own trio - see `docs/ASTRODEX.md`) are a *per-photo* record and may not cover every
+entry (attaching a picture is a manual, optional step), whereas an entry's own
+`frame_count` / `sub_exposure_seconds` / `integration_minutes` are set for every logged target.
+Pre-v1.3 pictures may also still carry a legacy free-text `exposition_time` value that predates the
+numeric field. Cross-reference Astrodex only for gallery/photo display.
 
 ---
 

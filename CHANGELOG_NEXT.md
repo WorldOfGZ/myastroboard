@@ -26,6 +26,21 @@ Re-importing the same plan never duplicates targets.
 Sessions are always private (no sharing, no merged view — this is a personal logbook, not a second
 Astrodex) and are included in the admin backup ZIP. Full details in `docs/OBSERVATION_LOG.md`.
 
+Since shipping: importing a Plan My Night plan now carries its night start/end straight into the
+session; "Add target" was redone on Astrodex's own add-item pattern (dedicated catalogue search box,
+Object type/Constellation as dropdowns); frame count, sub-exposure and integration minutes now
+auto-fill each other (fill in any two, the third is computed); a target's attached photo shows as a
+thumbnail on its entry, plus a "Photos" button opens every photo in the session; and the header's
+4th stat is now the average rating rather than a raw frame-count total.
+
+#### Astrodex picture capture fields
+
+A picture's exposure info is now structured instead of free text: `Frames` and `Exposition time`
+are validated whole numbers (the latter now in seconds, matching Observation Log entries), and a new
+`Integration (min)` field was added — any two of the three auto-fill the third, in both the Add and
+Edit Photo forms. A pre-existing picture with a free-text exposure value (e.g. `"1h (10sec)"`) shows
+a one-time notice on edit instead of being silently reinterpreted.
+
 #### Input validation audit
 
 A full pass over user-facing inputs closed several gaps where the backend accepted values the UI never would have sent:
@@ -40,5 +55,6 @@ A full pass over user-facing inputs closed several gaps where the backend accept
 
 - Equipment combinations now also refuse deletion while referenced by an Observation Log session (new `in_use_by_session` reason, alongside the existing picture/plan guards)
 - The location pre-delete report (`GET /api/locations/<id>/references`) gained an `observation_sessions` count. Like Astrodex pictures, sessions are never cascade-deleted when a preset is removed — they keep their frozen location name
-- Add "Milky Way" and "Nightscape / Wide-field" on astrodex type
+- Add "Milky Way", "Nightscape / Wide-field" and "Star Trail" on astrodex type
+- Parameters -> Backup/Restore now lists `data/observation_sessions/` among what's included (the backup/restore code already covered it since the Observation Log shipped - only the on-screen description was stale)
 - The Custom Horizon Profile editor (Locations) now has a "How does this work?" diagram and step-by-step instructions for measuring your real horizon (compass app, fist-width/clinometer angle estimate, bracketing sharp edges)

@@ -73,6 +73,59 @@ def _validate_and_coerce_rating(entry_data: Dict) -> Any:
     return None
 
 
+def _validate_and_coerce_picture_capture(picture_data: Dict) -> Any:
+    """Validate/coerce picture_data['exposition_time'], ['frames'] and
+    ['integration_minutes'] in place, mirroring Astrodex's own picture capture validator
+    (``blueprints/astrodex.py``'s ``_validate_and_coerce_picture_capture``, duplicated
+    rather than imported to avoid a cross-blueprint import - see
+    ``_resolve_session_location_snapshot`` above for the same rationale).
+
+    Only touches keys actually present. In practice the values reaching here already came
+    from the entry's own validated frame_count/sub_exposure_seconds/integration_minutes,
+    so this mostly guards a hypothetical direct API call that overrides them.
+    """
+    if 'exposition_time' in picture_data:
+        value = picture_data['exposition_time']
+        if value is None or value == '':
+            picture_data['exposition_time'] = None
+        else:
+            try:
+                seconds = int(value)
+            except (TypeError, ValueError):
+                return 'exposition_time must be a whole number of seconds'
+            if seconds < 0:
+                return 'exposition_time must be a whole number of seconds'
+            picture_data['exposition_time'] = seconds
+
+    if 'frames' in picture_data:
+        value = picture_data['frames']
+        if value is None or value == '':
+            picture_data['frames'] = None
+        else:
+            try:
+                frames = int(value)
+            except (TypeError, ValueError):
+                return 'frames must be a whole number'
+            if frames < 0:
+                return 'frames must be a whole number'
+            picture_data['frames'] = frames
+
+    if 'integration_minutes' in picture_data:
+        value = picture_data['integration_minutes']
+        if value is None or value == '':
+            picture_data['integration_minutes'] = None
+        else:
+            try:
+                integration = float(value)
+            except (TypeError, ValueError):
+                return 'integration_minutes must be a number'
+            if integration < 0:
+                return 'integration_minutes must be a number'
+            picture_data['integration_minutes'] = integration
+
+    return None
+
+
 def _resolve_session_combination_reference(combination_id, user_id) -> Optional[str]:
     """Return combination_id if it resolves to an accessible (own or shared) combination
     for this user, else None - so a session can never be tagged with a combination the
@@ -513,8 +566,15 @@ def attach_astrodex_picture_to_entry(session_id, entry_id):
         picture_data = {
             'filename': filename,
             'date': payload.get('date') or session.get('date') or '',
-            'frames': payload.get('frames') or (str(entry['frame_count']) if entry.get('frame_count') else ''),
-            'exposition_time': payload.get('exposition_time') or (f'{sub_exposure:g}s' if sub_exposure else ''),
+            'frames': payload.get('frames') if 'frames' in payload else entry.get('frame_count'),
+            'exposition_time': (
+                payload.get('exposition_time') if 'exposition_time' in payload
+                else (round(sub_exposure) if sub_exposure is not None else None)
+            ),
+            'integration_minutes': (
+                payload.get('integration_minutes') if 'integration_minutes' in payload
+                else entry.get('integration_minutes')
+            ),
             'notes': payload.get('notes') if 'notes' in payload else entry.get('notes', ''),
             'location_id': session.get('location_id'),
             'location_name': session.get('location_name'),
@@ -529,6 +589,10 @@ def attach_astrodex_picture_to_entry(session_id, entry_id):
         rating_error = _validate_and_coerce_rating(picture_data)
         if rating_error:
             return jsonify({'error': rating_error}), 400
+
+        capture_error = _validate_and_coerce_picture_capture(picture_data)
+        if capture_error:
+            return jsonify({'error': capture_error}), 400
 
         picture = astrodex.add_picture_to_item(user.user_id, item_id, picture_data)
         if not picture:

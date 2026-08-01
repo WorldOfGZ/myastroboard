@@ -200,14 +200,22 @@ async function loadObservationSessions() {
     DOMUtils.setLoading(container, i18n.t('common.loading'));
 
     try {
-        const role = typeof getUserRole === 'function' ? await getUserRole() : 'user';
+        // currentUser is already populated by checkAuthStatus() before any tab is
+        // reachable - reading it here avoids an extra /api/auth/status round trip
+        // (via getUserRole()) on every single Observation Log visit.
+        const role = typeof currentUser !== 'undefined' && currentUser
+            ? currentUser.role
+            : (typeof getUserRole === 'function' ? await getUserRole() : 'user');
         observationLogData.canEdit = role === 'user' || role === 'admin';
 
-        const payload = await fetchJSON(OBSERVATION_LOG_API);
+        const [payload] = await Promise.all([
+            fetchJSON(OBSERVATION_LOG_API),
+            _obsLoadLocations(),
+            _obsLoadCombinations(),
+            _obsLoadPlans(),
+        ]);
         observationLogData.sessions = payload.sessions || [];
         observationLogData.stats = payload.stats || {};
-
-        await Promise.all([_obsLoadLocations(), _obsLoadCombinations(), _obsLoadPlans()]);
 
         renderObservationLogStats();
         if (observationLogOpenSessionId
@@ -1475,21 +1483,7 @@ async function showObservationEntryForm(sessionId, entry) {
  * the frame count. Whichever of the two hasn't been typed by hand gets derived from
  * the other two - sub-exposure is always the pivot, since it's rarely unknown. */
 function _obsRecomputeCapture() {
-    const framesInput = document.getElementById('observation-entry-frames');
-    const integrationInput = document.getElementById('observation-entry-integration');
-    if (!framesInput || !integrationInput) return;
-
-    const subExposure = _obsNumberOrNull('observation-entry-sub-exposure');
-    if (!subExposure) return;
-
-    const frames = _obsNumberOrNull('observation-entry-frames');
-    const integration = _obsNumberOrNull('observation-entry-integration');
-
-    if (integrationInput.dataset.userEdited !== 'true' && frames) {
-        integrationInput.value = String(Math.round((frames * subExposure / 60) * 100) / 100);
-    } else if (framesInput.dataset.userEdited !== 'true' && integration) {
-        framesInput.value = String(Math.round((integration * 60) / subExposure));
-    }
+    recomputeCaptureTriad('observation-entry-frames', 'observation-entry-sub-exposure', 'observation-entry-integration');
 }
 
 /** Same catalogue-search behaviour as Astrodex's add-item modal: fills name, hidden
@@ -1717,6 +1711,12 @@ async function attachObservationEntryPicture(sessionId, entryId, submitButton) {
 
         observationLogOpenSessionId = sessionId;
         closeModal();
+        // The attached picture lives in astrodexData (populated by loadAstrodex()),
+        // not in observationLogData - refresh it too so the entry row's thumbnail
+        // resolves immediately instead of only after the Astrodex tab is reopened.
+        if (typeof loadAstrodex === 'function') {
+            await loadAstrodex();
+        }
         await loadObservationSessions();
     } catch (error) {
         console.error('Error attaching picture to observation entry:', error);
