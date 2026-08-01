@@ -941,6 +941,24 @@ def update_astrodex_item(user_id: str, item_id: str, updates: Dict) -> Optional[
     return None
 
 
+def _resolve_image_file_path(filename: Optional[str]) -> Optional[str]:
+    """Resolve a stored picture filename to an absolute path inside ASTRODEX_IMAGES_DIR,
+    or None if it escapes that directory.
+
+    picture_data['filename'] is never restricted to the upload naming convention (only
+    the read side - get_astrodex_image / the PDF export's image resolution - enforces
+    this same containment check), so a traversal filename (e.g. '../../etc/passwd')
+    slipped into a picture record must still be blocked here before deletion.
+    """
+    if not filename:
+        return None
+    base_dir = os.path.realpath(ASTRODEX_IMAGES_DIR)
+    file_path = os.path.realpath(os.path.join(base_dir, filename))
+    if not file_path.startswith(base_dir + os.sep):
+        return None
+    return file_path
+
+
 def delete_astrodex_item(user_id: str, item_id: str) -> bool:
     """Delete an astrodex item"""
     astrodex = load_user_astrodex(user_id)
@@ -956,9 +974,9 @@ def delete_astrodex_item(user_id: str, item_id: str) -> bool:
     if item_to_delete and 'pictures' in item_to_delete:
         for picture in item_to_delete['pictures']:
             filename = picture.get('filename')
-            if filename:
+            file_path = _resolve_image_file_path(filename)
+            if file_path:
                 try:
-                    file_path = os.path.join(ASTRODEX_IMAGES_DIR, filename)
                     if os.path.exists(file_path):
                         os.remove(file_path)
                         logger.info(f"Deleted image file: {file_path}")
@@ -1136,14 +1154,15 @@ def delete_picture(user_id: str, item_id: str, picture_id: str) -> bool:
 
                 # Delete the physical file if it exists
                 if deleted_filename:
-                    try:
-                        file_path = os.path.join(ASTRODEX_IMAGES_DIR, deleted_filename)
-                        if os.path.exists(file_path):
-                            os.remove(file_path)
-                            logger.info(f"Deleted image file: {file_path}")
-                    except (OSError, IOError) as e:
-                        logger.error(f"Error deleting image file {deleted_filename}: {e}")
-                        # Continue anyway - the metadata is still removed
+                    file_path = _resolve_image_file_path(deleted_filename)
+                    if file_path:
+                        try:
+                            if os.path.exists(file_path):
+                                os.remove(file_path)
+                                logger.info(f"Deleted image file: {file_path}")
+                        except (OSError, IOError) as e:
+                            logger.error(f"Error deleting image file {deleted_filename}: {e}")
+                            # Continue anyway - the metadata is still removed
 
                 return save_user_astrodex(user_id, astrodex)
 
