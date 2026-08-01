@@ -179,7 +179,7 @@ function _buildPictureCombinationOptions(forceIncludeId, selectedId) {
  * parts were actually used for this specific photo (purely informational; combination_id itself
  * is what drives the "best combination" stats). Prechecks whatever `usedComponents` (a
  * previously-saved combination_used_components snapshot) recorded, defaulting to all-checked for
- * a freshly-selected combination. */
+ * a freshly-selected combination, except filters which default to unchecked. */
 function _buildCombinationComponentsChecklist(prefix, combo, usedComponents) {
     const wrap = document.createElement('div');
     wrap.className = 'd-flex flex-wrap gap-3 mt-1';
@@ -215,7 +215,7 @@ function _buildCombinationComponentsChecklist(prefix, combo, usedComponents) {
         const name = _findAstrodexEquipmentName('cameras', combo.guide_camera_id);
         addCheckbox(`${prefix}-combo-used-guide-camera`, used.guide_camera !== false, name || i18n.t('equipment.form_guide_camera'));
     }
-    const usedFilterIds = used.filter_ids || combo.filter_ids || [];
+    const usedFilterIds = used.filter_ids || [];
     (combo.filter_ids || []).forEach((filterId) => {
         const name = _findAstrodexEquipmentName('filters', filterId);
         const input = document.createElement('input');
