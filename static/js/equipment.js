@@ -1933,6 +1933,8 @@ async function deleteEquipment(type, id) {
                 showMessage('error', i18n.t('equipment.delete_blocked_by_picture'));
             } else if (response.status === 409 && result.error === 'in_use_by_plan') {
                 showMessage('error', i18n.t('equipment.delete_blocked_by_plan'));
+            } else if (response.status === 409 && result.error === 'in_use_by_session') {
+                showMessage('error', i18n.t('equipment.delete_blocked_by_session'));
             } else {
                 showMessage('error', i18n.t('equipment.failed_to_delete_item'));
             }

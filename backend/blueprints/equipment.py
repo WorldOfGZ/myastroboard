@@ -887,6 +887,8 @@ def delete_combination(combination_id):
             return jsonify({'error': 'in_use_by_picture'}), 409
         elif reason == 'in_use_by_plan':
             return jsonify({'error': 'in_use_by_plan'}), 409
+        elif reason == 'in_use_by_session':
+            return jsonify({'error': 'in_use_by_session'}), 409
         else:
             return jsonify({'error': 'Failed to delete combination'}), 500
     except Exception as e:

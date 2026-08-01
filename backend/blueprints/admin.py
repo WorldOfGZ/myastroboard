@@ -142,6 +142,7 @@ def backup_download_api():
       - data/users.json
       - data/astrodex/  (full directory)
       - data/equipments/ (full directory)
+      - data/observation_sessions/ (full directory)
     The archive is built in memory so no temporary file is left on disk.
     """
     # Evolutive list: each entry is (source_path, archive_name, is_dir)
@@ -151,6 +152,7 @@ def backup_download_api():
         (os.path.join(DATA_DIR, 'app_settings.json'), 'app_settings.json', False),
         (os.path.join(DATA_DIR, 'astrodex'), 'astrodex', True),
         (os.path.join(DATA_DIR, 'equipments'), 'equipments', True),
+        (os.path.join(DATA_DIR, 'observation_sessions'), 'observation_sessions', True),
     ]
     try:
         buf = io.BytesIO()
@@ -184,7 +186,8 @@ def backup_restore_api():
     """
     Restore user data from a previously created backup ZIP archive.
     The ZIP must contain the files/folders produced by /api/backup/download.
-    Supported top-level entries: config.json, users.json, astrodex/, equipments/
+    Supported top-level entries: config.json, users.json, astrodex/, equipments/,
+    observation_sessions/
     Unknown entries are silently ignored (forward-compatible).
 
     Validation performed before any write:
@@ -198,8 +201,9 @@ def backup_restore_api():
     endpoint is admin-only and operates on the user's own data.
 
     Restore is atomic per directory:
-      - astrodex/ and equipments/ are cleared before the new files are written
-        so stale files from the previous state do not survive the restore.
+      - astrodex/, equipments/ and observation_sessions/ are cleared before the new
+        files are written so stale files from the previous state do not survive the
+        restore.
       - config.json and users.json are written directly (they are complete files).
     """
     # Evolutive allow-list: archive paths that are accepted during restore
@@ -211,9 +215,10 @@ def backup_restore_api():
         'app_settings.json': os.path.join(DATA_DIR, 'app_settings.json'),
         'astrodex': os.path.join(DATA_DIR, 'astrodex'),
         'equipments': os.path.join(DATA_DIR, 'equipments'),
+        'observation_sessions': os.path.join(DATA_DIR, 'observation_sessions'),
     }
     # Directories that must be cleared before restoring their contents
-    RESTORE_CLEAR_DIRS = {'astrodex', 'equipments'}
+    RESTORE_CLEAR_DIRS = {'astrodex', 'equipments', 'observation_sessions'}
     # JSON files whose content must be valid JSON
     RESTORE_VALIDATE_JSON = {'config.json', 'users.json', 'app_settings.json'}
 
@@ -277,7 +282,8 @@ def backup_restore_api():
                 jsonify(
                     {
                         'error': 'Archive contains no recognised backup entries '
-                        '(expected config.json, users.json, app_settings.json, astrodex/ or equipments/)'
+                        '(expected config.json, users.json, app_settings.json, astrodex/, '
+                        'equipments/ or observation_sessions/)'
                     }
                 ),
                 400,

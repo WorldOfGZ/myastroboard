@@ -1643,11 +1643,26 @@ function renderPlanMyNight(payload) {
         }
     }
 
+    // "Log this session" (v1.3) gets its own row rather than joining actionsRow: that
+    // block's export buttons are gated on state === 'current', while logging what you
+    // actually captured is mostly done on a 'previous' plan (the night is over).
+    const logRow = document.createElement('div');
+    logRow.className = 'd-flex gap-2 mb-3 flex-wrap align-items-center';
+    if (plan && (plan.entries?.length || 0) > 0 && typeof importObservationSessionFromPlan === 'function') {
+        const logButton = makePlanActionButton('plan_my_night.log_this_session', 'btn btn-info btn-sm', async () => {
+            await importObservationSessionFromPlan(currentPlanCombinationId || 'default', true);
+        });
+        logRow.appendChild(logButton);
+    }
+
     if (toolbar.children.length > 0) {
         container.appendChild(toolbar);
     }
     if (actionsRow.children.length > 0) {
         container.appendChild(actionsRow);
+    }
+    if (logRow.children.length > 0) {
+        container.appendChild(logRow);
     }
 
     if (state === 'none' || !plan) {

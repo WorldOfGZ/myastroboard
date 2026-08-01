@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify
 
 from observation import astrodex
 from cache import cache_store
+from observation import observation_sessions
 from observation import plan_my_night
 from utils.auth import user_manager, login_required, admin_required, get_current_user
 from utils.constants import MAX_LOCATIONS
@@ -425,6 +426,10 @@ def location_references_api(location_id):
         attributed_users = _location_admin_view(config, preset)['attributed_to']
         astrodex_count = astrodex.count_pictures_for_location(location_id)
         plan_count = plan_my_night.count_plans_for_location(location_id)
+        # Informational only: like Astrodex pictures, sessions are never cascade-deleted
+        # nor orphan-flagged - a session is a historical record whose frozen
+        # location_name snapshot stays valid once the preset is gone.
+        session_count = observation_sessions.count_sessions_for_location(location_id)
         return jsonify(
             {
                 'location_id': location_id,
@@ -432,6 +437,7 @@ def location_references_api(location_id):
                 'attributed_users': attributed_users,
                 'astrodex_pictures': astrodex_count,
                 'plan_my_night_plans': plan_count,
+                'observation_sessions': session_count,
             }
         )
     except Exception as e:

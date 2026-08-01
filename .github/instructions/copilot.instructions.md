@@ -60,6 +60,7 @@ myastroboard/
 │   │   ├── astronomy.py             # /api/sky-widget, /api/sun/*, /api/events/*, /api/astro/*, /api/tonight/best-window
 │   │   ├── plan_my_night.py         # /api/plan-my-night/*
 │   │   ├── astrodex.py              # /api/astrodex/*, /api/beginner-catalog
+│   │   ├── observation_sessions.py  # /api/observation-sessions/* (Observation Log, v1.3)
 │   │   ├── equipment.py             # /api/equipment/*
 │   │   └── skytonight_api.py        # /api/skytonight/*, /api/catalogues (still skytonight_-prefixed; see backend/skytonight/ below)
 │   ├── astroweather/                # Astronomical/atmospheric forecast services
@@ -83,6 +84,7 @@ myastroboard/
 │   │   ├── catalogue_aliases.py         # Catalogue alias helpers (legacy, kept for astrodex cross-reference)
 │   │   ├── catalogue_collection.py       # Astrodex Catalogue Collection: pairs a catalogue with the user's Astrodex (caught state, card images, filter/sort/paging)
 │   │   ├── object_info.py               # Single-object coordinate and catalogue lookup
+│   │   ├── observation_sessions.py      # Observation Log (v1.3) storage and business logic - private per-night session/entry records
 │   │   ├── plan_my_night.py             # Plan My Night storage and business logic
 │   │   ├── planetary_events.py          # Planetary events cache service
 │   │   ├── sidereal_time.py             # Sidereal time service
@@ -114,6 +116,7 @@ myastroboard/
 │   ├── config.json                  # Main app config
 │   ├── equipments/                  # Equipment profile JSON files
 │   ├── myastroboard.log             # Application log file
+│   ├── observation_sessions/        # Observation Log JSON (one <user_id>_sessions.json per user)
 │   ├── projects/                    # User project data
 │   ├── skytonight/                  # SkyTonight runtime data (see below)
 │   └── users.json                   # User accounts + preferences
@@ -156,6 +159,7 @@ myastroboard/
 │   │   ├── lunar_eclipse.js         # Lunar eclipse chart
 │   │   ├── metrics.js               # System metrics UI
 │   │   ├── moon.js                  # Moon phase UI
+│   │   ├── observation_sessions.js  # Observation Log UI (Astrodex sub-tab)
 │   │   ├── plan_my_night.js         # Plan My Night UI
 │   │   ├── skytonight.js            # SkyTonight UI (tables, sky map, alttime popup)
 │   │   ├── skytonightScheduler.js   # SkyTonight scheduler status UI
@@ -443,6 +447,7 @@ Full rationale and examples: [CONTRIBUTING.md#inline-style-attribute](../../CONT
     - Object lookup: `GET /api/object/<path:identifier>`
     - Astrodex helpers: `GET /api/astrodex/catalogue-lookup`
     - Plan My Night helpers: `GET /api/plan-my-night/list`, `PATCH /api/plan-my-night`, `DELETE /api/plan-my-night/clear-all`
+    - Observation Log (v1.3, self-scoped; see `docs/OBSERVATION_LOG.md`): `GET/POST /api/observation-sessions`, `GET/PUT/DELETE /api/observation-sessions/<session_id>`, `POST /api/observation-sessions/from-plan`, `POST /api/observation-sessions/<session_id>/entries`, `PUT/DELETE /api/observation-sessions/<session_id>/entries/<entry_id>`, `POST /api/observation-sessions/<session_id>/entries/<entry_id>/astrodex-picture`. Adding/updating an entry with `frame_count > 0` auto-registers its target in Astrodex (never auto-reversed); attaching the picture stays a manual step reusing `POST /api/astrodex/upload`.
     - SkyTonight debug helper: `GET /api/skytonight/target-debug`
     - Localized manifest route: `GET /manifest.<lang>.webmanifest` (public)
 - **Error Handling**: Return appropriate HTTP status codes with JSON error objects
@@ -467,6 +472,7 @@ Full rationale and examples: [CONTRIBUTING.md#inline-style-attribute](../../CONT
   - **Comets**: Comets table
   - **Logs**: Last calculation log viewer
   - **Reports**: Formatted target reports
+- **Astrodex sub-tabs**: Astrodex, Plan My Night, **Observation Log** (5th sub-tab, v1.3 - the "Log" step of Plan -> Observe -> Log -> Astrodex), Photo Map, Catalogue Collection
 - **Altitude-vs-time popup**: Opens per-target modal with Chart.js line chart (astronomical night window, observable zone band); data fetched from `/api/skytonight/alttime/<id>`; chart destroyed on modal close
 - **Styling**: Modern gradient design, smooth animations, accessibility-compliant
 - **Why**: Professional appearance, better UX, easier navigation

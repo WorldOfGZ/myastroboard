@@ -6,13 +6,13 @@ This directory contains comprehensive unit tests for the MyAstroBoard applicatio
 
 The test suite mirrors `backend/`'s package layout, one subdirectory per package:
 
-- **`blueprints/`**: Flask route/API-level tests (`test_app_routes.py` is the main route-coverage file; per-domain files for astrodex, connectors, plan-my-night, push, skytonight, sky-widget, and the `test_route_inventory.py` API-contract guard)
+- **`blueprints/`**: Flask route/API-level tests (`test_app_routes.py` is the main route-coverage file; per-domain files for astrodex, connectors, observation-sessions, plan-my-night, push, skytonight, sky-widget, and the `test_route_inventory.py` API-contract guard)
 - **`utils/`**: Cross-cutting support modules — config (`test_config.py`, `test_locations.py`), auth (`test_auth.py`), i18n (`test_i18n_utils.py`), logging (`test_logging_config.py`), push (`test_push_manager.py`, `test_push_scheduler.py`), metrics, version checking, txtconf loading, and shared utilities (`test_utils.py`)
 - **`cache/`**: Shared JSON cache store and background scheduler/updater (`test_cache_store.py`, `test_cache_scheduler.py`, `test_cache_updater.py`)
 - **`skytonight/`**: SkyTonight calculation pipeline — bodies, calculator, catalogue builder, comets, models, scheduler, storage, targets
 - **`astroweather/`**: Astronomical/atmospheric forecast services — moon/sun phases, eclipses, aurora, horizon graph, seeing forecast
 - **`weather/`**: Weather forecast clients and astrophotography weather analysis (sky quality/Bortle, Open-Meteo, weather_astro)
-- **`observation/`**: Observation logbook, planning, and events business logic — astrodex, beginner catalog, object info, plan-my-night, planetary/solar-system events, sidereal time
+- **`observation/`**: Observation logbook, planning, and events business logic — astrodex, beginner catalog, object info, observation sessions (Observation Log), plan-my-night, planetary/solar-system events, sidereal time
 - **`space/`**: ISS/CSS pass prediction and spaceflight tracking
 - **`equipment/`**: Equipment profiles and the exposure-calculator formula
 - **`connectors/`**: AllSky connector

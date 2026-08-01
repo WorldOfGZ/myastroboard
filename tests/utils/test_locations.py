@@ -541,10 +541,14 @@ class TestLocationsAPI:
             assert upd2.status_code == 200
             assert upd2.get_json()['cache_reset'] is True
 
-            # References check
+            # References check - one count per feature that can reference a preset
             refs = client_admin.get(f'/api/locations/{loc_id}/references').get_json()
             assert refs['location_id'] == loc_id
             assert refs['is_install_default'] is False
+            assert refs['astrodex_pictures'] == 0
+            assert refs['plan_my_night_plans'] == 0
+            # Observation Log sessions are reported but never cascade-deleted (v1.3)
+            assert refs['observation_sessions'] == 0
         finally:
             # Delete
             deleted = client_admin.delete(f'/api/locations/{loc_id}')

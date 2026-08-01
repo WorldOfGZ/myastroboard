@@ -1,3 +1,31 @@
+#### Observation Log
+
+A new **Observation Log** sub-tab (under Astrodex, next to Plan My Night) completes the
+`Plan -> Observe -> Log -> Astrodex` loop: a private, chronological record of what you actually
+captured each night, rather than what you planned to.
+
+Each **session** holds the night's date, real start/end times, location, equipment combination and
+sky conditions (SQM, seeing, transparency — the last two on 7Timer's own 1-8 scales, prefilled from
+the live forecast when you log the same day). Inside it, one **entry** per target records the real
+numbers: frame count, sub-exposure length, integration minutes, a 0-5 star rating and notes. The
+list view filters and sorts by date range, location, equipment and rating, and each entry can open
+the same altitude-vs-time chart used by SkyTonight and Plan My Night.
+
+Two things connect it to Astrodex, deliberately differently:
+
+- **Catalogue membership is automatic.** As soon as an entry has a frame count, its target is
+  registered in your Astrodex in the background — no button to forget. It is never auto-removed
+  afterwards: once catalogued, always catalogued.
+- **Attaching the actual photo stays a manual step**, because stacking and processing genuinely
+  happen days later. The image is stored in Astrodex, never in the log.
+
+Plan My Night gains a **"Log this session"** button that copies a plan's targets straight into a
+session — and it works on last night's expired plan too, which is when you actually sit down to log.
+Re-importing the same plan never duplicates targets.
+
+Sessions are always private (no sharing, no merged view — this is a personal logbook, not a second
+Astrodex) and are included in the admin backup ZIP. Full details in `docs/OBSERVATION_LOG.md`.
+
 #### Input validation audit
 
 A full pass over user-facing inputs closed several gaps where the backend accepted values the UI never would have sent:
@@ -10,5 +38,7 @@ A full pass over user-facing inputs closed several gaps where the backend accept
 
 #### Various changes
 
+- Equipment combinations now also refuse deletion while referenced by an Observation Log session (new `in_use_by_session` reason, alongside the existing picture/plan guards)
+- The location pre-delete report (`GET /api/locations/<id>/references`) gained an `observation_sessions` count. Like Astrodex pictures, sessions are never cascade-deleted when a preset is removed — they keep their frozen location name
 - Add "Milky Way" and "Nightscape / Wide-field" on astrodex type
 - The Custom Horizon Profile editor (Locations) now has a "How does this work?" diagram and step-by-step instructions for measuring your real horizon (compass app, fist-width/clinometer angle estimate, bracketing sharp edges)

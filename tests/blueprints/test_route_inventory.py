@@ -171,6 +171,18 @@ EXPECTED_ROUTES = {
     ('/api/astrodex/map', ('GET',)),
     ('/api/astrodex/upload', ('POST',)),
 
+    # --- observation log (v1.3) ---
+    ('/api/observation-sessions', ('GET',)),
+    ('/api/observation-sessions', ('POST',)),
+    ('/api/observation-sessions/from-plan', ('POST',)),
+    ('/api/observation-sessions/<session_id>', ('DELETE',)),
+    ('/api/observation-sessions/<session_id>', ('GET',)),
+    ('/api/observation-sessions/<session_id>', ('PUT',)),
+    ('/api/observation-sessions/<session_id>/entries', ('POST',)),
+    ('/api/observation-sessions/<session_id>/entries/<entry_id>', ('DELETE',)),
+    ('/api/observation-sessions/<session_id>/entries/<entry_id>', ('PUT',)),
+    ('/api/observation-sessions/<session_id>/entries/<entry_id>/astrodex-picture', ('POST',)),
+
     # --- equipment ---
     ('/api/equipment/accessories', ('GET',)),
     ('/api/equipment/accessories', ('POST',)),

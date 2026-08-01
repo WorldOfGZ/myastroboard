@@ -1476,16 +1476,20 @@ def delete_combination(user_id: str, combination_id: str) -> Tuple[bool, Optiona
     """Delete an equipment combination.
 
     Refuses deletion while any Astrodex picture (any user) still references this combination
-    ('in_use_by_picture'), or any Plan My Night plan (any user) is pinned to it
-    ('in_use_by_plan').
+    ('in_use_by_picture'), any Plan My Night plan (any user) is pinned to it
+    ('in_use_by_plan'), or any Observation Log session (any user) references it
+    ('in_use_by_session').
     """
     from observation.astrodex import count_pictures_for_combination
     from observation.plan_my_night import count_plans_for_combination
+    from observation.observation_sessions import count_sessions_for_combination
 
     if count_pictures_for_combination(combination_id) > 0:
         return False, 'in_use_by_picture'
     if count_plans_for_combination(combination_id) > 0:
         return False, 'in_use_by_plan'
+    if count_sessions_for_combination(combination_id) > 0:
+        return False, 'in_use_by_session'
     try:
         data = load_user_combinations(user_id)
         data['items'] = [item for item in data['items'] if item['id'] != combination_id]

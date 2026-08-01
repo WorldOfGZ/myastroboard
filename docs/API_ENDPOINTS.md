@@ -199,6 +199,19 @@ This page lists the HTTP routes currently declared across `backend/blueprints/*.
 - `GET /api/plan-my-night/export.csv`
 - `GET /api/plan-my-night/export.pdf`
 
+## Observation Log (v1.3 - see docs/OBSERVATION_LOG.md)
+
+- `GET /api/observation-sessions` - Own sessions (newest observation date first) + minimal stats
+- `POST /api/observation-sessions`
+- `GET /api/observation-sessions/<session_id>`
+- `PUT /api/observation-sessions/<session_id>`
+- `DELETE /api/observation-sessions/<session_id>` - Deletes the session and its entries; linked Astrodex items/pictures are never touched
+- `POST /api/observation-sessions/from-plan` - Seed/merge a session from a Plan My Night plan (works on `current` **and** `previous` plans)
+- `POST /api/observation-sessions/<session_id>/entries` - Side effect: auto-registers the target in Astrodex when `frame_count > 0`
+- `PUT /api/observation-sessions/<session_id>/entries/<entry_id>` - Same auto-registration whenever `frame_count` newly becomes `> 0`
+- `DELETE /api/observation-sessions/<session_id>/entries/<entry_id>`
+- `POST /api/observation-sessions/<session_id>/entries/<entry_id>/astrodex-picture` - Manual attach of an image already uploaded through `POST /api/astrodex/upload`
+
 ## Equipment
 
 - `GET /api/equipment/telescopes`
