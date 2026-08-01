@@ -74,7 +74,8 @@ class TestAuth:
         with app.test_client() as anonymous:
             assert anonymous.get('/api/observation-sessions').status_code == 401
             assert anonymous.post('/api/observation-sessions', json={'date': '2026-01-01'}).status_code == 401
-            assert anonymous.delete('/api/observation-sessions/x').status_code == 401
+            response = anonymous.delete('/api/observation-sessions/x')
+            assert response.status_code == 401
 
     def test_mutations_require_user_role(self, isolated_storage):
         """A read-only account can list sessions but not create them."""
@@ -142,8 +143,11 @@ class TestSessionRoutes:
     def test_delete_session(self, client):
         """Deleting removes the session; deleting again is a 404."""
         session = _create_session(client)
-        assert client.delete(f"/api/observation-sessions/{session['id']}").status_code == 200
-        assert client.delete(f"/api/observation-sessions/{session['id']}").status_code == 404
+        url = f"/api/observation-sessions/{session['id']}"
+        first = client.delete(url)
+        assert first.status_code == 200
+        second = client.delete(url)
+        assert second.status_code == 404
 
     def test_sessions_are_private_to_their_owner(self, client, admin_user_id):
         """Another user's session is invisible, not just unlisted."""
@@ -260,8 +264,10 @@ class TestEntryRoutes:
         session = _create_session(client)
         entry = _add_entry(client, session['id']).get_json()['data']
         url = f"/api/observation-sessions/{session['id']}/entries/{entry['id']}"
-        assert client.delete(url).status_code == 200
-        assert client.delete(url).status_code == 404
+        first = client.delete(url)
+        assert first.status_code == 200
+        second = client.delete(url)
+        assert second.status_code == 404
 
 
 class TestAutomaticAstrodexLink:
