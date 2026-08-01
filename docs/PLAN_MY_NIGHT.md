@@ -50,6 +50,22 @@ A plan is **pinned to the user's active location at creation time** (`location_i
 
 Plans are daily/ephemeral, so the pre-combination (telescope-keyed) plan schema is never migrated: on every app startup, any plan file whose `plan` dict still contains the old `telescope_id` key is deleted outright rather than converted.
 
+## Log this session (v1.3)
+
+Once a plan has targets, a **Log this session** button copies them into an Observation Log session
+(`POST /api/observation-sessions/from-plan`), then switches to the Observation Log sub-tab.
+
+- It works on **both** `current` and `previous` plans. A plan flips to `previous` the moment
+  `night_end` passes — which is exactly when a user sits down to log what they actually captured, so
+  the button is deliberately *not* gated the way the `current`-only CSV/PDF export buttons are.
+  Importing is a read operation from the plan's perspective; the plan itself is never modified.
+- Re-importing is idempotent: a plan entry already imported into the target session is skipped, so
+  pressing the button twice never duplicates targets.
+- If exactly one session created today already came from this same plan, the user is offered a merge
+  into it instead of starting a second session for the same night.
+
+See [OBSERVATION_LOG.md](OBSERVATION_LOG.md#import-from-plan) for the full contract.
+
 ## Exports
 
 - CSV export: `GET /api/plan-my-night/export.csv`

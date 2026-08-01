@@ -510,6 +510,9 @@ function switchSubTab(parentTab, subtabName, options = {}) {
             loadSeeingWeek();
             loadPlanMyNight();
             break; // Plan My Night tab
+        case 'observation-log':
+            if (typeof loadObservationSessions === 'function') loadObservationSessions();
+            break; // Astrodex tab
         case 'photo-map':
             if (typeof loadAstrodexPhotoMap === 'function') loadAstrodexPhotoMap();
             break; // Astrodex tab

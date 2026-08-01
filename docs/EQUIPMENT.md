@@ -206,11 +206,12 @@ Both respect the same visibility as the rest of Astrodex: with `config['astrodex
 
 ### Deletion
 
-A combination can't be deleted while it's still referenced by any Astrodex picture (any user) or pinned to
-any Plan My Night plan (any user) - the delete-guard mirrors the one on individual equipment items above.
-This is checked in addition to the component-level guard: deleting the *equipment inside* a combination is
-blocked separately (see [Disabling equipment](#disabling-equipment)) while deleting the *combination
-itself* is blocked by its pictures or plans.
+A combination can't be deleted while it's still referenced by any Astrodex picture (any user), pinned to
+any Plan My Night plan (any user), or referenced by any Observation Log session (any user) - the
+delete-guard mirrors the one on individual equipment items above. This is checked in addition to the
+component-level guard: deleting the *equipment inside* a combination is blocked separately (see
+[Disabling equipment](#disabling-equipment)) while deleting the *combination itself* is blocked by its
+pictures, plans or sessions (see [OBSERVATION_LOG.md](OBSERVATION_LOG.md#deletion-and-reference-counting)).
 
 ---
 

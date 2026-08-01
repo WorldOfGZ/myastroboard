@@ -103,7 +103,7 @@ active/default. An unattributed, unused preset costs nothing until someone selec
 | `GET` | `/api/locations` | admin | List all presets with attribution info + `max_locations` |
 | `POST` | `/api/locations` | admin | Create preset (enforces `MAX_LOCATIONS`) |
 | `PUT` | `/api/locations/<id>` | admin | Edit preset; coordinate/timezone change resets only that preset's caches. `is_install_default: true` promotes atomically. |
-| `GET` | `/api/locations/<id>/references` | admin | Pre-delete check: attributed users, Astrodex item count, Plan My Night plan count |
+| `GET` | `/api/locations/<id>/references` | admin | Pre-delete check: attributed users, Astrodex item count, Plan My Night plan count, Observation Log session count (`observation_sessions`, informational only) |
 | `DELETE` | `/api/locations/<id>?plans=cascade\|orphan` | admin | Delete (blocked while install default). `cascade` (default) deletes pinned plans; `orphan` keeps them with a stale-location banner. |
 | `POST` | `/api/locations/<id>/attribute` | admin | `{user_ids: [...]}` — attach to exactly these users |
 | `GET` | `/api/locations/mine` | any user | Caller's attributed locations (id/name/bortle/sqm only — no live sky data), active + default ids |
@@ -269,7 +269,11 @@ keys include the location id so two watched locations don't suppress each other.
    frozen `location_name` snapshot (`location_id` just stops resolving live).
 4. **Plan My Night** plans pinned to the preset are cascade-deleted by default
    (`?plans=orphan` keeps them; the UI then shows the stale-location banner).
-5. The preset's cache slots and tracked signature are dropped
+5. **Observation Log sessions are never touched either** — like Astrodex pictures, a
+   session is a historical record and keeps its frozen `location_name` snapshot. The
+   pre-delete report counts them under `observation_sessions` for information only (see
+   [OBSERVATION_LOG.md](OBSERVATION_LOG.md#deletion-and-reference-counting)).
+6. The preset's cache slots and tracked signature are dropped
    (`cache_store.drop_location_caches`).
 
 ## Migration from single-location installs

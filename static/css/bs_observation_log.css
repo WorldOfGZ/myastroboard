@@ -1,0 +1,65 @@
+/* CSS for the Observation Log (v1.3) sub-tab */
+
+.observation-log-stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--bs-primary);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.observation-log-session-card {
+    cursor: pointer;
+    transition: box-shadow var(--transition-normal), border-color var(--transition-normal);
+}
+
+.observation-log-session-card:hover,
+.observation-log-session-card:focus-within {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 2px var(--bs-primary);
+}
+
+.observation-log-session-date {
+    font-size: 1.1rem;
+    font-weight: var(--font-bold);
+    color: var(--text-primary);
+}
+
+.observation-log-meta {
+    color: var(--bs-secondary);
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
+}
+
+.observation-log-entry-row {
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--bg-light);
+}
+
+.observation-log-entry-name {
+    font-weight: var(--font-semibold);
+    overflow-wrap: anywhere;
+}
+
+/* Interactive 0-5 half-step star. Sized to a full 44x44px touch target (not just the
+   glyph) so left-half/right-half selection stays reachable on a touchscreen - same
+   rule as astrodex.js's own rating widget. */
+.observation-log-rating-star {
+    cursor: pointer;
+    font-size: 1.75rem;
+    min-width: 44px;
+    min-height: 44px;
+    touch-action: manipulation;
+    user-select: none;
+}
+
+.observation-log-location-map {
+    height: 200px;
+}
+
+.observation-log-empty {
+    color: var(--bs-secondary);
+    padding: 2rem 1rem;
+    text-align: center;
+}

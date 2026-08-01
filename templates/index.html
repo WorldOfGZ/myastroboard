@@ -52,6 +52,7 @@
     <link rel="stylesheet" href="/static/css/bs_astrodex_map.css?v={{ version }}" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="/static/css/bs_astrodex_collection.css?v={{ version }}" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="/static/css/bs_plan_my_night.css?v={{ version }}" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="/static/css/bs_observation_log.css?v={{ version }}" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="/static/css/bs_equipment.css?v={{ version }}" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="/static/css/bs_metrics.css?v={{ version }}" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="/static/css/bs_events.css?v={{ version }}" media="print" onload="this.media='all'">
@@ -67,6 +68,7 @@
         <link rel="stylesheet" href="/static/css/bs_astrodex_map.css?v={{ version }}">
         <link rel="stylesheet" href="/static/css/bs_astrodex_collection.css?v={{ version }}">
         <link rel="stylesheet" href="/static/css/bs_plan_my_night.css?v={{ version }}">
+        <link rel="stylesheet" href="/static/css/bs_observation_log.css?v={{ version }}">
         <link rel="stylesheet" href="/static/css/bs_equipment.css?v={{ version }}">
         <link rel="stylesheet" href="/static/css/bs_metrics.css?v={{ version }}">
         <link rel="stylesheet" href="/static/css/bs_events.css?v={{ version }}">
@@ -672,6 +674,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link sub-tab-btn" href="#" data-subtab="observation-log">
+                            <i class="bi bi-journal-text text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="navbar.observation_log">Observation Log</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link sub-tab-btn" href="#" data-subtab="photo-map">
                             <i class="bi bi-geo-alt-fill text-danger icon-inline" aria-hidden="true"></i> <span data-i18n="astrodex.photo_map_tab">Photo Map</span>
                         </a>
@@ -774,6 +781,20 @@
                     <div id="plan-moon-calendar" class="mb-3"></div>
                     <div id="plan-seeing-week" class="mb-3"></div>
                     <div id="plan-my-night-display"></div>
+                </div>
+            </div>
+
+            <!-- Observation Log Sub-tab (v1.3) -->
+            <div id="observation-log-subtab" class="sub-tab-content">
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <h2>
+                        <i class="bi bi-journal-text text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="observation_log.title">Observation Log</span>
+                    </h2>
+                    <p class="text-muted" data-i18n="observation_log.intro">Log what you actually captured on each night - Plan, Observe, Log, Astrodex.</p>
+                    <div id="observation-log-stats" class="row row-cols-2 row-cols-md-4 g-3"></div>
+                </div>
+                <div class="shadow p-2 mb-3 rounded bg-sub-container">
+                    <div id="observation-log-display"></div>
                 </div>
             </div>
 
@@ -3269,6 +3290,7 @@
     <script src="/static/js/astrodex.js?v={{ version }}"></script>
     <script src="/static/js/plan_my_night.js?v={{ version }}"></script>
     <script src="/static/js/equipment.js?v={{ version }}"></script>
+    <script src="/static/js/observation_sessions.js?v={{ version }}"></script>
     <script src="/static/js/config.js?v={{ version }}"></script>
     <script src="/static/js/locations.js?v={{ version }}"></script>
     <script src="/static/js/astrodex_map.js?v={{ version }}"></script>
