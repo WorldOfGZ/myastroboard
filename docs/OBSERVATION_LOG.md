@@ -131,7 +131,7 @@ numeric field. Cross-reference Astrodex only for gallery/photo display.
 | `id` | str (uuid4) | |
 | `name`, `catalogue`, `type`, `constellation`, `ra`, `dec`, `mag`, `size` | mirrors Plan My Night's `_build_target_payload()` | **Frozen snapshot at add time** - never re-resolved live against SkyTonight |
 | `catalogue_group_id`, `catalogue_aliases` | str / dict | Cross-catalogue identity (dedup + alias display), same purpose as in Plan My Night entries |
-| `alttime_file` | str \| null | Key (not the embedded series) for the `GET /api/skytonight/alttime/<id>?location_id=` popup chart, exactly like Plan My Night |
+| `alttime_file` | str \| null | Key (not the embedded series) for the `GET /api/skytonight/alttime/<id>?location_id=` popup chart, exactly like Plan My Night. The underlying JSON is recalculated for "tonight" on every SkyTonight run and old files are purged, so the frontend only shows the chart button while `now` is within the session's `start_time`/`end_time` window - past that, the file no longer represents the logged observation |
 | `source_plan_entry_id` | str \| null | Set only on Import from Plan; makes re-import idempotent |
 | `frame_count` | int \| null | |
 | `sub_exposure_seconds` | float \| null | Optional; when present alongside `frame_count`, the frontend auto-computes `integration_minutes` as a convenience. Never recomputed server-side |

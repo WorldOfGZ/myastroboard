@@ -893,6 +893,18 @@ function _obsBuildEntryRow(session, entry) {
     return row;
 }
 
+/** The altitude-time chart is only meaningful while the session is ongoing: the
+ * cached alttime file backing it gets recalculated for "tonight" on every
+ * SkyTonight run, so it no longer reflects the observation once the window closes. */
+function _obsIsWithinObservationWindow(session) {
+    if (!session?.start_time || !session?.end_time) return false;
+    const start = new Date(session.start_time);
+    const end = new Date(session.end_time);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return false;
+    const now = new Date();
+    return now >= start && now <= end;
+}
+
 function _obsBuildEntryActions(session, entry) {
     const actions = document.createElement('div');
     actions.className = 'd-flex flex-wrap align-items-center gap-2 mt-2';
@@ -912,7 +924,7 @@ function _obsBuildEntryActions(session, entry) {
         actions.appendChild(badge);
     }
 
-    if (entry.alttime_file && typeof showAlttimePopup === 'function') {
+    if (entry.alttime_file && typeof showAlttimePopup === 'function' && _obsIsWithinObservationWindow(session)) {
         const chartButton = document.createElement('button');
         chartButton.type = 'button';
         chartButton.className = 'btn btn-info btn-sm';
