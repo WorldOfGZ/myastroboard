@@ -30,8 +30,11 @@ Since shipping: importing a Plan My Night plan now carries its night start/end s
 session; "Add target" was redone on Astrodex's own add-item pattern (dedicated catalogue search box,
 Object type/Constellation as dropdowns); frame count, sub-exposure and integration minutes now
 auto-fill each other (fill in any two, the third is computed); a target's attached photo shows as a
-thumbnail on its entry, plus a "Photos" button opens every photo in the session; and the header's
-4th stat is now the average rating rather than a raw frame-count total.
+thumbnail on its entry, plus a "Photos" button opens every photo in the session; the header's
+4th stat is now the average rating rather than a raw frame-count total; and both a session and the
+whole log can now be exported to a print-friendly PDF (per-session button on the detail view; a
+list-view button opens a date-range + sort-order modal for a cover + summary + all-sessions export),
+styled to match Plan My Night's own PDF export and including each target's attached photo.
 
 #### Astrodex picture capture fields
 

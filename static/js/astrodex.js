@@ -1699,7 +1699,7 @@ async function showAddPictureModal(itemId) {
             ${_buildPictureSectionHeaderHtml(i18n.t('astrodex.section_photo_info'))}
             <div class="col-md-6">
                 <label for="picture-exposition" class="form-label">${i18n.t('astrodex.exposition_time')}</label>
-                <input type="number" class="form-control" id="picture-exposition" min="0" step="1" placeholder="180">
+                <input type="number" class="form-control" id="picture-exposition" min="0" step="1">
             </div>
             <div class="col-md-6">
                 <label for="picture-frames" class="form-label">${i18n.t('astrodex.number_of_frames')}</label>
@@ -2006,7 +2006,7 @@ async function showEditPictureModal(itemId, pictureId) {
             ` : ''}
             <div class="col-md-6">
                 <label for="edit-picture-exposition" class="form-label">${i18n.t('astrodex.exposition_time')}</label>
-                <input type="number" class="form-control" id="edit-picture-exposition" min="0" step="1" placeholder="180" value="${expositionInputValue}">
+                <input type="number" class="form-control" id="edit-picture-exposition" min="0" step="1" value="${expositionInputValue}">
             </div>
             <div class="col-md-6">
                 <label for="edit-picture-frames" class="form-label">${i18n.t('astrodex.number_of_frames')}</label>

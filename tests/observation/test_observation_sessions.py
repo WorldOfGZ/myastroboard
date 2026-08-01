@@ -571,3 +571,140 @@ class TestReferenceCounts:
         collections = observation_sessions.load_all_users_sessions({user_id: 'tester'})
         assert {collection['user_id'] for collection in collections} == {user_id, other_user}
         assert all(len(collection['sessions']) == 1 for collection in collections)
+
+
+class _DummyI18n:
+    """Every t() call in the PDF renderer falls back to its own English default via
+    ``t(key) or 'default'`` - returning None here exercises exactly that path without
+    needing a full translation table."""
+
+    def t(self, key, **kwargs):
+        return None
+
+
+class TestGenerateSessionPdf:
+    """backend/observation/observation_sessions.py's generate_session_pdf()."""
+
+    def test_no_entries(self):
+        import matplotlib
+
+        matplotlib.use('Agg', force=True)
+
+        session = {'id': 's1', 'date': '2026-07-14', 'entries': []}
+        result = observation_sessions.generate_session_pdf(session, {}, _DummyI18n())
+
+        assert hasattr(result, 'getvalue')
+        assert result.getvalue().startswith(b'%PDF')
+
+    def test_with_entries_and_photo(self, tmp_path):
+        import matplotlib
+
+        matplotlib.use('Agg', force=True)
+        from PIL import Image
+
+        image_path = tmp_path / 'photo.jpg'
+        Image.new('RGB', (120, 80), color='blue').save(image_path)
+
+        entries = [
+            {
+                'id': 'e1',
+                'name': 'M31',
+                'catalogue': 'Messier',
+                'type': 'Galaxy',
+                'constellation': 'Andromeda',
+                'frame_count': 40,
+                'sub_exposure_seconds': 180,
+                'integration_minutes': 120,
+                'rating': 4.5,
+                'notes': 'Great night, low humidity, no dew on the corrector plate at all. ' * 3,
+            },
+            {'id': 'e2', 'name': 'M42', 'catalogue': 'Messier', 'frame_count': 10},
+        ]
+        session = {
+            'id': 's1',
+            'date': '2026-07-14',
+            'location_name': 'Backyard',
+            'combination_name': 'Refractor',
+            'start_time': '2026-07-14T21:00:00Z',
+            'end_time': '2026-07-15T02:00:00Z',
+            'sqm': 21.2,
+            'seeing': 3,
+            'transparency': 6,
+            'notes': 'Clear skies all night.',
+            'entries': entries,
+        }
+
+        result = observation_sessions.generate_session_pdf(session, {'e1': str(image_path)}, _DummyI18n())
+
+        assert result.getvalue().startswith(b'%PDF')
+        assert len(result.getvalue()) > 2000
+
+    def test_missing_image_falls_back_to_placeholder(self, tmp_path):
+        """A photo path that no longer resolves on disk degrades gracefully."""
+        import matplotlib
+
+        matplotlib.use('Agg', force=True)
+
+        session = {'id': 's1', 'date': '2026-07-14', 'entries': [{'id': 'e1', 'name': 'M31'}]}
+        result = observation_sessions.generate_session_pdf(
+            session, {'e1': str(tmp_path / 'missing.jpg')}, _DummyI18n()
+        )
+
+        assert result.getvalue().startswith(b'%PDF')
+
+    def test_many_entries_paginate_to_overflow_pages(self):
+        import matplotlib
+
+        matplotlib.use('Agg', force=True)
+
+        entries = [{'id': f'e{i}', 'name': f'Target {i}', 'frame_count': i + 1} for i in range(12)]
+        session = {'id': 's1', 'date': '2026-07-14', 'entries': entries}
+
+        result = observation_sessions.generate_session_pdf(session, {}, _DummyI18n())
+
+        assert result.getvalue().startswith(b'%PDF')
+        assert len(result.getvalue()) > 5000
+
+
+class TestGenerateSessionsPdf:
+    """backend/observation/observation_sessions.py's generate_sessions_pdf() (global export)."""
+
+    def test_no_sessions(self):
+        import matplotlib
+
+        matplotlib.use('Agg', force=True)
+
+        result = observation_sessions.generate_sessions_pdf([], {}, _DummyI18n())
+
+        assert result.getvalue().startswith(b'%PDF')
+
+    def test_multiple_sessions_both_orders(self):
+        import matplotlib
+
+        matplotlib.use('Agg', force=True)
+
+        sessions = [
+            {'id': 's1', 'date': '2026-07-01', 'entries': [{'id': 'e1', 'name': 'M31', 'rating': 4}]},
+            {'id': 's2', 'date': '2026-07-15', 'entries': [{'id': 'e2', 'name': 'M42', 'rating': 5}]},
+        ]
+
+        result_asc = observation_sessions.generate_sessions_pdf(
+            sessions, {}, _DummyI18n(), from_date='2026-07-01', to_date='2026-07-31', order='asc'
+        )
+        assert result_asc.getvalue().startswith(b'%PDF')
+
+        result_desc = observation_sessions.generate_sessions_pdf(sessions, {}, _DummyI18n(), order='desc')
+        assert result_desc.getvalue().startswith(b'%PDF')
+
+    def test_many_sessions_summary_pagination(self):
+        """More sessions than fit on one summary page still produces a valid PDF."""
+        import matplotlib
+
+        matplotlib.use('Agg', force=True)
+
+        sessions = [{'id': f's{i}', 'date': f'2026-01-{(i % 28) + 1:02d}', 'entries': []} for i in range(35)]
+
+        result = observation_sessions.generate_sessions_pdf(sessions, {}, _DummyI18n())
+
+        assert result.getvalue().startswith(b'%PDF')
+        assert len(result.getvalue()) > 5000

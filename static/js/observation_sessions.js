@@ -428,6 +428,21 @@ function _obsBuildListToolbar() {
     title.textContent = i18n.t('observation_log.my_sessions');
     toolbar.appendChild(title);
 
+    // A read action, offered to every logged-in role - not gated on canEdit below.
+    if (observationLogData.sessions.length) {
+        const exportAllButton = document.createElement('button');
+        exportAllButton.type = 'button';
+        exportAllButton.id = 'observation-log-export-all';
+        exportAllButton.className = 'btn btn-outline-secondary btn-sm';
+        DOMUtils.append(
+            exportAllButton,
+            DOMUtils.createIcon('bi bi-filetype-pdf icon-inline'),
+            i18n.t('observation_log.export_pdf_all')
+        );
+        exportAllButton.addEventListener('click', () => showObservationExportRangeModal());
+        toolbar.appendChild(exportAllButton);
+    }
+
     if (!observationLogData.canEdit) return toolbar;
 
     const newButton = document.createElement('button');
@@ -672,6 +687,17 @@ function renderObservationSessionDetail(sessionId) {
         }));
         toolbar.appendChild(galleryButton);
     }
+
+    const exportPdfButton = document.createElement('button');
+    exportPdfButton.type = 'button';
+    exportPdfButton.id = 'observation-log-export-pdf';
+    exportPdfButton.className = 'btn btn-outline-secondary btn-sm';
+    DOMUtils.append(exportPdfButton, DOMUtils.createIcon('bi bi-filetype-pdf icon-inline'), i18n.t('observation_log.export_pdf'));
+    exportPdfButton.addEventListener('click', () => {
+        const lang = typeof i18n?.getCurrentLanguage === 'function' ? i18n.getCurrentLanguage() : 'en';
+        _obsTriggerPdfDownload(`${OBSERVATION_LOG_API}/${session.id}/export.pdf?lang=${encodeURIComponent(lang)}`);
+    });
+    toolbar.appendChild(exportPdfButton);
 
     if (observationLogData.canEdit) {
         const editButton = document.createElement('button');
@@ -1411,7 +1437,7 @@ async function showObservationEntryForm(sessionId, entry) {
     form.appendChild(_obsField('col-md-4', i18n.t('observation_log.frame_count'), framesInput, framesInput.id));
 
     const subExposureInput = _obsInput('observation-entry-sub-exposure', 'number', entry?.sub_exposure_seconds ?? '', {
-        min: '0', step: 'any', placeholder: '180',
+        min: '0', step: 'any',
     });
     subExposureInput.addEventListener('input', _obsRecomputeCapture);
     form.appendChild(_obsField('col-md-4', i18n.t('observation_log.sub_exposure'), subExposureInput, subExposureInput.id));
@@ -1726,6 +1752,93 @@ async function attachObservationEntryPicture(sessionId, entryId, submitButton) {
             submitButton.textContent = originalLabel;
         }
     }
+}
+
+// ============================================
+// PDF export (per-session button + global range/order modal)
+// ============================================
+
+/** Fetch a PDF as a blob and save it, rather than a plain navigation - the export routes
+ * are behind @login_required and a bare `<a href>` would hit them without the session
+ * cookie's usual credentialed-fetch handling in some browsers. Locally duplicated from
+ * plan_my_night.js's own `_triggerDownload` closure rather than shared, matching this
+ * codebase's general preference for independently-deployable feature files. */
+async function _obsTriggerPdfDownload(url) {
+    try {
+        const response = await fetch(url, { credentials: 'same-origin' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const disposition = response.headers.get('Content-Disposition') || '';
+        const match = disposition.match(/filename[^;=\n]*=(['"]?)([^'";\n]+)\1/);
+        const anchor = document.createElement('a');
+        anchor.href = blobUrl;
+        anchor.download = match ? match[2].trim() : 'observation-log.pdf';
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+        console.error('Observation Log PDF export failed:', error);
+        showMessage('error', i18n.t('observation_log.failed_to_export_pdf'));
+    }
+}
+
+/** Earliest/latest observation date across all of the user's sessions - the modal's
+ * date-range prefill, so "everything" is the default and narrowing is opt-in. */
+function _obsSessionDateBounds() {
+    const dates = observationLogData.sessions.map(session => session.date).filter(Boolean).sort();
+    return { min: dates[0] || '', max: dates[dates.length - 1] || '' };
+}
+
+function showObservationExportRangeModal() {
+    closeModal();
+
+    const bounds = _obsSessionDateBounds();
+
+    const form = document.createElement('form');
+    form.className = 'form row g-3';
+    form.id = 'observation-export-pdf-form';
+
+    const hint = document.createElement('div');
+    hint.className = 'col-12 form-text';
+    hint.textContent = i18n.t('observation_log.export_pdf_range_hint');
+    form.appendChild(hint);
+
+    const fromInput = _obsInput('observation-export-pdf-from', 'date', bounds.min);
+    form.appendChild(_obsField('col-md-6', i18n.t('observation_log.export_pdf_from'), fromInput, fromInput.id));
+
+    const toInput = _obsInput('observation-export-pdf-to', 'date', bounds.max);
+    form.appendChild(_obsField('col-md-6', i18n.t('observation_log.export_pdf_to'), toInput, toInput.id));
+
+    const orderSelect = _obsSelect('observation-export-pdf-order', [
+        { value: 'asc', label: i18n.t('observation_log.export_pdf_order_asc') },
+        { value: 'desc', label: i18n.t('observation_log.export_pdf_order_desc') },
+    ], 'asc');
+    form.appendChild(_obsField('col-md-6', i18n.t('observation_log.export_pdf_order'), orderSelect, orderSelect.id));
+
+    const actions = document.createElement('div');
+    actions.className = 'col-12 text-end';
+    const submit = document.createElement('button');
+    submit.type = 'submit';
+    submit.className = 'btn btn-primary';
+    DOMUtils.append(submit, DOMUtils.createIcon('bi bi-filetype-pdf icon-inline'), i18n.t('observation_log.export_pdf_generate'));
+    actions.appendChild(submit);
+    form.appendChild(actions);
+
+    createModal(i18n.t('observation_log.export_pdf_modal_title'), form, 'lg');
+    new bootstrap.Modal('#modal_lg_close', { backdrop: 'static', focus: true, keyboard: true }).show();
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const lang = typeof i18n?.getCurrentLanguage === 'function' ? i18n.getCurrentLanguage() : 'en';
+        const params = new URLSearchParams({ lang, order: orderSelect.value || 'asc' });
+        if (fromInput.value) params.set('from_date', fromInput.value);
+        if (toInput.value) params.set('to_date', toInput.value);
+
+        closeModal();
+        await _obsTriggerPdfDownload(`${OBSERVATION_LOG_API}/export.pdf?${params.toString()}`);
+    });
 }
 
 // ============================================
