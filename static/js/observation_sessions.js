@@ -279,7 +279,10 @@ function renderObservationLogStats() {
             value: _obsFormatIntegration(stats.total_integration_minutes) || '0',
             label: i18n.t('observation_log.stat_integration'),
         },
-        { value: stats.total_frame_count ?? 0, label: i18n.t('observation_log.stat_frames') },
+        {
+            value: stats.average_rating != null ? _obsBuildStarRatingDisplay(stats.average_rating) : '—',
+            label: i18n.t('observation_log.stat_rating'),
+        },
     ];
 
     cards.forEach(({ value, label }) => {
@@ -291,7 +294,11 @@ function renderObservationLogStats() {
         body.className = 'card-body';
         const valueEl = document.createElement('div');
         valueEl.className = 'observation-log-stat-value';
-        valueEl.textContent = String(value);
+        if (value instanceof Node) {
+            valueEl.appendChild(value);
+        } else {
+            valueEl.textContent = String(value);
+        }
         const labelEl = document.createElement('div');
         labelEl.className = 'text-muted small';
         labelEl.textContent = label;
@@ -641,6 +648,23 @@ function renderObservationSessionDetail(sessionId) {
     heading.textContent = i18n.t('observation_log.session_of', { date: session.date || '' });
     toolbar.appendChild(heading);
 
+    const sessionPictures = _obsCollectSessionPictures(session);
+    if (sessionPictures.length) {
+        const galleryButton = document.createElement('button');
+        galleryButton.type = 'button';
+        galleryButton.id = 'observation-log-session-photos';
+        galleryButton.className = 'btn btn-outline-primary btn-sm';
+        DOMUtils.append(
+            galleryButton,
+            DOMUtils.createIcon('bi bi-images icon-inline'),
+            i18n.t('observation_log.session_photos', { count: sessionPictures.length })
+        );
+        galleryButton.addEventListener('click', () => showPictureSlideshowFromPictures(sessionPictures, {
+            title: i18n.t('observation_log.session_photos_title', { date: session.date || '' }),
+        }));
+        toolbar.appendChild(galleryButton);
+    }
+
     if (observationLogData.canEdit) {
         const editButton = document.createElement('button');
         editButton.type = 'button';
@@ -689,8 +713,8 @@ function _obsBuildSessionSummaryCard(session) {
     const rows = [
         [i18n.t('observation_log.location'), session.location_name || i18n.t('observation_log.no_location')],
         [i18n.t('observation_log.equipment'), _obsCombinationLabel(session) || i18n.t('observation_log.no_equipment')],
-        [i18n.t('observation_log.start_time'), session.start_time || '—'],
-        [i18n.t('observation_log.end_time'), session.end_time || '—'],
+        [i18n.t('observation_log.start_time'), session.start_time ? formatTimeThenDate(session.start_time) : '—'],
+        [i18n.t('observation_log.end_time'), session.end_time ? formatTimeThenDate(session.end_time) : '—'],
         [i18n.t('observation_log.sqm'), session.sqm != null ? String(session.sqm) : '—'],
         [i18n.t('observation_log.seeing'), seeingLabel || '—'],
         [i18n.t('observation_log.transparency'), transparencyLabel || '—'],
@@ -704,7 +728,7 @@ function _obsBuildSessionSummaryCard(session) {
         labelEl.className = 'text-muted small';
         labelEl.textContent = label;
         const valueEl = document.createElement('div');
-        valueEl.className = 'observation-log-entry-name';
+        valueEl.className = 'observation-log-summary-value';
         valueEl.textContent = value;
         col.appendChild(labelEl);
         col.appendChild(valueEl);
@@ -740,12 +764,53 @@ function _obsBuildEntriesList(session) {
     return wrap;
 }
 
+/** Resolve an entry's linked Astrodex picture (filename, etc.) via the astrodexData
+ * global that loadAstrodex() populates whenever the Astrodex main tab opens - this
+ * module never fetches pictures itself. Returns null until that data is loaded, or
+ * when the entry has no attached photo. */
+function _obsResolveEntryPicture(entry) {
+    if (!entry?.astrodex_item_id || !entry?.astrodex_picture_id) return null;
+    if (typeof astrodexData === 'undefined' || !Array.isArray(astrodexData.items)) return null;
+    const item = astrodexData.items.find(candidate => candidate.id === entry.astrodex_item_id);
+    if (!item || !Array.isArray(item.pictures)) return null;
+    const picture = item.pictures.find(candidate => candidate.id === entry.astrodex_picture_id);
+    return picture ? { item, picture } : null;
+}
+
+/** All of a session's attached photos, flattened for showPictureSlideshowFromPictures(). */
+function _obsCollectSessionPictures(session) {
+    const pictures = [];
+    (session.entries || []).forEach(entry => {
+        const resolved = _obsResolveEntryPicture(entry);
+        if (resolved) pictures.push({ ...resolved.picture, item_name: entry.name || resolved.item.name });
+    });
+    return pictures;
+}
+
 function _obsBuildEntryRow(session, entry) {
     const row = document.createElement('div');
     row.className = 'observation-log-entry-row p-2 mb-2';
 
     const header = document.createElement('div');
     header.className = 'd-flex flex-wrap justify-content-between align-items-center gap-2';
+
+    const identityGroup = document.createElement('div');
+    identityGroup.className = 'd-flex align-items-center gap-2';
+
+    const resolvedPicture = _obsResolveEntryPicture(entry);
+    if (resolvedPicture) {
+        const thumbButton = document.createElement('button');
+        thumbButton.type = 'button';
+        thumbButton.className = 'observation-log-entry-thumb btn p-0 border-0';
+        thumbButton.title = i18n.t('observation_log.view_photo');
+        const thumbImg = document.createElement('img');
+        thumbImg.src = `/api/astrodex/images/${resolvedPicture.picture.filename}`;
+        thumbImg.alt = entry.name || '';
+        thumbImg.loading = 'lazy';
+        thumbButton.appendChild(thumbImg);
+        thumbButton.addEventListener('click', () => showPictureSlideshow(entry.astrodex_item_id));
+        identityGroup.appendChild(thumbButton);
+    }
 
     const identity = document.createElement('div');
     const name = document.createElement('div');
@@ -760,7 +825,8 @@ function _obsBuildEntryRow(session, entry) {
         subtitle.textContent = subtitleParts.join(' · ');
         identity.appendChild(subtitle);
     }
-    header.appendChild(identity);
+    identityGroup.appendChild(identity);
+    header.appendChild(identityGroup);
 
     const numbers = document.createElement('div');
     numbers.className = 'd-flex flex-wrap align-items-center gap-2';
@@ -1241,7 +1307,7 @@ async function deleteObservationSession(sessionId) {
 // Entry create/edit modal
 // ============================================
 
-function showObservationEntryForm(sessionId, entry) {
+async function showObservationEntryForm(sessionId, entry) {
     closeModal();
 
     const form = document.createElement('form');
@@ -1250,6 +1316,42 @@ function showObservationEntryForm(sessionId, entry) {
 
     form.appendChild(_obsSectionHeader(i18n.t('observation_log.section_target')));
 
+    if (!entry) {
+        // Same dedicated catalogue-search pattern as Astrodex's add-item modal: a
+        // search box separate from the Name field pre-fills name/type/constellation.
+        const searchCol = document.createElement('div');
+        searchCol.className = 'col-12';
+        const inputGroup = document.createElement('div');
+        inputGroup.className = 'input-group';
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.id = 'observation-entry-search-input';
+        searchInput.className = 'form-control';
+        searchInput.autocomplete = 'off';
+        searchInput.placeholder = i18n.t('astrodex.search_catalogue_placeholder');
+        const searchBtn = document.createElement('button');
+        searchBtn.type = 'button';
+        searchBtn.id = 'observation-entry-search-btn';
+        searchBtn.className = 'btn btn-secondary';
+        searchBtn.title = i18n.t('astrodex.search_catalogue_btn');
+        searchBtn.appendChild(DOMUtils.createIcon('bi bi-search'));
+        inputGroup.appendChild(searchInput);
+        inputGroup.appendChild(searchBtn);
+        searchCol.appendChild(inputGroup);
+        const feedback = document.createElement('div');
+        feedback.id = 'observation-entry-search-feedback';
+        feedback.className = 'mt-1 small d-none';
+        searchCol.appendChild(feedback);
+        form.appendChild(searchCol);
+
+        const divider = document.createElement('div');
+        divider.className = 'col-12';
+        const hr = document.createElement('hr');
+        hr.className = 'my-1 opacity-25';
+        divider.appendChild(hr);
+        form.appendChild(divider);
+    }
+
     const nameInput = _obsInput('observation-entry-name', 'text', entry?.name || '', {
         required: 'required',
         placeholder: i18n.t('observation_log.target_name_placeholder'),
@@ -1257,51 +1359,65 @@ function showObservationEntryForm(sessionId, entry) {
     });
     // A frozen snapshot: identity fields are captured once, never re-resolved afterwards.
     if (entry) nameInput.readOnly = true;
-    form.appendChild(_obsField('col-md-6', `${i18n.t('observation_log.target_name')} *`, nameInput, nameInput.id));
+    form.appendChild(_obsField('col-12', `${i18n.t('observation_log.target_name')} *`, nameInput, nameInput.id));
 
-    const catalogueInput = _obsInput('observation-entry-catalogue', 'text', entry?.catalogue || '');
-    if (entry) catalogueInput.readOnly = true;
-    form.appendChild(_obsField('col-md-6', i18n.t('observation_log.catalogue'), catalogueInput, catalogueInput.id));
+    // Internal bookkeeping only (matched against the catalogue on search) - not shown
+    // to the user, same as Astrodex's hidden item-catalogue field.
+    const catalogueInput = document.createElement('input');
+    catalogueInput.type = 'hidden';
+    catalogueInput.id = 'observation-entry-catalogue';
+    catalogueInput.value = entry?.catalogue || '';
+    form.appendChild(catalogueInput);
 
-    const typeInput = _obsInput('observation-entry-type', 'text', entry?.type || '');
-    if (entry) typeInput.readOnly = true;
-    form.appendChild(_obsField('col-md-6', i18n.t('observation_log.object_type'), typeInput, typeInput.id));
+    const typeSelect = document.createElement('select');
+    typeSelect.className = 'form-select';
+    typeSelect.id = 'observation-entry-type';
+    typeSelect.innerHTML = getObjectTypeOptionsHtml(entry?.type || '');
+    if (entry) typeSelect.disabled = true;
+    form.appendChild(_obsField('col-md-6', i18n.t('observation_log.object_type'), typeSelect, typeSelect.id));
 
-    const constellationInput = _obsInput('observation-entry-constellation', 'text', entry?.constellation || '');
-    if (entry) constellationInput.readOnly = true;
-    form.appendChild(_obsField('col-md-6', i18n.t('observation_log.constellation'), constellationInput, constellationInput.id));
-
-    if (!entry) {
-        // Same catalogue-lookup autofill as Astrodex's add-item modal.
-        const lookupCol = document.createElement('div');
-        lookupCol.className = 'col-12';
-        const lookupHint = document.createElement('div');
-        lookupHint.className = 'form-text';
-        lookupHint.id = 'observation-entry-lookup-hint';
-        lookupHint.textContent = i18n.t('observation_log.lookup_hint');
-        lookupCol.appendChild(lookupHint);
-        form.appendChild(lookupCol);
-        nameInput.addEventListener('change', () => _obsLookupTarget(nameInput.value));
-    }
+    const constellations = await getConstellationsList();
+    const constellationSelect = document.createElement('select');
+    constellationSelect.className = 'form-select';
+    constellationSelect.id = 'observation-entry-constellation';
+    const noneOption = document.createElement('option');
+    noneOption.value = '';
+    constellationSelect.appendChild(noneOption);
+    const currentConstellation = (entry?.constellation || '').toLowerCase();
+    constellations.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name.toLowerCase();
+        opt.textContent = getConstellationDisplayName(name);
+        if (currentConstellation === name.toLowerCase()) opt.selected = true;
+        constellationSelect.appendChild(opt);
+    });
+    if (entry) constellationSelect.disabled = true;
+    form.appendChild(_obsField('col-md-6', i18n.t('observation_log.constellation'), constellationSelect, constellationSelect.id));
 
     form.appendChild(_obsSectionHeader(i18n.t('observation_log.section_capture')));
 
     const framesInput = _obsInput('observation-entry-frames', 'number', entry?.frame_count ?? '', { min: '0', step: '1' });
-    framesInput.addEventListener('input', _obsRecomputeIntegration);
+    // Once typed by hand, the auto-computation stops overwriting it - lets either
+    // frames or integration be the value the user actually knows.
+    framesInput.addEventListener('input', () => { framesInput.dataset.userEdited = 'true'; _obsRecomputeCapture(); });
     form.appendChild(_obsField('col-md-4', i18n.t('observation_log.frame_count'), framesInput, framesInput.id));
 
     const subExposureInput = _obsInput('observation-entry-sub-exposure', 'number', entry?.sub_exposure_seconds ?? '', {
         min: '0', step: 'any', placeholder: '180',
     });
-    subExposureInput.addEventListener('input', _obsRecomputeIntegration);
+    subExposureInput.addEventListener('input', _obsRecomputeCapture);
     form.appendChild(_obsField('col-md-4', i18n.t('observation_log.sub_exposure'), subExposureInput, subExposureInput.id));
 
     const integrationInput = _obsInput('observation-entry-integration', 'number', entry?.integration_minutes ?? '', {
         min: '0', step: 'any',
     });
-    // Once typed by hand, the auto-computation stops overwriting it.
-    integrationInput.addEventListener('input', () => { integrationInput.dataset.userEdited = 'true'; });
+    integrationInput.addEventListener('input', () => { integrationInput.dataset.userEdited = 'true'; _obsRecomputeCapture(); });
     form.appendChild(_obsField('col-md-4', i18n.t('observation_log.integration_minutes'), integrationInput, integrationInput.id));
+
+    const captureHint = document.createElement('div');
+    captureHint.className = 'col-12 form-text';
+    captureHint.textContent = i18n.t('observation_log.capture_hint');
+    form.appendChild(captureHint);
 
     const ratingCol = document.createElement('div');
     ratingCol.className = 'col-12';
@@ -1335,6 +1451,17 @@ function showObservationEntryForm(sessionId, entry) {
     );
     new bootstrap.Modal('#modal_lg_close', { backdrop: 'static', focus: true, keyboard: true }).show();
 
+    if (!entry) {
+        const searchBtn = document.getElementById('observation-entry-search-btn');
+        const searchInput = document.getElementById('observation-entry-search-input');
+        if (searchBtn) searchBtn.addEventListener('click', _obsTriggerEntryCatalogueSearch);
+        if (searchInput) {
+            searchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') { event.preventDefault(); _obsTriggerEntryCatalogueSearch(); }
+            });
+        }
+    }
+
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         await saveObservationEntry(sessionId, entry?.id || null, submit);
@@ -1343,39 +1470,107 @@ function showObservationEntryForm(sessionId, entry) {
 
 /** Convenience only: frames x sub-exposure -> integration minutes. The server never
  * recomputes this, so an explicitly typed integration value is left alone. */
-function _obsRecomputeIntegration() {
-    const frames = _obsNumberOrNull('observation-entry-frames');
-    const subExposure = _obsNumberOrNull('observation-entry-sub-exposure');
+/** Works either direction: some people count frames and want the total integration,
+ * others know the total integration time (e.g. off a capture app's summary) and want
+ * the frame count. Whichever of the two hasn't been typed by hand gets derived from
+ * the other two - sub-exposure is always the pivot, since it's rarely unknown. */
+function _obsRecomputeCapture() {
+    const framesInput = document.getElementById('observation-entry-frames');
     const integrationInput = document.getElementById('observation-entry-integration');
-    if (!integrationInput || !frames || !subExposure) return;
-    if (integrationInput.dataset.userEdited === 'true') return;
-    integrationInput.value = String(Math.round((frames * subExposure / 60) * 100) / 100);
+    if (!framesInput || !integrationInput) return;
+
+    const subExposure = _obsNumberOrNull('observation-entry-sub-exposure');
+    if (!subExposure) return;
+
+    const frames = _obsNumberOrNull('observation-entry-frames');
+    const integration = _obsNumberOrNull('observation-entry-integration');
+
+    if (integrationInput.dataset.userEdited !== 'true' && frames) {
+        integrationInput.value = String(Math.round((frames * subExposure / 60) * 100) / 100);
+    } else if (framesInput.dataset.userEdited !== 'true' && integration) {
+        framesInput.value = String(Math.round((integration * 60) / subExposure));
+    }
 }
 
-async function _obsLookupTarget(name) {
-    const hint = document.getElementById('observation-entry-lookup-hint');
-    const query = (name || '').trim();
+/** Same catalogue-search behaviour as Astrodex's add-item modal: fills name, hidden
+ * catalogue, object type and constellation from GET /api/astrodex/catalogue-lookup. */
+async function _obsTriggerEntryCatalogueSearch() {
+    const searchInput = document.getElementById('observation-entry-search-input');
+    const searchBtn = document.getElementById('observation-entry-search-btn');
+    const feedbackEl = document.getElementById('observation-entry-search-feedback');
+    const query = (searchInput?.value || '').trim();
     if (!query) return;
+
+    if (searchBtn) {
+        searchBtn.disabled = true;
+        DOMUtils.clear(searchBtn);
+        const spinner = document.createElement('span');
+        spinner.className = 'spinner-border spinner-border-sm';
+        spinner.setAttribute('role', 'status');
+        spinner.setAttribute('aria-hidden', 'true');
+        searchBtn.appendChild(spinner);
+    }
+    if (feedbackEl) feedbackEl.classList.add('d-none');
 
     try {
         const result = await fetchJSON(`/api/astrodex/catalogue-lookup?name=${encodeURIComponent(query)}`);
+
         if (!result?.found) {
-            if (hint) hint.textContent = i18n.t('observation_log.lookup_not_found');
+            if (feedbackEl) {
+                DOMUtils.clear(feedbackEl);
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-warning text-dark';
+                DOMUtils.append(badge, DOMUtils.createIcon('bi bi-exclamation-circle me-1'), i18n.t('astrodex.catalogue_not_found'));
+                feedbackEl.appendChild(badge);
+                feedbackEl.classList.remove('d-none');
+            }
             return;
         }
+
         const nameInput = document.getElementById('observation-entry-name');
-        const typeInput = document.getElementById('observation-entry-type');
-        const constellationInput = document.getElementById('observation-entry-constellation');
+        const typeSelect = document.getElementById('observation-entry-type');
+        const constellationSelect = document.getElementById('observation-entry-constellation');
         const catalogueInput = document.getElementById('observation-entry-catalogue');
-        if (nameInput && result.preferred_name) nameInput.value = result.preferred_name;
-        if (typeInput && !typeInput.value) typeInput.value = result.object_type || '';
-        if (constellationInput && !constellationInput.value) constellationInput.value = result.constellation || '';
-        if (catalogueInput && !catalogueInput.value) {
-            catalogueInput.value = Object.keys(result.catalogue_names || {})[0] || '';
+
+        if (nameInput) nameInput.value = result.preferred_name || query;
+
+        let matchedCatalogue = '';
+        for (const [cat, catName] of Object.entries(result.catalogue_names || {})) {
+            if (catName === result.preferred_name) { matchedCatalogue = cat; break; }
         }
-        if (hint) hint.textContent = i18n.t('observation_log.lookup_found');
+        if (catalogueInput) catalogueInput.value = matchedCatalogue;
+
+        if (typeSelect) {
+            const mappedType = mapCatalogueObjectType(result.object_type);
+            if (mappedType) {
+                for (const opt of typeSelect.options) {
+                    if (opt.value === mappedType) { typeSelect.value = mappedType; break; }
+                }
+            }
+        }
+        if (constellationSelect && result.constellation) {
+            const constLower = result.constellation.toLowerCase();
+            for (const opt of constellationSelect.options) {
+                if (opt.value === constLower) { constellationSelect.value = constLower; break; }
+            }
+        }
+
+        if (feedbackEl) {
+            DOMUtils.clear(feedbackEl);
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-success';
+            DOMUtils.append(badge, DOMUtils.createIcon('bi bi-check-circle me-1'), i18n.t('astrodex.catalogue_found'));
+            feedbackEl.appendChild(badge);
+            feedbackEl.classList.remove('d-none');
+        }
     } catch (error) {
         console.debug('Catalogue lookup failed', error);
+    } finally {
+        if (searchBtn) {
+            searchBtn.disabled = false;
+            DOMUtils.clear(searchBtn);
+            searchBtn.appendChild(DOMUtils.createIcon('bi bi-search'));
+        }
     }
 }
 
@@ -1560,6 +1755,8 @@ function showObservationImportFromPlanModal() {
         label: i18n.t('observation_log.import_plan_option', {
             name: plan.combination_name || i18n.t('observation_log.no_equipment'),
             date: String(plan.night_start || '').slice(0, 10),
+            start: formatTimeOnly(plan.night_start),
+            end: formatTimeOnly(plan.night_end),
             count: plan.entries_count || 0,
         }),
     }));

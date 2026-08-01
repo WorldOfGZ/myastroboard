@@ -62,7 +62,7 @@ Admin-managed location presets (with horizon profile, bortle, SQM) that users ca
 |---|---|
 | **Why** | Closes the loop: **Plan -> Observe -> Log -> Astrodex**. Positioned after v1.2 so that beginners are already onboarded and have sessions worth logging. |
 | **Effort** | High |
-| **Status** | 🗓️ Planned - next up |
+| **Status** | ✅ Implemented |
 
 Users can record what they actually captured after a session, not just what they planned.
 
@@ -445,7 +445,7 @@ Also:
 | v1.0 | First stable release | All | Low | ✅ Implemented |
 | v1.1 | First Light - beginner onboarding | Beginners | Medium | ✅ Implemented |
 | v1.2 | Multi-location profiles | All | Medium | ✅ Implemented |
-| v1.3 | Observation Log | Intermediate+ | High | 🗓️ Planned |
+| v1.3 | Observation Log | Intermediate+ | High | ✅ Implemented |
 | v1.4 | Planning Intelligence | Advanced | High | 💡 Idea |
 | v1.5 | Session Analytics | All | Medium | 💡 Idea |
 | v2.0 | Interactive Sky Chart | All | High | 💡 Idea |
