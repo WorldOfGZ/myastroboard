@@ -78,15 +78,14 @@ def test_create_session_then_log_a_target_links_it_to_astrodex(logged_in_page):
     page.click('#observation-log-add-target')
     page.wait_for_selector('#observation-entry-form', state="visible")
     page.fill('#observation-entry-name', 'M31')
-    page.fill('#observation-entry-catalogue', 'Messier')
+    page.select_option('#observation-entry-type', 'Galaxy')
     page.fill('#observation-entry-frames', '42')
     page.click('#observation-entry-form button[type="submit"]')
 
     page.wait_for_selector('.observation-log-entry-row', state="visible")
-    # The name is deliberately not asserted verbatim: leaving the name field fires the
-    # catalogue lookup, which may replace what was typed with the catalogue's preferred
-    # name (that autofill is the point of the field).
-    assert page.locator('.observation-log-entry-name').first.inner_text().strip()
+    # The catalogue search box is separate from the Name field (mirroring Astrodex's
+    # add-item modal), so typing straight into Name is not overwritten by a lookup.
+    assert page.locator('.observation-log-entry-name').first.inner_text().strip() == 'M31'
     assert page.locator('.observation-log-entry-row .badge.bg-secondary', has_text='42').count() >= 1
     # frame_count > 0 -> the target is now registered in Astrodex, with no user action
     page.wait_for_selector('.observation-log-entry-row .badge.bg-success', state="visible")

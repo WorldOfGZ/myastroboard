@@ -36,12 +36,30 @@ function getObjectTypeOptionsHtml(selectedType = '') {
         ['Comet', 'type_comet'],
         ['Milky Way', 'type_milky_way'],
         ['Nightscape', 'type_nightscape'],
+        ['Star Trail', 'type_star_trail'],
         ['Other', 'type_other'],
     ];
 
     return objectTypes
         .map(([value, key]) => `<option value="${value}" ${selectedType === value ? 'selected' : ''}>${tSkyTonightCompat(key)}</option>`)
         .join('');
+}
+
+/** Map a free-text catalogue object_type onto one of getObjectTypeOptionsHtml()'s fixed
+ * options. Shared by Astrodex's and the Observation Log's "add item" catalogue search. */
+function mapCatalogueObjectType(rawType) {
+    if (!rawType) return '';
+    const t = rawType.toLowerCase();
+    if (t.includes('open cluster')) return 'Open Cluster';
+    if (t.includes('globular')) return 'Globular Cluster';
+    if (t.includes('galaxy')) return 'Galaxy';
+    if (t.includes('planetary nebula')) return 'Planetary Nebula';
+    if (t.includes('nebula') || t.includes('supernova') || t.includes('remnant')) return 'Nebula';
+    if (t.includes('star cluster') || t.includes('cluster')) return 'Star Cluster';
+    if (t.includes('planet')) return 'Planet';
+    if (t.includes('moon')) return 'Moon';
+    if (t.includes('comet')) return 'Comet';
+    return 'Other';
 }
 
 // ============================================
@@ -956,21 +974,6 @@ async function showAddAstrodexItemModal() {
     const searchBtn = document.getElementById('catalogue-search-btn');
     const feedbackEl = document.getElementById('catalogue-search-feedback');
 
-    function _mapCatalogueType(rawType) {
-        if (!rawType) return '';
-        const t = rawType.toLowerCase();
-        if (t.includes('open cluster')) return 'Open Cluster';
-        if (t.includes('globular')) return 'Globular Cluster';
-        if (t.includes('galaxy')) return 'Galaxy';
-        if (t.includes('planetary nebula')) return 'Planetary Nebula';
-        if (t.includes('nebula') || t.includes('supernova') || t.includes('remnant')) return 'Nebula';
-        if (t.includes('star cluster') || t.includes('cluster')) return 'Star Cluster';
-        if (t.includes('planet')) return 'Planet';
-        if (t.includes('moon')) return 'Moon';
-        if (t.includes('comet')) return 'Comet';
-        return 'Other';
-    }
-
     async function _triggerCatalogueSearch() {
         const val = (searchInput?.value || '').trim();
         if (!val) return;
@@ -1027,7 +1030,7 @@ async function showAddAstrodexItemModal() {
             }
 
             if (typeSelect) {
-                const mappedType = _mapCatalogueType(res.object_type);
+                const mappedType = mapCatalogueObjectType(res.object_type);
                 if (mappedType) {
                     for (const opt of typeSelect.options) {
                         if (opt.value === mappedType) { typeSelect.value = mappedType; break; }

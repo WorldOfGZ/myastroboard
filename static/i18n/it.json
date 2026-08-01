@@ -754,12 +754,12 @@
     "failed_load_config_view": "Impossibile caricare la visualizzazione della configurazione",
     "failed_export_config": "Impossibile esportare la configurazione",
     "backup_title": "Backup",
-    "backup_info": "Scarica un archivio ZIP dei tuoi dati personali. L'archivio include configurazione, account utente, voci Astrodex e profili delle apparecchiature.",
+    "backup_info": "Scarica un archivio ZIP dei tuoi dati personali. L'archivio include configurazione, account utente, voci Astrodex, profili delle apparecchiature e sessioni del diario di osservazione.",
     "backup_includes_label": "Incluso nell'archivio:",
     "backup_download": "Scarica Backup",
     "backup_started": "È iniziato il download del backup",
     "restore_title": "Ripristinare",
-    "restore_warning": "Il ripristino di un backup sovrascriverà la configurazione corrente, gli utenti, Astrodex e i dati dell'apparecchiatura con il contenuto dell'archivio. Questa azione non può essere annullata.",
+    "restore_warning": "Il ripristino di un backup sovrascriverà la configurazione corrente, gli utenti, Astrodex, i dati dell'apparecchiatura e il diario di osservazione con il contenuto dell'archivio. Questa azione non può essere annullata.",
     "restore_select_file": "Seleziona l'archivio di backup (.zip):",
     "restore_button": "Ripristina backup",
     "restore_no_file": "Seleziona un archivio di backup (.zip) da ripristinare.",
@@ -1202,6 +1202,7 @@
     "type_sun": "Sole",
     "type_milky_way": "Via Lattea",
     "type_nightscape": "Paesaggio notturno / Grande campo",
+    "type_star_trail": "Scie stellari",
     "type_other": "Altro",
     "type_ass": "*Culo",
     "type_bn_oc": "BN+OC",
@@ -1405,7 +1406,7 @@
     "filter_from": "Dal",
     "filter_to": "Al",
     "filter_all_locations": "Tutte le località",
-    "filter_all_combinations": "Tutta l’attrezzatura",
+    "filter_all_combinations": "Tutta l'attrezzatura",
     "filter_any_rating": "Qualsiasi valutazione",
     "filter_min_rating": "{rating} stelle e oltre",
     "sort": "Ordina",
@@ -1413,11 +1414,12 @@
     "sort_by_targets": "Ordina per oggetti",
     "sort_by_integration": "Ordina per integrazione",
     "sort_by_rating": "Ordina per valutazione",
-    "toggle_sort_order": "Inverti l’ordinamento",
+    "toggle_sort_order": "Inverti l'ordinamento",
     "stat_sessions": "Sessioni",
     "stat_targets": "Oggetti registrati",
     "stat_integration": "Integrazione totale",
     "stat_frames": "Pose totali",
+    "stat_rating": "Valutazione media",
     "integration_badge": "{value} di integrazione",
     "frames_badge": "{count} pose",
     "minutes_short": "{minutes} min",
@@ -1448,9 +1450,9 @@
     "section_sky": "Condizioni del cielo",
     "section_target": "Oggetto",
     "section_capture": "Che cosa è stato ripreso",
-    "target_name": "Nome dell’oggetto",
+    "target_name": "Nome dell'oggetto",
     "target_name_placeholder": "es. M31, NGC 7000...",
-    "target_name_required": "È richiesto il nome dell’oggetto",
+    "target_name_required": "È richiesto il nome dell'oggetto",
     "catalogue": "Catalogo",
     "object_type": "Tipo di oggetto",
     "constellation": "Costellazione",
@@ -1460,19 +1462,23 @@
     "frame_count": "Pose",
     "sub_exposure": "Posa singola (s)",
     "integration_minutes": "Integrazione (min)",
+    "capture_hint": "Compila due dei tre campi (scatti, posa singola, integrazione) - il terzo viene calcolato automaticamente finché non lo modifichi direttamente.",
     "in_astrodex": "In Astrodex",
     "in_astrodex_with_photo": "In Astrodex - foto allegata",
-    "view_altitude_chart": "Grafico dell’altezza",
+    "view_altitude_chart": "Grafico dell'altezza",
+    "view_photo": "Vedi foto",
+    "session_photos": "Foto ({count})",
+    "session_photos_title": "Foto - {date}",
     "attach_picture": "Allega foto",
-    "attach_picture_hint": "La foto viene salvata in Astrodex, non nel diario di osservazione. L’oggetto Astrodex corrispondente viene creato automaticamente se necessario.",
+    "attach_picture_hint": "La foto viene salvata in Astrodex, non nel diario di osservazione. L'oggetto Astrodex corrispondente viene creato automaticamente se necessario.",
     "image_file": "File immagine",
     "picture_notes": "Note della foto",
-    "please_select_image": "Seleziona un’immagine",
+    "please_select_image": "Seleziona un'immagine",
     "uploading": "Caricamento...",
     "failed_to_attach_picture": "Impossibile allegare la foto",
     "import_from_plan": "Importa da un piano",
     "import_from_plan_hint": "Copia gli oggetti del piano in una sessione. Funziona con il piano di stanotte e con quello della notte precedente.",
-    "import_plan_option": "{name} - {date} ({count} oggetti)",
+    "import_plan_option": "{name} - {date} {start}-{end} ({count} oggetti)",
     "plan_to_import": "Piano da importare",
     "confirm_merge_into_session": "Una sessione creata oggi proviene già da questo piano ({date}). Aggiungerci i nuovi oggetti?",
     "failed_to_import_plan": "Impossibile importare il piano",
@@ -1482,8 +1488,8 @@
     "failed_to_load": "Impossibile caricare il diario di osservazione",
     "failed_to_save_session": "Impossibile salvare la sessione",
     "failed_to_delete_session": "Impossibile eliminare la sessione",
-    "failed_to_save_target": "Impossibile salvare l’oggetto",
-    "failed_to_delete_target": "Impossibile rimuovere l’oggetto"
+    "failed_to_save_target": "Impossibile salvare l'oggetto",
+    "failed_to_delete_target": "Impossibile rimuovere l'oggetto"
   },
   "users": {
     "user_management": "Gestione utenti",
@@ -2425,7 +2431,7 @@
       },
       "m31": {
         "why": "La galassia più luminosa visibile dalle latitudini settentrionali, con un nucleo luminoso che si manifesta rapidamente anche in condizioni di inquinamento luminoso.",
-        "framing": "È necessario un ampio campo per includere l’intera galassia insieme alle sue galassie compagne M32 e M110."
+        "framing": "È necessario un ampio campo per includere l'intera galassia insieme alle sue galassie compagne M32 e M110."
       },
       "m33": {
         "why": "Una grande galassia a spirale frontale, ma la sua bassa luminosità superficiale la rende un passo avanti rispetto alle galassie principianti più luminose.",
@@ -2481,7 +2487,7 @@
       },
       "ic1805": {
         "why": "Una nebulosa a emissione grande e luminosa con una riconoscibile forma a cuore, adatta all'imaging a banda stretta per i principianti.",
-        "framing": "È necessario un ampio campo visivo per catturare l’intera estensione della nebulosa."
+        "framing": "È necessario un ampio campo visivo per catturare l'intera estensione della nebulosa."
       },
       "ic1848": {
         "why": "Una grande nebulosa a emissione vicina alla Nebulosa del Cuore, abbastanza luminosa per i principianti che esplorano l'imaging a banda stretta.",
@@ -2489,7 +2495,7 @@
       },
       "ngc7000": {
         "why": "Una delle nebulose a emissione più grandi e luminose del cielo, dalla riconoscibile forma continentale.",
-        "framing": "È necessario un ampio campo visivo per catturarne l’intera estensione, spesso insieme alla Nebulosa Pellicano."
+        "framing": "È necessario un ampio campo visivo per catturarne l'intera estensione, spesso insieme alla Nebulosa Pellicano."
       },
       "ic5070": {
         "why": "Una nebulosa a emissione luminosa accanto alla Nebulosa Nord America, gratificante per i principianti che provano l'imaging a banda stretta.",
@@ -2541,7 +2547,7 @@
       },
       "ngc2244": {
         "why": "Una grande nebulosa a emissione che circonda un ammasso stellare luminoso, gratificante per l'imaging a banda stretta con un'integrazione moderata.",
-        "framing": "È necessario un ampio campo visivo per catturare l’intera forma a fiore della nebulosa."
+        "framing": "È necessario un ampio campo visivo per catturare l'intera forma a fiore della nebulosa."
       },
       "m46": {
         "why": "Un ricco ammasso aperto con un vantaggio: una piccola nebulosa planetaria sembra sovrapporsi ad esso, aggiungendo interesse visivo con un piccolo sforzo extra.",

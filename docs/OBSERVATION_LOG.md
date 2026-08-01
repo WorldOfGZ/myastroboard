@@ -187,8 +187,9 @@ on failure.
 | `POST` | `/api/observation-sessions/<session_id>/entries/<entry_id>/astrodex-picture` | user | Manual attach-picture action; body `{filename}` plus optional metadata overrides |
 
 `GET /api/observation-sessions` also returns a deliberately minimal `stats` block -
-`{total_sessions, total_entries, total_integration_minutes, total_frame_count}`. Full analytics is
-v1.5 Session Analytics' job, not this feature's.
+`{total_sessions, total_entries, total_integration_minutes, average_rating}` (`average_rating` is
+`None` until at least one entry has been rated). Full analytics is v1.5 Session Analytics' job, not
+this feature's.
 
 ---
 

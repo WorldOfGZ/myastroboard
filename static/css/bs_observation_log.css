@@ -37,7 +37,8 @@
     background-color: var(--bg-light);
 }
 
-.observation-log-entry-name {
+.observation-log-entry-name,
+.observation-log-summary-value {
     font-weight: var(--font-semibold);
     overflow-wrap: anywhere;
 }
@@ -56,6 +57,20 @@
 
 .observation-log-location-map {
     height: 200px;
+}
+
+.observation-log-entry-thumb {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.observation-log-entry-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .observation-log-empty {

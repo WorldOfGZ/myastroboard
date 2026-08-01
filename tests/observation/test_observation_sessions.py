@@ -407,6 +407,8 @@ class TestCreateSessionFromPlan:
             'location_name': 'Backyard',
             'combination_id': 'combo-1',
             'combination_name': 'Refractor + ASI',
+            'night_start': '2026-08-01T20:15:00+00:00',
+            'night_end': '2026-08-02T04:45:00+00:00',
             'entries': [
                 {
                     'id': 'plan-entry-1',
@@ -435,6 +437,9 @@ class TestCreateSessionFromPlan:
         assert session['location_name'] == 'Backyard'
         assert session['combination_id'] == 'combo-1'
         assert session['imported_from_plan_combination_id'] == 'combo-1'
+        # The night's nautical-twilight window comes straight from the plan.
+        assert session['start_time'] == '2026-08-01T20:15:00+00:00'
+        assert session['end_time'] == '2026-08-02T04:45:00+00:00'
         assert [entry['name'] for entry in session['entries']] == ['M31', 'M42']
         assert session['entries'][0]['source_plan_entry_id'] == 'plan-entry-1'
         assert session['entries'][0]['alttime_file'] == 'obj0001'
@@ -454,6 +459,15 @@ class TestCreateSessionFromPlan:
         plan.pop('plan_date')
         session = observation_sessions.create_session_from_plan(user_id, 'tester', plan)
         assert len(session['date']) == 10
+
+    def test_missing_night_window_leaves_times_unset(self, temp_data_dir, user_id):
+        """A plan with no night_start/night_end still creates a session, times just stay null."""
+        plan = self._plan()
+        plan.pop('night_start')
+        plan.pop('night_end')
+        session = observation_sessions.create_session_from_plan(user_id, 'tester', plan)
+        assert session['start_time'] is None
+        assert session['end_time'] is None
 
     def test_merge_into_existing_session_is_idempotent(self, temp_data_dir, user_id):
         """Re-importing the same plan adds nothing; a new plan target is appended once."""
@@ -480,31 +494,32 @@ class TestStats:
     """get_session_stats aggregation."""
 
     def test_empty_stats(self, temp_data_dir, user_id):
-        """A user with no sessions reports all-zero counters."""
+        """A user with no sessions reports all-zero counters and no average rating."""
         assert observation_sessions.get_session_stats(user_id) == {
             'total_sessions': 0,
             'total_entries': 0,
             'total_integration_minutes': 0,
-            'total_frame_count': 0,
+            'average_rating': None,
         }
 
     def test_aggregates_across_sessions(self, temp_data_dir, user_id):
-        """Frames and integration minutes are summed over every entry."""
+        """Integration minutes are summed and ratings averaged over every entry."""
         first = _create_session(user_id, date='2026-01-01')
         second = _create_session(user_id, date='2026-01-02')
         observation_sessions.add_entry(
-            user_id, first['id'], {'name': 'M31', 'frame_count': 60, 'integration_minutes': 120}
+            user_id, first['id'], {'name': 'M31', 'frame_count': 60, 'integration_minutes': 120, 'rating': 4}
         )
         observation_sessions.add_entry(
-            user_id, first['id'], {'name': 'M42', 'frame_count': 20, 'integration_minutes': 30.5}
+            user_id, first['id'], {'name': 'M42', 'frame_count': 20, 'integration_minutes': 30.5, 'rating': 5}
         )
         observation_sessions.add_entry(user_id, second['id'], {'name': 'M13'})
 
         stats = observation_sessions.get_session_stats(user_id)
         assert stats['total_sessions'] == 2
         assert stats['total_entries'] == 3
-        assert stats['total_frame_count'] == 80
         assert stats['total_integration_minutes'] == pytest.approx(150.5)
+        # Only the two rated entries count towards the average; the unrated one is excluded.
+        assert stats['average_rating'] == pytest.approx(4.5)
 
 
 class TestReferenceCounts:

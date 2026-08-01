@@ -747,6 +747,10 @@ def create_session_from_plan(
             'combination_id': plan_payload.get('combination_id'),
             'combination_name': plan_payload.get('combination_name'),
             'imported_from_plan_combination_id': plan_payload.get('combination_id') or 'default',
+            # The plan already knows the night's nautical-twilight window - carry it
+            # over so the user isn't left retyping times they already computed.
+            'start_time': plan_payload.get('night_start'),
+            'end_time': plan_payload.get('night_end'),
         },
     )
     if session is None:
@@ -821,7 +825,8 @@ def get_session_stats(user_id: str) -> Dict:
 
     total_entries = 0
     total_integration_minutes = 0.0
-    total_frame_count = 0
+    rating_sum = 0.0
+    rating_count = 0
 
     for session in sessions:
         if not isinstance(session, dict):
@@ -833,15 +838,16 @@ def get_session_stats(user_id: str) -> Dict:
             integration = _coerce_optional_float(entry.get('integration_minutes'), 0)
             if integration:
                 total_integration_minutes += integration
-            frames = _coerce_optional_int(entry.get('frame_count'), 0)
-            if frames:
-                total_frame_count += frames
+            rating = _coerce_optional_float(entry.get('rating'), 0, 5)
+            if rating is not None:
+                rating_sum += rating
+                rating_count += 1
 
     return {
         'total_sessions': len([session for session in sessions if isinstance(session, dict)]),
         'total_entries': total_entries,
         'total_integration_minutes': round(total_integration_minutes, 2),
-        'total_frame_count': total_frame_count,
+        'average_rating': round(rating_sum / rating_count, 1) if rating_count else None,
     }
 
 
