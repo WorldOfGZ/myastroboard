@@ -980,10 +980,21 @@ def _pdf_session_totals(entries: List[Dict]) -> Tuple[float, Optional[float]]:
     return total_integration, average_rating
 
 
+def _pdf_text(target, *args, **kwargs):
+    """``ax.text()`` / ``fig.text()`` wrapper that never treats the string as mathtext.
+
+    Session/entry notes, location names, etc. are free text a user typed, not markup - an
+    unbalanced ``$`` in a note must not raise inside PdfPages and turn an export into a 500.
+    """
+    kwargs.setdefault('parse_math', False)
+    return target.text(*args, **kwargs)
+
+
 def _pdf_header(ax, title: str, subtitle: str = '') -> None:
     ax.axis('off')
     ax.set_facecolor(_PDF_C_HDR_BG)
-    ax.text(
+    _pdf_text(
+        ax,
         0.015,
         0.5,
         'myastroboard',
@@ -995,7 +1006,8 @@ def _pdf_header(ax, title: str, subtitle: str = '') -> None:
         transform=ax.transAxes,
     )
     full_title = f'{title}  -  {subtitle}' if subtitle else title
-    ax.text(
+    _pdf_text(
+        ax,
         0.5,
         0.5,
         full_title,
@@ -1006,7 +1018,8 @@ def _pdf_header(ax, title: str, subtitle: str = '') -> None:
         fontweight='bold',
         transform=ax.transAxes,
     )
-    ax.text(
+    _pdf_text(
+        ax,
         0.985,
         0.5,
         'myastroboard.org',
@@ -1021,7 +1034,7 @@ def _pdf_header(ax, title: str, subtitle: str = '') -> None:
 def _pdf_footer(ax, label: str) -> None:
     ax.axis('off')
     ax.set_facecolor(_PDF_C_HDR_BG)
-    ax.text(0.5, 0.5, label, va='center', ha='center', fontsize=7.5, color='#6a7a99', transform=ax.transAxes)
+    _pdf_text(ax, 0.5, 0.5, label, va='center', ha='center', fontsize=7.5, color='#6a7a99', transform=ax.transAxes)
 
 
 def _pdf_new_page(title: str, subtitle: str = ''):
@@ -1069,7 +1082,8 @@ def _pdf_draw_thumbnail(ax_img, image_path: Optional[str], t) -> None:
             linewidth=0.8,
         )
     )
-    ax_img.text(
+    _pdf_text(
+        ax_img,
         0.5,
         0.5,
         t('observation_log.export_pdf_no_photo') or 'No photo',
@@ -1097,7 +1111,8 @@ def _pdf_render_entry_row(fig, entry: Dict, image_path: Optional[str], row_top: 
     ax_text.set_ylim(0, 1)
 
     y = 0.90
-    ax_text.text(
+    _pdf_text(
+        ax_text,
         0.0,
         y,
         entry.get('name') or '?',
@@ -1112,7 +1127,8 @@ def _pdf_render_entry_row(fig, entry: Dict, image_path: Optional[str], row_top: 
     subtitle_parts = [part for part in (entry.get('type'), entry.get('constellation'), entry.get('catalogue')) if part]
     if subtitle_parts:
         y -= 0.16
-        ax_text.text(
+        _pdf_text(
+            ax_text,
             0.0,
             y,
             ' · '.join(subtitle_parts),
@@ -1137,7 +1153,8 @@ def _pdf_render_entry_row(fig, entry: Dict, image_path: Optional[str], row_top: 
 
     y -= 0.18
     if stats:
-        ax_text.text(
+        _pdf_text(
+            ax_text,
             0.0,
             y,
             '   '.join(stats),
@@ -1155,7 +1172,8 @@ def _pdf_render_entry_row(fig, entry: Dict, image_path: Optional[str], row_top: 
         shown = wrapped[:3]
         if len(wrapped) > 3:
             shown[-1] = shown[-1].rstrip() + '…'
-        ax_text.text(
+        _pdf_text(
+            ax_text,
             0.0,
             y,
             '\n'.join(shown),
@@ -1222,8 +1240,9 @@ def _pdf_render_info_panel(fig, session: Dict, entries: List[Dict], t) -> float:
     for idx, (label, value) in enumerate(fields):
         x = col_x[idx // 4]
         y = row_y[idx % 4]
-        ax.text(x, y, label, va='top', ha='left', fontsize=8, color=_PDF_C_TXT_MID, transform=ax.transAxes)
-        ax.text(
+        _pdf_text(ax, x, y, label, va='top', ha='left', fontsize=8, color=_PDF_C_TXT_MID, transform=ax.transAxes)
+        _pdf_text(
+            ax,
             x,
             y - 0.08,
             value,
@@ -1239,7 +1258,8 @@ def _pdf_render_info_panel(fig, session: Dict, entries: List[Dict], t) -> float:
     stats_line = t('observation_log.target_count', count=len(entries)) or f'{len(entries)} target(s)'
     if average_rating is not None:
         stats_line += f"   -   {t('observation_log.rating') or 'Rating'}: {average_rating:.1f}/5"
-    ax.text(
+    _pdf_text(
+        ax,
         0.02,
         stats_y,
         stats_line,
@@ -1257,7 +1277,8 @@ def _pdf_render_info_panel(fig, session: Dict, entries: List[Dict], t) -> float:
         shown = wrapped[:4]
         if len(wrapped) > 4:
             shown[-1] = shown[-1].rstrip() + '…'
-        ax.text(
+        _pdf_text(
+            ax,
             0.02,
             stats_y - 0.07,
             '\n'.join(shown),
@@ -1286,7 +1307,8 @@ def _render_session_section(pdf, session: Dict, image_paths: Dict[str, str], t) 
     y_cursor = _pdf_render_info_panel(fig, session, entries, t)
 
     if not entries:
-        fig.text(
+        _pdf_text(
+            fig,
             _PDF_MARGIN_L,
             y_cursor,
             t('observation_log.no_targets') or 'No target logged in this session yet.',
@@ -1299,7 +1321,8 @@ def _render_session_section(pdf, session: Dict, image_paths: Dict[str, str], t) 
         plt.close(fig)
         return
 
-    fig.text(
+    _pdf_text(
+        fig,
         _PDF_MARGIN_L,
         y_cursor,
         t('observation_log.export_pdf_targets_section') or 'Logged targets',
@@ -1336,7 +1359,8 @@ def _pdf_render_cover_page(pdf, sessions: List[Dict], from_date: Optional[str], 
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
 
-    ax.text(
+    _pdf_text(
+        ax,
         0.5,
         0.78,
         t('observation_log.title') or 'Observation Log',
@@ -1355,10 +1379,13 @@ def _pdf_render_cover_page(pdf, sessions: List[Dict], from_date: Optional[str], 
         )
     else:
         subtitle = t('observation_log.export_pdf_cover_all_sessions') or 'All sessions'
-    ax.text(0.5, 0.62, subtitle, ha='center', va='center', fontsize=13, color=_PDF_C_TXT_MID, transform=ax.transAxes)
+    _pdf_text(
+        ax, 0.5, 0.62, subtitle, ha='center', va='center', fontsize=13, color=_PDF_C_TXT_MID, transform=ax.transAxes
+    )
 
     generated_at = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
-    ax.text(
+    _pdf_text(
+        ax,
         0.5,
         0.52,
         t('observation_log.export_pdf_generated_on', date=generated_at) or generated_at,
@@ -1383,7 +1410,8 @@ def _pdf_render_cover_page(pdf, sessions: List[Dict], from_date: Optional[str], 
     tile_w = 1.0 / len(tiles)
     for idx, (value, label) in enumerate(tiles):
         cx = tile_w * idx + tile_w / 2
-        ax.text(
+        _pdf_text(
+            ax,
             cx,
             0.30,
             value,
@@ -1394,7 +1422,9 @@ def _pdf_render_cover_page(pdf, sessions: List[Dict], from_date: Optional[str], 
             color=_PDF_C_BRAND,
             transform=ax.transAxes,
         )
-        ax.text(cx, 0.19, label, ha='center', va='center', fontsize=8.5, color=_PDF_C_TXT_MID, transform=ax.transAxes)
+        _pdf_text(
+            ax, cx, 0.19, label, ha='center', va='center', fontsize=8.5, color=_PDF_C_TXT_MID, transform=ax.transAxes
+        )
 
     pdf.savefig(fig)
     plt.close(fig)
@@ -1432,7 +1462,8 @@ def _pdf_render_summary_pages(pdf, sessions: List[Dict], t) -> None:
 
         y = 0.99
         for cx, header in zip(col_x, col_headers):
-            ax.text(
+            _pdf_text(
+                ax,
                 cx,
                 y,
                 header,
@@ -1448,7 +1479,8 @@ def _pdf_render_summary_pages(pdf, sessions: List[Dict], t) -> None:
         y -= 0.014
 
         if not sessions:
-            ax.text(
+            _pdf_text(
+                ax,
                 0.5,
                 0.5,
                 t('observation_log.export_pdf_no_sessions') or 'No session to export.',
@@ -1483,8 +1515,16 @@ def _pdf_render_summary_pages(pdf, sessions: List[Dict], t) -> None:
                 f'{average_rating:.1f}' if average_rating is not None else '-',
             ]
             for cx, value in zip(col_x, cells):
-                ax.text(
-                    cx, mid_y, value, va='center', ha='left', fontsize=7.5, color=_PDF_C_TXT_DRK, transform=ax.transAxes
+                _pdf_text(
+                    ax,
+                    cx,
+                    mid_y,
+                    value,
+                    va='center',
+                    ha='left',
+                    fontsize=7.5,
+                    color=_PDF_C_TXT_DRK,
+                    transform=ax.transAxes,
                 )
             y -= _PDF_SUMMARY_ROW_H
 
