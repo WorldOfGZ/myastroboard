@@ -102,6 +102,10 @@ class AstronomicalEvent:
     score: Optional[float]  # Importance score (0-10)
     raw_data: Dict[str, Any]  # Original data for detailed view
     structure_key: str  # Stable frontend section key (moon, sun, ...)
+    # Comet-specific: target never clears the configured site's altitude/airmass
+    # floor during its visibility window (see solar_system_events._build_comet_event).
+    # Defaults to False for every other event type, which has no such notion.
+    altitude_limited: bool = False
 
 
 class EventsAggregator:
@@ -1329,6 +1333,7 @@ class EventsAggregator:
                     score=event_data.get("score"),
                     raw_data=event_data,
                     structure_key="calendar",
+                    altitude_limited=bool(event_data.get("altitude_limited", False)),
                 )
                 events.append(event)
             except Exception as e:
