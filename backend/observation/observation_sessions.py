@@ -928,6 +928,11 @@ _PDF_MARGIN_L = 0.10
 _PDF_MARGIN_R = 0.90
 _PDF_HEADER_TOP = 0.985
 _PDF_HEADER_H = 0.045
+# Longest centered header title (title + subtitle) that still clears the brand mark
+# (left) and myastroboard.org (right) at the header's bold 10pt - past this it must be
+# truncated, or a long session date + section name can visually overlap them. Calibrated
+# against measured glyph widths across all locales, not just character count.
+_PDF_HEADER_TITLE_MAX_CHARS = 48
 _PDF_FOOTER_H = 0.025
 _PDF_CONTENT_TOP = _PDF_HEADER_TOP - _PDF_HEADER_H - 0.015
 _PDF_CONTENT_BOTTOM = _PDF_FOOTER_H + 0.02
@@ -990,9 +995,19 @@ def _pdf_text(target, *args, **kwargs):
     return target.text(*args, **kwargs)
 
 
+def _pdf_hide_chrome(ax) -> None:
+    """Strip ticks, tick labels and spines without ``ax.axis('off')``, which also drops
+    the axes' facecolor patch from rendering - every coloured bar/panel below needs that
+    patch to actually paint its background."""
+    ax.set_xticks([])
+    ax.set_yticks([])
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+
 def _pdf_header(ax, title: str, subtitle: str = '') -> None:
-    ax.axis('off')
     ax.set_facecolor(_PDF_C_HDR_BG)
+    _pdf_hide_chrome(ax)
     _pdf_text(
         ax,
         0.015,
@@ -1006,6 +1021,8 @@ def _pdf_header(ax, title: str, subtitle: str = '') -> None:
         transform=ax.transAxes,
     )
     full_title = f'{title}  -  {subtitle}' if subtitle else title
+    if len(full_title) > _PDF_HEADER_TITLE_MAX_CHARS:
+        full_title = full_title[: _PDF_HEADER_TITLE_MAX_CHARS - 1].rstrip() + '…'
     _pdf_text(
         ax,
         0.5,
@@ -1013,7 +1030,7 @@ def _pdf_header(ax, title: str, subtitle: str = '') -> None:
         full_title,
         va='center',
         ha='center',
-        fontsize=11.5,
+        fontsize=10,
         color=_PDF_C_WHITE,
         fontweight='bold',
         transform=ax.transAxes,
@@ -1032,8 +1049,8 @@ def _pdf_header(ax, title: str, subtitle: str = '') -> None:
 
 
 def _pdf_footer(ax, label: str) -> None:
-    ax.axis('off')
     ax.set_facecolor(_PDF_C_HDR_BG)
+    _pdf_hide_chrome(ax)
     _pdf_text(ax, 0.5, 0.5, label, va='center', ha='center', fontsize=7.5, color='#6a7a99', transform=ax.transAxes)
 
 
@@ -1203,7 +1220,7 @@ def _pdf_render_info_panel(fig, session: Dict, entries: List[Dict], t) -> float:
     panel_bottom = panel_top - _PDF_INFO_PANEL_H
     ax = fig.add_axes((_PDF_MARGIN_L, panel_bottom, _PDF_MARGIN_R - _PDF_MARGIN_L, _PDF_INFO_PANEL_H))
     ax.set_facecolor(_PDF_C_PANEL_BG)
-    ax.axis('off')
+    _pdf_hide_chrome(ax)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
 
@@ -1300,7 +1317,7 @@ def _render_session_section(pdf, session: Dict, image_paths: Dict[str, str], t) 
     import matplotlib.pyplot as plt
 
     entries = [entry for entry in session.get('entries', []) if isinstance(entry, dict)]
-    title = t('observation_log.export_pdf_title') or 'MyAstroBoard - Observation Log'
+    title = t('observation_log.export_pdf_title') or 'Observation Log'
     subtitle = t('observation_log.session_of', date=session.get('date') or '') or (session.get('date') or '')
 
     fig = _pdf_new_page(title, subtitle)
@@ -1351,7 +1368,7 @@ def _render_session_section(pdf, session: Dict, image_paths: Dict[str, str], t) 
 def _pdf_render_cover_page(pdf, sessions: List[Dict], from_date: Optional[str], to_date: Optional[str], t) -> None:
     import matplotlib.pyplot as plt
 
-    title = t('observation_log.export_pdf_title') or 'MyAstroBoard - Observation Log'
+    title = t('observation_log.export_pdf_title') or 'Observation Log'
     fig = _pdf_new_page(title)
 
     ax = fig.add_axes((_PDF_MARGIN_L, 0.35, _PDF_MARGIN_R - _PDF_MARGIN_L, _PDF_CONTENT_TOP - 0.35))
@@ -1434,7 +1451,7 @@ def _pdf_render_summary_pages(pdf, sessions: List[Dict], t) -> None:
     import matplotlib.pyplot as plt
     from matplotlib.patches import Rectangle
 
-    title = t('observation_log.export_pdf_title') or 'MyAstroBoard - Observation Log'
+    title = t('observation_log.export_pdf_title') or 'Observation Log'
     summary_title = t('observation_log.export_pdf_summary_title') or 'Summary'
 
     col_x = [0.0, 0.16, 0.40, 0.62, 0.74, 0.88]

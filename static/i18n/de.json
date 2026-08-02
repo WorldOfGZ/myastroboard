@@ -1504,7 +1504,7 @@
     "export_pdf_range_hint": "Es werden nur Sitzungen aus diesem Zeitraum berücksichtigt.",
     "failed_to_export_pdf": "PDF konnte nicht erstellt werden",
     "no_sessions_to_export": "Keine Sitzung in diesem Zeitraum",
-    "export_pdf_title": "MyAstroBoard - Beobachtungsjournal",
+    "export_pdf_title": "Beobachtungsjournal",
     "export_pdf_cover_all_sessions": "Alle Sitzungen",
     "export_pdf_cover_range": "{start_date} bis {end_date}",
     "export_pdf_generated_on": "Erstellt am {date}",

@@ -1504,7 +1504,7 @@
     "export_pdf_range_hint": "Solo se incluyen las sesiones observadas en este rango de fechas.",
     "failed_to_export_pdf": "No se pudo generar el PDF",
     "no_sessions_to_export": "No hay sesiones en este rango de fechas",
-    "export_pdf_title": "MyAstroBoard - Registro de observación",
+    "export_pdf_title": "Registro de observación",
     "export_pdf_cover_all_sessions": "Todas las sesiones",
     "export_pdf_cover_range": "{start_date} a {end_date}",
     "export_pdf_generated_on": "Generado el {date}",
