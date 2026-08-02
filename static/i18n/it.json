@@ -1504,7 +1504,7 @@
     "export_pdf_range_hint": "Sono incluse solo le sessioni osservate in questo intervallo di date.",
     "failed_to_export_pdf": "Impossibile generare il PDF",
     "no_sessions_to_export": "Nessuna sessione in questo intervallo di date",
-    "export_pdf_title": "MyAstroBoard - Diario di osservazione",
+    "export_pdf_title": "Diario di osservazione",
     "export_pdf_cover_all_sessions": "Tutte le sessioni",
     "export_pdf_cover_range": "dal {start_date} al {end_date}",
     "export_pdf_generated_on": "Generato il {date}",

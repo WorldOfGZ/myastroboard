@@ -1504,7 +1504,7 @@
     "export_pdf_range_hint": "Only sessions observed within this date range are included.",
     "failed_to_export_pdf": "Failed to generate the PDF",
     "no_sessions_to_export": "No session in this date range",
-    "export_pdf_title": "MyAstroBoard - Observation Log",
+    "export_pdf_title": "Observation Log",
     "export_pdf_cover_all_sessions": "All sessions",
     "export_pdf_cover_range": "{start_date} to {end_date}",
     "export_pdf_generated_on": "Generated on {date}",
