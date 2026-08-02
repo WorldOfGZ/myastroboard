@@ -448,6 +448,7 @@ class SolarSystemEventsService:
             if perihelion is None:
                 continue
             name = target.get('preferred_name') if is_dict else getattr(target, 'preferred_name', None)
+            target_id = target.get('target_id') if is_dict else getattr(target, 'target_id', None)
             candidates.append(
                 {
                     'name': str(name or 'Comet'),
@@ -455,6 +456,7 @@ class SolarSystemEventsService:
                     'magnitude': float(magnitude),
                     'equipment': None,
                     'orbital_elements': self._extract_orbital_elements(metadata),
+                    'target_id': str(target_id) if target_id else None,
                 }
             )
         return candidates
@@ -657,6 +659,7 @@ class SolarSystemEventsService:
             'visibility': visibility_type,
             'equipment_needed': equipment,
             'altitude_limited': altitude_limited,
+            'target_id': candidate.get('target_id'),
             'importance': self._rate_comet_importance(magnitude) if magnitude is not None else 'low',
             'raw_data': {
                 'comet': comet_name,

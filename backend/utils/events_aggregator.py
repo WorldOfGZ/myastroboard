@@ -106,6 +106,9 @@ class AstronomicalEvent:
     # floor during its visibility window (see solar_system_events._build_comet_event).
     # Defaults to False for every other event type, which has no such notion.
     altitude_limited: bool = False
+    # Comet-specific: SkyTonight target_id, used by the frontend to open the
+    # altitude-vs-time popup for this event. None for every other event type.
+    target_id: Optional[str] = None
 
 
 class EventsAggregator:
@@ -1334,6 +1337,7 @@ class EventsAggregator:
                     raw_data=event_data,
                     structure_key="calendar",
                     altitude_limited=bool(event_data.get("altitude_limited", False)),
+                    target_id=event_data.get("target_id"),
                 )
                 events.append(event)
             except Exception as e:

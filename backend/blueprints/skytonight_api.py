@@ -42,7 +42,11 @@ from skytonight.skytonight_storage import (
     has_comets_results,
     has_dso_results,
 )
-from skytonight.skytonight_calculator import compute_target_debug, load_calculation_results
+from skytonight.skytonight_calculator import (
+    compute_comet_alttime_on_demand,
+    compute_target_debug,
+    load_calculation_results,
+)
 from utils import load_json_file, normalize_catalogue_key as _normalize_catalogue_key
 
 logger = get_logger(__name__)
@@ -1243,25 +1247,38 @@ def get_skytonight_alttime_api(target_id):
     if not file_path.startswith(output_dir_abs + os.sep):
         return jsonify({'error': 'Invalid target identifier'}), 400
 
-    if not os.path.isfile(file_path):
+    data: Optional[Dict[str, Any]] = None
+    if os.path.isfile(file_path):
+        try:
+            with open(file_path, 'r', encoding='utf-8') as fobj:
+                data = json.load(fobj)
+        except Exception:
+            logger.exception(f'Error reading alttime JSON for target {target_id}')
+            return jsonify({'error': 'Internal server error'}), 500
+    elif target_id.startswith('comet-'):
+        # Comets excluded from tonight's saved results (e.g. never clearing the
+        # site's altitude/airmass floor) have no saved file - compute their
+        # trajectory on demand instead of 404ing, so a borderline comet's curve
+        # can still be inspected from the Notable Events calendar.
+        try:
+            data = compute_comet_alttime_on_demand(target_id, request_location)
+        except Exception:
+            logger.exception(f'On-demand alttime computation failed for target {target_id}')
+            return jsonify({'error': 'Internal server error'}), 500
+
+    if data is None:
         return jsonify({'error': 'Altitude-time data not available for this target'}), 404
 
-    try:
-        with open(file_path, 'r', encoding='utf-8') as fobj:
-            data = json.load(fobj)
-        # Always inject the current horizon profile so the chart reflects the
-        # live profile even for alttime files pre-dating it. Since v1.2 the
-        # horizon lives on the location preset the calculation ran for (the
-        # requester's active preset) - keeps the overlay consistent with the data.
-        current_horizon = request_location.get('horizon_profile') or []
-        if current_horizon:
-            data['horizon_profile'] = current_horizon
-        elif 'horizon_profile' not in data:
-            data['horizon_profile'] = []
-        return jsonify(data)
-    except Exception:
-        logger.exception(f'Error reading alttime JSON for target {target_id}')
-        return jsonify({'error': 'Internal server error'}), 500
+    # Always inject the current horizon profile so the chart reflects the
+    # live profile even for alttime files pre-dating it. Since v1.2 the
+    # horizon lives on the location preset the calculation ran for (the
+    # requester's active preset) - keeps the overlay consistent with the data.
+    current_horizon = request_location.get('horizon_profile') or []
+    if current_horizon:
+        data['horizon_profile'] = current_horizon
+    elif 'horizon_profile' not in data:
+        data['horizon_profile'] = []
+    return jsonify(data)
 
 
 @skytonight_bp.route('/api/skytonight/combination-recommendations', methods=['POST'])

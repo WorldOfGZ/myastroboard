@@ -1485,6 +1485,40 @@ class TestExtractSolarSystemEvents:
         events = aggregator._extract_solar_system_events(data)
         assert events[0].altitude_limited is False
 
+    def test_target_id_is_passed_through(self, aggregator):
+        """A comet's SkyTonight target_id survives as a top-level field, so the
+        frontend can open the altitude-vs-time popup without digging into raw_data."""
+        peak = (aggregator.local_now + timedelta(days=15)).isoformat()
+        data = {
+            "events": [
+                {
+                    "peak_time": peak,
+                    "event_type": "Comet Appearance",
+                    "title": "10P/Tempel",
+                    "description": "Peak brightness",
+                    "target_id": "comet-10ptempel",
+                }
+            ]
+        }
+        events = aggregator._extract_solar_system_events(data)
+        assert events[0].target_id == "comet-10ptempel"
+
+    def test_target_id_defaults_to_none_when_absent(self, aggregator):
+        """Event types without a SkyTonight target (meteor showers, etc.) default to None."""
+        peak = (aggregator.local_now + timedelta(days=7)).isoformat()
+        data = {
+            "events": [
+                {
+                    "peak_time": peak,
+                    "event_type": "Meteor Shower",
+                    "title": "Perseids",
+                    "description": "Peak night",
+                }
+            ]
+        }
+        events = aggregator._extract_solar_system_events(data)
+        assert events[0].target_id is None
+
     def test_custom_icon_respected(self, aggregator):
         """Custom icon_class in event data is used instead of inferred."""
         peak = (aggregator.local_now + timedelta(days=5)).isoformat()

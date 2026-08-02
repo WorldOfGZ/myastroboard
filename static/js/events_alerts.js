@@ -41,6 +41,17 @@ function _eventSpansMultipleDays(event) {
     return Number.isFinite(start) && Number.isFinite(end) && (end - start) > EVENT_RANGE_THRESHOLD_MS;
 }
 
+// True when "now" falls within the event's start_time..end_time span - used to only
+// offer the altitude-graph button (SkyTonight's per-target popup) while it's actually
+// relevant to plan tonight's session, not for an event that's still months away.
+function _eventIsActiveNow(event) {
+    if (!event?.start_time || !event?.end_time) return false;
+    const now = Date.now();
+    const start = new Date(event.start_time).getTime();
+    const end = new Date(event.end_time).getTime();
+    return Number.isFinite(start) && Number.isFinite(end) && now >= start && now <= end;
+}
+
 // Short "Mon D" label in the observer's configured timezone, for date-range display.
 function _formatShortDate(isoString, locale = navigator.language) {
     if (!isoString) return '';
@@ -418,6 +429,24 @@ function createEventTimeline(events) {
             altitudeNote.appendChild(DOMUtils.createIcon('bi bi-exclamation-triangle-fill', 'icon-inline me-1'));
             altitudeNote.appendChild(document.createTextNode(i18n.t('calendar.altitude_limited_note')));
             item.appendChild(altitudeNote);
+        }
+
+        // Altitude-vs-time graph: only offered for event types that carry a
+        // SkyTonight target_id (comets today), and only while the event is
+        // actually active, since it's meant for planning tonight's session.
+        if (event.target_id && _eventIsActiveNow(event)) {
+            const altGraphBtn = document.createElement('button');
+            altGraphBtn.type = 'button';
+            altGraphBtn.className = 'btn btn-sm btn-outline-secondary mb-1';
+            altGraphBtn.appendChild(DOMUtils.createIcon('bi bi-graph-up', 'icon-inline me-1'));
+            altGraphBtn.appendChild(document.createTextNode(i18n.t('skytonight.altitude_time_title')));
+            altGraphBtn.addEventListener('click', (evt) => {
+                evt.preventDefault();
+                if (typeof showAlttimePopup === 'function') {
+                    showAlttimePopup(event.title, event.target_id);
+                }
+            });
+            item.appendChild(altGraphBtn);
         }
 
         timelineListUl.appendChild(item);
