@@ -512,6 +512,26 @@ class TestDatasetCometCandidates:
         svc = SolarSystemEventsService(45.0, 0.0, timezone="UTC")
         assert svc._dataset_comet_candidates() == []
 
+    def test_carries_target_id_through(self, monkeypatch):
+        import skytonight.skytonight_targets as targets_mod
+
+        fake_dataset = {
+            "targets": [
+                {
+                    "target_id": "comet-10ptempel",
+                    "category": "comets",
+                    "preferred_name": "10P/Tempel",
+                    "magnitude": 5.0,
+                    "metadata": {"perihelion_date": "2026-08-15"},
+                },
+            ]
+        }
+        monkeypatch.setattr(targets_mod, "load_targets_dataset", lambda *a, **k: fake_dataset)
+        svc = SolarSystemEventsService(45.0, 0.0, timezone="UTC")
+        candidates = svc._dataset_comet_candidates()
+        assert len(candidates) == 1
+        assert candidates[0]["target_id"] == "comet-10ptempel"
+
 
 class TestCuratedCometCandidates:
     """Tests for _curated_comet_candidates directly."""
@@ -753,6 +773,7 @@ class TestBuildCometEventUsesBrightnessPeak:
             'magnitude': 5.0,
             'equipment': None,
             'orbital_elements': _FULL_ELEMENTS_METADATA,
+            'target_id': 'comet-10ptempel',
         }
         event = svc._build_comet_event(candidate, date(2026, 7, 1), date(2026, 9, 1), source='dataset')
 
@@ -763,6 +784,7 @@ class TestBuildCometEventUsesBrightnessPeak:
         assert event['perihelion_date'].startswith('2026-08-02')
         assert event['magnitude'] != 5.0  # now the computed apparent magnitude, not raw H
         assert event['altitude_limited'] is False
+        assert event['target_id'] == 'comet-10ptempel'
 
     def test_altitude_limited_when_target_never_clears_the_site_floor(self, monkeypatch):
         """Reproduces the 10P/Tempel case: a real, notable comet that never
@@ -816,3 +838,5 @@ class TestBuildCometEventUsesBrightnessPeak:
         assert event['magnitude'] == 8.0
         # Unknown (no orbital elements) defaults to "not flagged" rather than assumed limited.
         assert event['altitude_limited'] is False
+        # Curated fallback comets have no SkyTonight target_id (no altitude graph button).
+        assert event['target_id'] is None

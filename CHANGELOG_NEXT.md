@@ -66,3 +66,4 @@ A full pass over user-facing inputs closed several gaps where the backend accept
 - The Custom Horizon Profile editor (Locations) now has a "How does this work?" diagram and step-by-step instructions for measuring your real horizon (compass app, fist-width/clinometer angle estimate, bracketing sharp edges)
 - Comets: switch peak calculation to brightness peak vs perihelion peak
 - Notable comet events now flag when the target never clears the configured site's altitude/airmass constraint, instead of silently disappearing from the SkyTonight Comets tab with no explanation
+- The Notable Events calendar now offers an altitude-vs-time graph button for comet events active today, including ones excluded from the SkyTonight Comets tab (computed on demand since those never get a saved altitude-time file)

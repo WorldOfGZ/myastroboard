@@ -138,6 +138,67 @@ def _clear_alttime_files(location_id: Optional[str] = None) -> None:
         logger.debug(f'Failed to clear alttime files: {exc}')
 
 
+def compute_comet_alttime_on_demand(target_id: str, location: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Compute tonight's altitude-time series for a comet with no saved file.
+
+    Comets that never clear the site's altitude/airmass floor are excluded
+    from the scheduled comets phase in :func:`run_calculations`, so they
+    never get a saved ``<target_id>_alttime.json``. This computes the same
+    trajectory on demand instead, so the altitude-vs-time popup can still
+    show exactly how close a borderline comet comes to the horizon tonight.
+
+    Returns None when the target can't be found in the dataset, has no
+    coordinates, or tonight has no valid nautical night window - the caller
+    treats that the same as "no data available".
+    """
+    dataset = load_targets_dataset()
+    target = next((t for t in dataset.get('targets', []) if t.target_id == target_id), None)
+    if target is None or target.coordinates is None:
+        return None
+
+    lat = float(location.get('latitude') or 0.0)
+    lon = float(location.get('longitude') or 0.0)
+    elevation = float(location.get('elevation') or 0.0)
+    timezone_name = str(location.get('timezone') or 'UTC')
+
+    night_window = _get_night_window(lat, lon, timezone_name)
+    if night_window is None:
+        return None
+    night_start, night_end = night_window
+    astro_window = _get_astro_night_window(lat, lon, timezone_name)
+
+    times = _sample_times(night_start, night_end)
+    location_obj = EarthLocation(lat=lat * u.deg, lon=lon * u.deg, height=elevation * u.m)
+    alt_deg, az_deg = _compute_altaz_series(
+        target.coordinates.ra_hours, target.coordinates.dec_degrees, times, location_obj
+    )
+
+    config = load_config()
+    skytonight_cfg = config.get('skytonight', {}) if isinstance(config, dict) else {}
+    constraints = skytonight_cfg.get('constraints', {})
+
+    payload: Dict[str, Any] = {
+        'target_id': target_id,
+        'name': target.preferred_name or target_id,
+        'timezone': timezone_name,
+        'night_start': night_start.isoformat(),
+        'night_end': night_end.isoformat(),
+        'times_utc': [t.strftime('%Y-%m-%dT%H:%M:%S') for t in times.to_datetime(timezone=timezone.utc)],
+        'altitudes': [round(float(a), 2) for a in alt_deg],
+        'azimuths': [round(float(a), 1) for a in az_deg],
+        'altitude_constraint_min': float(constraints.get('altitude_constraint_min', 30)),
+        'altitude_constraint_max': float(constraints.get('altitude_constraint_max', 80)),
+        'on_demand': True,
+    }
+    if astro_window is not None:
+        payload['night_astro_start'] = astro_window[0].isoformat()
+        payload['night_astro_end'] = astro_window[1].isoformat()
+    horizon_profile = location.get('horizon_profile') or []
+    if horizon_profile:
+        payload['horizon_profile'] = horizon_profile
+    return payload
+
+
 # ---------------------------------------------------------------------------
 # Module-level calculation progress - updated in-place during run_calculations
 # so the scheduler can surface live phase info while calculation runs.

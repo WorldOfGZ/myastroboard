@@ -836,6 +836,55 @@ class TestAlttimeRoute:
         data = response.get_json()
         assert 'horizon_profile' in data
 
+    def test_missing_file_for_non_comet_target_does_not_compute_on_demand(self, client_admin, monkeypatch):
+        """The on-demand fallback is comet-only; a non-comet target still 404s."""
+        monkeypatch.setattr(skytonight_api_module.os.path, 'isfile', lambda p: False)
+        monkeypatch.setattr(
+            skytonight_api_module,
+            'compute_comet_alttime_on_demand',
+            lambda *a, **k: (_ for _ in ()).throw(AssertionError('should not be called for a non-comet target')),
+        )
+        response = client_admin.get('/api/skytonight/alttime/dso-ngc224')
+        assert response.status_code == 404
+
+    def test_missing_file_for_comet_computes_on_demand(self, client_admin, monkeypatch):
+        """A comet target with no saved file falls back to on-demand computation."""
+        monkeypatch.setattr(skytonight_api_module.os.path, 'isfile', lambda p: False)
+        on_demand_payload = {
+            'target_id': 'comet-10ptempel',
+            'name': '10P/Tempel',
+            'times_utc': ['2026-08-02T20:00:00'],
+            'altitudes': [15.0],
+            'on_demand': True,
+        }
+        monkeypatch.setattr(
+            skytonight_api_module, 'compute_comet_alttime_on_demand', lambda tid, loc: on_demand_payload
+        )
+        response = client_admin.get('/api/skytonight/alttime/comet-10ptempel')
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['on_demand'] is True
+        assert data['target_id'] == 'comet-10ptempel'
+        assert 'horizon_profile' in data
+
+    def test_missing_file_for_comet_with_no_data_returns_404(self, client_admin, monkeypatch):
+        """When on-demand computation can't find the target/night, still 404."""
+        monkeypatch.setattr(skytonight_api_module.os.path, 'isfile', lambda p: False)
+        monkeypatch.setattr(skytonight_api_module, 'compute_comet_alttime_on_demand', lambda tid, loc: None)
+        response = client_admin.get('/api/skytonight/alttime/comet-unknown')
+        assert response.status_code == 404
+
+    def test_on_demand_computation_exception_returns_500(self, client_admin, monkeypatch):
+        """An exception during on-demand computation is a 500, not a crash."""
+        monkeypatch.setattr(skytonight_api_module.os.path, 'isfile', lambda p: False)
+
+        def _raise(tid, loc):
+            raise RuntimeError('simulated failure')
+
+        monkeypatch.setattr(skytonight_api_module, 'compute_comet_alttime_on_demand', _raise)
+        response = client_admin.get('/api/skytonight/alttime/comet-10ptempel')
+        assert response.status_code == 500
+
 
 class TestCombinationRecommendationsRoute:
     """Cover /api/skytonight/combination-recommendations."""

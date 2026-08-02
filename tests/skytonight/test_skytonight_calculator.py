@@ -43,6 +43,7 @@ _get_astro_night_window = calc._get_astro_night_window
 _cleanup_calculation_memory = calc._cleanup_calculation_memory
 load_calculation_results = calc.load_calculation_results
 run_calculations = calc.run_calculations
+compute_comet_alttime_on_demand = calc.compute_comet_alttime_on_demand
 from skytonight.skytonight_models import SkyTonightTarget, SkyTonightCoordinates
 from skytonight.skytonight_targets import normalize_object_name
 
@@ -1216,6 +1217,98 @@ class TestClearAlttimeFilesEdgeCases:
         """Covers the outer except block."""
         with patch('skytonight.skytonight_calculator.get_alttime_dir', side_effect=OSError('fail')):
             _clear_alttime_files()  # must not raise
+
+
+class TestComputeCometAlttimeOnDemand:
+    """Cover compute_comet_alttime_on_demand: the alttime fallback for comets
+    excluded from tonight's saved results (e.g. altitude/airmass-limited)."""
+
+    def _fake_target(self, target_id='comet-test', ra_hours=10.0, dec_degrees=-20.0):
+        return SkyTonightTarget(
+            target_id=target_id,
+            category='comets',
+            object_type='Comet',
+            preferred_name='Test Comet',
+            coordinates=SkyTonightCoordinates(ra_hours=ra_hours, dec_degrees=dec_degrees),
+        )
+
+    @staticmethod
+    def _mock_sun_service(mock_sun_service):
+        fake = MagicMock()
+        fake.get_today_report.return_value = SimpleNamespace(
+            nautical_dusk='2026-08-02 22:00',
+            nautical_dawn='2026-08-03 04:00',
+            astronomical_dusk='2026-08-02 23:00',
+            astronomical_dawn='2026-08-03 03:00',
+        )
+        mock_sun_service.return_value = fake
+
+    @patch('skytonight.skytonight_calculator.load_config')
+    @patch('skytonight.skytonight_calculator.load_targets_dataset')
+    @patch('skytonight.skytonight_calculator.SunService')
+    def test_returns_full_payload_for_known_comet(self, mock_sun_service, mock_load_dataset, mock_load_config):
+        self._mock_sun_service(mock_sun_service)
+        mock_load_dataset.return_value = {'targets': [self._fake_target()]}
+        mock_load_config.return_value = {
+            'skytonight': {'constraints': {'altitude_constraint_min': 25, 'altitude_constraint_max': 90}}
+        }
+
+        location = {'latitude': 48.64, 'longitude': 5.51, 'elevation': 310.0, 'timezone': 'Europe/Paris'}
+        result = compute_comet_alttime_on_demand('comet-test', location)
+
+        assert result is not None
+        assert result['target_id'] == 'comet-test'
+        assert result['name'] == 'Test Comet'
+        assert result['on_demand'] is True
+        assert len(result['altitudes']) == len(result['times_utc'])
+        assert len(result['azimuths']) == len(result['times_utc'])
+        assert result['altitude_constraint_min'] == 25.0
+        assert result['altitude_constraint_max'] == 90.0
+        assert 'night_astro_start' in result
+        assert 'night_astro_end' in result
+
+    @patch('skytonight.skytonight_calculator.load_targets_dataset')
+    def test_returns_none_when_target_not_found(self, mock_load_dataset):
+        mock_load_dataset.return_value = {'targets': []}
+        result = compute_comet_alttime_on_demand('comet-missing', {'latitude': 45.0, 'longitude': 0.0})
+        assert result is None
+
+    @patch('skytonight.skytonight_calculator.load_targets_dataset')
+    def test_returns_none_when_target_has_no_coordinates(self, mock_load_dataset):
+        target = SkyTonightTarget(
+            target_id='comet-nocoords', category='comets', object_type='Comet', preferred_name='No Coords'
+        )
+        mock_load_dataset.return_value = {'targets': [target]}
+        result = compute_comet_alttime_on_demand('comet-nocoords', {'latitude': 45.0, 'longitude': 0.0})
+        assert result is None
+
+    @patch('skytonight.skytonight_calculator.load_targets_dataset')
+    @patch('skytonight.skytonight_calculator.SunService')
+    def test_returns_none_when_no_night_window(self, mock_sun_service, mock_load_dataset):
+        mock_load_dataset.return_value = {'targets': [self._fake_target()]}
+        fake = MagicMock()
+        fake.get_today_report.return_value = SimpleNamespace(nautical_dusk=None, nautical_dawn=None)
+        mock_sun_service.return_value = fake
+        result = compute_comet_alttime_on_demand(
+            'comet-test', {'latitude': 45.0, 'longitude': 0.0, 'timezone': 'UTC'}
+        )
+        assert result is None
+
+    @patch('skytonight.skytonight_calculator.load_config')
+    @patch('skytonight.skytonight_calculator.load_targets_dataset')
+    @patch('skytonight.skytonight_calculator.SunService')
+    def test_includes_horizon_profile_when_present(self, mock_sun_service, mock_load_dataset, mock_load_config):
+        self._mock_sun_service(mock_sun_service)
+        mock_load_dataset.return_value = {'targets': [self._fake_target()]}
+        mock_load_config.return_value = {'skytonight': {'constraints': {}}}
+        location = {
+            'latitude': 48.64,
+            'longitude': 5.51,
+            'timezone': 'Europe/Paris',
+            'horizon_profile': [{'az': 0, 'alt': 20}],
+        }
+        result = compute_comet_alttime_on_demand('comet-test', location)
+        assert result['horizon_profile'] == [{'az': 0, 'alt': 20}]
 
 
 class TestGetAstroNightWindow:
