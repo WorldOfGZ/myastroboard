@@ -3,7 +3,11 @@ Tests for solar_system_events.py (SolarSystemEventsService).
 Covers pure-logic rating methods, constants, and mocked event finders.
 """
 
+import math
 from unittest.mock import patch
+
+import pytest
+
 from observation import solar_system_events as module
 
 SolarSystemEventsService = module.SolarSystemEventsService
@@ -27,6 +31,21 @@ class TestSolarSystemEventsInit:
     def test_location_object_created(self):
         svc = SolarSystemEventsService(45.0, -73.5)
         assert svc.location is not None
+
+    def test_effective_altitude_min_defaults_to_base_constraint(self):
+        # Default airmass_constraint=2.0 -> arcsin(0.5) = 30 deg, same as the base default.
+        svc = SolarSystemEventsService(45.0, -73.5)
+        assert svc.effective_altitude_min == pytest.approx(30.0)
+
+    def test_effective_altitude_min_uses_stricter_airmass_floor(self):
+        # airmass_constraint=1.8 -> arcsin(1/1.8) ~= 33.75 deg, stricter than the base 25.
+        svc = SolarSystemEventsService(45.0, -73.5, altitude_constraint_min=25.0, airmass_constraint=1.8)
+        assert svc.effective_altitude_min == pytest.approx(33.75, abs=0.05)
+
+    def test_effective_altitude_min_uses_stricter_base_constraint(self):
+        # A generous airmass_constraint gives a low altitude floor, so the base wins instead.
+        svc = SolarSystemEventsService(45.0, -73.5, altitude_constraint_min=40.0, airmass_constraint=5.0)
+        assert svc.effective_altitude_min == pytest.approx(40.0)
 
 
 class TestMeteorShowerConstants:
@@ -564,3 +583,236 @@ class TestEquipmentLabel:
 
     def test_faint_magnitude_is_telescope(self):
         assert SolarSystemEventsService._equipment_label(15.0) == "telescope"
+
+
+_FULL_ELEMENTS_METADATA = {
+    'q': 1.417738,
+    'e': 0.537452,
+    'omega': 117.7975,
+    'Omega': 195.4681,
+    'inclination': 12.0272,
+    'perihelion_year': 2026,
+    'perihelion_month': 8,
+    'perihelion_day': 2.1151,
+    'slope': 10.0,
+}
+
+
+class TestExtractOrbitalElements:
+    """Tests for the static _extract_orbital_elements helper."""
+
+    def test_full_metadata_returns_all_elements(self):
+        elements = SolarSystemEventsService._extract_orbital_elements(_FULL_ELEMENTS_METADATA)
+        assert elements is not None
+        assert elements['q'] == pytest.approx(1.417738)
+        assert elements['perihelion_year'] == 2026
+        assert elements['perihelion_month'] == 8
+        assert elements['perihelion_day'] == pytest.approx(2.1151)
+        assert elements['slope'] == pytest.approx(10.0)
+
+    def test_missing_key_returns_none(self):
+        incomplete = {k: v for k, v in _FULL_ELEMENTS_METADATA.items() if k != 'slope'}
+        assert SolarSystemEventsService._extract_orbital_elements(incomplete) is None
+
+    def test_unparseable_value_returns_none(self):
+        bad = dict(_FULL_ELEMENTS_METADATA, q='not-a-number')
+        assert SolarSystemEventsService._extract_orbital_elements(bad) is None
+
+    def test_curated_style_metadata_returns_none(self):
+        # Curated fallback comets only carry name/magnitude/perihelion_date.
+        assert SolarSystemEventsService._extract_orbital_elements({'perihelion_date': '2026-08-15'}) is None
+
+
+class TestComputeTrueBrightnessPeak:
+    """Tests for _compute_true_brightness_peak."""
+
+    def _candidate(self, orbital_elements=None, magnitude=5.0):
+        return {'name': 'Test Comet', 'magnitude': magnitude, 'orbital_elements': orbital_elements}
+
+    def test_returns_none_without_orbital_elements(self):
+        from datetime import datetime, timedelta, timezone
+
+        svc = SolarSystemEventsService(45.0, 0.0, timezone="UTC")
+        start = datetime(2026, 7, 3, 12, 0, 0, tzinfo=timezone.utc)
+        end = start + timedelta(days=6)
+        assert svc._compute_true_brightness_peak(self._candidate(None), start, end) is None
+
+    def test_returns_none_without_magnitude(self):
+        from datetime import datetime, timedelta, timezone
+
+        svc = SolarSystemEventsService(45.0, 0.0, timezone="UTC")
+        start = datetime(2026, 7, 3, 12, 0, 0, tzinfo=timezone.utc)
+        end = start + timedelta(days=6)
+        candidate = self._candidate(_FULL_ELEMENTS_METADATA, magnitude=None)
+        assert svc._compute_true_brightness_peak(candidate, start, end) is None
+
+    def test_peak_follows_geocentric_minimum_not_perihelion(self, monkeypatch):
+        """Earth's closest approach a day after perihelion should pull the
+        computed peak away from perihelion itself - this is the scenario a
+        real apparition (e.g. 10P/Tempel 2026) can show in practice."""
+        from datetime import datetime, timedelta, timezone
+
+        svc = SolarSystemEventsService(45.0, 0.0, timezone="UTC")
+        perihelion = datetime(2026, 8, 2, 12, 0, 0, tzinfo=timezone.utc)
+        start = perihelion - timedelta(days=3)
+        end = perihelion + timedelta(days=3)
+        closest_earth_day = (perihelion + timedelta(days=1)).date()
+
+        def fake_comet_ra_dec(q, e, omega, Omega, incl, py, pm, pd, obs_time, earth_helio):
+            r_au = 1.4  # roughly constant heliocentric distance over a week
+            delta_au = 0.40 if obs_time.date() == closest_earth_day else 0.60
+            return (None, 0.0, r_au, delta_au)  # dec=0 -> always overhead at the equator
+
+        monkeypatch.setattr('skytonight.skytonight_comets._comet_ra_dec', fake_comet_ra_dec)
+        monkeypatch.setattr(
+            'skytonight.skytonight_comets._get_earth_heliocentric', lambda obs_time: (1.0, 0.0, 0.0)
+        )
+
+        candidate = self._candidate(_FULL_ELEMENTS_METADATA, magnitude=5.0)
+        result = svc._compute_true_brightness_peak(candidate, start, end)
+
+        assert result is not None
+        peak_date, peak_magnitude, max_transit_altitude = result
+        assert peak_date.date() == closest_earth_day
+        expected = round(5.0 + 5.0 * math.log10(0.40) + 2.5 * 10.0 * math.log10(1.4), 1)
+        assert peak_magnitude == pytest.approx(expected)
+        # svc latitude is 45, dec=0 -> transit altitude = 90 - |45 - 0| = 45.
+        assert max_transit_altitude == pytest.approx(45.0)
+
+    def test_max_transit_altitude_is_the_window_wide_maximum(self, monkeypatch):
+        """The altitude tracked is the best day in the whole window, independent
+        of which day happens to be the brightest."""
+        from datetime import datetime, timedelta, timezone
+
+        svc = SolarSystemEventsService(45.0, 0.0, timezone="UTC")
+        start = datetime(2026, 8, 1, 12, 0, 0, tzinfo=timezone.utc)
+        end = start + timedelta(days=3)
+        best_altitude_day = (start + timedelta(days=2)).date()
+
+        def fake_comet_ra_dec(q, e, omega, Omega, incl, py, pm, pd, obs_time, earth_helio):
+            # Constant brightness (so the "peak day" is arbitrary/first), but
+            # declination approaches the observer's latitude (45) on day 2,
+            # which should produce the highest transit altitude of the window.
+            dec_deg = 45.0 if obs_time.date() == best_altitude_day else -10.0
+            return (None, dec_deg, 1.4, 0.5)
+
+        monkeypatch.setattr('skytonight.skytonight_comets._comet_ra_dec', fake_comet_ra_dec)
+        monkeypatch.setattr(
+            'skytonight.skytonight_comets._get_earth_heliocentric', lambda obs_time: (1.0, 0.0, 0.0)
+        )
+
+        candidate = self._candidate(_FULL_ELEMENTS_METADATA, magnitude=5.0)
+        result = svc._compute_true_brightness_peak(candidate, start, end)
+
+        assert result is not None
+        _, _, max_transit_altitude = result
+        assert max_transit_altitude == pytest.approx(90.0)  # dec == lat -> straight overhead
+
+    def test_days_with_failed_propagation_are_skipped(self, monkeypatch):
+        from datetime import datetime, timedelta, timezone
+
+        svc = SolarSystemEventsService(45.0, 0.0, timezone="UTC")
+        start = datetime(2026, 8, 1, 12, 0, 0, tzinfo=timezone.utc)
+        end = start + timedelta(days=2)
+
+        def fake_comet_ra_dec(*args, **kwargs):
+            raise ValueError("simulated propagation failure")
+
+        monkeypatch.setattr('skytonight.skytonight_comets._comet_ra_dec', fake_comet_ra_dec)
+        monkeypatch.setattr(
+            'skytonight.skytonight_comets._get_earth_heliocentric', lambda obs_time: (1.0, 0.0, 0.0)
+        )
+
+        candidate = self._candidate(_FULL_ELEMENTS_METADATA, magnitude=5.0)
+        assert svc._compute_true_brightness_peak(candidate, start, end) is None
+
+
+class TestBuildCometEventUsesBrightnessPeak:
+    """Integration: _build_comet_event should prefer the true brightness peak."""
+
+    def test_peak_time_shifts_away_from_perihelion_when_earth_is_closer_later(self, monkeypatch):
+        from datetime import date, datetime, timedelta, timezone
+
+        svc = SolarSystemEventsService(45.0, 0.0, timezone="UTC")
+        perihelion = datetime(2026, 8, 2, 12, 0, 0, tzinfo=timezone.utc)
+        closest_earth_day = (perihelion + timedelta(days=1)).date()
+
+        def fake_comet_ra_dec(q, e, omega, Omega, incl, py, pm, pd, obs_time, earth_helio):
+            r_au = 1.4
+            delta_au = 0.40 if obs_time.date() == closest_earth_day else 0.60
+            return (None, 0.0, r_au, delta_au)  # dec=0 -> well above any altitude floor at lat=0
+
+        monkeypatch.setattr('skytonight.skytonight_comets._comet_ra_dec', fake_comet_ra_dec)
+        monkeypatch.setattr(
+            'skytonight.skytonight_comets._get_earth_heliocentric', lambda obs_time: (1.0, 0.0, 0.0)
+        )
+
+        candidate = {
+            'name': '10P/Tempel',
+            'perihelion': perihelion,
+            'magnitude': 5.0,
+            'equipment': None,
+            'orbital_elements': _FULL_ELEMENTS_METADATA,
+        }
+        event = svc._build_comet_event(candidate, date(2026, 7, 1), date(2026, 9, 1), source='dataset')
+
+        assert event is not None
+        peak_time = datetime.fromisoformat(event['peak_time'])
+        assert peak_time.date() == closest_earth_day
+        # Solar perihelion is still reported separately, untouched.
+        assert event['perihelion_date'].startswith('2026-08-02')
+        assert event['magnitude'] != 5.0  # now the computed apparent magnitude, not raw H
+        assert event['altitude_limited'] is False
+
+    def test_altitude_limited_when_target_never_clears_the_site_floor(self, monkeypatch):
+        """Reproduces the 10P/Tempel case: a real, notable comet that never
+        rises high enough above a specific site's horizon to be observed."""
+        from datetime import date, datetime, timezone
+
+        # altitude_constraint_min=25, airmass_constraint=1.8 -> effective floor ~33.75 deg
+        svc = SolarSystemEventsService(
+            48.64, 5.51, timezone="Europe/Paris", altitude_constraint_min=25.0, airmass_constraint=1.8
+        )
+        perihelion = datetime(2026, 8, 2, 12, 0, 0, tzinfo=timezone.utc)
+
+        def fake_comet_ra_dec(q, e, omega, Omega, incl, py, pm, pd, obs_time, earth_helio):
+            # dec=-24.7 near latitude 48.64 -> max transit altitude ~16.7 deg, well under the floor.
+            return (None, -24.7, 1.42, 0.41)
+
+        monkeypatch.setattr('skytonight.skytonight_comets._comet_ra_dec', fake_comet_ra_dec)
+        monkeypatch.setattr(
+            'skytonight.skytonight_comets._get_earth_heliocentric', lambda obs_time: (1.0, 0.0, 0.0)
+        )
+
+        candidate = {
+            'name': '10P/Tempel',
+            'perihelion': perihelion,
+            'magnitude': 5.0,
+            'equipment': None,
+            'orbital_elements': _FULL_ELEMENTS_METADATA,
+        }
+        event = svc._build_comet_event(candidate, date(2026, 7, 1), date(2026, 9, 1), source='dataset')
+
+        assert event is not None
+        assert event['altitude_limited'] is True
+
+    def test_falls_back_to_perihelion_without_orbital_elements(self):
+        from datetime import date, datetime
+
+        svc = SolarSystemEventsService(45.0, 0.0, timezone="UTC")
+        perihelion = SolarSystemEventsService._parse_perihelion('2026-08-15')
+        candidate = {
+            'name': 'Curated Comet',
+            'perihelion': perihelion,
+            'magnitude': 8.0,
+            'equipment': None,
+            'orbital_elements': None,
+        }
+        event = svc._build_comet_event(candidate, date(2026, 7, 1), date(2026, 9, 1), source='curated')
+
+        assert event is not None
+        peak_time = datetime.fromisoformat(event['peak_time'])
+        assert peak_time.date() == perihelion.date()
+        assert event['magnitude'] == 8.0
+        # Unknown (no orbital elements) defaults to "not flagged" rather than assumed limited.
+        assert event['altitude_limited'] is False

@@ -311,6 +311,14 @@ function createEventAlertCard(event) {
         content.appendChild(metaEl);
     }
 
+    if (event.altitude_limited) {
+        const altitudeNoteEl = document.createElement('div');
+        altitudeNoteEl.className = 'event-banner__meta text-warning';
+        altitudeNoteEl.appendChild(DOMUtils.createIcon('bi bi-exclamation-triangle-fill', 'icon-inline me-1'));
+        altitudeNoteEl.appendChild(document.createTextNode(i18n.t('calendar.altitude_limited_note')));
+        content.appendChild(altitudeNoteEl);
+    }
+
     banner.appendChild(content);
 
     // Action button
@@ -400,6 +408,17 @@ function createEventTimeline(events) {
         description.className = 'text-muted';
         description.textContent = event.description ?? '';
         item.appendChild(description);
+
+        // Site-specific note: this event is real, but the target never clears
+        // the configured altitude/airmass floor from this location (e.g. a
+        // comet passing too far south to rise above the horizon here).
+        if (event.altitude_limited) {
+            const altitudeNote = document.createElement('p');
+            altitudeNote.className = 'text-warning small mb-1';
+            altitudeNote.appendChild(DOMUtils.createIcon('bi bi-exclamation-triangle-fill', 'icon-inline me-1'));
+            altitudeNote.appendChild(document.createTextNode(i18n.t('calendar.altitude_limited_note')));
+            item.appendChild(altitudeNote);
+        }
 
         timelineListUl.appendChild(item);
     });

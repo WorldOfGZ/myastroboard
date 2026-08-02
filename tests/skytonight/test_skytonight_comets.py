@@ -180,6 +180,7 @@ def _make_mpc_line(
     incl=45.678,
     epoch='20260101',
     abs_mag=10.1,
+    slope=4.0,
     designation='0013P  ',
 ):
     """Construct a minimal valid MPC CometEls.txt line."""
@@ -207,7 +208,8 @@ def _make_mpc_line(
         + f'{epoch:8s}'           # [81:89]
         + '  '                    # [89:91]
         + f'{abs_mag:5.1f}'       # [91:96]
-        + '      '                # [96:102]
+        + f'{slope:4.1f}'         # [96:100]
+        + '  '                    # [100:102]
         + name                    # [102:]
     )
 
@@ -222,6 +224,7 @@ def test_parse_comets_txt_line_parses_valid_line():
     assert result['perihelion_month'] == 10
     assert result['q'] == pytest.approx(1.234567, rel=1e-5)
     assert result['absolute_magnitude'] == pytest.approx(10.1, rel=1e-4)
+    assert result['slope'] == pytest.approx(4.0, rel=1e-4)
 
 
 def test_parse_comets_txt_line_returns_none_for_short_line():

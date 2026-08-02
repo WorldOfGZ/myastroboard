@@ -712,11 +712,16 @@ def update_solar_system_events_cache(config=None, location=None):
 
         from observation.solar_system_events import SolarSystemEventsService
 
+        skytonight_cfg = config.get("skytonight", {}) if isinstance(config, dict) else {}
+        constraints = skytonight_cfg.get("constraints", {})
+
         solsys_service = SolarSystemEventsService(
             latitude=location["latitude"],
             longitude=location["longitude"],
             elevation=location.get("elevation", 0),
             timezone=location.get("timezone", "UTC"),
+            altitude_constraint_min=constraints.get("altitude_constraint_min", 30),
+            airmass_constraint=constraints.get("airmass_constraint", 2),
         )
 
         events = solsys_service.get_solar_system_events(days_ahead=365)

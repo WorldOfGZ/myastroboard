@@ -64,3 +64,5 @@ A full pass over user-facing inputs closed several gaps where the backend accept
 - Add "Milky Way", "Nightscape / Wide-field" and "Star Trail" on astrodex type
 - Parameters -> Backup/Restore now lists `data/observation_sessions/` among what's included (the backup/restore code already covered it since the Observation Log shipped - only the on-screen description was stale)
 - The Custom Horizon Profile editor (Locations) now has a "How does this work?" diagram and step-by-step instructions for measuring your real horizon (compass app, fist-width/clinometer angle estimate, bracketing sharp edges)
+- Comets: switch peak calculation to brightness peak vs perihelion peak
+- Notable comet events now flag when the target never clears the configured site's altitude/airmass constraint, instead of silently disappearing from the SkyTonight Comets tab with no explanation
