@@ -10,8 +10,9 @@ Uses a curated database of known events for accuracy.
 Provides detailed visibility information for each event.
 """
 
+import math
 from datetime import datetime, timedelta, date
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from zoneinfo import ZoneInfo
 from utils import parse_iso_to_utc, distant_epoch_precision_warnings_muted
 from utils.logging_config import get_logger
@@ -195,7 +196,14 @@ class SolarSystemEventsService:
     }
 
     def __init__(
-        self, latitude: float, longitude: float, elevation: float = 0, timezone: str = "UTC", language: str = "en"
+        self,
+        latitude: float,
+        longitude: float,
+        elevation: float = 0,
+        timezone: str = "UTC",
+        language: str = "en",
+        altitude_constraint_min: float = 30.0,
+        airmass_constraint: float = 2.0,
     ):
         """
         Initialize solar system events service.
@@ -206,6 +214,9 @@ class SolarSystemEventsService:
             elevation: Observer elevation in meters (default 0)
             timezone: IANA timezone string (default UTC)
             language: Language code for translations (default 'en')
+            altitude_constraint_min: SkyTonight altitude floor in degrees, used only to flag
+                comet events the configured site can never actually see (default 30)
+            airmass_constraint: SkyTonight airmass ceiling, same purpose (default 2)
         """
         self.latitude = latitude
         self.longitude = longitude
@@ -214,6 +225,14 @@ class SolarSystemEventsService:
         self.language = language
         self.i18n = I18nManager(language)
         self.location = EarthLocation(lat=latitude * u.deg, lon=longitude * u.deg, height=elevation * u.m)
+        # Same effective floor as the SkyTonight observability calculator (see
+        # skytonight_calculator._compute_target_result): the stricter of the
+        # configured altitude minimum and the altitude implied by the airmass
+        # constraint (airmass = 1 / sin(altitude)).
+        self.effective_altitude_min = altitude_constraint_min
+        if airmass_constraint >= 1.0:
+            alt_from_airmass = math.degrees(math.asin(min(1.0, 1.0 / airmass_constraint)))
+            self.effective_altitude_min = max(altitude_constraint_min, alt_from_airmass)
         # Determine hemisphere
         self.hemisphere = 'Northern' if latitude >= 0 else 'Southern'
 
@@ -435,9 +454,34 @@ class SolarSystemEventsService:
                     'perihelion': perihelion,
                     'magnitude': float(magnitude),
                     'equipment': None,
+                    'orbital_elements': self._extract_orbital_elements(metadata),
                 }
             )
         return candidates
+
+    @staticmethod
+    def _extract_orbital_elements(metadata: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Pull the raw MPC orbital elements out of a comet's dataset metadata.
+
+        Returns None when any element is missing or unparseable (e.g. curated
+        fallback comets, which only carry a name/magnitude/perihelion date), so
+        the caller can fall back to the simpler perihelion + absolute-magnitude
+        estimate.
+        """
+        try:
+            return {
+                'q': float(metadata['q']),
+                'e': float(metadata['e']),
+                'omega': float(metadata['omega']),
+                'Omega': float(metadata['Omega']),
+                'inclination': float(metadata['inclination']),
+                'perihelion_year': int(metadata['perihelion_year']),
+                'perihelion_month': int(metadata['perihelion_month']),
+                'perihelion_day': float(metadata['perihelion_day']),
+                'slope': float(metadata['slope']),
+            }
+        except (KeyError, TypeError, ValueError):
+            return None
 
     def _curated_comet_candidates(self) -> List[Dict[str, Any]]:
         """Fallback candidates from the small hardcoded NOTABLE_COMETS list."""
@@ -478,7 +522,7 @@ class SolarSystemEventsService:
 
     @staticmethod
     def _equipment_label(magnitude: Optional[float]) -> str:
-        """Map an (absolute) comet magnitude to a rough required-equipment hint."""
+        """Map a comet's apparent magnitude (absolute magnitude as a fallback) to a rough equipment hint."""
         if magnitude is None:
             return 'telescope'
         if magnitude <= 6.0:
@@ -490,6 +534,82 @@ class SolarSystemEventsService:
     def _equipment_display_label(self, equipment: str) -> str:
         """Translate an internal equipment key (e.g. 'naked_eye_possible') for display."""
         return self.i18n.t(f'events_api.solar_system.visibility_{equipment}')
+
+    @staticmethod
+    def _apparent_magnitude(abs_mag: float, slope: float, r_au: float, delta_au: float) -> Optional[float]:
+        """Standard MPC comet brightness law: m = H + 5*log10(delta) + 2.5*n*log10(r)."""
+        if r_au <= 0 or delta_au <= 0:
+            return None
+        return abs_mag + 5.0 * math.log10(delta_au) + 2.5 * slope * math.log10(r_au)
+
+    def _compute_true_brightness_peak(
+        self, candidate: Dict[str, Any], visibility_start: datetime, visibility_end: datetime
+    ) -> Optional[Tuple[datetime, float, float]]:
+        """Find the day of maximum apparent brightness within a comet's visibility window.
+
+        Perihelion (closest approach to the Sun) and the day a comet is
+        actually brightest can differ by a day or two once the Earth's
+        distance is factored in, which matters for anyone timing a telescope
+        session around the "peak". Samples daily across the window using the
+        same Keplerian propagation as the SkyTonight comet dataset. Also
+        tracks the best (highest) transit altitude reached at the configured
+        site over the whole window, using the closed-form upper-culmination
+        altitude (90 - |latitude - declination|), so the caller can flag
+        comets that never clear the site's observability floor even though
+        they are otherwise a notable event. Returns None when orbital
+        elements are unavailable (e.g. curated fallback comets) or
+        propagation fails, so the caller can fall back to perihelion +
+        absolute magnitude.
+        """
+        elements = candidate.get('orbital_elements')
+        abs_mag = candidate.get('magnitude')
+        if not elements or abs_mag is None:
+            return None
+
+        try:
+            from skytonight.skytonight_comets import _comet_ra_dec, _get_earth_heliocentric
+        except Exception:
+            return None
+
+        best_date: Optional[datetime] = None
+        best_magnitude: Optional[float] = None
+        max_transit_altitude: Optional[float] = None
+        total_days = max(0, (visibility_end - visibility_start).days)
+
+        for offset in range(total_days + 1):
+            sample_dt = visibility_start + timedelta(days=offset)
+            try:
+                earth_helio = _get_earth_heliocentric(sample_dt)
+                _, dec_deg, r_au, delta_au = _comet_ra_dec(
+                    elements['q'],
+                    elements['e'],
+                    elements['omega'],
+                    elements['Omega'],
+                    elements['inclination'],
+                    elements['perihelion_year'],
+                    elements['perihelion_month'],
+                    elements['perihelion_day'],
+                    sample_dt,
+                    earth_helio,
+                )
+            except Exception:
+                continue
+            if r_au is None or delta_au is None:
+                continue
+            if dec_deg is not None:
+                transit_altitude = 90.0 - abs(self.latitude - dec_deg)
+                if max_transit_altitude is None or transit_altitude > max_transit_altitude:
+                    max_transit_altitude = transit_altitude
+            magnitude = self._apparent_magnitude(abs_mag, elements['slope'], r_au, delta_au)
+            if magnitude is None:
+                continue
+            if best_magnitude is None or magnitude < best_magnitude:
+                best_magnitude = magnitude
+                best_date = sample_dt
+
+        if best_date is None or best_magnitude is None or max_transit_altitude is None:
+            return None
+        return best_date, round(best_magnitude, 1), max_transit_altitude
 
     def _build_comet_event(
         self, candidate: Dict[str, Any], start_date: date, end_date: date, source: str
@@ -503,6 +623,15 @@ class SolarSystemEventsService:
         visibility_end = perihelion_date + timedelta(days=30)
         if not (visibility_start.date() <= end_date and visibility_end.date() >= start_date):
             return None
+
+        peak_date = perihelion_date
+        # Unknown (no orbital elements to check) defaults to "not flagged" rather than
+        # assuming it's out of reach - we simply can't tell for curated fallback comets.
+        altitude_limited = False
+        brightness_peak = self._compute_true_brightness_peak(candidate, visibility_start, visibility_end)
+        if brightness_peak is not None:
+            peak_date, magnitude, max_transit_altitude = brightness_peak
+            altitude_limited = max_transit_altitude < self.effective_altitude_min
 
         comet_name = candidate['name']
         equipment = candidate.get('equipment') or self._equipment_label(magnitude)
@@ -520,13 +649,14 @@ class SolarSystemEventsService:
             'title': title,
             'description': description,
             'icon_class': 'bi bi-comet',
-            'peak_time': self._to_local_iso(Time(perihelion_date)),
+            'peak_time': self._to_local_iso(Time(peak_date)),
             'start_time': self._to_local_iso(Time(visibility_start)),
             'end_time': self._to_local_iso(Time(visibility_end)),
             'perihelion_date': perihelion_date.isoformat(),
             'magnitude': magnitude,
             'visibility': visibility_type,
             'equipment_needed': equipment,
+            'altitude_limited': altitude_limited,
             'importance': self._rate_comet_importance(magnitude) if magnitude is not None else 'low',
             'raw_data': {
                 'comet': comet_name,

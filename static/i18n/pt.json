@@ -544,6 +544,7 @@
     "details": "Detalhes",
     "visible": "Visível",
     "invisible": "Invisível",
+    "altitude_limited_note": "Não observável a partir do seu local configurado (restrição de altitude)",
     "happening_now": "Acontecendo agora!",
     "today": "Hoje!",
     "tomorrow": "Amanhã!",
@@ -1974,8 +1975,8 @@
     "solar_system": {
       "meteor_shower_title": "{shower_name} Pico",
       "meteor_shower_description": "Pico da chuva de meteoros. Até {zenith_hourly_rate} meteoros/hora. Corpo pai: {parent_body}",
-      "comet_title": "{comet_name} Perto do periélio",
-      "comet_description": "Cometa periódico próximo ao periélio. Magnitude ~{magnitude} ({visibility}). Verifique os gráficos para localização exata.",
+      "comet_title": "{comet_name} no Pico de Brilho",
+      "comet_description": "Cometa periódico no pico de brilho. Magnitude ~{magnitude} ({visibility}). Verifique os gráficos para localização exata.",
       "visibility_naked_eye_possible": "olho nu possível",
       "visibility_binoculars": "binóculos",
       "visibility_telescope": "telescópio",

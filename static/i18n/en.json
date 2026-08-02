@@ -544,6 +544,7 @@
     "details": "Details",
     "visible": "Visible",
     "invisible": "Invisible",
+    "altitude_limited_note": "Not observable from your configured site (altitude constraint)",
     "happening_now": "Happening now!",
     "today": "Today!",
     "tomorrow": "Tomorrow!",
@@ -1974,8 +1975,8 @@
     "solar_system": {
       "meteor_shower_title": "{shower_name} Peak",
       "meteor_shower_description": "Meteor shower peak. Up to {zenith_hourly_rate} meteors/hour. Parent body: {parent_body}",
-      "comet_title": "{comet_name} Near Perihelion",
-      "comet_description": "Periodic comet near perihelion. Magnitude ~{magnitude} ({visibility}). Check charts for exact location.",
+      "comet_title": "{comet_name} at Peak Brightness",
+      "comet_description": "Periodic comet at peak brightness. Magnitude ~{magnitude} ({visibility}). Check charts for exact location.",
       "visibility_naked_eye_possible": "naked eye possible",
       "visibility_binoculars": "binoculars",
       "visibility_telescope": "telescope",

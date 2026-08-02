@@ -204,6 +204,7 @@ def _parse_comets_txt_line(line: str) -> Optional[Dict[str, Any]]:
         incl = float(line[70:79])
         epoch = line[81:89].strip()
         abs_mag = _safe_float(line[91:96].strip() or None)
+        slope = _safe_float(line[96:100].strip() or None)
         name = re.sub(r'\s{2,}', ' ', line[102:]).strip()
         designation = line[5:12].strip()
         if not name:
@@ -223,6 +224,7 @@ def _parse_comets_txt_line(line: str) -> Optional[Dict[str, Any]]:
             'epoch': epoch,
             'absolute_magnitude': abs_mag,
             'magnitude': abs_mag,
+            'slope': slope,
         }
     except (ValueError, IndexError):
         return None
@@ -271,6 +273,18 @@ def _to_comet_target(row: Dict[str, Any], source: str) -> Optional[SkyTonightTar
         'distance_sun_au',
         'distance_earth_au',
         'absolute_magnitude',
+        # Raw orbital elements, kept alongside the derived fields above so the
+        # orbit can be re-propagated later (e.g. to find the true apparent-
+        # brightness peak, which can fall a day or two away from perihelion).
+        'q',
+        'e',
+        'omega',
+        'Omega',
+        'inclination',
+        'perihelion_year',
+        'perihelion_month',
+        'perihelion_day',
+        'slope',
     ):
         if row.get(key) not in (None, ''):
             metadata[key] = row.get(key)
