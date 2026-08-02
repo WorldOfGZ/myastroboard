@@ -1449,6 +1449,42 @@ class TestExtractSolarSystemEvents:
         events = aggregator._extract_solar_system_events(data)
         assert len(events) == 1
 
+    def test_altitude_limited_flag_is_passed_through(self, aggregator):
+        """A comet flagged as altitude_limited in the cache keeps that flag as a
+        top-level field on the extracted event, not just buried in raw_data."""
+        peak = (aggregator.local_now + timedelta(days=15)).isoformat()
+        data = {
+            "events": [
+                {
+                    "peak_time": peak,
+                    "event_type": "Comet Appearance",
+                    "title": "10P/Tempel",
+                    "description": "Never clears the horizon here",
+                    "altitude_limited": True,
+                }
+            ]
+        }
+        events = aggregator._extract_solar_system_events(data)
+        assert len(events) == 1
+        assert events[0].altitude_limited is True
+
+    def test_altitude_limited_defaults_to_false_when_absent(self, aggregator):
+        """Event types that never set altitude_limited (meteor showers, etc.)
+        default to False rather than raising or being left unset."""
+        peak = (aggregator.local_now + timedelta(days=7)).isoformat()
+        data = {
+            "events": [
+                {
+                    "peak_time": peak,
+                    "event_type": "Meteor Shower",
+                    "title": "Perseids",
+                    "description": "Peak night",
+                }
+            ]
+        }
+        events = aggregator._extract_solar_system_events(data)
+        assert events[0].altitude_limited is False
+
     def test_custom_icon_respected(self, aggregator):
         """Custom icon_class in event data is used instead of inferred."""
         peak = (aggregator.local_now + timedelta(days=5)).isoformat()
