@@ -88,7 +88,7 @@ def _validate_and_coerce_picture_capture(picture_data: Dict) -> Any:
     from the entry's own validated frame_count/sub_exposure_seconds/integration_minutes,
     so this mostly guards a hypothetical direct API call that overrides them.
     """
-    if 'exposition_time' in picture_data:
+    if 'exposition_time' in picture_data:  # pragma: no branch - caller always sets this key
         value = picture_data['exposition_time']
         if value is None or value == '':
             picture_data['exposition_time'] = None
@@ -101,7 +101,7 @@ def _validate_and_coerce_picture_capture(picture_data: Dict) -> Any:
                 return 'exposition_time must be a whole number of seconds'
             picture_data['exposition_time'] = seconds
 
-    if 'frames' in picture_data:
+    if 'frames' in picture_data:  # pragma: no branch - caller always sets this key
         value = picture_data['frames']
         if value is None or value == '':
             picture_data['frames'] = None
@@ -114,7 +114,7 @@ def _validate_and_coerce_picture_capture(picture_data: Dict) -> Any:
                 return 'frames must be a whole number'
             picture_data['frames'] = frames
 
-    if 'integration_minutes' in picture_data:
+    if 'integration_minutes' in picture_data:  # pragma: no branch - caller always sets this key
         value = picture_data['integration_minutes']
         if value is None or value == '':
             picture_data['integration_minutes'] = None

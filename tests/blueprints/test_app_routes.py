@@ -3892,10 +3892,33 @@ class TestAstrodexPictureEquipment:
         resp = self._add_picture(client_admin, item_id, frames=-5)
         assert resp.status_code == 400
 
+    def test_add_picture_with_negative_exposition_time_returns_400(self, client_admin):
+        item_id = self._create_item(client_admin)
+        resp = self._add_picture(client_admin, item_id, exposition_time=-30)
+        assert resp.status_code == 400
+
     def test_add_picture_with_non_numeric_integration_minutes_returns_400(self, client_admin):
         item_id = self._create_item(client_admin)
         resp = self._add_picture(client_admin, item_id, integration_minutes='a lot')
         assert resp.status_code == 400
+
+    def test_add_picture_with_negative_integration_minutes_returns_400(self, client_admin):
+        item_id = self._create_item(client_admin)
+        resp = self._add_picture(client_admin, item_id, integration_minutes=-10)
+        assert resp.status_code == 400
+
+    def test_add_picture_with_explicit_none_capture_fields_resolves_to_none(self, client_admin):
+        """Explicitly sending null/empty-string capture fields (as opposed to omitting them
+        entirely) still resolves to None, same as omitting them."""
+        item_id = self._create_item(client_admin)
+        resp = self._add_picture(
+            client_admin, item_id, exposition_time=None, frames='', integration_minutes=None
+        )
+        assert resp.status_code == 200
+        picture = resp.get_json()['picture']
+        assert picture['exposition_time'] is None
+        assert picture['frames'] is None
+        assert picture['integration_minutes'] is None
 
     def test_update_picture_can_change_capture_fields(self, client_admin):
         item_id = self._create_item(client_admin)
@@ -5150,6 +5173,19 @@ class TestEquipmentApiRoutes:
         resp = client_admin.delete(f"/api/equipment/combinations/{combo['id']}")
         assert resp.status_code == 409
         assert resp.get_json()['error'] == 'in_use_by_plan'
+
+    def test_delete_combination_blocked_by_session_returns_409(self, client_admin, monkeypatch):
+        from observation import observation_sessions as _obs_sessions_mod
+
+        scope = client_admin.post('/api/equipment/telescopes', json=_TELESCOPE_DATA).get_json()['data']
+        combo = client_admin.post(
+            '/api/equipment/combinations', json={'name': 'Logged Combo', 'telescope_id': scope['id']}
+        ).get_json()['data']
+
+        monkeypatch.setattr(_obs_sessions_mod, 'count_sessions_for_combination', lambda _cid: 1)
+        resp = client_admin.delete(f"/api/equipment/combinations/{combo['id']}")
+        assert resp.status_code == 409
+        assert resp.get_json()['error'] == 'in_use_by_session'
 
     def test_get_combination_not_found_returns_404(self, client_admin):
         resp = client_admin.get('/api/equipment/combinations/nonexistent-combo-id')

@@ -30,6 +30,22 @@ def _create_session(user_id, **overrides):
     return observation_sessions.create_session(user_id, 'tester', payload)
 
 
+class TestCoercionHelpers:
+    """Direct tests for the numeric coercion helpers shared by sessions and entries."""
+
+    def test_coerce_optional_float_unparseable_returns_none(self):
+        assert observation_sessions._coerce_optional_float('not-a-number') is None
+
+    def test_coerce_optional_float_below_minimum_returns_none(self):
+        assert observation_sessions._coerce_optional_float(-5, minimum=0) is None
+
+    def test_coerce_optional_int_unparseable_returns_none(self):
+        assert observation_sessions._coerce_optional_int('not-a-number') is None
+
+    def test_coerce_optional_int_below_minimum_returns_none(self):
+        assert observation_sessions._coerce_optional_int(-1, minimum=0) is None
+
+
 class TestStorage:
     """Directory handling, load/save round-trips and write safety."""
 
@@ -107,6 +123,68 @@ class TestStorage:
         with pytest.raises(ValueError):
             observation_sessions._safe_sessions_path(os.path.join(temp_data_dir, 'elsewhere.json'))
 
+    def test_load_with_invalid_user_id_returns_default_payload(self, temp_data_dir):
+        """A user id that would resolve outside the sessions directory degrades to an
+        empty payload instead of raising."""
+        data = observation_sessions.load_user_sessions('../escaped', username='tester')
+        assert data['sessions'] == []
+
+    def test_corrupted_file_backup_failure_is_swallowed(self, temp_data_dir, user_id, monkeypatch):
+        """A backup failure while recovering from corruption must not stop the reset."""
+        path = observation_sessions.get_user_sessions_file(user_id)
+        with open(path, 'w', encoding='utf-8') as file_obj:
+            file_obj.write('{not json')
+
+        def _raise(*args, **kwargs):
+            raise OSError('backup boom')
+
+        monkeypatch.setattr(observation_sessions.shutil, 'copy2', _raise)
+        data = observation_sessions.load_user_sessions(user_id, username='tester')
+        assert data['sessions'] == []
+
+    def test_load_swallows_non_json_decode_errors(self, temp_data_dir, user_id, monkeypatch):
+        """An unexpected error while reading (not just malformed JSON) still degrades
+        gracefully to an empty payload rather than propagating."""
+        _create_session(user_id)
+
+        def _raise(*args, **kwargs):
+            raise RuntimeError('unexpected read failure')
+
+        monkeypatch.setattr(observation_sessions.json, 'load', _raise)
+        data = observation_sessions.load_user_sessions(user_id)
+        assert data['sessions'] == []
+
+    def test_non_list_sessions_field_is_reset(self, temp_data_dir, user_id):
+        """A well-formed JSON file whose 'sessions' value isn't a list is treated as empty."""
+        path = observation_sessions.get_user_sessions_file(user_id)
+        with open(path, 'w', encoding='utf-8') as file_obj:
+            json.dump({'username': 'tester', 'sessions': 'not-a-list'}, file_obj)
+
+        assert observation_sessions.load_user_sessions(user_id)['sessions'] == []
+
+    def test_save_with_invalid_user_id_fails(self, temp_data_dir):
+        """A user id that would resolve outside the sessions directory fails to save."""
+        assert observation_sessions.save_user_sessions('../escaped', {'sessions': []}) is False
+
+    def test_backup_creation_failure_does_not_block_save(self, temp_data_dir, user_id, monkeypatch):
+        """A failed backup attempt (e.g. disk hiccup) is logged but never blocks the write
+        itself - the atomic replace is the real safety net."""
+        _create_session(user_id)
+        data = observation_sessions.load_user_sessions(user_id)
+
+        def _raise(*args, **kwargs):
+            raise OSError('backup boom')
+
+        monkeypatch.setattr(observation_sessions.shutil, 'copy2', _raise)
+        assert observation_sessions.save_user_sessions(user_id, data) is True
+
+    def test_save_failure_without_prior_file_skips_restore(self, temp_data_dir, user_id):
+        """A validation failure on a brand-new file (nothing to back up/restore yet)
+        still cleans up its own temp file without erroring on the missing backup."""
+        bad_data = {'username': 'tester', 'sessions': [{'date': '2026-01-01'}]}  # missing 'id'
+        assert observation_sessions.save_user_sessions(user_id, bad_data, username='tester') is False
+        assert not os.path.exists(observation_sessions.get_user_sessions_file(user_id))
+
 
 class TestValidation:
     """validate_sessions_json contract."""
@@ -154,6 +232,14 @@ class TestValidation:
         assert is_valid is False
         assert 'Invalid JSON' in message
 
+    def test_validation_error_for_unreadable_path(self, temp_data_dir):
+        """A path that fails the containment check reports a validation error rather
+        than raising - covers the generic except branch (as opposed to JSONDecodeError)."""
+        outside_path = os.path.join(temp_data_dir, 'elsewhere.json')
+        is_valid, message = observation_sessions.validate_sessions_json(outside_path)
+        assert is_valid is False
+        assert 'Validation error' in message
+
 
 class TestSessionCrud:
     """create/get/update/delete of sessions."""
@@ -189,6 +275,12 @@ class TestSessionCrud:
         assert session['location_latitude'] == pytest.approx(48.85)
         assert session['location_longitude'] is None
         assert session['notes'] == 'clear night'
+
+    def test_create_session_coerces_location_elevation(self, temp_data_dir, user_id):
+        """location_elevation goes through the same unranged float coercion as the
+        other location fields."""
+        session = _create_session(user_id, location_elevation='900')
+        assert session['location_elevation'] == pytest.approx(900.0)
 
     def test_get_session(self, temp_data_dir, user_id):
         """A session can be fetched by id, and an unknown id yields None."""
@@ -242,6 +334,24 @@ class TestSessionCrud:
         assert observation_sessions.delete_session(user_id, session['id']) is True
         assert observation_sessions.get_session(user_id, session['id']) is None
         assert observation_sessions.delete_session(user_id, session['id']) is False
+
+    def test_create_session_returns_none_when_save_fails(self, temp_data_dir, user_id, monkeypatch):
+        monkeypatch.setattr(observation_sessions, 'save_user_sessions', lambda *a, **k: False)
+        assert observation_sessions.create_session(user_id, 'tester', {'date': '2026-07-14'}) is None
+
+    def test_update_session_skips_non_matching_sessions(self, temp_data_dir, user_id):
+        """The update loop must skip past sessions that aren't the target one."""
+        first = _create_session(user_id, date='2026-01-01')
+        second = _create_session(user_id, date='2026-01-02')
+        updated = observation_sessions.update_session(user_id, second['id'], {'notes': 'second'})
+        assert updated['id'] == second['id']
+        assert updated['notes'] == 'second'
+        assert observation_sessions.get_session(user_id, first['id'])['notes'] == ''
+
+    def test_update_session_returns_none_when_save_fails(self, temp_data_dir, user_id, monkeypatch):
+        session = _create_session(user_id)
+        monkeypatch.setattr(observation_sessions, 'save_user_sessions', lambda *a, **k: False)
+        assert observation_sessions.update_session(user_id, session['id'], {'notes': 'x'}) is None
 
 
 class TestEntryCrud:
@@ -356,6 +466,37 @@ class TestEntryCrud:
         assert observation_sessions.delete_entry(user_id, session['id'], entry['id']) is False
         assert observation_sessions.delete_entry(user_id, 'missing', entry['id']) is False
 
+    def test_add_entry_returns_none_when_save_fails(self, temp_data_dir, user_id, monkeypatch):
+        session = _create_session(user_id)
+        monkeypatch.setattr(observation_sessions, 'save_user_sessions', lambda *a, **k: False)
+        assert observation_sessions.add_entry(user_id, session['id'], {'name': 'M42'}) is None
+
+    def test_update_entry_skips_non_matching_entries(self, temp_data_dir, user_id):
+        """The update loop must skip past entries that aren't the target one."""
+        session = _create_session(user_id)
+        first = observation_sessions.add_entry(user_id, session['id'], {'name': 'M31'})
+        second = observation_sessions.add_entry(user_id, session['id'], {'name': 'M42'})
+        updated = observation_sessions.update_entry(user_id, session['id'], second['id'], {'notes': 'second'})
+        assert updated['id'] == second['id']
+        assert updated['notes'] == 'second'
+        reloaded_first = observation_sessions.get_session(user_id, session['id'])['entries'][0]
+        assert reloaded_first['id'] == first['id']
+        assert reloaded_first['notes'] == ''
+
+    def test_update_entry_accepts_sub_exposure_seconds(self, temp_data_dir, user_id):
+        session = _create_session(user_id)
+        entry = observation_sessions.add_entry(user_id, session['id'], {'name': 'M42'})
+        updated = observation_sessions.update_entry(
+            user_id, session['id'], entry['id'], {'sub_exposure_seconds': 180}
+        )
+        assert updated['sub_exposure_seconds'] == pytest.approx(180.0)
+
+    def test_update_entry_returns_none_when_save_fails(self, temp_data_dir, user_id, monkeypatch):
+        session = _create_session(user_id)
+        entry = observation_sessions.add_entry(user_id, session['id'], {'name': 'M42'})
+        monkeypatch.setattr(observation_sessions, 'save_user_sessions', lambda *a, **k: False)
+        assert observation_sessions.update_entry(user_id, session['id'], entry['id'], {'notes': 'x'}) is None
+
 
 class TestAstrodexLink:
     """link_entry_to_astrodex is a pure setter, never a synchroniser."""
@@ -394,6 +535,12 @@ class TestAstrodexLink:
         assert observation_sessions.link_entry_to_astrodex(user_id, session['id'], entry['id'], '') is None
         assert observation_sessions.link_entry_to_astrodex(user_id, session['id'], 'missing', 'item-1') is None
         assert observation_sessions.link_entry_to_astrodex(user_id, 'missing', entry['id'], 'item-1') is None
+
+    def test_link_returns_none_when_save_fails(self, temp_data_dir, user_id, monkeypatch):
+        session = _create_session(user_id)
+        entry = observation_sessions.add_entry(user_id, session['id'], {'name': 'M31'})
+        monkeypatch.setattr(observation_sessions, 'save_user_sessions', lambda *a, **k: False)
+        assert observation_sessions.link_entry_to_astrodex(user_id, session['id'], entry['id'], 'item-1') is None
 
 
 class TestCreateSessionFromPlan:
@@ -489,6 +636,31 @@ class TestCreateSessionFromPlan:
         """A malformed plan payload yields None instead of raising."""
         assert observation_sessions.create_session_from_plan(user_id, 'tester', None) is None
 
+    def test_merge_returns_none_when_save_fails(self, temp_data_dir, user_id, monkeypatch):
+        session = observation_sessions.create_session_from_plan(user_id, 'tester', self._plan())
+        monkeypatch.setattr(observation_sessions, 'save_user_sessions', lambda *a, **k: False)
+        result = observation_sessions.create_session_from_plan(user_id, 'tester', self._plan(), session['id'])
+        assert result is None
+
+    def test_fresh_import_returns_none_when_session_creation_fails(self, temp_data_dir, user_id, monkeypatch):
+        monkeypatch.setattr(observation_sessions, 'save_user_sessions', lambda *a, **k: False)
+        assert observation_sessions.create_session_from_plan(user_id, 'tester', self._plan()) is None
+
+    def test_fresh_import_returns_none_when_final_save_fails(self, temp_data_dir, user_id, monkeypatch):
+        """The initial create_session() write can succeed while the follow-up write that
+        attaches the imported entries still fails."""
+        calls = {'n': 0}
+        original_save = observation_sessions.save_user_sessions
+
+        def _flaky_save(*args, **kwargs):
+            calls['n'] += 1
+            if calls['n'] == 2:
+                return False
+            return original_save(*args, **kwargs)
+
+        monkeypatch.setattr(observation_sessions, 'save_user_sessions', _flaky_save)
+        assert observation_sessions.create_session_from_plan(user_id, 'tester', self._plan()) is None
+
 
 class TestStats:
     """get_session_stats aggregation."""
@@ -520,6 +692,26 @@ class TestStats:
         assert stats['total_integration_minutes'] == pytest.approx(150.5)
         # Only the two rated entries count towards the average; the unrated one is excluded.
         assert stats['average_rating'] == pytest.approx(4.5)
+
+    def test_stats_skip_non_dict_sessions_and_entries(self, temp_data_dir, user_id):
+        """Malformed entries in a hand-edited or partially-corrupted file are skipped
+        rather than raising."""
+        path = observation_sessions.get_user_sessions_file(user_id)
+        with open(path, 'w', encoding='utf-8') as file_obj:
+            json.dump(
+                {
+                    'username': 'tester',
+                    'sessions': [
+                        'not-a-session',
+                        {'id': 's1', 'date': '2026-01-01', 'entries': ['not-an-entry', {'name': 'M31'}]},
+                    ],
+                },
+                file_obj,
+            )
+
+        stats = observation_sessions.get_session_stats(user_id)
+        assert stats['total_sessions'] == 1
+        assert stats['total_entries'] == 1
 
 
 class TestReferenceCounts:
@@ -572,6 +764,25 @@ class TestReferenceCounts:
         assert {collection['user_id'] for collection in collections} == {user_id, other_user}
         assert all(len(collection['sessions']) == 1 for collection in collections)
 
+    def test_iter_session_files_skips_unrelated_files(self, temp_data_dir, user_id):
+        """A stray file in the sessions directory (not matching the naming convention)
+        is ignored rather than breaking the scan."""
+        _create_session(user_id, combination_id='combo-1')
+        stray_path = os.path.join(observation_sessions.OBSERVATION_SESSIONS_DIR, 'stray.txt')
+        with open(stray_path, 'w', encoding='utf-8') as file_obj:
+            file_obj.write('not a sessions file')
+
+        assert observation_sessions.count_sessions_for_combination('combo-1') == 1
+
+    def test_load_all_users_sessions_skips_unrelated_files(self, temp_data_dir, user_id):
+        _create_session(user_id)
+        stray_path = os.path.join(observation_sessions.OBSERVATION_SESSIONS_DIR, 'stray.txt')
+        with open(stray_path, 'w', encoding='utf-8') as file_obj:
+            file_obj.write('not a sessions file')
+
+        collections = observation_sessions.load_all_users_sessions()
+        assert len(collections) == 1
+
 
 class _DummyI18n:
     """Every t() call in the PDF renderer falls back to its own English default via
@@ -580,6 +791,26 @@ class _DummyI18n:
 
     def t(self, key, **kwargs):
         return None
+
+
+class TestPdfHelpers:
+    """Direct tests for small PDF-rendering helpers."""
+
+    def test_fmt_hm_utc_invalid_timestamp_returns_placeholder(self):
+        assert observation_sessions._pdf_fmt_hm_utc('not-a-timestamp') == '--:--'
+
+    def test_header_truncates_an_overlong_title(self):
+        import matplotlib
+
+        matplotlib.use('Agg', force=True)
+        import matplotlib.pyplot as plt
+
+        fig = plt.figure()
+        ax = fig.add_axes((0, 0, 1, 1))
+        try:
+            observation_sessions._pdf_header(ax, 'A' * 60, 'Subtitle that pushes it over the limit')
+        finally:
+            plt.close(fig)
 
 
 class TestGenerateSessionPdf:
@@ -664,6 +895,35 @@ class TestGenerateSessionPdf:
 
         assert result.getvalue().startswith(b'%PDF')
         assert len(result.getvalue()) > 5000
+
+    def test_entry_notes_truncated_past_three_lines(self):
+        import matplotlib
+
+        matplotlib.use('Agg', force=True)
+
+        long_note = 'Great night, low humidity, no dew on the corrector plate at all. ' * 6
+        session = {
+            'id': 's1',
+            'date': '2026-07-14',
+            'entries': [{'id': 'e1', 'name': 'M31', 'notes': long_note}],
+        }
+        result = observation_sessions.generate_session_pdf(session, {}, _DummyI18n())
+        assert result.getvalue().startswith(b'%PDF')
+
+    def test_session_notes_truncated_past_four_lines(self):
+        import matplotlib
+
+        matplotlib.use('Agg', force=True)
+
+        long_note = 'Clear skies all night, excellent transparency and rock-steady seeing throughout. ' * 8
+        session = {
+            'id': 's1',
+            'date': '2026-07-14',
+            'notes': long_note,
+            'entries': [{'id': 'e1', 'name': 'M31'}],
+        }
+        result = observation_sessions.generate_session_pdf(session, {}, _DummyI18n())
+        assert result.getvalue().startswith(b'%PDF')
 
 
 class TestGenerateSessionsPdf:

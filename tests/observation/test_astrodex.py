@@ -1206,6 +1206,17 @@ class TestAstrodexMissingBranches:
         assert result is True
         assert not os.path.exists(fake_path)
 
+    def test_delete_picture_with_traversal_filename_skips_removal(self, temp_data_dir):
+        """A picture whose filename escapes ASTRODEX_IMAGES_DIR (e.g. planted by a pre-
+        containment-check era, or a corrupted record) is still removed from the item's
+        metadata; the file-removal step is just silently skipped."""
+        item = astrodex.create_astrodex_item('user1', {'name': 'M42'}, username='alice')
+        pic = astrodex.add_picture_to_item('user1', item['id'], {'filename': '../../etc/passwd'})
+        result = astrodex.delete_picture('user1', item['id'], pic['id'])
+        assert result is True
+        reloaded = astrodex.get_astrodex_item('user1', item['id'])
+        assert reloaded['pictures'] == []
+
     def test_delete_main_picture_promotes_next(self, temp_data_dir):
         item = astrodex.create_astrodex_item('user1', {'name': 'M42'}, username='alice')
         pic1 = astrodex.add_picture_to_item('user1', item['id'], {'notes': 'first'})

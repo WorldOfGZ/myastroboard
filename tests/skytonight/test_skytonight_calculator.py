@@ -1310,6 +1310,32 @@ class TestComputeCometAlttimeOnDemand:
         result = compute_comet_alttime_on_demand('comet-test', location)
         assert result['horizon_profile'] == [{'az': 0, 'alt': 20}]
 
+    @patch('skytonight.skytonight_calculator.load_config')
+    @patch('skytonight.skytonight_calculator.load_targets_dataset')
+    @patch('skytonight.skytonight_calculator.SunService')
+    def test_omits_astro_window_keys_when_unavailable(
+        self, mock_sun_service, mock_load_dataset, mock_load_config
+    ):
+        """Nautical night can resolve while astronomical night doesn't (e.g. high
+        latitude in summer) - the payload should just skip the astro keys, not fail."""
+        mock_load_dataset.return_value = {'targets': [self._fake_target()]}
+        mock_load_config.return_value = {'skytonight': {'constraints': {}}}
+        fake = MagicMock()
+        fake.get_today_report.return_value = SimpleNamespace(
+            nautical_dusk='2026-08-02 22:00',
+            nautical_dawn='2026-08-03 04:00',
+            astronomical_dusk=None,
+            astronomical_dawn=None,
+        )
+        mock_sun_service.return_value = fake
+
+        location = {'latitude': 48.64, 'longitude': 5.51, 'timezone': 'Europe/Paris'}
+        result = compute_comet_alttime_on_demand('comet-test', location)
+
+        assert result is not None
+        assert 'night_astro_start' not in result
+        assert 'night_astro_end' not in result
+
 
 class TestGetAstroNightWindow:
     """Cover _get_astro_night_window branches."""

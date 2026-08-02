@@ -47,6 +47,12 @@ class TestSolarSystemEventsInit:
         svc = SolarSystemEventsService(45.0, -73.5, altitude_constraint_min=40.0, airmass_constraint=5.0)
         assert svc.effective_altitude_min == pytest.approx(40.0)
 
+    def test_effective_altitude_min_skips_airmass_floor_when_below_one(self):
+        # airmass_constraint < 1.0 is physically meaningless (airmass is always >= 1), so
+        # the airmass-derived floor is skipped entirely and the base constraint alone applies.
+        svc = SolarSystemEventsService(45.0, -73.5, altitude_constraint_min=40.0, airmass_constraint=0.5)
+        assert svc.effective_altitude_min == pytest.approx(40.0)
+
 
 class TestMeteorShowerConstants:
     """Tests for METEOR_SHOWERS class attribute."""
@@ -643,6 +649,21 @@ class TestExtractOrbitalElements:
         assert SolarSystemEventsService._extract_orbital_elements({'perihelion_date': '2026-08-15'}) is None
 
 
+class TestApparentMagnitude:
+    """Tests for the static _apparent_magnitude helper."""
+
+    def test_returns_none_for_non_positive_r_au(self):
+        assert SolarSystemEventsService._apparent_magnitude(5.0, 10.0, 0.0, 0.5) is None
+
+    def test_returns_none_for_non_positive_delta_au(self):
+        assert SolarSystemEventsService._apparent_magnitude(5.0, 10.0, 1.4, 0.0) is None
+
+    def test_computes_brightness_law(self):
+        result = SolarSystemEventsService._apparent_magnitude(5.0, 10.0, 1.4, 0.5)
+        expected = 5.0 + 5.0 * math.log10(0.5) + 2.5 * 10.0 * math.log10(1.4)
+        assert result == pytest.approx(expected)
+
+
 class TestComputeTrueBrightnessPeak:
     """Tests for _compute_true_brightness_peak."""
 
@@ -745,6 +766,85 @@ class TestComputeTrueBrightnessPeak:
 
         candidate = self._candidate(_FULL_ELEMENTS_METADATA, magnitude=5.0)
         assert svc._compute_true_brightness_peak(candidate, start, end) is None
+
+    def test_returns_none_when_skytonight_comets_import_fails(self, monkeypatch):
+        import sys
+        from datetime import datetime, timedelta, timezone
+
+        svc = SolarSystemEventsService(45.0, 0.0, timezone="UTC")
+        start = datetime(2026, 8, 1, 12, 0, 0, tzinfo=timezone.utc)
+        end = start + timedelta(days=2)
+
+        # Setting the module to None in sys.modules makes any import of it raise
+        # ImportError, simulating an environment where the module can't be loaded.
+        monkeypatch.setitem(sys.modules, 'skytonight.skytonight_comets', None)
+
+        candidate = self._candidate(_FULL_ELEMENTS_METADATA, magnitude=5.0)
+        assert svc._compute_true_brightness_peak(candidate, start, end) is None
+
+    def test_days_with_missing_distance_data_are_skipped(self, monkeypatch):
+        from datetime import datetime, timedelta, timezone
+
+        svc = SolarSystemEventsService(45.0, 0.0, timezone="UTC")
+        start = datetime(2026, 8, 1, 12, 0, 0, tzinfo=timezone.utc)
+        end = start + timedelta(days=2)
+        missing_data_day = start.date()
+
+        def fake_comet_ra_dec(q, e, omega, Omega, incl, py, pm, pd, obs_time, earth_helio):
+            if obs_time.date() == missing_data_day:
+                return (None, 0.0, None, None)
+            return (None, 0.0, 1.4, 0.5)
+
+        monkeypatch.setattr('skytonight.skytonight_comets._comet_ra_dec', fake_comet_ra_dec)
+        monkeypatch.setattr(
+            'skytonight.skytonight_comets._get_earth_heliocentric', lambda obs_time: (1.0, 0.0, 0.0)
+        )
+
+        candidate = self._candidate(_FULL_ELEMENTS_METADATA, magnitude=5.0)
+        result = svc._compute_true_brightness_peak(candidate, start, end)
+        assert result is not None
+
+    def test_days_with_no_declination_skip_altitude_tracking(self, monkeypatch):
+        from datetime import datetime, timedelta, timezone
+
+        svc = SolarSystemEventsService(45.0, 0.0, timezone="UTC")
+        start = datetime(2026, 8, 1, 12, 0, 0, tzinfo=timezone.utc)
+        end = start + timedelta(days=1)
+
+        def fake_comet_ra_dec(q, e, omega, Omega, incl, py, pm, pd, obs_time, earth_helio):
+            return (None, None, 1.4, 0.5)  # declination unknown, but distance data present
+
+        monkeypatch.setattr('skytonight.skytonight_comets._comet_ra_dec', fake_comet_ra_dec)
+        monkeypatch.setattr(
+            'skytonight.skytonight_comets._get_earth_heliocentric', lambda obs_time: (1.0, 0.0, 0.0)
+        )
+
+        candidate = self._candidate(_FULL_ELEMENTS_METADATA, magnitude=5.0)
+        # Magnitude is computed every day, but max_transit_altitude never gets set since
+        # declination is never known, so the function's final all-or-nothing guard fires.
+        assert svc._compute_true_brightness_peak(candidate, start, end) is None
+
+    def test_days_with_non_positive_distance_skip_magnitude(self, monkeypatch):
+        from datetime import datetime, timedelta, timezone
+
+        svc = SolarSystemEventsService(45.0, 0.0, timezone="UTC")
+        start = datetime(2026, 8, 1, 12, 0, 0, tzinfo=timezone.utc)
+        end = start + timedelta(days=1)
+        bad_magnitude_day = start.date()
+
+        def fake_comet_ra_dec(q, e, omega, Omega, incl, py, pm, pd, obs_time, earth_helio):
+            if obs_time.date() == bad_magnitude_day:
+                return (None, 0.0, 0.0, 0.5)  # r_au non-positive -> magnitude computation fails
+            return (None, 0.0, 1.4, 0.5)
+
+        monkeypatch.setattr('skytonight.skytonight_comets._comet_ra_dec', fake_comet_ra_dec)
+        monkeypatch.setattr(
+            'skytonight.skytonight_comets._get_earth_heliocentric', lambda obs_time: (1.0, 0.0, 0.0)
+        )
+
+        candidate = self._candidate(_FULL_ELEMENTS_METADATA, magnitude=5.0)
+        result = svc._compute_true_brightness_peak(candidate, start, end)
+        assert result is not None
 
 
 class TestBuildCometEventUsesBrightnessPeak:
