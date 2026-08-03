@@ -884,7 +884,8 @@ class TestExceptionHandling:
     def test_delete_session_500(self, client, monkeypatch):
         session = _create_session(client)
         monkeypatch.setattr(observation_sessions_bp_module.observation_sessions, 'delete_session', self._raise)
-        assert client.delete(f"/api/observation-sessions/{session['id']}").status_code == 500
+        response = client.delete(f"/api/observation-sessions/{session['id']}")
+        assert response.status_code == 500
 
     def test_from_plan_500(self, client, monkeypatch):
         monkeypatch.setattr(observation_sessions_bp_module.plan_my_night, 'get_plan_with_timeline', self._raise)
