@@ -14,7 +14,7 @@ pytest-playwright==0.8.0
 # Development tools (optional)
 black==26.5.1
 flake8==7.3.0
-djlint==1.42.3
+djlint==1.43.1
 pyright==1.1.411
 pylance==9.0.0
 
