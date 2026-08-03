@@ -959,6 +959,7 @@
     "search_catalogue_btn": "Search in catalogue",
     "catalogue_not_found": "Not found in catalogue",
     "catalogue_found": "✓ Found in catalogue - fields pre-filled",
+    "form_object_name_custom": "Other (type a custom name)",
     "my_photos": "My Photos ({ownPicturesCount}) • Shared Total ({totalPicturesCount})",
     "all_photos": "Photos ({ownPicturesCount})",
     "object_info": "Object Information",

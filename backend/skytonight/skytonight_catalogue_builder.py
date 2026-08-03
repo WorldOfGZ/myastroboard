@@ -722,6 +722,22 @@ def _apply_cross_refs(
     return result
 
 
+# ── Known OpenNGC data-quality overrides ───────────────────────────────────
+# PyOngc/OpenNGC ties a handful of NGC/IC catalogue numbers to the star that
+# illuminates a historically-catalogued nebula rather than to the nebula
+# itself, so those rows come through with object_type "Star" even though the
+# catalogue number is universally used for the nebula in practice (e.g.
+# IC 1318 = the Gamma Cygni Nebula complex, not the star Sadr; NGC 1990 = the
+# reflection nebula around Alnilam). Keyed on the raw PyOngc row name (e.g.
+# "IC1318", no space) since that's stable across catalogue-name resolution.
+_OBJECT_TYPE_OVERRIDES: Dict[str, str] = {
+    'IC1318': 'Nebula',
+    'NGC1990': 'Nebula',
+    'IC4681': 'Nebula',
+    'NGC1554': 'Nebula',
+}
+
+
 def build_targets_from_rows(
     rows: Iterable[PyOngcRow], caldwell_map: Optional[Dict[str, str]] = None
 ) -> List[SkyTonightTarget]:
@@ -740,12 +756,13 @@ def build_targets_from_rows(
         if not canonical_name:
             continue
 
+        object_type = _OBJECT_TYPE_OVERRIDES.get(row.name) or str(row.object_type or '').strip() or 'Unknown'
         preferred_name = choose_preferred_catalogue_name(catalogue_names) or row.name
         source_catalogues = sorted({canonical_catalogue, *catalogue_names.keys()})
         target = SkyTonightTarget(
             target_id=_target_id_from_key(canonical_catalogue, canonical_name),
             category='deep_sky',
-            object_type=str(row.object_type or '').strip() or 'Unknown',
+            object_type=object_type,
             preferred_name=preferred_name,
             catalogue_names=catalogue_names,
             aliases=aliases,
@@ -754,7 +771,7 @@ def build_targets_from_rows(
             size_arcmin=row.size_arcmin,
             coordinates=SkyTonightCoordinates(ra_hours=float(row.ra_hours), dec_degrees=float(row.dec_degrees)),
             source_catalogues=source_catalogues,
-            translation_key=f"skytonight.type_{normalize_object_name(row.object_type) or 'unknown'}",
+            translation_key=f"skytonight.type_{normalize_object_name(object_type) or 'unknown'}",
             metadata={'source': 'pyongc'},
         )
 

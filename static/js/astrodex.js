@@ -55,11 +55,100 @@ function mapCatalogueObjectType(rawType) {
     if (t.includes('galaxy')) return 'Galaxy';
     if (t.includes('planetary nebula')) return 'Planetary Nebula';
     if (t.includes('nebula') || t.includes('supernova') || t.includes('remnant')) return 'Nebula';
+    if (t.includes('ionized region') || t.includes('molecular cloud')) return 'Nebula';
     if (t.includes('star cluster') || t.includes('cluster')) return 'Star Cluster';
     if (t.includes('planet')) return 'Planet';
     if (t.includes('moon')) return 'Moon';
     if (t.includes('comet')) return 'Comet';
     return 'Other';
+}
+
+// Catalogue priority used to order/dedupe the object-name picker below - mirrors
+// backend's SKYTONIGHT_PREFERRED_NAME_ORDER (backend/utils/constants.py) so the
+// default selection matches what the "preferred_name" field already resolves to.
+const ASTRODEX_CATALOGUE_NAME_PRIORITY = [
+    'CommonName', 'Messier', 'OpenNGC', 'OpenIC', 'Caldwell', 'LBN',
+    'Herschel400', 'Pensack500', 'GaryImm', 'Arp', 'Sharpless', 'Barnard', 'vdB',
+    'AbellPNe', 'AbellClusters',
+];
+
+/** Turn a catalogue-lookup response's {catalogue: name} map into a deduplicated,
+ * priority-ordered list of {value, label, catalogue} choices for the object-name
+ * picker in the Add-to-Astrodex modal. Names shared by several catalogues (e.g. an
+ * IC number reused by OpenIC/OpenNGC/GaryImm) collapse into a single choice, keeping
+ * the highest-priority catalogue as its label. */
+function buildAstrodexNameChoices(catalogueNames) {
+    const entries = Object.entries(catalogueNames || {}).filter(([, name]) => !!name);
+    entries.sort(([catA], [catB]) => {
+        const rankA = ASTRODEX_CATALOGUE_NAME_PRIORITY.indexOf(catA);
+        const rankB = ASTRODEX_CATALOGUE_NAME_PRIORITY.indexOf(catB);
+        return (rankA === -1 ? ASTRODEX_CATALOGUE_NAME_PRIORITY.length : rankA)
+            - (rankB === -1 ? ASTRODEX_CATALOGUE_NAME_PRIORITY.length : rankB);
+    });
+
+    const choices = [];
+    const seenValues = new Set();
+    for (const [catalogue, name] of entries) {
+        if (seenValues.has(name)) continue;
+        seenValues.add(name);
+        const catalogueLabel = catalogue === 'CommonName' ? i18n.t('astrodex.catalogue_label_commonname') : catalogue;
+        choices.push({ value: name, label: `${name} (${catalogueLabel})`, catalogue });
+    }
+    return choices;
+}
+
+/** Render the "Nom de l'objet" field either as a free-text input (default, and for
+ * manual entry) or - once a catalogue search resolves several alternate names - as a
+ * <select> so the user can pick which designation to keep, instead of always getting
+ * whichever one choose_preferred_catalogue_name() favors server-side. Keeps the same
+ * #item-name id/`.value` contract either way so the rest of the form is unaffected. */
+function setAstrodexNameField(choices, selectedValue) {
+    const wrapper = document.getElementById('item-name-field');
+    if (!wrapper) return;
+
+    if (!choices || choices.length < 2) {
+        DOMUtils.clear(wrapper);
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'item-name';
+        input.className = 'form-control';
+        input.required = true;
+        input.autocomplete = 'off';
+        input.value = selectedValue || '';
+        wrapper.appendChild(input);
+        return;
+    }
+
+    DOMUtils.clear(wrapper);
+    const select = document.createElement('select');
+    select.id = 'item-name';
+    select.className = 'form-select';
+    select.required = true;
+
+    for (const choice of choices) {
+        const option = document.createElement('option');
+        option.value = choice.value;
+        option.dataset.catalogue = choice.catalogue;
+        option.textContent = choice.label;
+        if (choice.value === selectedValue) option.selected = true;
+        select.appendChild(option);
+    }
+
+    const customOption = document.createElement('option');
+    customOption.value = '__custom__';
+    customOption.textContent = i18n.t('astrodex.form_object_name_custom');
+    select.appendChild(customOption);
+
+    select.addEventListener('change', () => {
+        const catInput = document.getElementById('item-catalogue');
+        if (select.value === '__custom__') {
+            setAstrodexNameField([], '');
+            return;
+        }
+        if (catInput) catInput.value = select.selectedOptions[0]?.dataset.catalogue || '';
+    });
+
+    wrapper.appendChild(select);
 }
 
 /** Bidirectional frames <-> integration-minutes calculator pivoting on sub-exposure
@@ -992,7 +1081,9 @@ async function showAddAstrodexItemModal() {
             <div class="col-12"><hr class="my-1 opacity-25"></div>
             <div class="col-md-12">
                 <label for="item-name" class="form-label">${i18n.t('astrodex.form_object_name')} *</label>
-                <input type="text" id="item-name" class="form-control" required autocomplete="off">
+                <div id="item-name-field">
+                    <input type="text" id="item-name" class="form-control" required autocomplete="off">
+                </div>
                 <input type="hidden" id="item-catalogue" value="">
                 <input type="hidden" id="item-external-aliases" value="">
             </div>
@@ -1054,20 +1145,20 @@ async function showAddAstrodexItemModal() {
                 return;
             }
 
-            const nameInput = document.getElementById('item-name');
             const typeSelect = document.getElementById('item-type');
             const constSelect = document.getElementById('item-constellation');
             const catInput = document.getElementById('item-catalogue');
             const extAliasesInput = document.getElementById('item-external-aliases');
 
-            if (nameInput) nameInput.value = res.preferred_name || val;
+            // Offer every alternate designation the catalogue knows about (common name,
+            // OpenNGC/OpenIC, LBN...) as a picker instead of silently locking the name
+            // to whichever one choose_preferred_catalogue_name() favors server-side.
+            const nameChoices = buildAstrodexNameChoices(res.catalogue_names);
+            const selectedName = res.preferred_name || val;
+            setAstrodexNameField(nameChoices, selectedName);
 
-            // Resolve catalogue key matching the preferred_name
-            let matchedCat = '';
-            for (const [cat, catName] of Object.entries(res.catalogue_names || {})) {
-                if (catName === res.preferred_name) { matchedCat = cat; break; }
-            }
-            if (catInput) catInput.value = matchedCat;
+            const matchedChoice = nameChoices.find((choice) => choice.value === selectedName);
+            if (catInput) catInput.value = matchedChoice?.catalogue || '';
 
             // Stash the resolved alternate names so the item's "Catalogue names" popup
             // section still has something to show for objects the local SkyTonight DSO

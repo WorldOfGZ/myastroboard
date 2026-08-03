@@ -959,6 +959,7 @@
     "search_catalogue_btn": "Rechercher dans le catalogue",
     "catalogue_not_found": "Introuvable dans le catalogue",
     "catalogue_found": "✓ Trouvé dans le catalogue - champs pré-remplis",
+    "form_object_name_custom": "Autre (saisir un nom personnalisé)",
     "my_photos": "Mes photos ({ownPicturesCount}) • Total partagé ({totalPicturesCount})",
     "all_photos": "Photos ({ownPicturesCount})",
     "object_info": "Informations sur l'objet",

@@ -959,6 +959,7 @@
     "search_catalogue_btn": "Im Katalog suchen",
     "catalogue_not_found": "Nicht im Katalog gefunden",
     "catalogue_found": "✓ Im Katalog gefunden - Felder vorausgefüllt",
+    "form_object_name_custom": "Andere (eigenen Namen eingeben)",
     "my_photos": "Meine Fotos ({ownPicturesCount}) • Geteilte Gesamtzahl ({totalPicturesCount})",
     "all_photos": "Fotos ({ownPicturesCount})",
     "object_info": "Objektinformationen",
