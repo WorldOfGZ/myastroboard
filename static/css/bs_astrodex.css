@@ -114,6 +114,29 @@
     overflow-wrap: anywhere;
 }
 
+@media (max-width: 575.98px) {
+    .astrodex-catalogue-alias-row {
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+            "label button"
+            "value button";
+        row-gap: 0.15rem;
+        column-gap: 0.5rem;
+    }
+
+    .astrodex-catalogue-alias-label {
+        grid-area: label;
+    }
+
+    .astrodex-catalogue-alias-value {
+        grid-area: value;
+    }
+
+    .astrodex-catalogue-alias-row > button {
+        grid-area: button;
+    }
+}
+
 .astrodex-slideshow-counter-badge {
     background-color: var(--accent-1);
     color: var(--text-light);
