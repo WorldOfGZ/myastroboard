@@ -89,7 +89,9 @@ NIGHT_UPDATABLE_FIELDS = (
 # which night this entry belongs to. The target identity snapshot
 # (name/catalogue/ra/dec/...) is frozen at add time, matching Plan My Night entries, and
 # the two astrodex_* pointers are set through link_entry_to_astrodex() rather than by a
-# client payload.
+# client payload. combination_id/combination_name are an optional per-entry override of
+# the session's own equipment (null means "same as the session") - mirrors Astrodex's
+# per-picture combination_id, one level up.
 ENTRY_UPDATABLE_FIELDS = (
     'night_id',
     'frame_count',
@@ -97,6 +99,8 @@ ENTRY_UPDATABLE_FIELDS = (
     'integration_minutes',
     'rating',
     'notes',
+    'combination_id',
+    'combination_name',
     'combination_used_components',
 )
 
@@ -979,6 +983,8 @@ def _build_entry_payload(entry_data: Dict) -> Dict:
         'integration_minutes': _coerce_optional_float(entry_data.get('integration_minutes'), 0),
         'rating': _coerce_optional_float(entry_data.get('rating'), 0, 5),
         'notes': _clean_text(entry_data.get('notes')),
+        'combination_id': _optional_text(entry_data.get('combination_id')),
+        'combination_name': _optional_text(entry_data.get('combination_name')),
         'combination_used_components': used_components if isinstance(used_components, dict) else None,
         'astrodex_item_id': None,
         'astrodex_picture_id': None,
@@ -1045,6 +1051,8 @@ def update_entry(user_id: str, session_id: str, entry_id: str, updates: Dict) ->
                     entry[field] = _coerce_optional_float(value, 0, 5)
                 elif field == 'combination_used_components':
                     entry[field] = value if isinstance(value, dict) else None
+                elif field in ('combination_id', 'combination_name'):
+                    entry[field] = _optional_text(value)
                 elif field == 'night_id':
                     entry[field] = _optional_text(value, 80)
                 else:
@@ -1323,14 +1331,32 @@ def _count_sessions_matching(field: str, value: str) -> int:
 def count_sessions_for_combination(combination_id: str) -> int:
     """Count sessions (all users) referencing an equipment combination - pre-delete check.
 
-    Only the session-level ``combination_id`` is a guard target: an entry's
-    ``combination_used_components`` override records *which parts* of that same
-    combination were used, never a second combination id.
+    A session counts once whether it's the session-level ``combination_id`` that
+    matches, any of its entries' own optional per-entry override, or both - an entry's
+    override (null by default, meaning "same as the session") lets a single session
+    reference more than one combination across its different targets.
 
     Combinations are never cascade-deleted; deletion is blocked while any session
     references one (see equipment_profiles.delete_combination).
     """
-    return _count_sessions_matching('combination_id', combination_id)
+    if not combination_id:
+        return 0
+    count = 0
+    for file_path in _iter_session_files():
+        try:
+            with open(file_path, 'r', encoding='utf-8') as file_obj:
+                data = json.load(file_obj)
+            for session in data.get('sessions', []):
+                if not isinstance(session, dict):
+                    continue
+                if session.get('combination_id') == combination_id or any(
+                    isinstance(entry, dict) and entry.get('combination_id') == combination_id
+                    for entry in session.get('entries', []) or []
+                ):
+                    count += 1
+        except Exception:
+            continue  # unreadable file — skip, this is a best-effort count
+    return count
 
 
 def count_sessions_for_location(location_id: str) -> int:

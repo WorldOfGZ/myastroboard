@@ -36,7 +36,9 @@ or more **nights** - each with its own actual start/end times and sky conditions
 transparency, moon illumination) and its own notes. The common case is one night; a multi-night dark-sky
 trip is just a session with more than one. Within the session, an ordered list of **entries** (one
 per target) each records the real numbers - frame count, sub-exposure length, integration minutes, a
-0-5 rating and per-target notes - and is attributed to whichever night it was captured on.
+0-5 rating and per-target notes - and is attributed to whichever night it was captured on. An entry can
+also optionally override the session's own equipment combination, for the common case of switching
+telescopes/cameras partway through a night - see [Multi-night sessions](#multi-night-sessions).
 
 Sessions are **permanently private**. There is no `private_mode` toggle and no cross-user merged
 view: this is a personal logbook, not a second Astrodex. (The storage mechanics are copied from
@@ -56,8 +58,12 @@ view: this is a personal logbook, not a second Astrodex. (The storage mechanics 
 A session always has **at least one night** and can have more - a week at a dark site is one session,
 not one per night, so the trip stays grouped and its total integration is one number.
 
-- **Location and equipment combination are session-level** (fixed for the whole trip), not per-night -
-  a deliberate simplification: relocating mid-trip means starting a new session.
+- **Location is session-level** (fixed for the whole trip), not per-night - a deliberate
+  simplification: relocating mid-trip means starting a new session.
+- **Every entry records its own equipment** (`entry.combination_id`), frozen from the session's own
+  default at add time and editable afterwards - the session-level `combination_id` stays the trip's
+  "usual" equipment, while an individual entry's own field is what actually gets displayed and counted
+  for that target, whether or not it was changed from the default.
 - **Everything that changes night to night lives on the night**: date, actual start/end, SQM, seeing,
   transparency, moon illumination, and a per-night notes field (weather, mishaps specific to that
   night). The session's own `notes` field stays trip-level (gear problems, overall impressions).
@@ -202,17 +208,19 @@ the earliest night's date (`session_date_range(session)[0]`) for a single value,
 | `integration_minutes` | float \| null | The one guaranteed-summable value for future aggregation, regardless of whether sub-exposure length was tracked |
 | `rating` | float \| null | 0-5 in 0.5 steps - the same widget and validation contract as Astrodex picture ratings (a deliberate correction of the roadmap's "1-5", so the app has exactly one rating convention) |
 | `notes` | str | Per-target notes |
-| `combination_used_components` | dict \| null | Optional per-entry override of the session's combination checklist (e.g. filter swapped mid-session). Same shape as Astrodex's picture field; `null` means "everything in the session's combination" |
+| `combination_id` | str \| null | The equipment actually used for this one target (e.g. switched telescopes mid-session). Resolved/access-checked server-side exactly like the session's own field. The Observation Log UI pre-selects and freezes the session's own combination as this value at add time - never a live reference - so editing the session's default equipment afterwards never silently reshapes an already-logged target's equipment history; `null` is only the fallback for entries added directly through the API without one, or logged before this field existed, and is displayed as "whatever the session's own equipment currently is" |
+| `combination_name` | str \| null | Frozen snapshot of `combination_id`'s name at the time it was set |
+| `combination_used_components` | dict \| null | Optional checklist of which parts of the *effective* combination were used (the entry's own override if it has one, else the session's) - e.g. a filter swapped mid-session. Same shape as Astrodex's picture field; `null` means "everything in the effective combination" |
 | `astrodex_item_id` | str \| null | **Auto-populated** on first capture evidence; never auto-cleared (see above) |
 | `astrodex_picture_id` | str \| null | Set only by the manual attach-picture action; `null` is the normal state for an entry with no keeper image yet |
 | `created_at` / `updated_at` | iso8601 str | |
 
 Only the "what actually happened" fields (`night_id`, `frame_count`, `sub_exposure_seconds`,
-`integration_minutes`, `rating`, `notes`, `combination_used_components`) are writable through the
-update route - `night_id` is reassignable both when adding an entry and afterwards (unlike the frozen
-identity fields), so a target logged under the wrong night can be moved. The target identity snapshot
-is frozen, and the two `astrodex_*` pointers are set through `link_entry_to_astrodex()` rather than by
-a client payload.
+`integration_minutes`, `rating`, `notes`, `combination_id`, `combination_name`,
+`combination_used_components`) are writable through the update route - `night_id` is reassignable both
+when adding an entry and afterwards (unlike the frozen identity fields), so a target logged under the
+wrong night can be moved. The target identity snapshot is frozen, and the two `astrodex_*` pointers are
+set through `link_entry_to_astrodex()` rather than by a client payload.
 
 ### Attachment object
 
@@ -421,7 +429,7 @@ same night.
 
 | Deleted object | Effect on sessions |
 |---|---|
-| **Equipment combination** | **Blocked** while any session (any user) references it - `delete_combination()` returns `in_use_by_session`, joining the existing `in_use_by_picture` / `in_use_by_plan` guards |
+| **Equipment combination** | **Blocked** while any session (any user) references it - either as its own `combination_id` or as any entry's per-target override - `delete_combination()` returns `in_use_by_session`, joining the existing `in_use_by_picture` / `in_use_by_plan` guards |
 | **Location preset** | **Never cascaded, never orphan-flagged.** `GET /api/locations/<id>/references` reports the count under `observation_sessions` for information only |
 | **Astrodex item / picture** | Nothing happens to the session. The entry's pointer just stops resolving |
 | **Night** | **Blocked** while it's the session's last remaining night, or while any entry still references it via `night_id` - move or delete those entries first (see [Multi-night sessions](#multi-night-sessions)) |
@@ -436,9 +444,11 @@ The reference scans (`count_sessions_for_combination`, `count_sessions_for_locat
 **fail-open**: an unreadable file is skipped rather than aborting the scan, matching
 `count_pictures_for_combination` / `count_plans_for_combination`.
 
-Only the session-level `combination_id` is a guard target. An entry's
-`combination_used_components` records *which parts* of that same combination were used - it never
-stores a second combination id.
+`count_sessions_for_combination` counts a session once whether the match is its own session-level
+`combination_id`, any entry's own per-target `combination_id` override, or both - a single session can
+reference more than one combination across its different targets. An entry's separate
+`combination_used_components` field is unrelated: it's a checklist of which parts of whichever
+combination is *effective* for that entry (its own override, or the session's) were actually used.
 
 ---
 

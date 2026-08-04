@@ -136,8 +136,9 @@ def _validate_and_coerce_picture_capture(picture_data: Dict) -> Any:
 
 def _resolve_session_combination_reference(combination_id, user_id) -> Optional[str]:
     """Return combination_id if it resolves to an accessible (own or shared) combination
-    for this user, else None - so a session can never be tagged with a combination the
-    logger has no access to."""
+    for this user, else None - so a session (or, via the same check, one of its entries -
+    see _apply_resolved_entry_combination below) can never be tagged with a combination
+    the logger has no access to."""
     if not combination_id:
         return None
     if equipment_profiles.get_combination(user_id, combination_id):
@@ -146,6 +147,36 @@ def _resolve_session_combination_reference(combination_id, user_id) -> Optional[
     if any(combo['id'] == combination_id for combo in shared):
         return combination_id
     return None
+
+
+def _apply_resolved_entry_combination(payload: Dict, user) -> None:
+    """Resolve an entry's optional per-target equipment override server-side, in place.
+
+    Same contract as the combination half of _apply_resolved_session_fields (only
+    touched when the payload explicitly includes ``combination_id``, so editing
+    unrelated entry fields never disturbs an existing override), reusing
+    _resolve_session_combination_reference since the access check is identical -
+    entries don't need their own resolver, just their own call site. A null/absent
+    result means "use the session's own equipment" (see observation_sessions.py's
+    ENTRY_UPDATABLE_FIELDS docstring).
+    """
+    if 'combination_id' not in payload:
+        return
+    payload['combination_id'] = _resolve_session_combination_reference(payload.get('combination_id'), user.user_id)
+    if payload['combination_id']:
+        combination = equipment_profiles.get_combination(user.user_id, payload['combination_id'])
+        if combination is None:
+            combination = next(
+                (
+                    combo
+                    for combo in equipment_profiles.load_all_shared_combinations(user.user_id)
+                    if combo['id'] == payload['combination_id']
+                ),
+                None,
+            )
+        payload['combination_name'] = (combination or {}).get('name')
+    else:
+        payload['combination_name'] = None
 
 
 def _resolve_session_location_snapshot(
@@ -603,6 +634,8 @@ def add_observation_session_entry(session_id):
         if rating_error:
             return jsonify({'error': rating_error}), 400
 
+        _apply_resolved_entry_combination(payload, user)
+
         session = observation_sessions.get_session(user.user_id, session_id)
         if not session:
             return jsonify({'error': 'Session not found'}), 404
@@ -642,6 +675,8 @@ def update_observation_session_entry(session_id, entry_id):
             rating_error = _validate_and_coerce_rating(payload)
             if rating_error:
                 return jsonify({'error': rating_error}), 400
+
+        _apply_resolved_entry_combination(payload, user)
 
         if payload.get('night_id'):
             session = observation_sessions.get_session(user.user_id, session_id)
@@ -744,7 +779,11 @@ def attach_astrodex_picture_to_entry(session_id, entry_id):
             'latitude': session.get('location_latitude'),
             'longitude': session.get('location_longitude'),
             'elevation': session.get('location_elevation'),
-            'combination_id': session.get('combination_id'),
+            # Prefer the target's own equipment override, if it has one, over the
+            # session's default - same precedence used everywhere else this entry's
+            # effective combination is resolved (see the frontend's
+            # _obsWireEntryEquipmentSection).
+            'combination_id': entry.get('combination_id') or session.get('combination_id'),
             'combination_used_components': entry.get('combination_used_components'),
             'rating': payload.get('rating') if 'rating' in payload else entry.get('rating'),
         }

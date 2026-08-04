@@ -190,6 +190,21 @@ function _obsCombinationLabel(session) {
     return live?.name || session.combination_name || '';
 }
 
+/** Best-effort name of an entry's own equipment override, or '' when it has none (in
+ * which case it inherits the session's equipment - see _obsCombinationLabel above). */
+function _obsEntryCombinationLabel(entry) {
+    if (!entry.combination_id) return '';
+    const live = observationLogCombinations.find(combo => combo.id === entry.combination_id);
+    return live?.name || entry.combination_name || '';
+}
+
+/** The equipment name to actually show for one entry: its own override if it has one,
+ * else the session's own default - so every target displays *some* equipment label
+ * (when there is one to show), not just the exceptions. */
+function _obsEntryEffectiveCombinationLabel(session, entry) {
+    return _obsEntryCombinationLabel(entry) || _obsCombinationLabel(session);
+}
+
 /** A session's nights, chronologically - mirrors the backend's _sorted_nights(). */
 function _obsSortedNights(session) {
     return [...(session.nights || [])].sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
@@ -370,7 +385,14 @@ function _obsFilteredSessions() {
 
     const matches = observationLogData.sessions.filter(session => {
         if (locationId && session.location_id !== locationId) return false;
-        if (combinationId && session.combination_id !== combinationId) return false;
+        // Matches either the session's own default equipment or any entry's per-target
+        // override - a combination used for just one target during the night is still
+        // "equipment used in this session" from the filter's point of view.
+        if (combinationId
+            && session.combination_id !== combinationId
+            && !(session.entries || []).some(entry => entry.combination_id === combinationId)) {
+            return false;
+        }
         if (!_obsSessionOverlapsDateRange(session, fromDate, toDate)) return false;
         if (minRating && (_obsSessionAverageRating(session) ?? -1) < Number(minRating)) return false;
         if (!needle) return true;
@@ -381,6 +403,7 @@ function _obsFilteredSessions() {
             session.combination_name,
             session.notes,
             ...(session.entries || []).map(entry => entry.name),
+            ...(session.entries || []).map(entry => entry.combination_name),
         ].filter(Boolean).join(' ').toLowerCase();
         return haystack.includes(needle);
     });
@@ -783,7 +806,7 @@ function _obsBuildSessionSummaryCard(session) {
 
     const rows = [
         [i18n.t('observation_log.location'), session.location_name || i18n.t('observation_log.no_location')],
-        [i18n.t('observation_log.equipment'), _obsCombinationLabel(session) || i18n.t('observation_log.no_equipment')],
+        [i18n.t('observation_log.default_equipment'), _obsCombinationLabel(session) || i18n.t('observation_log.no_equipment')],
         [i18n.t('observation_log.total_integration'), _obsFormatIntegration(_obsSessionIntegration(session)) || '—'],
         [i18n.t('observation_log.stat_targets'), String((session.entries || []).length)],
     ];
@@ -1048,6 +1071,16 @@ function _obsBuildEntryRow(session, entry) {
 
     const numbers = document.createElement('div');
     numbers.className = 'd-flex flex-wrap align-items-center gap-2';
+    // Always shown (when there's an equipment to show at all), not just for the rare
+    // target that used something other than the session's own default - every row
+    // states plainly what equipment it was actually captured with.
+    const entryCombo = _obsEntryEffectiveCombinationLabel(session, entry);
+    if (entryCombo) {
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-info text-dark';
+        DOMUtils.append(badge, DOMUtils.createIcon('bi bi-camera icon-inline'), entryCombo);
+        numbers.appendChild(badge);
+    }
     if (entry.frame_count) {
         const badge = document.createElement('span');
         badge.className = 'badge bg-secondary';
@@ -1365,8 +1398,14 @@ async function _obsPrefillSkyConditionsIfToday(dateInputId, seeingSelectId, tran
 // Session create/edit modal
 // ============================================
 
-function _obsBuildCombinationOptions(session) {
-    const forceIncludeId = session?.combination_id || null;
+/** Equipment <select> option list: "No equipment" plus every enabled combination -
+ * force-including forceIncludeId even if disabled, so a session/entry already tagged
+ * with a since-disabled combination doesn't silently lose its selected option. Shared
+ * by the session form and the entry form: an entry's Equipment select pre-selects the
+ * real, concrete combination (its own override, or else the session's own) rather than
+ * offering a separate "same as session" pseudo-choice alongside the real one - one
+ * fewer way to express the same thing. */
+function _obsBuildCombinationOptionsList(forceIncludeId) {
     const options = [{ value: _OBS_NO_COMBINATION_VALUE, label: i18n.t('observation_log.no_equipment') }];
     observationLogCombinations
         .filter(combo => !combo.is_disabled || combo.id === forceIncludeId)
@@ -1377,6 +1416,10 @@ function _obsBuildCombinationOptions(session) {
             options.push({ value: combo.id, label });
         });
     return options;
+}
+
+function _obsBuildCombinationOptions(session) {
+    return _obsBuildCombinationOptionsList(session?.combination_id || null);
 }
 
 /** Creating a session also seeds its first night, so the *create* form keeps asking
@@ -1415,7 +1458,7 @@ function showObservationSessionForm(session) {
         _obsBuildCombinationOptions(session),
         session?.combination_id || ''
     );
-    form.appendChild(_obsField('col-md-6', i18n.t('observation_log.equipment'), comboSelect, comboSelect.id));
+    form.appendChild(_obsField('col-md-6', i18n.t('observation_log.default_equipment'), comboSelect, comboSelect.id));
 
     if (!session) {
         form.appendChild(_obsSectionHeader(i18n.t('observation_log.section_sky')));
@@ -1805,6 +1848,32 @@ async function showObservationEntryForm(sessionId, entry) {
     if (entry) constellationSelect.disabled = true;
     form.appendChild(_obsField('col-md-6', i18n.t('observation_log.constellation'), constellationSelect, constellationSelect.id));
 
+    form.appendChild(_obsSectionHeader(i18n.t('observation_log.section_equipment')));
+    // Pre-select the *effective* combination - this entry's own override if it has one,
+    // else the session's own default - as a real, concrete choice rather than a
+    // separate "same as session" pseudo-option: what's shown here is exactly what this
+    // target will be recorded with unless changed.
+    const effectiveComboId = entry?.combination_id || parentSession?.combination_id || '';
+    const comboSelect = _obsSelect(
+        'observation-entry-combination',
+        _obsBuildCombinationOptionsList(effectiveComboId || null),
+        effectiveComboId
+    );
+    form.appendChild(_obsField('col-md-6', i18n.t('observation_log.equipment'), comboSelect, comboSelect.id));
+
+    const comboChecklistWrap = document.createElement('div');
+    comboChecklistWrap.className = 'col-md-6';
+    comboChecklistWrap.id = 'observation-entry-combo-checklist-wrap';
+    comboChecklistWrap.style.display = 'none';
+    const comboChecklistLabel = document.createElement('label');
+    comboChecklistLabel.className = 'form-label d-block';
+    comboChecklistLabel.textContent = i18n.t('observation_log.combination_used_components_label');
+    comboChecklistWrap.appendChild(comboChecklistLabel);
+    const comboChecklistContainer = document.createElement('div');
+    comboChecklistContainer.id = 'observation-entry-combo-checklist';
+    comboChecklistWrap.appendChild(comboChecklistContainer);
+    form.appendChild(comboChecklistWrap);
+
     form.appendChild(_obsSectionHeader(i18n.t('observation_log.section_capture')));
 
     const framesInput = _obsInput('observation-entry-frames', 'number', entry?.frame_count ?? '', { min: '0', step: '1' });
@@ -1862,6 +1931,8 @@ async function showObservationEntryForm(sessionId, entry) {
     );
     new bootstrap.Modal('#modal_lg_close', { backdrop: 'static', focus: true, keyboard: true }).show();
 
+    _obsWireEntryEquipmentSection(entry);
+
     if (!entry) {
         const searchBtn = document.getElementById('observation-entry-search-btn');
         const searchInput = document.getElementById('observation-entry-search-input');
@@ -1877,6 +1948,36 @@ async function showObservationEntryForm(sessionId, entry) {
         event.preventDefault();
         await saveObservationEntry(sessionId, entry?.id || null, submit);
     });
+}
+
+/** Wire the entry Equipment section's combination select: (re)builds the per-component
+ * checklist against whatever combination is currently selected - it starts out
+ * pre-selected to this entry's effective equipment (see showObservationEntryForm), so
+ * there's no separate "same as session" fallback to resolve here, just the select's own
+ * value - reusing the generic checklist helpers astrodex.js already exposes globally
+ * (_buildCombinationComponentsChecklist / _collectCombinationUsedComponents), the same
+ * way this file already reuses that file's getConstellationsList(). Call once after the
+ * modal is mounted; `entry` (when editing) seeds the initial checklist state from its
+ * saved combination_used_components. */
+function _obsWireEntryEquipmentSection(entry) {
+    const select = document.getElementById('observation-entry-combination');
+    const checklistWrap = document.getElementById('observation-entry-combo-checklist-wrap');
+    const checklistContainer = document.getElementById('observation-entry-combo-checklist');
+    if (!select || !checklistWrap || !checklistContainer) return;
+
+    const applySelection = (usedComponents) => {
+        DOMUtils.clear(checklistContainer);
+        const combo = observationLogCombinations.find(candidate => candidate.id === select.value);
+        if (combo) {
+            checklistContainer.appendChild(_buildCombinationComponentsChecklist('observation-entry', combo, usedComponents));
+            checklistWrap.style.display = '';
+        } else {
+            checklistWrap.style.display = 'none';
+        }
+    };
+
+    select.addEventListener('change', () => applySelection(null));
+    applySelection(select.value === (entry?.combination_id || '') ? entry?.combination_used_components : null);
 }
 
 /** Convenience only: frames x sub-exposure -> integration minutes. The server never
@@ -1972,12 +2073,17 @@ async function _obsTriggerEntryCatalogueSearch() {
 }
 
 async function saveObservationEntry(sessionId, entryId, submitButton) {
+    const comboChecklistWrap = document.getElementById('observation-entry-combo-checklist-wrap');
     const payload = {
         frame_count: _obsNumberOrNull('observation-entry-frames'),
         sub_exposure_seconds: _obsNumberOrNull('observation-entry-sub-exposure'),
         integration_minutes: _obsNumberOrNull('observation-entry-integration'),
         rating: _obsGetRatingWidgetValue('observation-entry'),
         notes: document.getElementById('observation-entry-notes')?.value || '',
+        combination_id: document.getElementById('observation-entry-combination')?.value || null,
+        combination_used_components: comboChecklistWrap && comboChecklistWrap.style.display !== 'none'
+            ? _collectCombinationUsedComponents('observation-entry')
+            : null,
     };
 
     // The night selector only renders for a multi-night session (see
