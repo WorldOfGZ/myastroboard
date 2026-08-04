@@ -392,7 +392,7 @@ function renderNightTimeline(hourlyData, timezone) {
         const scoreColorClass = score >= 6 ? 'text-success' : score >= 4 ? 'text-warning' : 'text-danger';
 
         const card = document.createElement('div');
-        card.className = `card h-100 night-score-card${isNow ? ' night-score-card-now' : ''}`;
+        card.className = `card night-score-card${isNow ? ' night-score-card-now' : ''}`;
 
         const body = document.createElement('div');
         body.className = 'card-body p-1 text-center';

@@ -226,8 +226,13 @@
 .night-score-icons {
     display: flex;
     justify-content: center;
+    align-items: center;
     gap: 0.25rem;
     font-size: 0.75rem;
+    /* Pin the icon row to the bottom of the card so it lines up across every
+       card even when the content above it (hour label, badge text) varies
+       in height. */
+    margin-top: auto;
 }
 
 @media (max-width: 575.98px) {
