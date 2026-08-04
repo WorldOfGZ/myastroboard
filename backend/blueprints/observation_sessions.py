@@ -12,10 +12,14 @@ mirroring where ``blueprints/astrodex.py`` keeps its own equivalents.
 
 import os
 import re
+import uuid
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from flask import Blueprint, request, jsonify, send_file
+from flask import Blueprint, request, jsonify, send_file, send_from_directory
+from werkzeug.utils import secure_filename
 
+from astroweather.moon_planner import moon_illumination_percent
 from equipment import equipment_profiles
 from observation import astrodex
 from observation import observation_sessions
@@ -198,6 +202,30 @@ def _location_preset_sqm(location_id) -> Optional[float]:
     return _safe_session_coordinate(location.get('sqm'), 0, 30)
 
 
+def _compute_moon_illumination_for_date(date_str: Optional[str]) -> Optional[float]:
+    """Moon illumination (%) for a given calendar date.
+
+    Unlike seeing/transparency (a 7Timer *forecast*, only available for today), this is
+    a pure ephemeris computation - it works for any date, including the past, which
+    matters since sessions are usually logged the morning after. Anchored at UTC noon:
+    illumination changes by well under a percent across a single night, so the exact
+    hour is immaterial. Always server-computed, never trusted from the client (see
+    astroweather.moon_planner.moon_illumination_percent - the same engine already
+    powering the 7-night Moon Planner forecast, for consistency app-wide).
+    """
+    if not date_str:
+        return None
+    try:
+        parsed_date = datetime.strptime(str(date_str), '%Y-%m-%d')
+    except (TypeError, ValueError):
+        return None
+    try:
+        return round(moon_illumination_percent(parsed_date.replace(hour=12, tzinfo=timezone.utc)), 1)
+    except Exception as error:  # pragma: no cover - ephemeris library failure
+        logger.error(f'Error computing moon illumination for {date_str}: {error}')
+        return None
+
+
 def _apply_resolved_session_fields(payload: Dict, user) -> None:
     """Resolve the client-supplied combination/location of a create/update payload
     server-side, in place.
@@ -233,6 +261,25 @@ def _apply_resolved_session_fields(payload: Dict, user) -> None:
                 custom_longitude=payload.get('location_longitude'),
             )
         )
+
+
+def _validate_night_id(session: Dict, night_id: Optional[str]) -> Any:
+    """Validate that *night_id* (if given) resolves to one of *session*'s nights.
+    Returns an error message string on failure, else None (a blank night_id is valid -
+    the caller defaults it, see _default_night_id())."""
+    if not night_id:
+        return None
+    if any(isinstance(night, dict) and night.get('id') == night_id for night in session.get('nights', [])):
+        return None
+    return 'night_id does not resolve to a night in this session'
+
+
+def _default_night_id(session: Dict) -> Optional[str]:
+    """Which night a new entry defaults to when the client doesn't specify one: the
+    most recently added night, so adding a target right after "Add night" lands it on
+    that new night rather than always the first one."""
+    nights = [night for night in session.get('nights', []) or [] if isinstance(night, dict)]
+    return nights[-1]['id'] if nights else None
 
 
 def _ensure_astrodex_item_for_entry(user, entry: Dict) -> Optional[str]:
@@ -360,6 +407,8 @@ def create_observation_session():
         if payload.get('sqm') in (None, '') and payload.get('location_id'):
             payload['sqm'] = _location_preset_sqm(payload['location_id'])
 
+        payload['moon_illumination_percent'] = _compute_moon_illumination_for_date(payload.get('date'))
+
         session = observation_sessions.create_session(user.user_id, user.username, payload)
         if not session:
             return jsonify({'error': 'Failed to create session'}), 500
@@ -407,6 +456,93 @@ def delete_observation_session(session_id):
         return jsonify({'status': 'success', 'data': {'id': session_id}})
     except Exception as error:
         logger.error(f'Error deleting observation session {session_id}: {error}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@observation_sessions_bp.route('/api/observation-sessions/<session_id>/nights', methods=['POST'])
+@user_required
+def add_observation_session_night(session_id):
+    """Add another night to a multi-night session. ``date`` is required."""
+    try:
+        user = get_current_user()
+        if not user:  # pragma: no cover
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        payload = dict(request.json or {})
+        if not str(payload.get('date') or '').strip():
+            return jsonify({'error': 'Night date is required'}), 400
+
+        session = observation_sessions.get_session(user.user_id, session_id)
+        if not session:
+            return jsonify({'error': 'Session not found'}), 404
+
+        # Same SQM-from-preset prefill as session creation, keyed off the session's own
+        # (fixed-for-the-whole-trip) location rather than a per-night one.
+        if payload.get('sqm') in (None, '') and session.get('location_id'):
+            payload['sqm'] = _location_preset_sqm(session['location_id'])
+        payload['moon_illumination_percent'] = _compute_moon_illumination_for_date(payload.get('date'))
+
+        night = observation_sessions.add_night(user.user_id, session_id, payload)
+        if not night:
+            return jsonify({'error': 'Failed to add night'}), 500
+
+        return jsonify({'status': 'success', 'data': night}), 201
+    except Exception as error:
+        logger.error(f'Error adding night to observation session {session_id}: {error}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@observation_sessions_bp.route('/api/observation-sessions/<session_id>/nights/<night_id>', methods=['PUT'])
+@user_required
+def update_observation_session_night(session_id, night_id):
+    """Update one night's conditions/notes."""
+    try:
+        user = get_current_user()
+        if not user:  # pragma: no cover
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        payload = dict(request.json or {})
+        if payload.get('date'):
+            payload['moon_illumination_percent'] = _compute_moon_illumination_for_date(payload.get('date'))
+
+        night = observation_sessions.update_night(user.user_id, session_id, night_id, payload)
+        if not night:
+            return jsonify({'error': 'Night not found'}), 404
+
+        return jsonify({'status': 'success', 'data': night})
+    except Exception as error:
+        logger.error(f'Error updating night {night_id} in observation session {session_id}: {error}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@observation_sessions_bp.route('/api/observation-sessions/<session_id>/nights/<night_id>', methods=['DELETE'])
+@user_required
+def delete_observation_session_night(session_id, night_id):
+    """Remove one night.
+
+    Refused (400) while it's the session's last remaining night, or while any entry
+    still points at it - see observation_sessions.delete_night()'s docstring.
+    """
+    try:
+        user = get_current_user()
+        if not user:  # pragma: no cover
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        session = observation_sessions.get_session(user.user_id, session_id)
+        if not session:
+            return jsonify({'error': 'Session not found'}), 404
+        nights = session.get('nights', [])
+        if not any(isinstance(night, dict) and night.get('id') == night_id for night in nights):
+            return jsonify({'error': 'Night not found'}), 404
+
+        if not observation_sessions.delete_night(user.user_id, session_id, night_id):
+            if len(nights) <= 1:
+                return jsonify({'error': "Cannot delete a session's last remaining night"}), 400
+            return jsonify({'error': 'Cannot delete a night that still has entries - move or delete them first'}), 400
+
+        return jsonify({'status': 'success', 'data': {'id': night_id}})
+    except Exception as error:
+        logger.error(f'Error deleting night {night_id} from observation session {session_id}: {error}')
         return jsonify({'error': 'Internal server error'}), 500
 
 
@@ -467,6 +603,16 @@ def add_observation_session_entry(session_id):
         if rating_error:
             return jsonify({'error': rating_error}), 400
 
+        session = observation_sessions.get_session(user.user_id, session_id)
+        if not session:
+            return jsonify({'error': 'Session not found'}), 404
+
+        night_error = _validate_night_id(session, payload.get('night_id'))
+        if night_error:
+            return jsonify({'error': night_error}), 400
+        if not payload.get('night_id'):
+            payload['night_id'] = _default_night_id(session)
+
         entry = observation_sessions.add_entry(user.user_id, session_id, payload)
         if not entry:
             return jsonify({'error': 'Session not found'}), 404
@@ -496,6 +642,14 @@ def update_observation_session_entry(session_id, entry_id):
             rating_error = _validate_and_coerce_rating(payload)
             if rating_error:
                 return jsonify({'error': rating_error}), 400
+
+        if payload.get('night_id'):
+            session = observation_sessions.get_session(user.user_id, session_id)
+            if not session:
+                return jsonify({'error': 'Session not found'}), 404
+            night_error = _validate_night_id(session, payload.get('night_id'))
+            if night_error:
+                return jsonify({'error': night_error}), 400
 
         entry = observation_sessions.update_entry(user.user_id, session_id, entry_id, payload)
         if not entry:
@@ -566,10 +720,13 @@ def attach_astrodex_picture_to_entry(session_id, entry_id):
         if not item_id:
             return jsonify({'error': 'Failed to resolve Astrodex item'}), 500
 
+        entry_night = observation_sessions.get_night(session, entry.get('night_id'))
+        entry_date = entry_night.get('date') if entry_night else observation_sessions.session_date_range(session)[0]
+
         sub_exposure = entry.get('sub_exposure_seconds')
         picture_data = {
             'filename': filename,
-            'date': payload.get('date') or session.get('date') or '',
+            'date': payload.get('date') or entry_date or '',
             'frames': payload.get('frames') if 'frames' in payload else entry.get('frame_count'),
             'exposition_time': (
                 payload.get('exposition_time')
@@ -615,6 +772,115 @@ def attach_astrodex_picture_to_entry(session_id, entry_id):
         )
     except Exception as error:
         logger.error(f'Error attaching picture to entry {entry_id} of session {session_id}: {error}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+# ---------------------------------------------------------------------------
+# Attachments (v1.3.1) - generic files (images/PDF/text) attached to a session,
+# unrelated to the entry -> Astrodex picture link above. Exact mirror of
+# astrodex.py's own image upload: extension allow-list, secure_filename() only to pull
+# the extension, a regenerated {user_id}_{uuid}.{ext} storage name, and a
+# realpath+startswith containment check.
+# ---------------------------------------------------------------------------
+
+ATTACHMENT_ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp', 'pdf', 'txt'}
+
+
+@observation_sessions_bp.route('/api/observation-sessions/<session_id>/attachments', methods=['POST'])
+@user_required
+def upload_observation_session_attachment(session_id):
+    """Upload a file and record it against a session, in one step (unlike Astrodex's
+    two-step upload-then-attach, an attachment only ever belongs to one session)."""
+    try:
+        user = get_current_user()
+        if not user:  # pragma: no cover
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        if not observation_sessions.get_session(user.user_id, session_id):
+            return jsonify({'error': 'Session not found'}), 404
+
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        file = request.files['file']
+        if not file or not file.filename:
+            return jsonify({'error': 'No file selected'}), 400
+
+        original_filename = secure_filename(file.filename)
+        if '.' not in original_filename:
+            return jsonify({'error': 'Invalid file name'}), 400
+
+        file_ext = original_filename.rsplit('.', 1)[1].lower()
+        if file_ext not in ATTACHMENT_ALLOWED_EXTENSIONS:
+            return jsonify({'error': 'Invalid file type'}), 400
+
+        unique_filename = f'{user.user_id}_{uuid.uuid4()}.{file_ext}'
+
+        observation_sessions.ensure_observation_sessions_directories()
+        base_dir = os.path.realpath(observation_sessions.attachments_dir())
+        file_path = os.path.realpath(os.path.join(base_dir, unique_filename))
+        if not file_path.startswith(base_dir + os.sep):  # pragma: no cover
+            logger.warning(f'Attempted path traversal attack: {file_path}')
+            return jsonify({'error': 'Invalid file path'}), 400
+
+        file.save(file_path)
+
+        attachment = observation_sessions.add_attachment(
+            user.user_id, session_id, unique_filename, original_filename, file.mimetype or ''
+        )
+        if not attachment:
+            # Session vanished between the check above and the save (race) or the
+            # write failed - don't leave an orphaned file behind.
+            try:
+                os.remove(file_path)
+            except OSError:
+                pass
+            return jsonify({'error': 'Failed to attach file'}), 500
+
+        return jsonify({'status': 'success', 'data': attachment}), 201
+    except Exception as error:
+        logger.error(f'Error uploading attachment for observation session {session_id}: {error}')
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@observation_sessions_bp.route('/api/observation-sessions/attachments/<filename>', methods=['GET'])
+@login_required
+def get_observation_session_attachment(filename):
+    """Serve an attachment file - ownership-checked (does this filename belong to one
+    of the caller's own sessions), mirroring astrodex.py's can_user_view_image() but
+    simplified to plain ownership since sessions (unlike Astrodex) are never shared."""
+    try:
+        user = get_current_user()
+        if not user:  # pragma: no cover
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        owns_file = any(
+            isinstance(attachment, dict) and attachment.get('filename') == filename
+            for session in observation_sessions.get_user_sessions(user.user_id)
+            for attachment in session.get('attachments', []) or []
+        )
+        if not owns_file:
+            return jsonify({'error': 'File not accessible'}), 403
+
+        return send_from_directory(observation_sessions.attachments_dir(), filename)
+    except Exception as error:
+        logger.error(f'Error serving observation session attachment {filename}: {error}')
+        return jsonify({'error': 'File not found'}), 404
+
+
+@observation_sessions_bp.route('/api/observation-sessions/<session_id>/attachments/<attachment_id>', methods=['DELETE'])
+@user_required
+def delete_observation_session_attachment(session_id, attachment_id):
+    try:
+        user = get_current_user()
+        if not user:  # pragma: no cover
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        if not observation_sessions.delete_attachment(user.user_id, session_id, attachment_id):
+            return jsonify({'error': 'Attachment not found'}), 404
+
+        return jsonify({'status': 'success', 'data': {'id': attachment_id}})
+    except Exception as error:
+        logger.error(f'Error deleting attachment {attachment_id} from observation session {session_id}: {error}')
         return jsonify({'error': 'Internal server error'}), 500
 
 
@@ -669,6 +935,23 @@ def _collect_image_paths(user, sessions: List[Dict]) -> Dict[str, str]:
     return image_paths
 
 
+def _session_overlaps_date_range(session: Dict, from_date: Optional[str], to_date: Optional[str]) -> bool:
+    """True when *any* of the session's nights falls within [from_date, to_date]
+    (either bound omitted = open-ended). A multi-night trip straddling a filter
+    boundary still matches - the PDF renders every one of its nights regardless, this
+    only decides whether the session as a whole is included."""
+    for night in session.get('nights', []) or []:
+        if not isinstance(night, dict):
+            continue
+        night_date = str(night.get('date') or '')
+        if from_date and night_date < from_date:
+            continue
+        if to_date and night_date > to_date:
+            continue
+        return True
+    return False
+
+
 @observation_sessions_bp.route('/api/observation-sessions/<session_id>/export.pdf', methods=['GET'])
 @login_required
 def export_observation_session_pdf(session_id):
@@ -687,7 +970,7 @@ def export_observation_session_pdf(session_id):
         image_paths = _collect_image_paths(user, [session])
         buffer = observation_sessions.generate_session_pdf(session, image_paths, i18n)
 
-        pdf_date = (session.get('date') or 'unknown').replace('-', '')
+        pdf_date = (observation_sessions.session_date_range(session)[0] or 'unknown').replace('-', '')
         return send_file(
             buffer, as_attachment=True, mimetype='application/pdf', download_name=f'observation-log_{pdf_date}.pdf'
         )
@@ -711,10 +994,8 @@ def export_observation_sessions_pdf():
         order = 'desc' if request.args.get('order') == 'desc' else 'asc'
 
         sessions = observation_sessions.get_user_sessions(user.user_id)
-        if from_date:
-            sessions = [session for session in sessions if str(session.get('date') or '') >= from_date]
-        if to_date:
-            sessions = [session for session in sessions if str(session.get('date') or '') <= to_date]
+        if from_date or to_date:
+            sessions = [session for session in sessions if _session_overlaps_date_range(session, from_date, to_date)]
 
         i18n = I18nManager(_resolve_requested_language())
         image_paths = _collect_image_paths(user, sessions)

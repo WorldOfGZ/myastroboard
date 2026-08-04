@@ -40,6 +40,18 @@ from astropy.coordinates import EarthLocation, AltAz, get_sun, get_body
 from astroplan.moon import moon_illumination
 
 
+def moon_illumination_percent(dt_local: datetime.datetime) -> float:
+    """Moon illumination (%) at a given moment - a pure ephemeris computation, so
+    unlike a weather forecast it works for any date, including ones in the past.
+
+    Reused by Observation Log to record a night's moon condition (see
+    observation/observation_sessions.py) - the same engine already powering this
+    module's own 7-night dark-time forecast, so numbers stay consistent app-wide.
+    """
+    utc_dt = dt_local.astimezone(datetime.timezone.utc)
+    return float(moon_illumination(Time(utc_dt)) * 100)
+
+
 class MoonPlanner:
 
     def __init__(self, latitude: float, longitude: float, timezone: str):
@@ -137,12 +149,7 @@ class MoonPlanner:
     # ============================================================
 
     def _moon_illumination(self, dt_local):
-
-        utc_dt = dt_local.astimezone(datetime.timezone.utc)
-        t = Time(utc_dt)
-
-        illum = moon_illumination(t) * 100
-        return float(illum)
+        return moon_illumination_percent(dt_local)
 
     # ============================================================
     # Simple astrophotography score

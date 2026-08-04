@@ -34,10 +34,26 @@ thumbnail on its entry, plus a "Photos" button opens every photo in the session;
 4th stat is now the average rating rather than a raw frame-count total; and both a session and the
 whole log can now be exported to a print-friendly PDF (per-session button on the detail view; a
 list-view button opens a date-range + sort-order modal for a cover + summary + all-sessions export),
-styled to match Plan My Night's own PDF export and including each target's attached photo; and the
+styled to match Plan My Night's own PDF export and including each target's attached photo; the
 altitude-vs-time chart button on an entry now only shows while the session's start/end time window
 is current, since the underlying chart data is recalculated nightly for "tonight" and no longer
-represents the logged observation once it's over.
+represents the logged observation once it's over; an Astrodex item or picture that came from a
+logged session now shows a small "Logged on \<date\>" backlink back to it (read-only navigation, no
+change to the existing one-shot, never-synced link itself); and a session can now span **multiple
+nights** — a "Nights" section on the detail view lets you add/edit/delete each night's own
+date/start-end/SQM/seeing/transparency/notes (plus moon illumination, computed automatically for any
+date, past included, since unlike seeing/transparency it isn't a same-day-only forecast), targets are
+attributed to a specific night and grouped by night once there's more than one, and importing a Plan
+My Night plan into an ongoing session reuses that plan's night if the date already exists rather than
+duplicating it — the "day 2 of the trip, log the new plan" flow. The PDF export follows the same
+split: a single-night session's export is unchanged, while a multi-night one gets a shorter summary
+card plus one date/conditions sub-header per night ahead of that night's own targets, and the
+list/summary-table date now shows the session's full range. A target imported from Plan My Night also
+now carries over its planned integration time, shown alongside what was actually logged so you can
+see how a night's execution compared to the plan. A session can now also hold generic **attachments**
+(guiding graphs, subframe logs, planning notes - images, PDF or text files) via a small list on the
+detail view, separate from the entry-to-Astrodex picture link; it's already covered by the existing
+backup/restore ZIP with no extra setup.
 
 #### Astrodex picture capture fields
 

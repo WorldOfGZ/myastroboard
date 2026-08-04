@@ -1295,9 +1295,28 @@ async function showAstrodexItemDetail(itemId) {
         </div>
     ` : '';
 
+    // Reverse link into the Observation Log: which session(s) logged this item's
+    // capture. One entry per distinct session (an item can be logged across several
+    // nights); the forward link (entry -> item) is automatic, this is purely display.
+    const sessionMatches = item.observation_sessions || [];
+    const uniqueSessionIds = [...new Set(sessionMatches.map(match => match.session_id))];
+    const observationLogBadge = uniqueSessionIds.length > 0 ? `
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            ${uniqueSessionIds.map(sessionId => {
+                const match = sessionMatches.find(candidate => candidate.session_id === sessionId);
+                return `
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-action="view-observation-session" data-session-id="${escapeHtml(sessionId)}">
+                        <i class="bi bi-journal-text icon-inline" aria-hidden="true"></i>${i18n.t('astrodex.observation_log_link', { date: escapeHtml(match?.session_date || '') })}
+                    </button>
+                `;
+            }).join('')}
+        </div>
+    ` : '';
+
     createModal(item.name, `
         <h3>${i18n.t('astrodex.object_info')}</h3>
         ${locationBadge}
+        ${observationLogBadge}
         <form id="edit-item-form-${escapeHtml(item.id)}" class="form row g-3">
             <div class="col-md-6">
                 <label for="edit-type-${escapeHtml(item.id)}" class="col form-label">${i18n.t('astrodex.form_object_type')}</label>
@@ -1427,6 +1446,7 @@ function renderPicturesGrid(item) {
                         </p>
                     </div>
                     <div class="card-footer text-center">
+                        ${picture.observation_session ? `<button class="btn btn-outline-secondary" data-action="view-observation-session" data-session-id="${escapeForJs(picture.observation_session.session_id)}" title="${i18n.t('astrodex.observation_log_picture_tooltip', { date: escapeHtml(picture.observation_session.session_date || '') })}"><i class="bi bi-journal-text" aria-hidden="true"></i></button>` : ''}
                         ${!picture.is_main ? `<button class="btn btn-outline-secondary" data-action="set-main-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="${i18n.t('astrodex.set_as_main')}"><i class="bi bi-star text-warning" aria-hidden="true"></i></button>` : '<span class="btn-icon-placeholder"></span>'}
                         <button class="btn btn-outline-secondary" data-action="edit-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="${i18n.t('astrodex.edit')}"><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
                         <button class="btn btn-danger" data-action="delete-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="${i18n.t('astrodex.delete')}"><i class="bi bi-trash" aria-hidden="true"></i></button>
@@ -2699,7 +2719,8 @@ async function initializeAstrodexEventListeners() {
             const itemId = button.getAttribute('data-item-id');
             const pictureId = button.getAttribute('data-picture-id');
             const catalogue = button.getAttribute('data-catalogue');
-            
+            const sessionId = button.getAttribute('data-session-id');
+
             switch(action) {
                 case 'close-modal':
                     e.preventDefault();
@@ -2743,6 +2764,14 @@ async function initializeAstrodexEventListeners() {
                     e.preventDefault();
                     if(isAllowedAstrodex) {
                         switchItemCatalogueName(itemId, catalogue);
+                    }
+                    break;
+                case 'view-observation-session':
+                    // Read-only navigation, available to read-only users too (they can
+                    // view the Observation Log, just not edit it).
+                    e.preventDefault();
+                    if (typeof openObservationSessionFromAstrodex === 'function') {
+                        openObservationSessionFromAstrodex(sessionId);
                     }
                     break;
             }

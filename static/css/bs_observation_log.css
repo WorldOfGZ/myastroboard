@@ -78,3 +78,11 @@
     padding: 2rem 1rem;
     text-align: center;
 }
+
+.observation-log-attachment-thumb {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    object-fit: cover;
+    border-radius: var(--border-radius);
+}

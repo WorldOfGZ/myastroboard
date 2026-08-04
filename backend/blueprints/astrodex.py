@@ -2,7 +2,7 @@
 
 import os
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
@@ -262,6 +262,11 @@ def get_astrodex():
         )
         _enrich_astrodex_items_with_difficulty(astrodex_data.get('items', []), _resolve_active_location().get('id'))
 
+        from observation.observation_sessions import build_astrodex_session_backlink_index
+
+        matches_by_item, first_match_by_picture = build_astrodex_session_backlink_index(user_id)
+        _apply_observation_session_backlinks(astrodex_data.get('items', []), matches_by_item, first_match_by_picture)
+
         return jsonify(
             {
                 'items': astrodex_data.get('items', []),
@@ -432,6 +437,38 @@ def switch_astrodex_item_catalogue_name(item_id):
         return jsonify({'error': 'Internal server error'}), 500
 
 
+def _apply_observation_session_backlinks(
+    items: List[Dict], matches_by_item: Dict, first_match_by_picture: Dict
+) -> None:
+    """Attach 'which Observation Log session produced this' to items/pictures in place.
+
+    ``matches_by_item``/``first_match_by_picture`` come from
+    observation_sessions.build_astrodex_session_backlink_index() - built once per
+    request by the caller, not per item. Mutates the freshly-loaded items in place;
+    load_user_astrodex() has no caching, so this never leaks into a later save.
+    """
+    for item in items:
+        item['observation_sessions'] = matches_by_item.get(item.get('id'), [])
+        # 'own_pictures' (private_mode's own-copy list, and the merged view's
+        # current-user-only list) is a *separate* deepcopy taken before this runs
+        # (observation/astrodex.py's get_visible_astrodex()), not the same objects as
+        # 'pictures' - the frontend's picture grid renders from own_pictures when
+        # present, so both lists need the field.
+        for pictures_key in ('pictures', 'own_pictures'):
+            for picture in item.get(pictures_key, []) or []:
+                picture_id = picture.get('id')
+                picture['observation_session'] = first_match_by_picture.get(picture_id) if picture_id else None
+
+
+def _with_observation_session_backlinks(user_id: str, item: Dict) -> Dict:
+    """Single-item variant of _apply_observation_session_backlinks(), for the one-item GET route."""
+    from observation.observation_sessions import build_astrodex_session_backlink_index
+
+    matches_by_item, first_match_by_picture = build_astrodex_session_backlink_index(user_id)
+    _apply_observation_session_backlinks([item], matches_by_item, first_match_by_picture)
+    return item
+
+
 @astrodex_bp.route('/api/astrodex/items/<item_id>', methods=['GET'])
 @login_required
 def get_astrodex_item_api(item_id):
@@ -445,7 +482,7 @@ def get_astrodex_item_api(item_id):
         item = astrodex.get_astrodex_item(user_id, item_id)
 
         if item:
-            return jsonify(item)
+            return jsonify(_with_observation_session_backlinks(user_id, item))
         else:
             return jsonify({'error': 'Item not found'}), 404
     except Exception as e:
