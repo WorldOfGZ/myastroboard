@@ -189,6 +189,45 @@ function _obsCombinationLabel(session) {
     return live?.name || session.combination_name || '';
 }
 
+/** A session's nights, chronologically - mirrors the backend's _sorted_nights(). */
+function _obsSortedNights(session) {
+    return [...(session.nights || [])].sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+}
+
+/** The session's earliest night's date - "the session's date" for display/sort,
+ * matching the backend's session_date_range()[0] / _primary_night(). */
+function _obsSessionDate(session) {
+    const nights = _obsSortedNights(session);
+    return nights.length ? (nights[0].date || '') : '';
+}
+
+/** [earliest, latest] night date - equal for a single-night session, the still
+ * overwhelmingly common case. */
+function _obsSessionDateRange(session) {
+    const nights = _obsSortedNights(session);
+    if (!nights.length) return ['', ''];
+    return [nights[0].date || '', nights[nights.length - 1].date || ''];
+}
+
+/** "2026-07-14" for a single-night session, "2026-07-14 - 2026-07-16" for a multi-night one. */
+function _obsFormatSessionDateLabel(session) {
+    const [start, end] = _obsSessionDateRange(session);
+    if (!start) return '';
+    return start === end ? start : `${start} - ${end}`;
+}
+
+/** True when any of the session's nights falls within [fromDate, toDate] (either bound
+ * blank = open-ended) - mirrors the backend's _session_overlaps_date_range(). */
+function _obsSessionOverlapsDateRange(session, fromDate, toDate) {
+    if (!fromDate && !toDate) return true;
+    return (session.nights || []).some(night => {
+        const date = String(night.date || '');
+        if (fromDate && date < fromDate) return false;
+        if (toDate && date > toDate) return false;
+        return true;
+    });
+}
+
 // ============================================
 // Data loading
 // ============================================
@@ -331,13 +370,12 @@ function _obsFilteredSessions() {
     const matches = observationLogData.sessions.filter(session => {
         if (locationId && session.location_id !== locationId) return false;
         if (combinationId && session.combination_id !== combinationId) return false;
-        if (fromDate && String(session.date || '') < fromDate) return false;
-        if (toDate && String(session.date || '') > toDate) return false;
+        if (!_obsSessionOverlapsDateRange(session, fromDate, toDate)) return false;
         if (minRating && (_obsSessionAverageRating(session) ?? -1) < Number(minRating)) return false;
         if (!needle) return true;
 
         const haystack = [
-            session.date,
+            ...(session.nights || []).map(night => night.date),
             session.location_name,
             session.combination_name,
             session.notes,
@@ -356,7 +394,7 @@ function _obsFilteredSessions() {
         } else if (sort === 'rating') {
             result = (_obsSessionAverageRating(a) ?? -1) - (_obsSessionAverageRating(b) ?? -1);
         } else {
-            result = String(a.date || '').localeCompare(String(b.date || ''));
+            result = _obsSessionDate(a).localeCompare(_obsSessionDate(b));
         }
         return result * direction;
     });
@@ -591,7 +629,7 @@ function _obsBuildSessionCard(session) {
     header.className = 'd-flex justify-content-between align-items-start gap-2';
     const date = document.createElement('span');
     date.className = 'observation-log-session-date';
-    date.textContent = session.date || '';
+    date.textContent = _obsFormatSessionDateLabel(session);
     header.appendChild(date);
 
     const entryCount = document.createElement('span');
@@ -668,7 +706,7 @@ function renderObservationSessionDetail(sessionId) {
 
     const heading = document.createElement('h3');
     heading.className = 'h5 mb-0 me-auto';
-    heading.textContent = i18n.t('observation_log.session_of', { date: session.date || '' });
+    heading.textContent = i18n.t('observation_log.session_of', { date: _obsFormatSessionDateLabel(session) });
     toolbar.appendChild(heading);
 
     const sessionPictures = _obsCollectSessionPictures(session);
@@ -683,7 +721,7 @@ function renderObservationSessionDetail(sessionId) {
             i18n.t('observation_log.session_photos', { count: sessionPictures.length })
         );
         galleryButton.addEventListener('click', () => showPictureSlideshowFromPictures(sessionPictures, {
-            title: i18n.t('observation_log.session_photos_title', { date: session.date || '' }),
+            title: i18n.t('observation_log.session_photos_title', { date: _obsFormatSessionDateLabel(session) }),
         }));
         toolbar.appendChild(galleryButton);
     }
@@ -725,9 +763,14 @@ function renderObservationSessionDetail(sessionId) {
 
     container.appendChild(toolbar);
     container.appendChild(_obsBuildSessionSummaryCard(session));
+    container.appendChild(_obsBuildNightsSection(session));
     container.appendChild(_obsBuildEntriesList(session));
+    container.appendChild(_obsBuildAttachmentsSection(session));
 }
 
+/** Trip-level card: location/equipment (fixed for the whole session) + total
+ * integration across every night, plus the trip-level notes. Per-night conditions
+ * (date/sqm/seeing/...) live in _obsBuildNightsSection() below, one card per night. */
 function _obsBuildSessionSummaryCard(session) {
     const card = document.createElement('div');
     card.className = 'card mb-3';
@@ -737,22 +780,11 @@ function _obsBuildSessionSummaryCard(session) {
     const grid = document.createElement('div');
     grid.className = 'row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-2';
 
-    const seeingLabel = session.seeing != null
-        ? i18n.t('observation_log.seeing_value', { value: session.seeing })
-        : '';
-    const transparencyLabel = session.transparency != null
-        ? i18n.t('observation_log.transparency_value', { value: session.transparency })
-        : '';
-
     const rows = [
         [i18n.t('observation_log.location'), session.location_name || i18n.t('observation_log.no_location')],
         [i18n.t('observation_log.equipment'), _obsCombinationLabel(session) || i18n.t('observation_log.no_equipment')],
-        [i18n.t('observation_log.start_time'), session.start_time ? formatTimeThenDate(session.start_time) : '—'],
-        [i18n.t('observation_log.end_time'), session.end_time ? formatTimeThenDate(session.end_time) : '—'],
-        [i18n.t('observation_log.sqm'), session.sqm != null ? String(session.sqm) : '—'],
-        [i18n.t('observation_log.seeing'), seeingLabel || '—'],
-        [i18n.t('observation_log.transparency'), transparencyLabel || '—'],
         [i18n.t('observation_log.total_integration'), _obsFormatIntegration(_obsSessionIntegration(session)) || '—'],
+        [i18n.t('observation_log.target_count'), String((session.entries || []).length)],
     ];
 
     rows.forEach(([label, value]) => {
@@ -782,6 +814,132 @@ function _obsBuildSessionSummaryCard(session) {
     return card;
 }
 
+/** One card per night: its own date/start-end/SQM/seeing/transparency/moon/notes, plus
+ * add/edit/delete controls. A session always has >=1 night. */
+function _obsBuildNightsSection(session) {
+    const wrap = document.createElement('div');
+    wrap.className = 'mb-3';
+
+    const header = document.createElement('div');
+    header.className = 'd-flex justify-content-between align-items-center mb-2';
+    const title = document.createElement('h6');
+    title.className = 'text-muted mb-0';
+    title.textContent = i18n.t('observation_log.nights_section');
+    header.appendChild(title);
+
+    if (observationLogData.canEdit) {
+        const addButton = document.createElement('button');
+        addButton.type = 'button';
+        addButton.id = 'observation-log-add-night';
+        addButton.className = 'btn btn-outline-success btn-sm';
+        DOMUtils.append(addButton, DOMUtils.createIcon('bi bi-plus-circle icon-inline'), i18n.t('observation_log.add_night'));
+        addButton.addEventListener('click', () => showObservationNightForm(session.id, null));
+        header.appendChild(addButton);
+    }
+    wrap.appendChild(header);
+
+    const grid = document.createElement('div');
+    grid.className = 'row row-cols-1 row-cols-lg-2 g-2';
+    _obsSortedNights(session).forEach(night => grid.appendChild(_obsBuildNightCard(session, night)));
+    wrap.appendChild(grid);
+
+    return wrap;
+}
+
+function _obsBuildNightCard(session, night) {
+    const col = document.createElement('div');
+    col.className = 'col';
+    const card = document.createElement('div');
+    card.className = 'card h-100 observation-log-night-card';
+    card.dataset.nightId = night.id;
+    const body = document.createElement('div');
+    body.className = 'card-body py-2';
+
+    const header = document.createElement('div');
+    header.className = 'd-flex justify-content-between align-items-start gap-2';
+    const date = document.createElement('div');
+    date.className = 'fw-bold observation-log-night-date';
+    date.textContent = night.date || '';
+    header.appendChild(date);
+
+    if (observationLogData.canEdit) {
+        const actions = document.createElement('div');
+        actions.className = 'd-flex gap-1';
+
+        const editButton = document.createElement('button');
+        editButton.type = 'button';
+        editButton.className = 'btn btn-outline-primary btn-sm';
+        editButton.title = i18n.t('observation_log.edit_night');
+        editButton.appendChild(DOMUtils.createIcon('bi bi-pencil'));
+        editButton.addEventListener('click', () => showObservationNightForm(session.id, night));
+        actions.appendChild(editButton);
+
+        if ((session.nights || []).length > 1) {
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'btn btn-outline-danger btn-sm';
+            deleteButton.title = i18n.t('observation_log.delete_night');
+            deleteButton.appendChild(DOMUtils.createIcon('bi bi-trash'));
+            deleteButton.addEventListener('click', () => deleteObservationNight(session.id, night.id));
+            actions.appendChild(deleteButton);
+        }
+        header.appendChild(actions);
+    }
+    body.appendChild(header);
+
+    const conditionsGrid = document.createElement('div');
+    conditionsGrid.className = 'row row-cols-2 row-cols-md-3 g-1 mt-1';
+    const conditionRows = [
+        [i18n.t('observation_log.start_time'), night.start_time ? formatTimeThenDate(night.start_time) : '—'],
+        [i18n.t('observation_log.end_time'), night.end_time ? formatTimeThenDate(night.end_time) : '—'],
+        [i18n.t('observation_log.sqm'), night.sqm != null ? String(night.sqm) : '—'],
+        [
+            i18n.t('observation_log.seeing'),
+            night.seeing != null ? i18n.t('observation_log.seeing_value', { value: night.seeing }) : '—',
+        ],
+        [
+            i18n.t('observation_log.transparency'),
+            night.transparency != null
+                ? i18n.t('observation_log.transparency_value', { value: night.transparency })
+                : '—',
+        ],
+        [
+            i18n.t('observation_log.moon_illumination'),
+            night.moon_illumination_percent != null
+                ? i18n.t('observation_log.moon_illumination_value', { value: Math.round(night.moon_illumination_percent) })
+                : '—',
+        ],
+    ];
+    conditionRows.forEach(([label, value]) => {
+        const cell = document.createElement('div');
+        cell.className = 'col';
+        const labelEl = document.createElement('div');
+        labelEl.className = 'text-muted small';
+        labelEl.textContent = label;
+        const valueEl = document.createElement('div');
+        valueEl.className = 'small';
+        valueEl.textContent = value;
+        cell.appendChild(labelEl);
+        cell.appendChild(valueEl);
+        conditionsGrid.appendChild(cell);
+    });
+    body.appendChild(conditionsGrid);
+
+    if (night.notes) {
+        const notes = document.createElement('div');
+        notes.className = 'observation-log-meta small mt-2';
+        notes.textContent = night.notes;
+        body.appendChild(notes);
+    }
+
+    card.appendChild(body);
+    col.appendChild(card);
+    return col;
+}
+
+/** Flat list for a single-night session (the common case); grouped by night, with a
+ * date divider per group, once there's more than one - the "day-by-day" breakdown a
+ * multi-night trip needs. */
 function _obsBuildEntriesList(session) {
     const wrap = document.createElement('div');
     const entries = session.entries || [];
@@ -794,7 +952,32 @@ function _obsBuildEntriesList(session) {
         return wrap;
     }
 
-    entries.forEach(entry => wrap.appendChild(_obsBuildEntryRow(session, entry)));
+    const nights = _obsSortedNights(session);
+    if (nights.length <= 1) {
+        entries.forEach(entry => wrap.appendChild(_obsBuildEntryRow(session, entry)));
+        return wrap;
+    }
+
+    const entriesByNight = new Map(nights.map(night => [night.id, []]));
+    const unassigned = [];
+    entries.forEach(entry => {
+        const bucket = entriesByNight.get(entry.night_id);
+        if (bucket) bucket.push(entry);
+        else unassigned.push(entry);
+    });
+
+    nights.forEach(night => {
+        const nightEntries = entriesByNight.get(night.id) || [];
+        if (!nightEntries.length) return;
+        wrap.appendChild(_obsSectionHeader(night.date || ''));
+        nightEntries.forEach(entry => wrap.appendChild(_obsBuildEntryRow(session, entry)));
+    });
+
+    if (unassigned.length) {
+        wrap.appendChild(_obsSectionHeader(i18n.t('observation_log.other_night_group')));
+        unassigned.forEach(entry => wrap.appendChild(_obsBuildEntryRow(session, entry)));
+    }
+
     return wrap;
 }
 
@@ -877,6 +1060,15 @@ function _obsBuildEntryRow(session, entry) {
         badge.textContent = i18n.t('observation_log.integration_badge', { value: integration });
         numbers.appendChild(badge);
     }
+    // Only from an imported plan target - a frozen snapshot of what was scheduled, so it
+    // can be compared against what was actually logged above.
+    const planned = _obsFormatIntegration(entry.planned_minutes);
+    if (planned) {
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-light text-dark border';
+        badge.textContent = i18n.t('observation_log.planned_badge', { value: planned });
+        numbers.appendChild(badge);
+    }
     if (entry.rating != null) numbers.appendChild(_obsBuildStarRatingDisplay(entry.rating));
     header.appendChild(numbers);
 
@@ -893,13 +1085,14 @@ function _obsBuildEntryRow(session, entry) {
     return row;
 }
 
-/** The altitude-time chart is only meaningful while the session is ongoing: the
- * cached alttime file backing it gets recalculated for "tonight" on every
- * SkyTonight run, so it no longer reflects the observation once the window closes. */
-function _obsIsWithinObservationWindow(session) {
-    if (!session?.start_time || !session?.end_time) return false;
-    const start = new Date(session.start_time);
-    const end = new Date(session.end_time);
+/** The altitude-time chart is only meaningful while its entry's own night is ongoing:
+ * the cached alttime file backing it gets recalculated for "tonight" on every
+ * SkyTonight run, so it no longer reflects the observation once that night's window
+ * closes. */
+function _obsIsWithinObservationWindow(night) {
+    if (!night?.start_time || !night?.end_time) return false;
+    const start = new Date(night.start_time);
+    const end = new Date(night.end_time);
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return false;
     const now = new Date();
     return now >= start && now <= end;
@@ -924,7 +1117,8 @@ function _obsBuildEntryActions(session, entry) {
         actions.appendChild(badge);
     }
 
-    if (entry.alttime_file && typeof showAlttimePopup === 'function' && _obsIsWithinObservationWindow(session)) {
+    const entryNight = (session.nights || []).find(night => night.id === entry.night_id);
+    if (entry.alttime_file && typeof showAlttimePopup === 'function' && _obsIsWithinObservationWindow(entryNight)) {
         const chartButton = document.createElement('button');
         chartButton.type = 'button';
         chartButton.className = 'btn btn-info btn-sm';
@@ -1139,14 +1333,16 @@ function _obsPrefillSqmFromPreset() {
     if (preset?.sqm != null) sqmInput.value = String(preset.sqm);
 }
 
-/** Seeing/transparency prefill from the live 7Timer forecast - only meaningful when the
- * session is being logged for today, since forecasts don't cover past dates. */
-async function _obsPrefillSkyConditionsIfToday() {
-    const dateInput = document.getElementById('observation-session-date');
+/** Seeing/transparency prefill from the live 7Timer forecast - only meaningful when a
+ * night is being logged for today, since forecasts don't cover past dates. Shared by
+ * the session-creation form (which seeds night 0) and the add/edit-night form -
+ * different field ids, same rule. */
+async function _obsPrefillSkyConditionsIfToday(dateInputId, seeingSelectId, transparencySelectId) {
+    const dateInput = document.getElementById(dateInputId);
     if (!dateInput || dateInput.value !== _obsTodayIso()) return;
 
-    const seeingSelect = document.getElementById('observation-session-seeing');
-    const transparencySelect = document.getElementById('observation-session-transparency');
+    const seeingSelect = document.getElementById(seeingSelectId);
+    const transparencySelect = document.getElementById(transparencySelectId);
     if (!seeingSelect || !transparencySelect) return;
     if (seeingSelect.value !== '' && transparencySelect.value !== '') return;
 
@@ -1160,7 +1356,7 @@ async function _obsPrefillSkyConditionsIfToday() {
             transparencySelect.value = String(currentSlot.transparency);
         }
     } catch (error) {
-        console.debug('Seeing forecast unavailable for session prefill', error);
+        console.debug('Seeing forecast unavailable for prefill', error);
     }
 }
 
@@ -1182,6 +1378,11 @@ function _obsBuildCombinationOptions(session) {
     return options;
 }
 
+/** Creating a session also seeds its first night, so the *create* form keeps asking
+ * for date/start/end/sqm/seeing/transparency (mirrors the old single-night form
+ * exactly). *Editing* an existing session only touches trip-level fields - location,
+ * equipment, notes; a night's own conditions are edited through
+ * showObservationNightForm() instead, from the detail view's Nights section. */
 function showObservationSessionForm(session) {
     closeModal();
 
@@ -1189,17 +1390,21 @@ function showObservationSessionForm(session) {
     form.className = 'form row g-3';
     form.id = 'observation-session-form';
 
-    form.appendChild(_obsSectionHeader(i18n.t('observation_log.section_when_where')));
+    if (!session) {
+        form.appendChild(_obsSectionHeader(i18n.t('observation_log.section_when_where')));
 
-    const dateInput = _obsInput('observation-session-date', 'date', session?.date || _obsTodayIso(), { required: 'required' });
-    dateInput.addEventListener('change', () => _obsPrefillSkyConditionsIfToday());
-    form.appendChild(_obsField('col-md-4', `${i18n.t('observation_log.date')} *`, dateInput, dateInput.id));
+        const dateInput = _obsInput('observation-session-date', 'date', _obsTodayIso(), { required: 'required' });
+        dateInput.addEventListener('change', () => _obsPrefillSkyConditionsIfToday(
+            'observation-session-date', 'observation-session-seeing', 'observation-session-transparency'
+        ));
+        form.appendChild(_obsField('col-md-4', `${i18n.t('observation_log.date')} *`, dateInput, dateInput.id));
 
-    const startInput = _obsInput('observation-session-start', 'datetime-local', _obsToLocalInput(session?.start_time));
-    form.appendChild(_obsField('col-md-4', i18n.t('observation_log.start_time'), startInput, startInput.id));
+        const startInput = _obsInput('observation-session-start', 'datetime-local', '');
+        form.appendChild(_obsField('col-md-4', i18n.t('observation_log.start_time'), startInput, startInput.id));
 
-    const endInput = _obsInput('observation-session-end', 'datetime-local', _obsToLocalInput(session?.end_time));
-    form.appendChild(_obsField('col-md-4', i18n.t('observation_log.end_time'), endInput, endInput.id));
+        const endInput = _obsInput('observation-session-end', 'datetime-local', '');
+        form.appendChild(_obsField('col-md-4', i18n.t('observation_log.end_time'), endInput, endInput.id));
+    }
 
     form.appendChild(_obsBuildLocationFields(session));
 
@@ -1211,27 +1416,29 @@ function showObservationSessionForm(session) {
     );
     form.appendChild(_obsField('col-md-6', i18n.t('observation_log.equipment'), comboSelect, comboSelect.id));
 
-    form.appendChild(_obsSectionHeader(i18n.t('observation_log.section_sky')));
-    const sqmInput = _obsInput('observation-session-sqm', 'number', session?.sqm ?? '', {
-        step: '0.01', min: '0', max: '30', placeholder: '21.2',
-    });
-    form.appendChild(_obsField('col-md-4', i18n.t('observation_log.sqm'), sqmInput, sqmInput.id));
+    if (!session) {
+        form.appendChild(_obsSectionHeader(i18n.t('observation_log.section_sky')));
+        const sqmInput = _obsInput('observation-session-sqm', 'number', '', {
+            step: '0.01', min: '0', max: '30', placeholder: '21.2',
+        });
+        form.appendChild(_obsField('col-md-4', i18n.t('observation_log.sqm'), sqmInput, sqmInput.id));
 
-    const seeingOptions = [{ value: '', label: i18n.t('observation_log.not_recorded') }];
-    _OBS_SKY_SCALE.forEach(value => seeingOptions.push({
-        value: String(value),
-        label: i18n.t('observation_log.seeing_value', { value }),
-    }));
-    const seeingSelect = _obsSelect('observation-session-seeing', seeingOptions, session?.seeing ?? '');
-    form.appendChild(_obsField('col-md-4', i18n.t('observation_log.seeing'), seeingSelect, seeingSelect.id));
+        const seeingOptions = [{ value: '', label: i18n.t('observation_log.not_recorded') }];
+        _OBS_SKY_SCALE.forEach(value => seeingOptions.push({
+            value: String(value),
+            label: i18n.t('observation_log.seeing_value', { value }),
+        }));
+        const seeingSelect = _obsSelect('observation-session-seeing', seeingOptions, '');
+        form.appendChild(_obsField('col-md-4', i18n.t('observation_log.seeing'), seeingSelect, seeingSelect.id));
 
-    const transparencyOptions = [{ value: '', label: i18n.t('observation_log.not_recorded') }];
-    _OBS_SKY_SCALE.forEach(value => transparencyOptions.push({
-        value: String(value),
-        label: i18n.t('observation_log.transparency_value', { value }),
-    }));
-    const transparencySelect = _obsSelect('observation-session-transparency', transparencyOptions, session?.transparency ?? '');
-    form.appendChild(_obsField('col-md-4', i18n.t('observation_log.transparency'), transparencySelect, transparencySelect.id));
+        const transparencyOptions = [{ value: '', label: i18n.t('observation_log.not_recorded') }];
+        _OBS_SKY_SCALE.forEach(value => transparencyOptions.push({
+            value: String(value),
+            label: i18n.t('observation_log.transparency_value', { value }),
+        }));
+        const transparencySelect = _obsSelect('observation-session-transparency', transparencyOptions, '');
+        form.appendChild(_obsField('col-md-4', i18n.t('observation_log.transparency'), transparencySelect, transparencySelect.id));
+    }
 
     const notes = document.createElement('textarea');
     notes.className = 'form-control';
@@ -1265,7 +1472,9 @@ function showObservationSessionForm(session) {
 
     if (!session) {
         _obsPrefillSqmFromPreset();
-        _obsPrefillSkyConditionsIfToday();
+        _obsPrefillSkyConditionsIfToday(
+            'observation-session-date', 'observation-session-seeing', 'observation-session-transparency'
+        );
     }
 
     form.addEventListener('submit', async (event) => {
@@ -1292,21 +1501,27 @@ function _obsFromLocalInput(elementId) {
 }
 
 async function saveObservationSession(sessionId, submitButton) {
+    // Editing an existing session only ever touches trip-level fields (the date/
+    // start/end/sqm/seeing/transparency inputs don't exist in that form at all - see
+    // showObservationSessionForm()); creating one also seeds the first night.
     const payload = {
-        date: document.getElementById('observation-session-date')?.value || '',
-        start_time: _obsFromLocalInput('observation-session-start'),
-        end_time: _obsFromLocalInput('observation-session-end'),
         combination_id: document.getElementById('observation-session-combination')?.value || null,
-        sqm: _obsNumberOrNull('observation-session-sqm'),
-        seeing: _obsNumberOrNull('observation-session-seeing'),
-        transparency: _obsNumberOrNull('observation-session-transparency'),
         notes: document.getElementById('observation-session-notes')?.value || '',
         ..._obsCollectLocationFields(),
     };
 
-    if (!payload.date) {
-        showMessage('error', i18n.t('observation_log.date_required'));
-        return;
+    if (!sessionId) {
+        payload.date = document.getElementById('observation-session-date')?.value || '';
+        payload.start_time = _obsFromLocalInput('observation-session-start');
+        payload.end_time = _obsFromLocalInput('observation-session-end');
+        payload.sqm = _obsNumberOrNull('observation-session-sqm');
+        payload.seeing = _obsNumberOrNull('observation-session-seeing');
+        payload.transparency = _obsNumberOrNull('observation-session-transparency');
+
+        if (!payload.date) {
+            showMessage('error', i18n.t('observation_log.date_required'));
+            return;
+        }
     }
 
     const originalLabel = submitButton?.textContent;
@@ -1350,6 +1565,143 @@ async function deleteObservationSession(sessionId) {
 }
 
 // ============================================
+// Night add/edit modal
+// ============================================
+
+/** night omitted -> add a new night to sessionId; night passed -> edit it in place. */
+function showObservationNightForm(sessionId, night) {
+    closeModal();
+
+    const form = document.createElement('form');
+    form.className = 'form row g-3';
+    form.id = 'observation-night-form';
+
+    const dateInput = _obsInput('observation-night-date', 'date', night?.date || _obsTodayIso(), { required: 'required' });
+    dateInput.addEventListener('change', () => _obsPrefillSkyConditionsIfToday(
+        'observation-night-date', 'observation-night-seeing', 'observation-night-transparency'
+    ));
+    form.appendChild(_obsField('col-md-4', `${i18n.t('observation_log.date')} *`, dateInput, dateInput.id));
+
+    const startInput = _obsInput('observation-night-start', 'datetime-local', _obsToLocalInput(night?.start_time));
+    form.appendChild(_obsField('col-md-4', i18n.t('observation_log.start_time'), startInput, startInput.id));
+
+    const endInput = _obsInput('observation-night-end', 'datetime-local', _obsToLocalInput(night?.end_time));
+    form.appendChild(_obsField('col-md-4', i18n.t('observation_log.end_time'), endInput, endInput.id));
+
+    form.appendChild(_obsSectionHeader(i18n.t('observation_log.section_sky')));
+    const sqmInput = _obsInput('observation-night-sqm', 'number', night?.sqm ?? '', {
+        step: '0.01', min: '0', max: '30', placeholder: '21.2',
+    });
+    form.appendChild(_obsField('col-md-4', i18n.t('observation_log.sqm'), sqmInput, sqmInput.id));
+
+    const seeingOptions = [{ value: '', label: i18n.t('observation_log.not_recorded') }];
+    _OBS_SKY_SCALE.forEach(value => seeingOptions.push({
+        value: String(value),
+        label: i18n.t('observation_log.seeing_value', { value }),
+    }));
+    const seeingSelect = _obsSelect('observation-night-seeing', seeingOptions, night?.seeing ?? '');
+    form.appendChild(_obsField('col-md-4', i18n.t('observation_log.seeing'), seeingSelect, seeingSelect.id));
+
+    const transparencyOptions = [{ value: '', label: i18n.t('observation_log.not_recorded') }];
+    _OBS_SKY_SCALE.forEach(value => transparencyOptions.push({
+        value: String(value),
+        label: i18n.t('observation_log.transparency_value', { value }),
+    }));
+    const transparencySelect = _obsSelect('observation-night-transparency', transparencyOptions, night?.transparency ?? '');
+    form.appendChild(_obsField('col-md-4', i18n.t('observation_log.transparency'), transparencySelect, transparencySelect.id));
+
+    const notes = document.createElement('textarea');
+    notes.className = 'form-control';
+    notes.id = 'observation-night-notes';
+    notes.rows = 2;
+    notes.value = night?.notes || '';
+    form.appendChild(_obsField('col-12', i18n.t('observation_log.night_notes'), notes, notes.id));
+
+    const actions = document.createElement('div');
+    actions.className = 'col-12 text-end';
+    const submit = document.createElement('button');
+    submit.type = 'submit';
+    submit.className = 'btn btn-primary';
+    submit.textContent = night ? i18n.t('observation_log.save_night') : i18n.t('observation_log.add_night');
+    actions.appendChild(submit);
+    form.appendChild(actions);
+
+    createModal(night ? i18n.t('observation_log.edit_night') : i18n.t('observation_log.add_night'), form, 'lg');
+
+    const modalElement = document.getElementById('modal_lg_close');
+    new bootstrap.Modal(modalElement, { backdrop: 'static', focus: true, keyboard: true }).show();
+
+    if (!night) {
+        _obsPrefillSkyConditionsIfToday(
+            'observation-night-date', 'observation-night-seeing', 'observation-night-transparency'
+        );
+    }
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        await saveObservationNight(sessionId, night?.id || null, submit);
+    });
+}
+
+async function saveObservationNight(sessionId, nightId, submitButton) {
+    const payload = {
+        date: document.getElementById('observation-night-date')?.value || '',
+        start_time: _obsFromLocalInput('observation-night-start'),
+        end_time: _obsFromLocalInput('observation-night-end'),
+        sqm: _obsNumberOrNull('observation-night-sqm'),
+        seeing: _obsNumberOrNull('observation-night-seeing'),
+        transparency: _obsNumberOrNull('observation-night-transparency'),
+        notes: document.getElementById('observation-night-notes')?.value || '',
+    };
+
+    if (!payload.date) {
+        showMessage('error', i18n.t('observation_log.night_date_required'));
+        return;
+    }
+
+    const originalLabel = submitButton?.textContent;
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = i18n.t('common.loading');
+    }
+
+    try {
+        await fetchJSON(
+            nightId
+                ? `${OBSERVATION_LOG_API}/${sessionId}/nights/${nightId}`
+                : `${OBSERVATION_LOG_API}/${sessionId}/nights`,
+            {
+                method: nightId ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            }
+        );
+        observationLogOpenSessionId = sessionId;
+        closeModal();
+        await loadObservationSessions();
+    } catch (error) {
+        console.error('Error saving night:', error);
+        showMessage('error', i18n.t('observation_log.failed_to_save_night'));
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = originalLabel;
+        }
+    }
+}
+
+async function deleteObservationNight(sessionId, nightId) {
+    if (!confirm(i18n.t('observation_log.confirm_delete_night'))) return;
+    try {
+        await fetchJSON(`${OBSERVATION_LOG_API}/${sessionId}/nights/${nightId}`, { method: 'DELETE' });
+        observationLogOpenSessionId = sessionId;
+        await loadObservationSessions();
+    } catch (error) {
+        console.error('Error deleting night:', error);
+        showMessage('error', i18n.t('observation_log.failed_to_delete_night'));
+    }
+}
+
+// ============================================
 // Entry create/edit modal
 // ============================================
 
@@ -1361,6 +1713,18 @@ async function showObservationEntryForm(sessionId, entry) {
     form.id = 'observation-entry-form';
 
     form.appendChild(_obsSectionHeader(i18n.t('observation_log.section_target')));
+
+    // Only shown for a multi-night session - for the overwhelmingly common single-night
+    // case this would be a one-option dropdown adding nothing but clutter.
+    const parentSession = observationLogData.sessions.find(item => item.id === sessionId);
+    const nightsSorted = parentSession ? _obsSortedNights(parentSession) : [];
+    if (nightsSorted.length > 1) {
+        const rawNights = parentSession?.nights || [];
+        const defaultNightId = entry?.night_id || (rawNights.length ? rawNights[rawNights.length - 1].id : '');
+        const nightOptions = nightsSorted.map(night => ({ value: night.id, label: night.date || '' }));
+        const nightSelect = _obsSelect('observation-entry-night', nightOptions, defaultNightId);
+        form.appendChild(_obsField('col-md-6', i18n.t('observation_log.target_night'), nightSelect, nightSelect.id));
+    }
 
     if (!entry) {
         // Same dedicated catalogue-search pattern as Astrodex's add-item modal: a
@@ -1615,6 +1979,12 @@ async function saveObservationEntry(sessionId, entryId, submitButton) {
         notes: document.getElementById('observation-entry-notes')?.value || '',
     };
 
+    // The night selector only renders for a multi-night session (see
+    // showObservationEntryForm) - for the common single-night case, the backend
+    // defaults night_id to the session's only night on its own.
+    const nightSelect = document.getElementById('observation-entry-night');
+    if (nightSelect) payload.night_id = nightSelect.value;
+
     if (!entryId) {
         payload.name = document.getElementById('observation-entry-name')?.value.trim() || '';
         payload.catalogue = document.getElementById('observation-entry-catalogue')?.value.trim() || '';
@@ -1767,6 +2137,191 @@ async function attachObservationEntryPicture(sessionId, entryId, submitButton) {
 }
 
 // ============================================
+// Session attachments (v1.3.1) - generic files (guiding graphs, subframe logs,
+// planning notes), unrelated to the entry -> Astrodex picture link above: no picture
+// ever lives here, and no attachment ever lives in Astrodex.
+// ============================================
+
+function _obsAttachmentIsImage(attachment) {
+    const contentType = attachment.content_type || '';
+    if (contentType.startsWith('image/')) return true;
+    return /\.(jpe?g|png|webp)$/i.test(attachment.filename || '');
+}
+
+function _obsAttachmentIconClass(attachment) {
+    if (_obsAttachmentIsImage(attachment)) return 'bi bi-file-earmark-image';
+    if ((attachment.content_type || '') === 'application/pdf' || /\.pdf$/i.test(attachment.filename || '')) {
+        return 'bi bi-file-earmark-pdf';
+    }
+    return 'bi bi-file-earmark-text';
+}
+
+/** Small list on the session detail view: an icon (or thumbnail for images), the
+ * original filename as a link that opens the file, and a delete button. */
+function _obsBuildAttachmentsSection(session) {
+    const wrap = document.createElement('div');
+    wrap.className = 'mb-3';
+
+    const header = document.createElement('div');
+    header.className = 'd-flex justify-content-between align-items-center mb-2';
+    const title = document.createElement('h6');
+    title.className = 'text-muted mb-0';
+    title.textContent = i18n.t('observation_log.attachments_section');
+    header.appendChild(title);
+
+    if (observationLogData.canEdit) {
+        const addButton = document.createElement('button');
+        addButton.type = 'button';
+        addButton.id = 'observation-log-add-attachment';
+        addButton.className = 'btn btn-outline-secondary btn-sm';
+        DOMUtils.append(
+            addButton,
+            DOMUtils.createIcon('bi bi-paperclip icon-inline'),
+            i18n.t('observation_log.add_attachment')
+        );
+        addButton.addEventListener('click', () => showObservationAttachmentUploadModal(session.id));
+        header.appendChild(addButton);
+    }
+    wrap.appendChild(header);
+
+    const attachments = session.attachments || [];
+    if (!attachments.length) {
+        const empty = document.createElement('div');
+        empty.className = 'observation-log-meta small';
+        empty.textContent = i18n.t('observation_log.no_attachments');
+        wrap.appendChild(empty);
+        return wrap;
+    }
+
+    const list = document.createElement('div');
+    list.className = 'list-group';
+    attachments.forEach(attachment => list.appendChild(_obsBuildAttachmentRow(session, attachment)));
+    wrap.appendChild(list);
+
+    return wrap;
+}
+
+function _obsBuildAttachmentRow(session, attachment) {
+    const row = document.createElement('div');
+    row.className = 'list-group-item d-flex align-items-center justify-content-between gap-2';
+
+    const link = document.createElement('a');
+    link.href = `/api/observation-sessions/attachments/${encodeURIComponent(attachment.filename)}`;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.className = 'd-flex align-items-center gap-2 text-truncate';
+
+    if (_obsAttachmentIsImage(attachment)) {
+        const thumb = document.createElement('img');
+        thumb.src = link.href;
+        thumb.alt = attachment.original_name || '';
+        thumb.loading = 'lazy';
+        thumb.className = 'observation-log-attachment-thumb';
+        link.appendChild(thumb);
+    } else {
+        link.appendChild(DOMUtils.createIcon(`${_obsAttachmentIconClass(attachment)} icon-inline`));
+    }
+    const name = document.createElement('span');
+    name.className = 'text-truncate';
+    name.textContent = attachment.original_name || attachment.filename;
+    link.appendChild(name);
+    row.appendChild(link);
+
+    if (observationLogData.canEdit) {
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'btn btn-outline-danger btn-sm flex-shrink-0';
+        deleteButton.title = i18n.t('observation_log.delete_attachment');
+        deleteButton.appendChild(DOMUtils.createIcon('bi bi-trash'));
+        deleteButton.addEventListener('click', () => deleteObservationSessionAttachment(session.id, attachment.id));
+        row.appendChild(deleteButton);
+    }
+
+    return row;
+}
+
+function showObservationAttachmentUploadModal(sessionId) {
+    closeModal();
+
+    const form = document.createElement('form');
+    form.className = 'form row g-3';
+    form.id = 'observation-attachment-form';
+
+    const fileInput = _obsInput('observation-attachment-file', 'file', '', {
+        accept: '.jpg,.jpeg,.png,.webp,.pdf,.txt',
+        required: 'required',
+    });
+    form.appendChild(_obsField('col-12', `${i18n.t('observation_log.attachment_file')} *`, fileInput, fileInput.id));
+
+    const hint = document.createElement('div');
+    hint.className = 'col-12 form-text';
+    hint.textContent = i18n.t('observation_log.attachment_hint');
+    form.appendChild(hint);
+
+    const actions = document.createElement('div');
+    actions.className = 'col-12 text-end';
+    const submit = document.createElement('button');
+    submit.type = 'submit';
+    submit.className = 'btn btn-primary';
+    submit.textContent = i18n.t('observation_log.add_attachment');
+    actions.appendChild(submit);
+    form.appendChild(actions);
+
+    createModal(i18n.t('observation_log.add_attachment'), form, 'lg');
+    new bootstrap.Modal('#modal_lg_close', { backdrop: 'static', focus: true, keyboard: true }).show();
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        await uploadObservationSessionAttachment(sessionId, submit);
+    });
+}
+
+async function uploadObservationSessionAttachment(sessionId, submitButton) {
+    const file = document.getElementById('observation-attachment-file')?.files?.[0];
+    if (!file) {
+        showMessage('error', i18n.t('observation_log.please_select_file'));
+        return;
+    }
+
+    const originalLabel = submitButton?.textContent;
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = i18n.t('observation_log.uploading');
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        await fetchJSON(`${OBSERVATION_LOG_API}/${sessionId}/attachments`, {
+            method: 'POST',
+            body: formData,
+        });
+        observationLogOpenSessionId = sessionId;
+        closeModal();
+        await loadObservationSessions();
+    } catch (error) {
+        console.error('Error uploading attachment:', error);
+        showMessage('error', i18n.t('observation_log.failed_to_upload_attachment'));
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = originalLabel;
+        }
+    }
+}
+
+async function deleteObservationSessionAttachment(sessionId, attachmentId) {
+    if (!confirm(i18n.t('observation_log.confirm_delete_attachment'))) return;
+    try {
+        await fetchJSON(`${OBSERVATION_LOG_API}/${sessionId}/attachments/${attachmentId}`, { method: 'DELETE' });
+        observationLogOpenSessionId = sessionId;
+        await loadObservationSessions();
+    } catch (error) {
+        console.error('Error deleting attachment:', error);
+        showMessage('error', i18n.t('observation_log.failed_to_delete_attachment'));
+    }
+}
+
+// ============================================
 // PDF export (per-session button + global range/order modal)
 // ============================================
 
@@ -1799,7 +2354,10 @@ async function _obsTriggerPdfDownload(url) {
 /** Earliest/latest observation date across all of the user's sessions - the modal's
  * date-range prefill, so "everything" is the default and narrowing is opt-in. */
 function _obsSessionDateBounds() {
-    const dates = observationLogData.sessions.map(session => session.date).filter(Boolean).sort();
+    const dates = observationLogData.sessions
+        .flatMap(session => (session.nights || []).map(night => night.date))
+        .filter(Boolean)
+        .sort();
     return { min: dates[0] || '', max: dates[dates.length - 1] || '' };
 }
 
@@ -1934,7 +2492,7 @@ async function importObservationSessionFromPlan(planCombinationId, switchToTab =
 
         let sessionId = null;
         if (candidates.length === 1 && confirm(i18n.t('observation_log.confirm_merge_into_session', {
-            date: candidates[0].date || '',
+            date: _obsFormatSessionDateLabel(candidates[0]),
         }))) {
             sessionId = candidates[0].id;
         }
@@ -1958,6 +2516,19 @@ async function importObservationSessionFromPlan(planCombinationId, switchToTab =
     } catch (error) {
         console.error('Error importing plan into an observation session:', error);
         showMessage('error', i18n.t('observation_log.failed_to_import_plan'));
+    }
+}
+
+/**
+ * Jump straight to one session's detail view from outside this file - the Astrodex
+ * item/picture backlink uses this to open "which session logged this" in one click.
+ */
+function openObservationSessionFromAstrodex(sessionId) {
+    if (!sessionId) return;
+    if (typeof closeModal === 'function') closeModal();
+    observationLogOpenSessionId = sessionId;
+    if (typeof switchSubTab === 'function') {
+        switchSubTab('astrodex', 'observation-log');
     }
 }
 

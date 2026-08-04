@@ -1,4 +1,6 @@
 """API tests for the Observation Log blueprint (/api/observation-sessions/*)."""
+
+import io
 import os
 import sys
 import tempfile
@@ -115,7 +117,8 @@ class TestSessionRoutes:
         _create_session(client, date='2026-03-20')
 
         payload = client.get('/api/observation-sessions').get_json()
-        assert [session['date'] for session in payload['sessions']] == ['2026-03-20', '2026-01-05']
+        dates = [session['nights'][0]['date'] for session in payload['sessions']]
+        assert dates == ['2026-03-20', '2026-01-05']
         assert payload['stats']['total_sessions'] == 2
 
     def test_create_requires_date(self, client):
@@ -133,16 +136,84 @@ class TestSessionRoutes:
         assert client.get('/api/observation-sessions/missing').status_code == 404
 
     def test_update_session(self, client):
-        """Session-level fields are updatable through PUT."""
+        """Session ("trip") level fields are updatable through PUT."""
         session = _create_session(client)
-        response = client.put(
-            f"/api/observation-sessions/{session['id']}", json={'notes': 'clear', 'seeing': 2, 'transparency': 7}
-        )
+        response = client.put(f"/api/observation-sessions/{session['id']}", json={'notes': 'clear'})
         assert response.status_code == 200
         data = response.get_json()['data']
         assert data['notes'] == 'clear'
+
+    def test_update_night(self, client):
+        """A night's conditions are updatable through its own PUT route."""
+        session = _create_session(client)
+        night_id = session['nights'][0]['id']
+        response = client.put(
+            f"/api/observation-sessions/{session['id']}/nights/{night_id}",
+            json={'seeing': 2, 'transparency': 7},
+        )
+        assert response.status_code == 200
+        data = response.get_json()['data']
         assert data['seeing'] == 2
         assert data['transparency'] == 7
+
+    def test_update_unknown_night(self, client):
+        session = _create_session(client)
+        assert (
+            client.put(f"/api/observation-sessions/{session['id']}/nights/missing", json={'notes': 'x'}).status_code
+            == 404
+        )
+        assert client.put('/api/observation-sessions/missing/nights/missing', json={'notes': 'x'}).status_code == 404
+
+    def test_add_night(self, client):
+        """A second night can be added, and shows up on the session's detail view."""
+        session = _create_session(client, date='2026-07-14')
+        response = client.post(f"/api/observation-sessions/{session['id']}/nights", json={'date': '2026-07-15'})
+        assert response.status_code == 201
+        night = response.get_json()['data']
+        assert night['date'] == '2026-07-15'
+
+        stored = client.get(f"/api/observation-sessions/{session['id']}").get_json()
+        assert [n['date'] for n in stored['nights']] == ['2026-07-14', '2026-07-15']
+
+    def test_add_night_requires_date(self, client):
+        session = _create_session(client)
+        response = client.post(f"/api/observation-sessions/{session['id']}/nights", json={})
+        assert response.status_code == 400
+
+    def test_add_night_unknown_session(self, client):
+        assert client.post('/api/observation-sessions/missing/nights', json={'date': '2026-07-15'}).status_code == 404
+
+    def test_delete_night(self, client):
+        session = _create_session(client, date='2026-07-14')
+        added = client.post(
+            f"/api/observation-sessions/{session['id']}/nights", json={'date': '2026-07-15'}
+        ).get_json()['data']
+
+        response = client.delete(f"/api/observation-sessions/{session['id']}/nights/{added['id']}")
+        assert response.status_code == 200
+
+        stored = client.get(f"/api/observation-sessions/{session['id']}").get_json()
+        assert len(stored['nights']) == 1
+
+    def test_delete_last_remaining_night_is_refused(self, client):
+        session = _create_session(client)
+        night_id = session['nights'][0]['id']
+        response = client.delete(f"/api/observation-sessions/{session['id']}/nights/{night_id}")
+        assert response.status_code == 400
+
+    def test_delete_night_with_entries_is_refused(self, client):
+        session = _create_session(client, date='2026-07-14')
+        added = client.post(
+            f"/api/observation-sessions/{session['id']}/nights", json={'date': '2026-07-15'}
+        ).get_json()['data']
+        _add_entry(client, session['id'], night_id=added['id'])
+
+        response = client.delete(f"/api/observation-sessions/{session['id']}/nights/{added['id']}")
+        assert response.status_code == 400
+
+    def test_delete_unknown_night(self, client):
+        session = _create_session(client)
+        assert client.delete(f"/api/observation-sessions/{session['id']}/nights/missing").status_code == 404
 
     def test_update_unknown_session(self, client):
         """Updating an unknown session is a 404."""
@@ -201,16 +272,43 @@ class TestSessionResolution:
 
     def test_sqm_prefilled_from_location_preset(self, client, monkeypatch):
         """A new session inherits the chosen preset's configured SQM when none is given."""
-        preset = {'id': 'preset-1', 'name': 'Dark Site', 'latitude': 44.0, 'longitude': 5.0, 'elevation': 900, 'sqm': 21.6}
+        preset = {
+            'id': 'preset-1',
+            'name': 'Dark Site',
+            'latitude': 44.0,
+            'longitude': 5.0,
+            'elevation': 900,
+            'sqm': 21.6,
+        }
         monkeypatch.setattr(observation_sessions_bp_module, 'load_config', lambda: {'locations': [preset]})
         monkeypatch.setattr(observation_sessions_bp_module, 'get_locations_for_user', lambda config, user: [preset])
-        monkeypatch.setattr(
-            observation_sessions_bp_module, 'get_location_by_id', lambda config, location_id: preset
-        )
+        monkeypatch.setattr(observation_sessions_bp_module, 'get_location_by_id', lambda config, location_id: preset)
 
         session = _create_session(client, location_id='preset-1')
         assert session['location_name'] == 'Dark Site'
-        assert session['sqm'] == pytest.approx(21.6)
+        assert session['nights'][0]['sqm'] == pytest.approx(21.6)
+
+    def test_moon_illumination_is_computed_on_create(self, client):
+        """Unlike seeing/transparency (a same-day-only forecast), moon illumination is a
+        pure ephemeris computation and is always filled in, including for past dates."""
+        session = _create_session(client, date='2020-01-15')
+        night = session['nights'][0]
+        assert night['moon_illumination_percent'] is not None
+        assert 0 <= night['moon_illumination_percent'] <= 100
+
+    def test_moon_illumination_is_recomputed_when_a_night_date_changes(self, client):
+        session = _create_session(client, date='2020-01-15')
+        night_id = session['nights'][0]['id']
+        original = session['nights'][0]['moon_illumination_percent']
+
+        updated = client.put(
+            f"/api/observation-sessions/{session['id']}/nights/{night_id}", json={'date': '2020-06-15'}
+        ).get_json()['data']
+        # Different date -> (almost certainly) a different illumination reading, and
+        # never left null now that a real date is set.
+        assert updated['moon_illumination_percent'] is not None
+        assert updated['date'] == '2020-06-15'
+        assert original is not None
 
     def test_custom_location_with_unparseable_coordinate_is_dropped(self, client):
         """A latitude/longitude that isn't a number is silently dropped, not a 400 -
@@ -281,9 +379,12 @@ class TestPrivateHelpersDirect:
         assert observation_sessions_bp_module._location_preset_sqm('missing') is None
 
     def test_ensure_astrodex_item_for_entry_requires_a_name(self):
-        assert observation_sessions_bp_module._ensure_astrodex_item_for_entry(
-            types.SimpleNamespace(user_id='u1', username='tester'), {'name': ''}
-        ) is None
+        assert (
+            observation_sessions_bp_module._ensure_astrodex_item_for_entry(
+                types.SimpleNamespace(user_id='u1', username='tester'), {'name': ''}
+            )
+            is None
+        )
 
     def test_auto_link_returns_entry_unchanged_when_item_cannot_be_resolved(self):
         entry = {'id': 'e1', 'name': '', 'frame_count': 5}
@@ -356,9 +457,7 @@ class TestEntryRoutes:
         assert response.status_code == 200
         assert response.get_json()['data']['frame_count'] == 42
 
-        bad = client.put(
-            f"/api/observation-sessions/{session['id']}/entries/{entry['id']}", json={'rating': 9}
-        )
+        bad = client.put(f"/api/observation-sessions/{session['id']}/entries/{entry['id']}", json={'rating': 9})
         assert bad.status_code == 400
 
     def test_update_entry_with_valid_rating(self, client):
@@ -366,18 +465,17 @@ class TestEntryRoutes:
         proceeds to the update itself."""
         session = _create_session(client)
         entry = _add_entry(client, session['id']).get_json()['data']
-        response = client.put(
-            f"/api/observation-sessions/{session['id']}/entries/{entry['id']}", json={'rating': 4.0}
-        )
+        response = client.put(f"/api/observation-sessions/{session['id']}/entries/{entry['id']}", json={'rating': 4.0})
         assert response.status_code == 200
         assert response.get_json()['data']['rating'] == pytest.approx(4.0)
 
     def test_update_unknown_entry(self, client):
         """Updating an unknown entry is a 404."""
         session = _create_session(client)
-        assert client.put(
-            f"/api/observation-sessions/{session['id']}/entries/missing", json={'notes': 'x'}
-        ).status_code == 404
+        assert (
+            client.put(f"/api/observation-sessions/{session['id']}/entries/missing", json={'notes': 'x'}).status_code
+            == 404
+        )
 
     def test_delete_entry(self, client):
         """Deleting an entry succeeds once, then 404s."""
@@ -480,9 +578,7 @@ class TestAutomaticAstrodexLink:
         aliases, when present."""
         session = _create_session(client)
         aliases = {'Messier': 'M31', 'OpenNGC': 'NGC 224'}
-        entry = _add_entry(
-            client, session['id'], frame_count=10, catalogue_aliases=aliases
-        ).get_json()['data']
+        entry = _add_entry(client, session['id'], frame_count=10, catalogue_aliases=aliases).get_json()['data']
 
         item = astrodex.get_astrodex_item(admin_user_id, entry['astrodex_item_id'])
         assert item['external_aliases'] == aliases
@@ -539,6 +635,16 @@ class TestFromPlan:
         assert [entry['name'] for entry in session['entries']] == ['M31', 'M42']
         assert session['imported_from_plan_combination_id'] == 'combo-1'
 
+    def test_import_carries_planned_minutes_through_the_api(self, client, monkeypatch):
+        """The plan target's scheduled duration reaches the session entry end-to-end."""
+        result = self._plan_result()
+        result['plan']['entries'][0]['planned_minutes'] = 90
+        monkeypatch.setattr(
+            observation_sessions_bp_module.plan_my_night, 'get_plan_with_timeline', lambda *a, **k: result
+        )
+        session = client.post('/api/observation-sessions/from-plan', json={}).get_json()['data']
+        assert session['entries'][0]['planned_minutes'] == pytest.approx(90.0)
+
     def test_import_from_current_plan(self, client, monkeypatch):
         """A 'current' plan works too."""
         monkeypatch.setattr(
@@ -574,9 +680,7 @@ class TestFromPlan:
             lambda *args, **kwargs: self._plan_result(),
         )
         first = client.post('/api/observation-sessions/from-plan', json={}).get_json()['data']
-        merged = client.post(
-            '/api/observation-sessions/from-plan', json={'session_id': first['id']}
-        ).get_json()['data']
+        merged = client.post('/api/observation-sessions/from-plan', json={'session_id': first['id']}).get_json()['data']
         assert len(merged['entries']) == 2
 
     def test_merge_into_unknown_session_is_404(self, client, monkeypatch):
@@ -648,13 +752,19 @@ class TestAttachPicture:
     def test_attach_picture_unknown_targets(self, client):
         """Unknown session or entry ids are 404s."""
         session = _create_session(client)
-        assert client.post(
-            f"/api/observation-sessions/{session['id']}/entries/missing/astrodex-picture",
-            json={'filename': 'x.jpg'},
-        ).status_code == 404
-        assert client.post(
-            '/api/observation-sessions/missing/entries/missing/astrodex-picture', json={'filename': 'x.jpg'}
-        ).status_code == 404
+        assert (
+            client.post(
+                f"/api/observation-sessions/{session['id']}/entries/missing/astrodex-picture",
+                json={'filename': 'x.jpg'},
+            ).status_code
+            == 404
+        )
+        assert (
+            client.post(
+                '/api/observation-sessions/missing/entries/missing/astrodex-picture', json={'filename': 'x.jpg'}
+            ).status_code
+            == 404
+        )
 
     def test_attach_picture_rejects_bad_rating_override(self, client):
         """An explicit rating override is validated like everywhere else."""
@@ -665,6 +775,193 @@ class TestAttachPicture:
             json={'filename': 'photo.jpg', 'rating': 42},
         )
         assert response.status_code == 400
+
+
+class TestAttachments:
+    """POST/GET/DELETE .../attachments - generic files, unrelated to the entry ->
+    Astrodex picture link above."""
+
+    def test_upload_download_and_delete_round_trip(self, client):
+        session = _create_session(client)
+
+        upload = client.post(
+            f"/api/observation-sessions/{session['id']}/attachments",
+            data={'file': (io.BytesIO(b'fake image bytes'), 'guiding-graph.jpg')},
+            content_type='multipart/form-data',
+        )
+        assert upload.status_code == 201
+        attachment = upload.get_json()['data']
+        assert attachment['original_name'] == 'guiding-graph.jpg'
+        assert attachment['filename'].endswith('.jpg')
+
+        stored = client.get(f"/api/observation-sessions/{session['id']}").get_json()
+        assert [a['id'] for a in stored['attachments']] == [attachment['id']]
+
+        download = client.get(f"/api/observation-sessions/attachments/{attachment['filename']}")
+        assert download.status_code == 200
+        assert download.data == b'fake image bytes'
+
+        deletion = client.delete(f"/api/observation-sessions/{session['id']}/attachments/{attachment['id']}")
+        assert deletion.status_code == 200
+
+        after_delete = client.get(f"/api/observation-sessions/attachments/{attachment['filename']}")
+        assert after_delete.status_code == 403  # metadata gone -> ownership check fails closed
+
+    def test_upload_accepts_pdf_and_txt(self, client):
+        session = _create_session(client)
+        for filename, allowed in [('notes.pdf', True), ('notes.txt', True), ('notes.exe', False)]:
+            response = client.post(
+                f"/api/observation-sessions/{session['id']}/attachments",
+                data={'file': (io.BytesIO(b'data'), filename)},
+                content_type='multipart/form-data',
+            )
+            assert response.status_code == (201 if allowed else 400)
+
+    def test_upload_no_file_is_400(self, client):
+        session = _create_session(client)
+        response = client.post(f"/api/observation-sessions/{session['id']}/attachments")
+        assert response.status_code == 400
+
+    def test_upload_empty_filename_is_400(self, client):
+        session = _create_session(client)
+        response = client.post(
+            f"/api/observation-sessions/{session['id']}/attachments",
+            data={'file': (io.BytesIO(b'data'), '')},
+            content_type='multipart/form-data',
+        )
+        assert response.status_code == 400
+
+    def test_upload_no_extension_is_400(self, client):
+        session = _create_session(client)
+        response = client.post(
+            f"/api/observation-sessions/{session['id']}/attachments",
+            data={'file': (io.BytesIO(b'data'), 'noext')},
+            content_type='multipart/form-data',
+        )
+        assert response.status_code == 400
+
+    def test_upload_unknown_session_is_404(self, client):
+        response = client.post(
+            '/api/observation-sessions/missing/attachments',
+            data={'file': (io.BytesIO(b'data'), 'a.jpg')},
+            content_type='multipart/form-data',
+        )
+        assert response.status_code == 404
+
+    def test_download_unknown_filename_is_403(self, client):
+        """Never uploaded (or by someone else) - ownership check fails closed, same 403
+        as a real file the caller doesn't own, not a 404 that would confirm existence."""
+        assert client.get('/api/observation-sessions/attachments/never-uploaded.jpg').status_code == 403
+
+    def test_download_requires_login_only_not_user_role(self, client):
+        """The serving route is @login_required (a read), unlike upload/delete which are
+        @user_required - matches the astrodex.py image-serving convention."""
+        session = _create_session(client)
+        upload = client.post(
+            f"/api/observation-sessions/{session['id']}/attachments",
+            data={'file': (io.BytesIO(b'data'), 'a.jpg')},
+            content_type='multipart/form-data',
+        ).get_json()['data']
+        assert client.get(f"/api/observation-sessions/attachments/{upload['filename']}").status_code == 200
+
+    def test_delete_unknown_attachment_is_404(self, client):
+        session = _create_session(client)
+        assert client.delete(f"/api/observation-sessions/{session['id']}/attachments/missing").status_code == 404
+
+
+class TestAttachmentsSurviveBackupRestore:
+    """data/observation_sessions/ is already a full recursive entry in admin.py's
+    BACKUP_ENTRIES/RESTORE_ALLOWED_PREFIXES, so the new attachments/ subdirectory needs
+    zero backup/restore code changes - confirmed here with a genuine round trip rather
+    than just assumed (the plan's own explicit instruction for this milestone)."""
+
+    def test_attachment_survives_a_backup_restore_round_trip(self, client, monkeypatch, isolated_storage):
+        import zipfile
+
+        from blueprints import admin as admin_bp_module
+
+        monkeypatch.setattr(admin_bp_module, 'DATA_DIR', isolated_storage)
+
+        session = _create_session(client)
+        upload = client.post(
+            f"/api/observation-sessions/{session['id']}/attachments",
+            data={'file': (io.BytesIO(b'guiding data'), 'guide.txt')},
+            content_type='multipart/form-data',
+        ).get_json()['data']
+
+        backup = client.get('/api/backup/download')
+        assert backup.status_code == 200
+        with zipfile.ZipFile(io.BytesIO(backup.data)) as zip_file:
+            names = zip_file.namelist()
+            assert any(name.endswith(f"attachments/{upload['filename']}") for name in names)
+
+        # Simulate data loss, then restore from the backup just downloaded.
+        file_path = os.path.join(observation_sessions.attachments_dir(), upload['filename'])
+        os.remove(file_path)
+        assert not os.path.exists(file_path)
+
+        restore = client.post(
+            '/api/backup/restore',
+            data={'file': (io.BytesIO(backup.data), 'backup.zip')},
+            content_type='multipart/form-data',
+        )
+        assert restore.status_code == 200
+        assert os.path.exists(file_path)
+        with open(file_path, 'rb') as file_obj:
+            assert file_obj.read() == b'guiding data'
+
+
+class TestAstrodexBacklink:
+    """GET /api/astrodex reverse-links each item/picture back to the session that logged it."""
+
+    def test_item_with_no_session_has_empty_backlink(self, client, admin_user_id):
+        """An Astrodex item never touched by Observation Log shows no backlink."""
+        astrodex.create_astrodex_item(
+            admin_user_id, {'name': 'M13', 'type': 'Cluster', 'catalogue': 'Messier'}, username='admin'
+        )
+        items = client.get('/api/astrodex').get_json()['items']
+        item = next(i for i in items if i['name'] == 'M13')
+        assert item['observation_sessions'] == []
+
+    def test_entry_with_frame_count_backlinks_the_item(self, client):
+        """Auto-linking an entry (frame_count > 0) makes the item show which session did it."""
+        session = _create_session(client)
+        entry = _add_entry(client, session['id'], frame_count=30).get_json()['data']
+
+        items = client.get('/api/astrodex').get_json()['items']
+        item = next(i for i in items if i['id'] == entry['astrodex_item_id'])
+        assert [match['session_id'] for match in item['observation_sessions']] == [session['id']]
+        assert item['observation_sessions'][0]['session_date'] == session['nights'][0]['date']
+        assert item['observation_sessions'][0]['entry_id'] == entry['id']
+
+    def test_attached_picture_backlinks_that_specific_picture(self, client):
+        """Attaching a picture links that exact photo, not just the parent item."""
+        session = _create_session(client)
+        entry = _add_entry(client, session['id']).get_json()['data']
+        attach = client.post(
+            f"/api/observation-sessions/{session['id']}/entries/{entry['id']}/astrodex-picture",
+            json={'filename': 'photo.jpg'},
+        ).get_json()
+
+        items = client.get('/api/astrodex').get_json()['items']
+        item = next(i for i in items if i['id'] == attach['astrodex_item_id'])
+        picture = next(p for p in item['pictures'] if p['id'] == attach['astrodex_picture_id'])
+        assert picture['observation_session']['session_id'] == session['id']
+        # own_pictures is a separate deepcopy the frontend actually renders from -
+        # it must carry the same backlink, not just the raw 'pictures' list.
+        own_picture = next(p for p in item['own_pictures'] if p['id'] == attach['astrodex_picture_id'])
+        assert own_picture['observation_session']['session_id'] == session['id']
+
+    def test_two_nights_on_the_same_target_both_appear(self, client):
+        """A target logged in two different sessions accumulates two backlink matches."""
+        session_a = _create_session(client, date='2026-07-10')
+        entry_a = _add_entry(client, session_a['id'], frame_count=10).get_json()['data']
+        session_b = _create_session(client, date='2026-07-14')
+        _add_entry(client, session_b['id'], frame_count=15).get_json()
+
+        items = client.get('/api/astrodex').get_json()['items']
+        item = next(i for i in items if i['id'] == entry_a['astrodex_item_id'])
+        assert {match['session_id'] for match in item['observation_sessions']} == {session_a['id'], session_b['id']}
 
     def test_attach_picture_rejects_bad_exposition_time_override(self, client):
         """An explicit exposition_time override must be a whole number of seconds."""
@@ -726,9 +1023,7 @@ class TestAttachPicture:
         silently attaching to nothing."""
         session = _create_session(client)
         entry = _add_entry(client, session['id']).get_json()['data']
-        monkeypatch.setattr(
-            observation_sessions_bp_module, '_ensure_astrodex_item_for_entry', lambda user, entry: None
-        )
+        monkeypatch.setattr(observation_sessions_bp_module, '_ensure_astrodex_item_for_entry', lambda user, entry: None)
         response = client.post(
             f"/api/observation-sessions/{session['id']}/entries/{entry['id']}/astrodex-picture",
             json={'filename': 'photo.jpg'},
@@ -810,9 +1105,7 @@ class TestExportPdf:
         _create_session(client, date='2026-01-01')
         _create_session(client, date='2026-06-01')
 
-        response = client.get(
-            '/api/observation-sessions/export.pdf?from_date=2026-01-01&to_date=2026-12-31&order=desc'
-        )
+        response = client.get('/api/observation-sessions/export.pdf?from_date=2026-01-01&to_date=2026-12-31&order=desc')
         assert response.status_code == 200
         assert response.mimetype == 'application/pdf'
         assert response.data.startswith(b'%PDF')
@@ -864,9 +1157,7 @@ class TestExceptionHandling:
 
     def test_create_session_failure_returns_500(self, client, monkeypatch):
         """create_session() returning None (as opposed to raising) is also a 500."""
-        monkeypatch.setattr(
-            observation_sessions_bp_module.observation_sessions, 'create_session', lambda *a, **k: None
-        )
+        monkeypatch.setattr(observation_sessions_bp_module.observation_sessions, 'create_session', lambda *a, **k: None)
         response = client.post('/api/observation-sessions', json={'date': '2026-01-01'})
         assert response.status_code == 500
 
@@ -902,9 +1193,7 @@ class TestExceptionHandling:
         session = _create_session(client)
         entry = _add_entry(client, session['id']).get_json()['data']
         monkeypatch.setattr(observation_sessions_bp_module.observation_sessions, 'update_entry', self._raise)
-        response = client.put(
-            f"/api/observation-sessions/{session['id']}/entries/{entry['id']}", json={'notes': 'x'}
-        )
+        response = client.put(f"/api/observation-sessions/{session['id']}/entries/{entry['id']}", json={'notes': 'x'})
         assert response.status_code == 500
 
     def test_delete_entry_500(self, client, monkeypatch):
@@ -926,9 +1215,7 @@ class TestExceptionHandling:
 
     def test_per_session_export_pdf_500(self, client, monkeypatch):
         session = _create_session(client)
-        monkeypatch.setattr(
-            observation_sessions_bp_module.observation_sessions, 'generate_session_pdf', self._raise
-        )
+        monkeypatch.setattr(observation_sessions_bp_module.observation_sessions, 'generate_session_pdf', self._raise)
         response = client.get(f"/api/observation-sessions/{session['id']}/export.pdf")
         assert response.status_code == 500
 

@@ -206,11 +206,17 @@ This page lists the HTTP routes currently declared across `backend/blueprints/*.
 - `GET /api/observation-sessions/<session_id>`
 - `PUT /api/observation-sessions/<session_id>`
 - `DELETE /api/observation-sessions/<session_id>` - Deletes the session and its entries; linked Astrodex items/pictures are never touched
-- `POST /api/observation-sessions/from-plan` - Seed/merge a session from a Plan My Night plan (works on `current` **and** `previous` plans)
+- `POST /api/observation-sessions/from-plan` - Seed/merge a session from a Plan My Night plan (works on `current` **and** `previous` plans); reuses an existing night of the same date, or appends a new one
+- `POST /api/observation-sessions/<session_id>/nights` - Add another night to a multi-night session (v1.3.1)
+- `PUT /api/observation-sessions/<session_id>/nights/<night_id>` - Update one night's conditions/notes (v1.3.1)
+- `DELETE /api/observation-sessions/<session_id>/nights/<night_id>` - Refused while it's the session's last remaining night, or while any entry still points at it (v1.3.1)
 - `POST /api/observation-sessions/<session_id>/entries` - Side effect: auto-registers the target in Astrodex when `frame_count > 0`
 - `PUT /api/observation-sessions/<session_id>/entries/<entry_id>` - Same auto-registration whenever `frame_count` newly becomes `> 0`
 - `DELETE /api/observation-sessions/<session_id>/entries/<entry_id>`
 - `POST /api/observation-sessions/<session_id>/entries/<entry_id>/astrodex-picture` - Manual attach of an image already uploaded through `POST /api/astrodex/upload`
+- `POST /api/observation-sessions/<session_id>/attachments` - Upload + record a generic session attachment (image/PDF/text) in one step (v1.3.1)
+- `GET /api/observation-sessions/attachments/<filename>` - Serve an attachment file, ownership-checked (v1.3.1)
+- `DELETE /api/observation-sessions/<session_id>/attachments/<attachment_id>` - Remove an attachment's record and file (v1.3.1)
 - `GET /api/observation-sessions/<session_id>/export.pdf` - One session as a PDF (common info + every logged target, with its attached photo when there is one)
 - `GET /api/observation-sessions/export.pdf` - Every own session as one PDF (cover + summary + per-session pages); optional `from_date`/`to_date`/`order` (`asc`/`desc`, default `asc`)
 

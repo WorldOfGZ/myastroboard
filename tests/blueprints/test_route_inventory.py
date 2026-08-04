@@ -4,6 +4,7 @@ Fails if any route is added, removed, renamed, or changes its HTTP method.
 To update intentionally: modify EXPECTED_ROUTES below and document the
 breaking change in CHANGELOG_NEXT.md.
 """
+
 import sys
 import types
 
@@ -13,7 +14,6 @@ if 'psutil' not in sys.modules:
     sys.modules['psutil'] = types.ModuleType('psutil')
 
 from app import app
-
 
 EXPECTED_ROUTES = {
     # --- static / pages ---
@@ -25,7 +25,6 @@ EXPECTED_ROUTES = {
     ('/robots.txt', ('GET',)),
     ('/static/<path:filename>', ('GET',)),
     ('/sw.js', ('GET',)),
-
     # --- auth ---
     ('/api/auth/change-password', ('POST',)),
     ('/api/auth/login', ('POST',)),
@@ -33,7 +32,6 @@ EXPECTED_ROUTES = {
     ('/api/auth/preferences', ('GET',)),
     ('/api/auth/preferences', ('PUT',)),
     ('/api/auth/status', ('GET',)),
-
     # --- push notifications ---
     ('/api/push/subscribe', ('POST',)),
     ('/api/push/subscriptions', ('DELETE',)),
@@ -43,18 +41,15 @@ EXPECTED_ROUTES = {
     ('/api/push/unsubscribe', ('DELETE',)),
     ('/api/push/vapid-config-status', ('GET',)),
     ('/api/push/vapid-public-key', ('GET',)),
-
     # --- users ---
     ('/api/users', ('GET',)),
     ('/api/users', ('POST',)),
     ('/api/users/<user_id>', ('DELETE',)),
     ('/api/users/<user_id>', ('PUT',)),
-
     # --- config ---
     ('/api/config', ('GET',)),
     ('/api/config', ('POST',)),
     ('/api/config/export', ('GET',)),
-
     # --- locations (multi-location profiles, v1.2 - see CHANGELOG_NEXT.md) ---
     ('/api/locations', ('GET',)),
     ('/api/locations', ('POST',)),
@@ -64,12 +59,10 @@ EXPECTED_ROUTES = {
     ('/api/locations/<location_id>/attribute', ('POST',)),
     ('/api/locations/mine', ('GET',)),
     ('/api/locations/active', ('POST',)),
-
     # --- admin ---
     ('/api/admin/app-settings', ('GET',)),
     ('/api/admin/app-settings', ('POST',)),
     ('/api/admin/restart', ('POST',)),
-
     # --- system ---
     ('/api/backup/download', ('GET',)),
     ('/api/backup/restore', ('POST',)),
@@ -85,13 +78,11 @@ EXPECTED_ROUTES = {
     ('/api/version', ('GET',)),
     ('/api/version/check-updates', ('GET',)),
     ('/health', ('GET',)),
-
     # --- weather ---
     ('/api/weather/alerts', ('GET',)),
     ('/api/weather/astro-analysis', ('GET',)),
     ('/api/weather/astro-current', ('GET',)),
     ('/api/weather/forecast', ('GET',)),
-
     # --- astronomy ---
     ('/api/astro/horizon-graph', ('GET',)),
     ('/api/astro/sidereal-time', ('GET',)),
@@ -108,13 +99,11 @@ EXPECTED_ROUTES = {
     ('/api/sun/next-eclipse', ('GET',)),
     ('/api/sun/today', ('GET',)),
     ('/api/tonight/best-window', ('GET',)),
-
     # --- events ---
     ('/api/events/phenomena', ('GET',)),
     ('/api/events/planetary', ('GET',)),
     ('/api/events/solarsystem', ('GET',)),
     ('/api/events/upcoming', ('GET',)),
-
     # --- ISS / spaceflight ---
     ('/api/css/celestrak/restart', ('POST',)),
     ('/api/css/location', ('GET',)),
@@ -127,10 +116,8 @@ EXPECTED_ROUTES = {
     ('/api/spaceflight/img/<filename>', ('GET',)),
     ('/api/spaceflight/launch/<launch_id>/vidurls', ('GET',)),
     ('/api/spaceflight/launches', ('GET',)),
-
     # --- i18n ---
     ('/api/translate/on-demand', ('POST',)),
-
     # --- plan my night ---
     ('/api/plan-my-night', ('GET',)),
     ('/api/plan-my-night', ('PATCH',)),
@@ -146,11 +133,9 @@ EXPECTED_ROUTES = {
     ('/api/plan-my-night/targets/<entry_id>', ('PUT',)),
     ('/api/plan-my-night/targets/<entry_id>/add-to-astrodex', ('POST',)),
     ('/api/plan-my-night/targets/<entry_id>/reorder', ('POST',)),
-
     # --- beginner catalog ---
     ('/api/beginner-catalog', ('GET',)),
     ('/api/object-image/<filename>', ('GET',)),
-
     # --- astrodex ---
     ('/api/astrodex', ('GET',)),
     ('/api/astrodex/catalogue-lookup', ('GET',)),
@@ -170,7 +155,6 @@ EXPECTED_ROUTES = {
     ('/api/astrodex/items/<item_id>/pictures/<picture_id>/main', ('POST',)),
     ('/api/astrodex/map', ('GET',)),
     ('/api/astrodex/upload', ('POST',)),
-
     # --- observation log (v1.3) ---
     ('/api/observation-sessions', ('GET',)),
     ('/api/observation-sessions', ('POST',)),
@@ -182,9 +166,14 @@ EXPECTED_ROUTES = {
     ('/api/observation-sessions/<session_id>/entries/<entry_id>', ('DELETE',)),
     ('/api/observation-sessions/<session_id>/entries/<entry_id>', ('PUT',)),
     ('/api/observation-sessions/<session_id>/entries/<entry_id>/astrodex-picture', ('POST',)),
+    ('/api/observation-sessions/<session_id>/attachments', ('POST',)),
+    ('/api/observation-sessions/<session_id>/attachments/<attachment_id>', ('DELETE',)),
+    ('/api/observation-sessions/attachments/<filename>', ('GET',)),
     ('/api/observation-sessions/<session_id>/export.pdf', ('GET',)),
+    ('/api/observation-sessions/<session_id>/nights', ('POST',)),
+    ('/api/observation-sessions/<session_id>/nights/<night_id>', ('DELETE',)),
+    ('/api/observation-sessions/<session_id>/nights/<night_id>', ('PUT',)),
     ('/api/observation-sessions/export.pdf', ('GET',)),
-
     # --- equipment ---
     ('/api/equipment/accessories', ('GET',)),
     ('/api/equipment/accessories', ('POST',)),
@@ -218,14 +207,12 @@ EXPECTED_ROUTES = {
     ('/api/equipment/telescopes/<telescope_id>', ('DELETE',)),
     ('/api/equipment/telescopes/<telescope_id>', ('GET',)),
     ('/api/equipment/telescopes/<telescope_id>', ('PUT',)),
-
     # --- connectors ---
     ('/api/connectors', ('GET',)),
     ('/api/connectors/allsky/health', ('GET', 'POST')),
     ('/api/connectors/allsky/proxy', ('GET',)),
     ('/api/connectors/allsky/status', ('GET',)),
     ('/api/connectors/allsky/urls', ('GET',)),
-
     # --- skytonight (blueprint) ---
     ('/api/catalogues', ('GET',)),
     ('/api/scheduler/status', ('GET',)),

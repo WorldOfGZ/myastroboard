@@ -153,3 +153,72 @@ def test_filters_narrow_the_session_list(logged_in_page):
 
     page.fill('#observation-log-search', '')
     page.wait_for_selector('.observation-log-session-card', state="visible")
+
+
+def test_add_second_night_groups_entries_and_shows_night_selector(logged_in_page):
+    """A multi-night session gets a second Nights card, and the entry form gains a
+    night selector (hidden for the single-night case) once there's more than one."""
+    page = logged_in_page
+    _open_observation_log(page)
+    _create_session(page, '2026-07-14')
+
+    # Log a target on the first night before adding the second, to prove entries stay
+    # correctly attributed to their own night once grouping kicks in.
+    page.click('#observation-log-add-target')
+    page.wait_for_selector('#observation-entry-form', state="visible")
+    page.fill('#observation-entry-name', 'M31')
+    page.select_option('#observation-entry-type', 'Galaxy')
+    page.click('#observation-entry-form button[type="submit"]')
+    page.wait_for_selector('.observation-log-entry-row', state="visible")
+
+    page.click('#observation-log-add-night')
+    page.wait_for_selector('#observation-night-form', state="visible")
+    page.fill('#observation-night-date', '2026-07-15')
+    page.click('#observation-night-form button[type="submit"]')
+    # A .observation-log-night-card for the first night already exists, so waiting on
+    # that selector alone would resolve immediately - wait for the *new* night's own
+    # date to actually render instead, to properly synchronize on the reload.
+    page.wait_for_selector('.observation-log-night-date:has-text("2026-07-15")', state="visible")
+    assert page.locator('.observation-log-night-card').count() == 2
+
+    page.click('#observation-log-add-target')
+    page.wait_for_selector('#observation-entry-form', state="visible")
+    assert page.locator('#observation-entry-night option').count() == 2
+    page.select_option('#observation-entry-night', label='2026-07-15')
+    page.fill('#observation-entry-name', 'M42')
+    page.select_option('#observation-entry-type', 'Nebula')
+    page.click('#observation-entry-form button[type="submit"]')
+
+    # Entries are now grouped by night - one date divider per night with targets.
+    # (M31's row already existed, so wait on M42's own name rather than the row
+    # selector alone, to properly synchronize on the reload finishing.)
+    page.wait_for_selector('.observation-log-entry-name:has-text("M42")', state="visible")
+    assert page.locator('.observation-log-entry-row').count() == 2
+    assert page.locator('.observation-log-night-date', has_text='2026-07-14').count() == 1
+    assert page.locator('.observation-log-night-date', has_text='2026-07-15').count() == 1
+
+
+def test_upload_and_delete_a_session_attachment(logged_in_page):
+    """A generic file (not a photo through the Astrodex picture flow) can be attached to
+    the session and removed again."""
+    page = logged_in_page
+    _open_observation_log(page)
+    _create_session(page, '2026-07-14')
+
+    page.click('#observation-log-back')
+    page.wait_for_selector('.observation-log-session-card', state="visible")
+    page.click('.observation-log-session-card')
+    page.wait_for_selector('#observation-log-add-attachment', state="visible")
+
+    page.click('#observation-log-add-attachment')
+    page.wait_for_selector('#observation-attachment-form', state="visible")
+    page.set_input_files(
+        '#observation-attachment-file',
+        {'name': 'guide-log.txt', 'mimeType': 'text/plain', 'buffer': b'guiding data'},
+    )
+    page.click('#observation-attachment-form button[type="submit"]')
+    page.wait_for_selector('text=guide-log.txt', state="visible")
+
+    page.once('dialog', lambda dialog: dialog.accept())
+    page.click('.list-group-item button.btn-outline-danger')
+    page.wait_for_selector('text=guide-log.txt', state="detached")
