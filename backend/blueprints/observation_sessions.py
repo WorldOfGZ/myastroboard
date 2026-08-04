@@ -872,7 +872,8 @@ def upload_observation_session_attachment(session_id):
             try:
                 os.remove(file_path)
             except OSError:
-                pass  # best-effort cleanup; the 500 below is returned either way
+                # Best-effort cleanup; the 500 below is returned either way.
+                pass
             return jsonify({'error': 'Failed to attach file'}), 500
 
         return jsonify({'status': 'success', 'data': attachment}), 201
