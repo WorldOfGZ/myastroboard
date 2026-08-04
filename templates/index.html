@@ -790,9 +790,47 @@
                     <h2>
                         <i class="bi bi-journal-text text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="observation_log.title">Observation Log</span>
                     </h2>
-                    <p class="text-muted" data-i18n="observation_log.intro">Log what you actually captured on each night - Plan, Observe, Log, Astrodex.</p>
+                    <p class="text-muted mb-2" data-i18n="observation_log.intro">Log what you actually captured on each night - Plan, Observe, Log, Astrodex.</p>
+                    <button class="btn btn-sm btn-outline-secondary mb-2" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#observation-log-help"
+                            aria-expanded="false" aria-controls="observation-log-help">
+                        <i class="bi bi-question-circle me-1" aria-hidden="true"></i>
+                        <span data-i18n="observation_log.help_toggle">Learn more</span>
+                    </button>
                     <div id="observation-log-stats" class="row row-cols-2 row-cols-md-4 g-3"></div>
                 </div>
+
+                <div class="collapse mb-3" id="observation-log-help">
+                    <div class="shadow p-3 rounded bg-sub-container">
+                        <div class="d-flex flex-wrap align-items-center justify-content-center gap-2 mb-3">
+                            <div class="observation-log-flow-step">
+                                <div><i class="bi bi-moon-stars-fill text-info icon-inline" aria-hidden="true"></i><span data-i18n="navbar.plan_my_night">Plan My Night</span></div>
+                                <div class="observation-log-flow-caption" data-i18n="observation_log.help_flow_plan">What do I want to shoot tonight?</div>
+                            </div>
+                            <i class="bi bi-arrow-right d-none d-md-inline-block observation-log-flow-arrow" aria-hidden="true"></i>
+                            <i class="bi bi-arrow-down d-md-none observation-log-flow-arrow" aria-hidden="true"></i>
+                            <div class="observation-log-flow-step observation-log-flow-step-active">
+                                <div><i class="bi bi-journal-text text-primary icon-inline" aria-hidden="true"></i><span data-i18n="navbar.observation_log">Observation Log</span></div>
+                                <div class="observation-log-flow-caption" data-i18n="observation_log.help_flow_log">What did I actually do?</div>
+                            </div>
+                            <i class="bi bi-arrow-right d-none d-md-inline-block observation-log-flow-arrow" aria-hidden="true"></i>
+                            <i class="bi bi-arrow-down d-md-none observation-log-flow-arrow" aria-hidden="true"></i>
+                            <div class="observation-log-flow-step">
+                                <div><i class="bi bi-stars text-warning icon-inline" aria-hidden="true"></i><span data-i18n="navbar.astrodex">Astrodex</span></div>
+                                <div class="observation-log-flow-caption" data-i18n="observation_log.help_flow_astrodex">Everything I've ever captured</div>
+                            </div>
+                        </div>
+                        <p class="mb-2" data-i18n="observation_log.help_intro">The Observation Log is the middle step of a simple loop: plan what you want to shoot, log what actually happened each night, and everything you capture ends up in your Astrodex gallery automatically.</p>
+                        <ul class="mb-0 ps-3">
+                            <li data-i18n="observation_log.help_point_session">A session is one trip out: a location, an equipment setup, and one or more nights, each with its own conditions (SQM, seeing, transparency, Moon).</li>
+                            <li data-i18n="observation_log.help_point_auto_astrodex">As soon as a target has real capture data (frames, integration time), it's added to your Astrodex automatically - no button to remember.</li>
+                            <li data-i18n="observation_log.help_point_manual_photo">The finished, processed photo is attached separately, once you've stacked it - that step always stays manual.</li>
+                            <li data-i18n="observation_log.help_point_import_plan">You can import a session straight from a Plan My Night plan instead of re-entering everything by hand.</li>
+                            <li data-i18n="observation_log.help_point_private">Sessions are always private - they're never shared with other users, unlike Astrodex.</li>
+                        </ul>
+                    </div>
+                </div>
+
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
                     <div id="observation-log-display"></div>
                 </div>
