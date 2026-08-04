@@ -220,8 +220,9 @@ a client payload.
 |---|---|---|
 | `id` | str (uuid4) | |
 | `filename` | str | The regenerated on-disk name (`{user_id}_{uuid4()}.{ext}`) - never the original, mirroring Astrodex's own upload convention |
-| `original_name` | str | The filename as the user's browser sent it, shown in the UI |
+| `original_name` | str | The filename as the user's browser sent it |
 | `content_type` | str | Best-effort MIME type from the upload, used only to pick a display icon - never trusted for validation (the extension allow-list is what's actually enforced) |
+| `display_name` | str or null | Optional user-set custom name, shown in the UI (and used as the download filename) in place of `original_name` when set. `null` by default - upload never sets it, only the rename route does |
 | `uploaded_at` | iso8601 str | |
 
 Attachments are **session-level**, not per-night or per-entry - a guiding graph or a subframe log
@@ -236,10 +237,10 @@ another tool - separate from the entry → Astrodex picture link above: an attac
 Astrodex, and the actual keeper photo attached through `.../astrodex-picture` never lives here. Two
 independent upload paths into two different places, on purpose.
 
-- **Allowed types**: `jpg`, `jpeg`, `png`, `webp`, `pdf`, `txt` - extension-only validation via
-  `secure_filename()`, the exact same allow-list mechanism as Astrodex's own image upload (just a
-  different set of extensions). No MIME sniffing, no size cap - matches Astrodex's own upload route,
-  which has neither either.
+- **Allowed types**: `jpg`, `jpeg`, `png`, `webp`, `pdf`, `txt`, `doc`, `docx` - extension-only
+  validation via `secure_filename()`, the same allow-list mechanism as Astrodex's own image upload
+  (just a different, wider set of extensions). No MIME sniffing, no size cap - matches Astrodex's own
+  upload route, which has neither either.
 - **Storage**: `data/observation_sessions/attachments/` (flat, mirroring `data/astrodex/images/`),
   filenames regenerated as `{user_id}_{uuid4()}.{ext}`, never the original name. The directory path is
   computed by `observation_sessions.attachments_dir()` - a function, not a module-level constant, so
@@ -252,7 +253,14 @@ independent upload paths into two different places, on purpose.
   attachments/<filename>` verifies the filename appears in one of the *caller's own* sessions before
   serving it (sessions are never shared, so this is simpler than Astrodex's own private/shared-mode
   check on `can_user_view_image()`). An unrecognized filename and someone else's real file both get
-  the same 403, so the response never confirms whether a given filename exists.
+  the same 403, so the response never confirms whether a given filename exists. The response's
+  `Content-Disposition` filename is `display_name` (with the real extension re-attached if the custom
+  name omits it) or else `original_name` - never the on-disk `{uuid}.{ext}` storage name, which is what
+  a browser would otherwise suggest since it's the last path segment of the URL.
+- **Renaming** (`PUT /api/observation-sessions/<session_id>/attachments/<attachment_id>`, `{"name":
+  "..."}`) only ever writes `display_name`. It never touches `filename` or `original_name`, so the file
+  on disk and its storage key are untouched - purely a cosmetic label plus the download filename above.
+  An empty/blank name clears `display_name` back to `null`, reverting the UI to `original_name`.
 - **Deleting a session deletes its attachment files too** - unlike the entry → Astrodex link (a soft
   reference into a *different* feature's data, deliberately left untouched on delete), an attachment
   file is owned entirely by its session, so `delete_session()` removes them from disk before removing
