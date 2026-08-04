@@ -226,6 +226,15 @@ class TestValidation:
                 },
                 'unknown night',
             ),
+            (
+                {
+                    'username': 'x',
+                    'sessions': [
+                        {'id': 'a', 'nights': [{'id': 'n1', 'date': 'd'}], 'attachments': 'no'}
+                    ],
+                },
+                "invalid 'attachments'",
+            ),
         ],
     )
     def test_invalid_payloads(self, temp_data_dir, user_id, payload, expected_fragment):
@@ -366,11 +375,15 @@ class TestSessionCrud:
         session = _create_session(user_id)
         night_id = session['nights'][0]['id']
         updated = observation_sessions.update_night(
-            user_id, session['id'], night_id, {'seeing': 5, 'start_time': '2026-07-14T22:10:00', 'notes': 'windy'}
+            user_id,
+            session['id'],
+            night_id,
+            {'seeing': 5, 'start_time': '2026-07-14T22:10:00', 'notes': 'windy', 'sqm': 21.1},
         )
         assert updated['seeing'] == 5
         assert updated['start_time'] == '2026-07-14T22:10:00'
         assert updated['notes'] == 'windy'
+        assert updated['sqm'] == pytest.approx(21.1)
 
     def test_update_night_missing_session_or_night(self, temp_data_dir, user_id):
         session = _create_session(user_id)
@@ -399,6 +412,9 @@ class TestSessionCrud:
         assert observation_sessions.add_night(user_id, session['id'], {'notes': 'no date'}) is None
 
     def test_add_night_missing_session(self, temp_data_dir, user_id):
+        """The lookup loop must skip past a real, non-matching session before concluding
+        the target one doesn't exist."""
+        _create_session(user_id)
         assert observation_sessions.add_night(user_id, 'missing', {'date': '2026-07-15'}) is None
 
     def test_add_night_returns_none_when_save_fails(self, temp_data_dir, user_id, monkeypatch):
@@ -464,6 +480,16 @@ class TestSessionCrud:
         monkeypatch.setattr(observation_sessions, 'save_user_sessions', lambda *a, **k: False)
         assert observation_sessions.update_session(user_id, session['id'], {'notes': 'x'}) is None
 
+    def test_get_night_without_a_night_id_is_none(self):
+        assert observation_sessions.get_night({'nights': [{'id': 'n1'}]}, None) is None
+        assert observation_sessions.get_night({'nights': [{'id': 'n1'}]}, '') is None
+
+    def test_get_night_unknown_id_is_none(self):
+        assert observation_sessions.get_night({'nights': [{'id': 'n1'}]}, 'not-n1') is None
+
+    def test_session_date_range_with_no_nights_is_a_pair_of_empty_strings(self):
+        assert observation_sessions.session_date_range({'nights': []}) == ('', '')
+
 
 class TestAttachments:
     """add/delete of session-level file attachments (v1.3.1)."""
@@ -495,7 +521,15 @@ class TestAttachments:
         assert [a['id'] for a in reloaded['attachments']] == [attachment['id']]
 
     def test_add_attachment_missing_session(self, temp_data_dir, user_id):
+        """The lookup loop must skip past a real, non-matching session before concluding
+        the target one doesn't exist."""
+        _create_session(user_id)
         assert observation_sessions.add_attachment(user_id, 'missing', 'a.jpg', 'a.jpg', 'image/jpeg') is None
+
+    def test_add_attachment_returns_none_when_save_fails(self, temp_data_dir, user_id, monkeypatch):
+        session = _create_session(user_id)
+        monkeypatch.setattr(observation_sessions, 'save_user_sessions', lambda *a, **k: False)
+        assert observation_sessions.add_attachment(user_id, session['id'], 'a.jpg', 'a.jpg', 'image/jpeg') is None
 
     def test_delete_attachment_removes_metadata_and_file(self, temp_data_dir, user_id):
         session = _create_session(user_id)
@@ -547,6 +581,60 @@ class TestAttachments:
 
     def test_delete_session_unknown_id_returns_false(self, temp_data_dir, user_id):
         assert observation_sessions.delete_session(user_id, 'missing') is False
+
+    def test_delete_session_skips_non_dict_attachments_in_storage(self, temp_data_dir, user_id):
+        """A corrupt (non-dict) attachment entry surviving in storage is skipped rather
+        than crashing the cleanup pass."""
+        session = _create_session(user_id)
+        data = observation_sessions.load_user_sessions(user_id)
+        data['sessions'][0]['attachments'] = ['not-a-dict']
+        observation_sessions.save_user_sessions(user_id, data)
+
+        assert observation_sessions.delete_session(user_id, session['id']) is True
+
+    def test_delete_session_logs_and_continues_when_file_removal_fails(self, temp_data_dir, user_id, monkeypatch):
+        """A failure removing an attachment's file (permissions, a concurrent delete,
+        ...) is logged but doesn't stop the session itself from being deleted."""
+        session = _create_session(user_id)
+        observation_sessions.add_attachment(user_id, session['id'], 'abc.jpg', 'a.jpg', 'image/jpeg')
+
+        file_path = os.path.join(observation_sessions.attachments_dir(), 'abc.jpg')
+        observation_sessions.ensure_observation_sessions_directories()
+        with open(file_path, 'wb') as file_obj:
+            file_obj.write(b'fake image bytes')
+
+        def _fail_remove(path):
+            raise OSError('cannot remove')
+
+        monkeypatch.setattr(observation_sessions.os, 'remove', _fail_remove)
+        assert observation_sessions.delete_session(user_id, session['id']) is True
+
+
+class TestRenameAttachment:
+    """Set/clear an attachment's custom display name (storage layer)."""
+
+    def test_rename_sets_the_display_name(self, temp_data_dir, user_id):
+        session = _create_session(user_id)
+        attachment = observation_sessions.add_attachment(user_id, session['id'], 'abc.jpg', 'a.jpg', 'image/jpeg')
+
+        renamed = observation_sessions.rename_attachment(user_id, session['id'], attachment['id'], 'My Graph')
+        assert renamed['display_name'] == 'My Graph'
+
+    def test_rename_unknown_attachment_returns_none(self, temp_data_dir, user_id):
+        session = _create_session(user_id)
+        assert observation_sessions.rename_attachment(user_id, session['id'], 'missing', 'x') is None
+
+    def test_rename_unknown_session_returns_none(self, temp_data_dir, user_id):
+        """The lookup loop must skip past a real, non-matching session before concluding
+        the target one doesn't exist."""
+        _create_session(user_id)
+        assert observation_sessions.rename_attachment(user_id, 'missing', 'missing', 'x') is None
+
+    def test_rename_returns_none_when_save_fails(self, temp_data_dir, user_id, monkeypatch):
+        session = _create_session(user_id)
+        attachment = observation_sessions.add_attachment(user_id, session['id'], 'abc.jpg', 'a.jpg', 'image/jpeg')
+        monkeypatch.setattr(observation_sessions, 'save_user_sessions', lambda *a, **k: False)
+        assert observation_sessions.rename_attachment(user_id, session['id'], attachment['id'], 'x') is None
 
 
 class TestEntryCrud:
@@ -685,6 +773,16 @@ class TestEntryCrud:
         )
         assert cleared['combination_id'] is None
         assert cleared['combination_name'] is None
+
+    def test_update_entry_can_move_to_a_different_night(self, temp_data_dir, user_id):
+        session = _create_session(user_id, date='2026-07-14')
+        second_night = observation_sessions.add_night(user_id, session['id'], {'date': '2026-07-15'})
+        entry = observation_sessions.add_entry(user_id, session['id'], {'name': 'M42'})
+
+        updated = observation_sessions.update_entry(
+            user_id, session['id'], entry['id'], {'night_id': second_night['id']}
+        )
+        assert updated['night_id'] == second_night['id']
 
     def test_update_entry_missing(self, temp_data_dir, user_id):
         """Unknown session or entry ids yield None."""
@@ -828,6 +926,41 @@ class TestAstrodexBacklinkIndex:
         matches_by_item, first_match_by_picture = observation_sessions.build_astrodex_session_backlink_index(user_id)
         assert matches_by_item == {}
         assert first_match_by_picture == {}
+
+    def test_entry_without_any_astrodex_link_is_skipped(self, temp_data_dir, user_id):
+        """A plain entry that was never linked to Astrodex contributes nothing to
+        either index."""
+        session = _create_session(user_id)
+        observation_sessions.add_entry(user_id, session['id'], {'name': 'M31'})
+
+        matches_by_item, first_match_by_picture = observation_sessions.build_astrodex_session_backlink_index(user_id)
+        assert matches_by_item == {}
+        assert first_match_by_picture == {}
+
+    def test_non_dict_entry_in_storage_is_skipped(self, temp_data_dir, user_id):
+        """A corrupt (non-dict) entry surviving in storage is skipped rather than
+        crashing the index build."""
+        _create_session(user_id)
+        data = observation_sessions.load_user_sessions(user_id)
+        data['sessions'][0]['entries'] = ['not-a-dict']
+        observation_sessions.save_user_sessions(user_id, data)
+
+        matches_by_item, first_match_by_picture = observation_sessions.build_astrodex_session_backlink_index(user_id)
+        assert matches_by_item == {}
+        assert first_match_by_picture == {}
+
+    def test_entry_with_only_a_picture_id_is_indexed_by_picture_only(self, temp_data_dir, user_id):
+        """A picture-only link (no item id) still gets picked up by the picture index -
+        defensive coverage for a shape link_entry_to_astrodex itself never produces."""
+        session = _create_session(user_id)
+        entry = observation_sessions.add_entry(user_id, session['id'], {'name': 'M31'})
+        data = observation_sessions.load_user_sessions(user_id)
+        data['sessions'][0]['entries'][0]['astrodex_picture_id'] = 'pic-only'
+        observation_sessions.save_user_sessions(user_id, data)
+
+        matches_by_item, first_match_by_picture = observation_sessions.build_astrodex_session_backlink_index(user_id)
+        assert matches_by_item == {}
+        assert first_match_by_picture['pic-only']['entry_id'] == entry['id']
 
 
 class TestCreateSessionFromPlan:
@@ -1067,6 +1200,7 @@ class TestReferenceCounts:
         _create_session(user_id, location_id='loc-1')
         assert observation_sessions.count_sessions_for_location('loc-1') == 2
         assert observation_sessions.count_sessions_for_location('loc-2') == 0
+        assert observation_sessions.count_sessions_for_location('') == 0
 
     def test_counts_are_fail_open_on_unreadable_files(self, temp_data_dir, user_id):
         """An unparseable file is skipped rather than taking the whole scan down."""
@@ -1074,6 +1208,26 @@ class TestReferenceCounts:
         broken_path = os.path.join(observation_sessions.OBSERVATION_SESSIONS_DIR, f'{uuid.uuid4()}_sessions.json')
         with open(broken_path, 'w', encoding='utf-8') as file_obj:
             file_obj.write('{oops')
+
+        assert observation_sessions.count_sessions_for_combination('combo-1') == 1
+
+    def test_location_counts_are_fail_open_on_unreadable_files(self, temp_data_dir, user_id):
+        """The shared count-by-field helper is just as fail-open as the combination
+        counter above."""
+        _create_session(user_id, location_id='loc-1')
+        broken_path = os.path.join(observation_sessions.OBSERVATION_SESSIONS_DIR, f'{uuid.uuid4()}_sessions.json')
+        with open(broken_path, 'w', encoding='utf-8') as file_obj:
+            file_obj.write('{oops')
+
+        assert observation_sessions.count_sessions_for_location('loc-1') == 1
+
+    def test_count_sessions_for_combination_skips_non_dict_sessions_in_storage(self, temp_data_dir, user_id):
+        """A corrupt (non-dict) session entry surviving in a user's file is skipped
+        rather than crashing the scan."""
+        observation_sessions.ensure_observation_sessions_directories()
+        path = observation_sessions.get_user_sessions_file(user_id)
+        with open(path, 'w', encoding='utf-8') as file_obj:
+            json.dump({'username': 'tester', 'sessions': [123, {'id': 'a', 'combination_id': 'combo-1'}]}, file_obj)
 
         assert observation_sessions.count_sessions_for_combination('combo-1') == 1
 
@@ -1161,6 +1315,23 @@ class TestPdfHelpers:
             'moon_illumination_percent': 42.0,
             'notes': 'Clear all night, light breeze early on. ' * 4,
         }
+        try:
+            new_cursor = observation_sessions._pdf_render_night_header(fig, night, 0.9, _DummyI18n().t)
+        finally:
+            plt.close(fig)
+        assert new_cursor < 0.9
+
+    def test_night_header_truncates_notes_past_two_lines(self):
+        """A night's own notes are wrapped to two lines, with an ellipsis once there
+        would have been a third."""
+        import matplotlib
+
+        matplotlib.use('Agg', force=True)
+        import matplotlib.pyplot as plt
+
+        fig = plt.figure()
+        long_note = 'Windy early on, clouds rolled in around midnight then cleared again near dawn. ' * 4
+        night = {'date': '2026-08-02', 'notes': long_note}
         try:
             new_cursor = observation_sessions._pdf_render_night_header(fig, night, 0.9, _DummyI18n().t)
         finally:
@@ -1420,3 +1591,59 @@ class TestGenerateSessionsPdf:
 
         assert result.getvalue().startswith(b'%PDF')
         assert len(result.getvalue()) > 5000
+
+    def test_multi_night_session_skips_nights_with_no_entries_in_the_targets_list(self):
+        """A night that was added but never got any logged target is skipped in the
+        per-night breakdown, rather than printing an empty section for it."""
+        import matplotlib
+
+        matplotlib.use('Agg', force=True)
+
+        sessions = [
+            {
+                'id': 's1',
+                'nights': [
+                    {'id': 'n1', 'date': '2026-08-01'},
+                    {'id': 'n2', 'date': '2026-08-02'},
+                ],
+                'entries': [{'id': 'e1', 'night_id': 'n1', 'name': 'M31', 'frame_count': 5}],
+            },
+        ]
+
+        result = observation_sessions.generate_sessions_pdf(sessions, {}, _DummyI18n())
+        assert result.getvalue().startswith(b'%PDF')
+
+    def test_entry_with_planned_minutes_shows_a_planned_stat(self):
+        import matplotlib
+
+        matplotlib.use('Agg', force=True)
+
+        sessions = [
+            {
+                'id': 's1',
+                'nights': [{'id': 'n1', 'date': '2026-07-01'}],
+                'entries': [{'id': 'e1', 'name': 'M31', 'planned_minutes': 90}],
+            },
+        ]
+
+        result = observation_sessions.generate_sessions_pdf(sessions, {}, _DummyI18n())
+        assert result.getvalue().startswith(b'%PDF')
+
+    def test_entry_notes_truncated_past_two_lines_in_the_global_export(self):
+        """The compact per-row card used by the global export (distinct from the
+        per-session PDF's own wider notes block) truncates after two wrapped lines."""
+        import matplotlib
+
+        matplotlib.use('Agg', force=True)
+
+        long_note = 'Great night, low humidity, no dew on the corrector plate at all. ' * 6
+        sessions = [
+            {
+                'id': 's1',
+                'nights': [{'id': 'n1', 'date': '2026-07-01'}],
+                'entries': [{'id': 'e1', 'name': 'M31', 'notes': long_note}],
+            },
+        ]
+
+        result = observation_sessions.generate_sessions_pdf(sessions, {}, _DummyI18n())
+        assert result.getvalue().startswith(b'%PDF')

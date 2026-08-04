@@ -168,6 +168,7 @@ EXPECTED_ROUTES = {
     ('/api/observation-sessions/<session_id>/entries/<entry_id>/astrodex-picture', ('POST',)),
     ('/api/observation-sessions/<session_id>/attachments', ('POST',)),
     ('/api/observation-sessions/<session_id>/attachments/<attachment_id>', ('DELETE',)),
+    ('/api/observation-sessions/<session_id>/attachments/<attachment_id>', ('PUT',)),
     ('/api/observation-sessions/attachments/<filename>', ('GET',)),
     ('/api/observation-sessions/<session_id>/export.pdf', ('GET',)),
     ('/api/observation-sessions/<session_id>/nights', ('POST',)),

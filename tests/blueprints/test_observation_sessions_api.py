@@ -216,6 +216,32 @@ class TestSessionRoutes:
         response = client.delete(f"/api/observation-sessions/{session['id']}/nights/missing")
         assert response.status_code == 404
 
+    def test_delete_night_unknown_session(self, client):
+        """Deleting a night from a session that doesn't exist at all is a 404, distinct
+        from an unknown night on a real session."""
+        response = client.delete('/api/observation-sessions/missing/nights/missing')
+        assert response.status_code == 404
+
+    def test_add_night_prefills_sqm_from_the_sessions_own_location(self, client, monkeypatch):
+        """A second night inherits the session's fixed location preset SQM, the same way
+        the first one does at creation."""
+        preset = {
+            'id': 'preset-2',
+            'name': 'Dark Site',
+            'latitude': 44.0,
+            'longitude': 5.0,
+            'elevation': 900,
+            'sqm': 21.4,
+        }
+        monkeypatch.setattr(observation_sessions_bp_module, 'load_config', lambda: {'locations': [preset]})
+        monkeypatch.setattr(observation_sessions_bp_module, 'get_locations_for_user', lambda config, user: [preset])
+        monkeypatch.setattr(observation_sessions_bp_module, 'get_location_by_id', lambda config, location_id: preset)
+
+        session = _create_session(client, date='2026-07-14', location_id='preset-2')
+        response = client.post(f"/api/observation-sessions/{session['id']}/nights", json={'date': '2026-07-15'})
+        assert response.status_code == 201
+        assert response.get_json()['data']['sqm'] == pytest.approx(21.4)
+
     def test_update_unknown_session(self, client):
         """Updating an unknown session is a 404."""
         assert client.put('/api/observation-sessions/missing', json={'notes': 'x'}).status_code == 404
@@ -415,6 +441,29 @@ class TestPrivateHelpersDirect:
         entry = {'astrodex_item_id': 'item-1', 'astrodex_picture_id': 'pic-1'}
         assert observation_sessions_bp_module._resolve_entry_image_path(user, entry) is None
 
+    def test_moon_illumination_blank_date_is_none(self):
+        assert observation_sessions_bp_module._compute_moon_illumination_for_date('') is None
+        assert observation_sessions_bp_module._compute_moon_illumination_for_date(None) is None
+
+    def test_moon_illumination_unparseable_date_is_none(self):
+        """A date that doesn't match the expected format degrades to no reading rather
+        than raising - the caller (add/update night) never validates this field itself."""
+        assert observation_sessions_bp_module._compute_moon_illumination_for_date('not-a-date') is None
+
+    def test_attachment_download_name_keeps_display_name_that_already_has_the_extension(self):
+        attachment = {'original_name': 'photo.jpg', 'display_name': 'My Photo.jpg'}
+        assert observation_sessions_bp_module._attachment_download_name(attachment) == 'My Photo.jpg'
+
+    def test_attachment_download_name_keeps_display_name_when_original_has_no_extension(self):
+        attachment = {'original_name': 'README', 'display_name': 'Notes'}
+        assert observation_sessions_bp_module._attachment_download_name(attachment) == 'Notes'
+
+    def test_session_overlaps_date_range_skips_non_dict_nights(self):
+        """A corrupt (non-dict) night entry surviving in storage is skipped rather than
+        crashing the PDF date-range filter."""
+        session = {'nights': [None, {'date': '2026-06-01'}]}
+        assert observation_sessions_bp_module._session_overlaps_date_range(session, None, None) is True
+
 
 class TestEntryRoutes:
     """CRUD over per-target entries."""
@@ -437,6 +486,21 @@ class TestEntryRoutes:
     def test_add_entry_unknown_session(self, client):
         """Adding to an unknown session is a 404."""
         assert _add_entry(client, 'missing').status_code == 404
+
+    def test_add_entry_unknown_night_id_is_400(self, client):
+        """A night_id that doesn't belong to the session is rejected before the write."""
+        session = _create_session(client)
+        response = _add_entry(client, session['id'], night_id='not-a-real-night')
+        assert response.status_code == 400
+
+    def test_add_entry_returns_404_when_storage_write_silently_fails(self, client, monkeypatch):
+        """A storage-layer write failure despite an existing session (a narrow race) is
+        reported the same as the session being gone, matching the create-session
+        convention above."""
+        session = _create_session(client)
+        monkeypatch.setattr(observation_sessions_bp_module.observation_sessions, 'add_entry', lambda *a, **k: None)
+        response = _add_entry(client, session['id'])
+        assert response.status_code == 404
 
     def test_rating_validation(self, client):
         """A rating outside 0-5 or off the 0.5 grid is rejected with a 400."""
@@ -461,6 +525,22 @@ class TestEntryRoutes:
         bad = client.put(f"/api/observation-sessions/{session['id']}/entries/{entry['id']}", json={'rating': 9})
         assert bad.status_code == 400
 
+    def test_update_entry_with_a_valid_night_id_moves_it(self, client):
+        """A night_id on the update payload that does belong to the session passes
+        validation and the entry is moved onto that night."""
+        session = _create_session(client, date='2026-07-14')
+        second_night = client.post(
+            f"/api/observation-sessions/{session['id']}/nights", json={'date': '2026-07-15'}
+        ).get_json()['data']
+        entry = _add_entry(client, session['id']).get_json()['data']
+
+        response = client.put(
+            f"/api/observation-sessions/{session['id']}/entries/{entry['id']}",
+            json={'night_id': second_night['id']},
+        )
+        assert response.status_code == 200
+        assert response.get_json()['data']['night_id'] == second_night['id']
+
     def test_update_entry_with_valid_rating(self, client):
         """A valid rating override on PUT goes through the same validation as add, then
         proceeds to the update itself."""
@@ -477,6 +557,27 @@ class TestEntryRoutes:
             client.put(f"/api/observation-sessions/{session['id']}/entries/missing", json={'notes': 'x'}).status_code
             == 404
         )
+
+    def test_update_entry_unknown_night_id_is_400(self, client):
+        """A night_id on the update payload that doesn't belong to the session is
+        rejected before the entry write."""
+        session = _create_session(client)
+        entry = _add_entry(client, session['id']).get_json()['data']
+        response = client.put(
+            f"/api/observation-sessions/{session['id']}/entries/{entry['id']}",
+            json={'night_id': 'not-a-real-night'},
+        )
+        assert response.status_code == 400
+
+    def test_update_entry_session_vanishes_when_night_id_given(self, client, monkeypatch):
+        """A race where the session disappears between the entry lookup and the
+        night_id check surfaces as a 404, not a crash."""
+        monkeypatch.setattr(observation_sessions_bp_module.observation_sessions, 'get_session', lambda *a, **k: None)
+        response = client.put(
+            '/api/observation-sessions/whatever/entries/whatever',
+            json={'night_id': 'some-night'},
+        )
+        assert response.status_code == 404
 
     def test_delete_entry(self, client):
         """Deleting an entry succeeds once, then 404s."""
@@ -1279,9 +1380,11 @@ class TestExportPdf:
         assert response.data.startswith(b'%PDF')
 
     def test_global_pdf_range_excludes_out_of_window_sessions(self, client, monkeypatch):
-        """from_date/to_date actually filter which sessions are rendered, not just labelled."""
+        """from_date/to_date actually filter which sessions are rendered, not just
+        labelled - on both sides of the window."""
         _create_session(client, date='2025-01-01')
         _create_session(client, date='2026-06-01')
+        _create_session(client, date='2027-01-01')
 
         captured = {}
         original = observation_sessions_bp_module.observation_sessions.generate_sessions_pdf
@@ -1349,6 +1452,98 @@ class TestExceptionHandling:
     def test_from_plan_500(self, client, monkeypatch):
         monkeypatch.setattr(observation_sessions_bp_module.plan_my_night, 'get_plan_with_timeline', self._raise)
         response = client.post('/api/observation-sessions/from-plan', json={})
+        assert response.status_code == 500
+
+    def test_add_night_storage_failure_returns_500(self, client, monkeypatch):
+        """add_night() returning nothing (as opposed to raising) is also a 500."""
+        session = _create_session(client)
+        monkeypatch.setattr(observation_sessions_bp_module.observation_sessions, 'add_night', lambda *a, **k: None)
+        response = client.post(f"/api/observation-sessions/{session['id']}/nights", json={'date': '2026-07-15'})
+        assert response.status_code == 500
+
+    def test_add_night_500(self, client, monkeypatch):
+        session = _create_session(client)
+        monkeypatch.setattr(observation_sessions_bp_module.observation_sessions, 'add_night', self._raise)
+        response = client.post(f"/api/observation-sessions/{session['id']}/nights", json={'date': '2026-07-15'})
+        assert response.status_code == 500
+
+    def test_update_night_500(self, client, monkeypatch):
+        session = _create_session(client)
+        night_id = session['nights'][0]['id']
+        monkeypatch.setattr(observation_sessions_bp_module.observation_sessions, 'update_night', self._raise)
+        response = client.put(f"/api/observation-sessions/{session['id']}/nights/{night_id}", json={'notes': 'x'})
+        assert response.status_code == 500
+
+    def test_delete_night_500(self, client, monkeypatch):
+        session = _create_session(client, date='2026-07-14')
+        added = client.post(
+            f"/api/observation-sessions/{session['id']}/nights", json={'date': '2026-07-15'}
+        ).get_json()['data']
+        monkeypatch.setattr(observation_sessions_bp_module.observation_sessions, 'get_session', self._raise)
+        response = client.delete(f"/api/observation-sessions/{session['id']}/nights/{added['id']}")
+        assert response.status_code == 500
+
+    def test_upload_attachment_storage_race_returns_500_and_cleans_up_the_saved_file(self, client, monkeypatch):
+        """If the metadata write fails after the file was already saved to disk (a
+        narrow race), the orphaned file is removed - and a failure during that
+        best-effort cleanup still surfaces the original 500, not a crash."""
+        session = _create_session(client)
+        monkeypatch.setattr(observation_sessions_bp_module.observation_sessions, 'add_attachment', lambda *a, **k: None)
+
+        def _raise_oserror(*args, **kwargs):
+            raise OSError('cannot remove')
+
+        monkeypatch.setattr(observation_sessions_bp_module.os, 'remove', _raise_oserror)
+        response = client.post(
+            f"/api/observation-sessions/{session['id']}/attachments",
+            data={'file': (io.BytesIO(b'data'), 'a.jpg')},
+            content_type='multipart/form-data',
+        )
+        assert response.status_code == 500
+
+    def test_upload_attachment_500(self, client, monkeypatch):
+        session = _create_session(client)
+        monkeypatch.setattr(observation_sessions_bp_module.observation_sessions, 'add_attachment', self._raise)
+        response = client.post(
+            f"/api/observation-sessions/{session['id']}/attachments",
+            data={'file': (io.BytesIO(b'data'), 'a.jpg')},
+            content_type='multipart/form-data',
+        )
+        assert response.status_code == 500
+
+    def test_download_attachment_500(self, client, monkeypatch):
+        """An unexpected failure while resolving ownership is reported the same as a
+        genuinely missing file, not a 500 that would hint at server internals."""
+        session = _create_session(client)
+        upload = client.post(
+            f"/api/observation-sessions/{session['id']}/attachments",
+            data={'file': (io.BytesIO(b'data'), 'a.jpg')},
+            content_type='multipart/form-data',
+        ).get_json()['data']
+        monkeypatch.setattr(observation_sessions_bp_module.observation_sessions, 'get_user_sessions', self._raise)
+        response = client.get(f"/api/observation-sessions/attachments/{upload['filename']}")
+        assert response.status_code == 404
+
+    def test_rename_attachment_500(self, client, monkeypatch):
+        session = _create_session(client)
+        upload = client.post(
+            f"/api/observation-sessions/{session['id']}/attachments",
+            data={'file': (io.BytesIO(b'data'), 'a.jpg')},
+            content_type='multipart/form-data',
+        ).get_json()['data']
+        monkeypatch.setattr(observation_sessions_bp_module.observation_sessions, 'rename_attachment', self._raise)
+        response = client.put(f"/api/observation-sessions/{session['id']}/attachments/{upload['id']}", json={'name': 'x'})
+        assert response.status_code == 500
+
+    def test_delete_attachment_500(self, client, monkeypatch):
+        session = _create_session(client)
+        upload = client.post(
+            f"/api/observation-sessions/{session['id']}/attachments",
+            data={'file': (io.BytesIO(b'data'), 'a.jpg')},
+            content_type='multipart/form-data',
+        ).get_json()['data']
+        monkeypatch.setattr(observation_sessions_bp_module.observation_sessions, 'delete_attachment', self._raise)
+        response = client.delete(f"/api/observation-sessions/{session['id']}/attachments/{upload['id']}")
         assert response.status_code == 500
 
     def test_add_entry_500(self, client, monkeypatch):
