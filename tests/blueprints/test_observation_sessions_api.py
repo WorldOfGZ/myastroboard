@@ -489,6 +489,73 @@ class TestEntryRoutes:
         assert second.status_code == 404
 
 
+class TestEntryCombinationResolution:
+    """An entry's own optional equipment override goes through the same server-side
+    resolution as the session's own combination_id (§_apply_resolved_entry_combination)."""
+
+    def test_unknown_combination_is_dropped(self, client):
+        """A combination the user has no access to never lands on the entry."""
+        session = _create_session(client)
+        entry = _add_entry(client, session['id'], combination_id='not-a-real-combination').get_json()['data']
+        assert entry['combination_id'] is None
+        assert entry['combination_name'] is None
+
+    def test_owned_combination_id_is_resolved_with_name(self, client):
+        """A combination the user owns resolves and its display name is attached,
+        independent of whatever the session's own combination is."""
+        scope = client.post('/api/equipment/telescopes', json=_TELESCOPE_DATA).get_json()['data']
+        combo = client.post(
+            '/api/equipment/combinations', json={'name': 'Dobsonian rig', 'telescope_id': scope['id']}
+        ).get_json()['data']
+
+        session = _create_session(client)
+        entry = _add_entry(client, session['id'], combination_id=combo['id']).get_json()['data']
+        assert entry['combination_id'] == combo['id']
+        assert entry['combination_name'] == 'Dobsonian rig'
+
+    def test_shared_combination_id_is_resolved_with_name(self, client):
+        """A combination shared by another user resolves through the shared lookup."""
+        owner_id = f'shared-owner-{uuid.uuid4().hex[:8]}'
+        scope = equipment_profiles.create_telescope(owner_id, {**_TELESCOPE_DATA, 'is_shared': True})
+        combo = equipment_profiles.create_combination(owner_id, {'name': 'Shared Combo', 'telescope_id': scope['id']})
+
+        session = _create_session(client)
+        entry = _add_entry(client, session['id'], combination_id=combo['id']).get_json()['data']
+        assert entry['combination_id'] == combo['id']
+        assert entry['combination_name'] == 'Shared Combo'
+
+    def test_combination_untouched_when_update_omits_it(self, client):
+        """Editing an unrelated field must not disturb an existing per-entry override."""
+        scope = client.post('/api/equipment/telescopes', json=_TELESCOPE_DATA).get_json()['data']
+        combo = client.post(
+            '/api/equipment/combinations', json={'name': 'Dobsonian rig', 'telescope_id': scope['id']}
+        ).get_json()['data']
+        session = _create_session(client)
+        entry = _add_entry(client, session['id'], combination_id=combo['id']).get_json()['data']
+
+        updated = client.put(
+            f"/api/observation-sessions/{session['id']}/entries/{entry['id']}", json={'notes': 'x'}
+        ).get_json()['data']
+        assert updated['combination_id'] == combo['id']
+        assert updated['combination_name'] == 'Dobsonian rig'
+
+    def test_falsy_combination_id_clears_the_override(self, client):
+        """Explicitly sending an empty combination_id clears the override back to
+        "same as the session" rather than being ignored."""
+        scope = client.post('/api/equipment/telescopes', json=_TELESCOPE_DATA).get_json()['data']
+        combo = client.post(
+            '/api/equipment/combinations', json={'name': 'Dobsonian rig', 'telescope_id': scope['id']}
+        ).get_json()['data']
+        session = _create_session(client)
+        entry = _add_entry(client, session['id'], combination_id=combo['id']).get_json()['data']
+
+        cleared = client.put(
+            f"/api/observation-sessions/{session['id']}/entries/{entry['id']}", json={'combination_id': ''}
+        ).get_json()['data']
+        assert cleared['combination_id'] is None
+        assert cleared['combination_name'] is None
+
+
 class TestAutomaticAstrodexLink:
     """Item-level catalogue membership is automatic, never a button (§0 of the plan)."""
 
@@ -776,6 +843,28 @@ class TestAttachPicture:
             json={'filename': 'photo.jpg', 'rating': 42},
         )
         assert response.status_code == 400
+
+    def test_attach_picture_prefers_the_entry_own_combination_over_the_session(self, client, admin_user_id):
+        """When a target was shot with different equipment than the session's own
+        default, attaching its photo must carry that override, not the session's."""
+        scope = client.post('/api/equipment/telescopes', json=_TELESCOPE_DATA).get_json()['data']
+        session_combo = client.post(
+            '/api/equipment/combinations', json={'name': 'Session default rig', 'telescope_id': scope['id']}
+        ).get_json()['data']
+        entry_combo = client.post(
+            '/api/equipment/combinations', json={'name': 'Swapped-in rig', 'telescope_id': scope['id']}
+        ).get_json()['data']
+
+        session = _create_session(client, combination_id=session_combo['id'])
+        entry = _add_entry(client, session['id'], combination_id=entry_combo['id']).get_json()['data']
+
+        response = client.post(
+            f"/api/observation-sessions/{session['id']}/entries/{entry['id']}/astrodex-picture",
+            json={'filename': 'photo.jpg'},
+        )
+        assert response.status_code == 200
+        item = astrodex.get_astrodex_item(admin_user_id, response.get_json()['astrodex_item_id'])
+        assert item['pictures'][0]['combination_id'] == entry_combo['id']
 
 
 class TestAttachments:

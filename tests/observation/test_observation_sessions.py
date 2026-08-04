@@ -603,6 +603,8 @@ class TestEntryCrud:
         for field in ('frame_count', 'sub_exposure_seconds', 'integration_minutes', 'rating', 'planned_minutes'):
             assert entry[field] is None
         assert entry['combination_used_components'] is None
+        assert entry['combination_id'] is None
+        assert entry['combination_name'] is None
 
     def test_add_entry_stores_planned_minutes(self, temp_data_dir, user_id):
         """planned_minutes is a frozen snapshot, settable at add time like the other
@@ -660,6 +662,29 @@ class TestEntryCrud:
             user_id, session['id'], entry['id'], {'combination_used_components': 'not a dict'}
         )
         assert cleared['combination_used_components'] is None
+
+    def test_update_entry_combination_override(self, temp_data_dir, user_id):
+        """An entry can carry its own equipment combination, independent of the
+        session's own - e.g. the session defaults to one rig but this one target was
+        shot with a different one - and clearing it back to null restores "same as the
+        session"."""
+        session = _create_session(user_id)
+        entry = observation_sessions.add_entry(user_id, session['id'], {'name': 'M42'})
+
+        overridden = observation_sessions.update_entry(
+            user_id,
+            session['id'],
+            entry['id'],
+            {'combination_id': 'combo-dob', 'combination_name': 'Dobsonian rig'},
+        )
+        assert overridden['combination_id'] == 'combo-dob'
+        assert overridden['combination_name'] == 'Dobsonian rig'
+
+        cleared = observation_sessions.update_entry(
+            user_id, session['id'], entry['id'], {'combination_id': None, 'combination_name': None}
+        )
+        assert cleared['combination_id'] is None
+        assert cleared['combination_name'] is None
 
     def test_update_entry_missing(self, temp_data_dir, user_id):
         """Unknown session or entry ids yield None."""
@@ -1012,7 +1037,7 @@ class TestReferenceCounts:
     """Delete-guard / pre-delete scan helpers."""
 
     def test_count_sessions_for_combination(self, temp_data_dir, user_id):
-        """Only the session-level combination_id is counted, across every user."""
+        """The session-level combination_id is counted, across every user."""
         _create_session(user_id, combination_id='combo-1')
         _create_session(user_id, combination_id='combo-2')
         other_user = str(uuid.uuid4())
@@ -1022,6 +1047,19 @@ class TestReferenceCounts:
         assert observation_sessions.count_sessions_for_combination('combo-2') == 1
         assert observation_sessions.count_sessions_for_combination('unknown') == 0
         assert observation_sessions.count_sessions_for_combination('') == 0
+
+    def test_count_sessions_for_combination_via_entry_override(self, temp_data_dir, user_id):
+        """A combination only referenced by an entry's per-target override (never the
+        session's own combination_id) still counts - and a session matching on both its
+        own field and one of its entries is only counted once."""
+        session = _create_session(user_id, combination_id='combo-1')
+        observation_sessions.add_entry(user_id, session['id'], {'name': 'M42', 'combination_id': 'combo-2'})
+
+        only_via_entry = _create_session(user_id, combination_id=None)
+        observation_sessions.add_entry(user_id, only_via_entry['id'], {'name': 'M13', 'combination_id': 'combo-2'})
+
+        assert observation_sessions.count_sessions_for_combination('combo-1') == 1
+        assert observation_sessions.count_sessions_for_combination('combo-2') == 2
 
     def test_count_sessions_for_location(self, temp_data_dir, user_id):
         """Location references are counted the same way."""
