@@ -776,14 +776,14 @@ def attach_astrodex_picture_to_entry(session_id, entry_id):
 
 
 # ---------------------------------------------------------------------------
-# Attachments (v1.3.1) - generic files (images/PDF/text) attached to a session,
-# unrelated to the entry -> Astrodex picture link above. Exact mirror of
-# astrodex.py's own image upload: extension allow-list, secure_filename() only to pull
-# the extension, a regenerated {user_id}_{uuid}.{ext} storage name, and a
+# Attachments (v1.3.1) - generic files (images/PDF/text/Word) attached to a session,
+# unrelated to the entry -> Astrodex picture link above. Modeled on astrodex.py's own
+# image upload (a narrower allow-list): extension allow-list, secure_filename() only to
+# pull the extension, a regenerated {user_id}_{uuid}.{ext} storage name, and a
 # realpath+startswith containment check.
 # ---------------------------------------------------------------------------
 
-ATTACHMENT_ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp', 'pdf', 'txt'}
+ATTACHMENT_ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp', 'pdf', 'txt', 'doc', 'docx'}
 
 
 @observation_sessions_bp.route('/api/observation-sessions/<session_id>/attachments', methods=['POST'])
@@ -833,13 +833,28 @@ def upload_observation_session_attachment(session_id):
             try:
                 os.remove(file_path)
             except OSError:
-                pass
+                pass  # best-effort cleanup; the 500 below is returned either way
             return jsonify({'error': 'Failed to attach file'}), 500
 
         return jsonify({'status': 'success', 'data': attachment}), 201
     except Exception as error:
         logger.error(f'Error uploading attachment for observation session {session_id}: {error}')
         return jsonify({'error': 'Internal server error'}), 500
+
+
+def _attachment_download_name(attachment: Dict) -> str:
+    """The filename a browser should save this attachment as: the custom display name
+    (if the user set one) with the real extension re-attached when missing, else the
+    original upload filename - never the regenerated on-disk `{uuid}.{ext}` name."""
+    original_name = attachment.get('original_name') or attachment.get('filename') or 'attachment'
+    display_name = (attachment.get('display_name') or '').strip()
+    if not display_name:
+        return original_name
+
+    extension = original_name.rsplit('.', 1)[1] if '.' in original_name else None
+    if extension and not display_name.lower().endswith(f'.{extension.lower()}'):
+        return f'{display_name}.{extension}'
+    return display_name
 
 
 @observation_sessions_bp.route('/api/observation-sessions/attachments/<filename>', methods=['GET'])
@@ -853,18 +868,49 @@ def get_observation_session_attachment(filename):
         if not user:  # pragma: no cover
             return jsonify({'error': 'User not authenticated'}), 401
 
-        owns_file = any(
-            isinstance(attachment, dict) and attachment.get('filename') == filename
-            for session in observation_sessions.get_user_sessions(user.user_id)
-            for attachment in session.get('attachments', []) or []
+        owned_attachment = next(
+            (
+                attachment
+                for session in observation_sessions.get_user_sessions(user.user_id)
+                for attachment in session.get('attachments', []) or []
+                if isinstance(attachment, dict) and attachment.get('filename') == filename
+            ),
+            None,
         )
-        if not owns_file:
+        if not owned_attachment:
             return jsonify({'error': 'File not accessible'}), 403
 
-        return send_from_directory(observation_sessions.attachments_dir(), filename)
+        return send_from_directory(
+            observation_sessions.attachments_dir(),
+            filename,
+            download_name=_attachment_download_name(owned_attachment),
+        )
     except Exception as error:
         logger.error(f'Error serving observation session attachment {filename}: {error}')
         return jsonify({'error': 'File not found'}), 404
+
+
+@observation_sessions_bp.route('/api/observation-sessions/<session_id>/attachments/<attachment_id>', methods=['PUT'])
+@user_required
+def rename_observation_session_attachment(session_id, attachment_id):
+    """Set or clear an attachment's custom display name - never touches the file itself
+    or its storage filename, only what the UI shows and what a download is named."""
+    try:
+        user = get_current_user()
+        if not user:  # pragma: no cover
+            return jsonify({'error': 'User not authenticated'}), 401
+
+        payload = request.get_json(silent=True) or {}
+        attachment = observation_sessions.rename_attachment(
+            user.user_id, session_id, attachment_id, payload.get('name')
+        )
+        if not attachment:
+            return jsonify({'error': 'Attachment not found'}), 404
+
+        return jsonify({'status': 'success', 'data': attachment})
+    except Exception as error:
+        logger.error(f'Error renaming attachment {attachment_id} of observation session {session_id}: {error}')
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @observation_sessions_bp.route('/api/observation-sessions/<session_id>/attachments/<attachment_id>', methods=['DELETE'])

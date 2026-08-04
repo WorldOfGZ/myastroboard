@@ -860,6 +860,7 @@ def _build_attachment_payload(filename: str, original_name: str, content_type: s
         'filename': filename,
         'original_name': _clean_text(original_name, 200),
         'content_type': _clean_text(content_type, 100),
+        'display_name': None,
         'uploaded_at': now,
     }
 
@@ -916,6 +917,35 @@ def delete_attachment(user_id: str, session_id: str, attachment_id: str) -> bool
         return save_user_sessions(user_id, data)
 
     return False
+
+
+def rename_attachment(user_id: str, session_id: str, attachment_id: str, display_name: Optional[str]) -> Optional[Dict]:
+    """Set (or, given a blank/None name, clear) an attachment's custom display name.
+
+    ``filename``/``original_name`` are left untouched - this only changes what the UI
+    shows and what a download is saved as, never the file on disk or its storage key.
+    """
+    data = load_user_sessions(user_id)
+
+    for session in data.get('sessions', []):
+        if not isinstance(session, dict) or session.get('id') != session_id:
+            continue
+
+        attachments = session.get('attachments', []) or []
+        target = next(
+            (item for item in attachments if isinstance(item, dict) and item.get('id') == attachment_id), None
+        )
+        if target is None:
+            return None
+
+        target['display_name'] = _clean_text(display_name, 200) or None
+        session['updated_at'] = _now_iso()
+
+        if save_user_sessions(user_id, data):
+            return target
+        return None
+
+    return None
 
 
 def _build_entry_payload(entry_data: Dict) -> Dict:

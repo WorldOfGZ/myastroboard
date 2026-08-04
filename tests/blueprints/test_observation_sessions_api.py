@@ -213,7 +213,8 @@ class TestSessionRoutes:
 
     def test_delete_unknown_night(self, client):
         session = _create_session(client)
-        assert client.delete(f"/api/observation-sessions/{session['id']}/nights/missing").status_code == 404
+        response = client.delete(f"/api/observation-sessions/{session['id']}/nights/missing")
+        assert response.status_code == 404
 
     def test_update_unknown_session(self, client):
         """Updating an unknown session is a 404."""
@@ -807,9 +808,15 @@ class TestAttachments:
         after_delete = client.get(f"/api/observation-sessions/attachments/{attachment['filename']}")
         assert after_delete.status_code == 403  # metadata gone -> ownership check fails closed
 
-    def test_upload_accepts_pdf_and_txt(self, client):
+    def test_upload_accepts_pdf_txt_and_word(self, client):
         session = _create_session(client)
-        for filename, allowed in [('notes.pdf', True), ('notes.txt', True), ('notes.exe', False)]:
+        for filename, allowed in [
+            ('notes.pdf', True),
+            ('notes.txt', True),
+            ('notes.doc', True),
+            ('notes.docx', True),
+            ('notes.exe', False),
+        ]:
             response = client.post(
                 f"/api/observation-sessions/{session['id']}/attachments",
                 data={'file': (io.BytesIO(b'data'), filename)},
@@ -866,7 +873,79 @@ class TestAttachments:
 
     def test_delete_unknown_attachment_is_404(self, client):
         session = _create_session(client)
-        assert client.delete(f"/api/observation-sessions/{session['id']}/attachments/missing").status_code == 404
+        response = client.delete(f"/api/observation-sessions/{session['id']}/attachments/missing")
+        assert response.status_code == 404
+
+    def test_download_content_disposition_uses_original_name_not_storage_uuid(self, client):
+        """The saved filename should be the human-readable original name, not the
+        regenerated `{uuid}.{ext}` storage key that's the last segment of the URL."""
+        session = _create_session(client)
+        upload = client.post(
+            f"/api/observation-sessions/{session['id']}/attachments",
+            data={'file': (io.BytesIO(b'data'), 'guiding-graph.jpg')},
+            content_type='multipart/form-data',
+        ).get_json()['data']
+
+        download = client.get(f"/api/observation-sessions/attachments/{upload['filename']}")
+        disposition = download.headers.get('Content-Disposition', '')
+        assert 'guiding-graph.jpg' in disposition
+        assert upload['filename'] not in disposition
+
+    def test_rename_sets_display_name_used_in_list_and_download(self, client):
+        session = _create_session(client)
+        upload = client.post(
+            f"/api/observation-sessions/{session['id']}/attachments",
+            data={'file': (io.BytesIO(b'data'), 'guiding-graph.jpg')},
+            content_type='multipart/form-data',
+        ).get_json()['data']
+
+        rename = client.put(
+            f"/api/observation-sessions/{session['id']}/attachments/{upload['id']}",
+            json={'name': 'My Guiding Graph'},
+        )
+        assert rename.status_code == 200
+        assert rename.get_json()['data']['display_name'] == 'My Guiding Graph'
+
+        stored = client.get(f"/api/observation-sessions/{session['id']}").get_json()
+        assert stored['attachments'][0]['display_name'] == 'My Guiding Graph'
+
+        # No extension in the custom name -> the real one is reattached for the download.
+        download = client.get(f"/api/observation-sessions/attachments/{upload['filename']}")
+        assert 'My Guiding Graph.jpg' in download.headers.get('Content-Disposition', '')
+
+    def test_rename_blank_clears_display_name(self, client):
+        session = _create_session(client)
+        upload = client.post(
+            f"/api/observation-sessions/{session['id']}/attachments",
+            data={'file': (io.BytesIO(b'data'), 'guiding-graph.jpg')},
+            content_type='multipart/form-data',
+        ).get_json()['data']
+        client.put(
+            f"/api/observation-sessions/{session['id']}/attachments/{upload['id']}",
+            json={'name': 'My Guiding Graph'},
+        )
+
+        cleared = client.put(
+            f"/api/observation-sessions/{session['id']}/attachments/{upload['id']}",
+            json={'name': '   '},
+        )
+        assert cleared.status_code == 200
+        assert cleared.get_json()['data']['display_name'] is None
+
+    def test_rename_unknown_attachment_is_404(self, client):
+        session = _create_session(client)
+        response = client.put(
+            f"/api/observation-sessions/{session['id']}/attachments/missing",
+            json={'name': 'x'},
+        )
+        assert response.status_code == 404
+
+    def test_rename_unknown_session_is_404(self, client):
+        response = client.put(
+            '/api/observation-sessions/missing/attachments/also-missing',
+            json={'name': 'x'},
+        )
+        assert response.status_code == 404
 
 
 class TestAttachmentsSurviveBackupRestore:

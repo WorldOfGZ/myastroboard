@@ -65,6 +65,7 @@ function _obsStarIconClass(value, i) {
 /** Read-only star display for an entry row. Returns a <span> node. */
 function _obsBuildStarRatingDisplay(rating) {
     const wrap = document.createElement('span');
+    wrap.className = 'observation-log-star-rating';
     const value = Number(rating) || 0;
     for (let i = 1; i <= 5; i++) {
         wrap.appendChild(DOMUtils.createIcon(_obsStarIconClass(value, i)));
@@ -784,7 +785,7 @@ function _obsBuildSessionSummaryCard(session) {
         [i18n.t('observation_log.location'), session.location_name || i18n.t('observation_log.no_location')],
         [i18n.t('observation_log.equipment'), _obsCombinationLabel(session) || i18n.t('observation_log.no_equipment')],
         [i18n.t('observation_log.total_integration'), _obsFormatIntegration(_obsSessionIntegration(session)) || '—'],
-        [i18n.t('observation_log.target_count'), String((session.entries || []).length)],
+        [i18n.t('observation_log.stat_targets'), String((session.entries || []).length)],
     ];
 
     rows.forEach(([label, value]) => {
@@ -2153,6 +2154,7 @@ function _obsAttachmentIconClass(attachment) {
     if ((attachment.content_type || '') === 'application/pdf' || /\.pdf$/i.test(attachment.filename || '')) {
         return 'bi bi-file-earmark-pdf';
     }
+    if (/\.docx?$/i.test(attachment.filename || '')) return 'bi bi-file-earmark-word';
     return 'bi bi-file-earmark-text';
 }
 
@@ -2194,7 +2196,7 @@ function _obsBuildAttachmentsSection(session) {
     }
 
     const list = document.createElement('div');
-    list.className = 'list-group';
+    list.className = 'list-group observation-log-attachments-list';
     attachments.forEach(attachment => list.appendChild(_obsBuildAttachmentRow(session, attachment)));
     wrap.appendChild(list);
 
@@ -2209,7 +2211,7 @@ function _obsBuildAttachmentRow(session, attachment) {
     link.href = `/api/observation-sessions/attachments/${encodeURIComponent(attachment.filename)}`;
     link.target = '_blank';
     link.rel = 'noopener';
-    link.className = 'd-flex align-items-center gap-2 text-truncate';
+    link.className = 'observation-log-attachment-link d-flex align-items-center gap-2 text-truncate';
 
     if (_obsAttachmentIsImage(attachment)) {
         const thumb = document.createElement('img');
@@ -2219,22 +2221,38 @@ function _obsBuildAttachmentRow(session, attachment) {
         thumb.className = 'observation-log-attachment-thumb';
         link.appendChild(thumb);
     } else {
-        link.appendChild(DOMUtils.createIcon(`${_obsAttachmentIconClass(attachment)} icon-inline`));
+        const iconBox = document.createElement('span');
+        iconBox.className = 'observation-log-attachment-thumb observation-log-attachment-icon';
+        iconBox.appendChild(DOMUtils.createIcon(_obsAttachmentIconClass(attachment)));
+        link.appendChild(iconBox);
     }
     const name = document.createElement('span');
     name.className = 'text-truncate';
-    name.textContent = attachment.original_name || attachment.filename;
+    name.textContent = attachment.display_name || attachment.original_name || attachment.filename;
     link.appendChild(name);
     row.appendChild(link);
 
     if (observationLogData.canEdit) {
+        const actions = document.createElement('div');
+        actions.className = 'd-flex gap-2 flex-shrink-0';
+
+        const editButton = document.createElement('button');
+        editButton.type = 'button';
+        editButton.className = 'btn btn-outline-primary btn-sm';
+        editButton.title = i18n.t('observation_log.rename_attachment');
+        editButton.appendChild(DOMUtils.createIcon('bi bi-pencil'));
+        editButton.addEventListener('click', () => showObservationAttachmentRenameModal(session.id, attachment));
+        actions.appendChild(editButton);
+
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
-        deleteButton.className = 'btn btn-outline-danger btn-sm flex-shrink-0';
+        deleteButton.className = 'btn btn-outline-danger btn-sm';
         deleteButton.title = i18n.t('observation_log.delete_attachment');
         deleteButton.appendChild(DOMUtils.createIcon('bi bi-trash'));
         deleteButton.addEventListener('click', () => deleteObservationSessionAttachment(session.id, attachment.id));
-        row.appendChild(deleteButton);
+        actions.appendChild(deleteButton);
+
+        row.appendChild(actions);
     }
 
     return row;
@@ -2248,7 +2266,7 @@ function showObservationAttachmentUploadModal(sessionId) {
     form.id = 'observation-attachment-form';
 
     const fileInput = _obsInput('observation-attachment-file', 'file', '', {
-        accept: '.jpg,.jpeg,.png,.webp,.pdf,.txt',
+        accept: '.jpg,.jpeg,.png,.webp,.pdf,.txt,.doc,.docx',
         required: 'required',
     });
     form.appendChild(_obsField('col-12', `${i18n.t('observation_log.attachment_file')} *`, fileInput, fileInput.id));
@@ -2318,6 +2336,56 @@ async function deleteObservationSessionAttachment(sessionId, attachmentId) {
     } catch (error) {
         console.error('Error deleting attachment:', error);
         showMessage('error', i18n.t('observation_log.failed_to_delete_attachment'));
+    }
+}
+
+/** Rename modal: prefilled with whatever is currently shown (custom name if set, else
+ * the original filename) so editing starts from what the user sees, not a blank field.
+ * Saving a blank name clears the custom name and falls back to the original filename. */
+function showObservationAttachmentRenameModal(sessionId, attachment) {
+    closeModal();
+
+    const form = document.createElement('form');
+    form.className = 'form row g-3';
+    form.id = 'observation-attachment-rename-form';
+
+    const currentName = attachment.display_name || attachment.original_name || attachment.filename;
+    const nameInput = _obsInput('observation-attachment-name', 'text', currentName, { maxlength: 200 });
+    form.appendChild(_obsField('col-12', i18n.t('observation_log.attachment_name'), nameInput, nameInput.id));
+
+    const actions = document.createElement('div');
+    actions.className = 'col-12 text-end';
+    const submit = document.createElement('button');
+    submit.type = 'submit';
+    submit.className = 'btn btn-primary';
+    submit.textContent = i18n.t('common.save');
+    actions.appendChild(submit);
+    form.appendChild(actions);
+
+    createModal(i18n.t('observation_log.rename_attachment'), form, 'lg');
+    new bootstrap.Modal('#modal_lg_close', { backdrop: 'static', focus: true, keyboard: true }).show();
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        await renameObservationSessionAttachment(sessionId, attachment.id, nameInput.value, submit);
+    });
+}
+
+async function renameObservationSessionAttachment(sessionId, attachmentId, name, submitButton) {
+    if (submitButton) submitButton.disabled = true;
+    try {
+        await fetchJSON(`${OBSERVATION_LOG_API}/${sessionId}/attachments/${attachmentId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+        });
+        observationLogOpenSessionId = sessionId;
+        closeModal();
+        await loadObservationSessions();
+    } catch (error) {
+        console.error('Error renaming attachment:', error);
+        showMessage('error', i18n.t('observation_log.failed_to_rename_attachment'));
+        if (submitButton) submitButton.disabled = false;
     }
 }
 
