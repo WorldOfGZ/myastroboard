@@ -357,7 +357,7 @@ function buildCollectionCard(item) {
     col.className = 'col';
 
     const card = document.createElement('div');
-    card.className = `card collection-card${item.caught ? '' : ' collection-card-uncaught'}`;
+    card.className = `card collection-card${item.caught ? ' collection-card-caught' : ' collection-card-uncaught'}`;
 
     const typeLabel = collectionTypeLabel(item.object_type);
     const constellationLabel = item.constellation && typeof getConstellationDisplayName === 'function'

@@ -38,6 +38,14 @@
     box-shadow: 0 0 0 2px var(--bs-primary);
 }
 
+/* Caught objects get a green border so a matched card stands out at a glance across a
+   dense grid. Uses --bs-success rather than the "subtle" token: the subtle variant's
+   dark-theme value is nearly invisible against the dark card background. !important is
+   required to beat bs_main.css's ".card { border: ... !important }" base rule. */
+.collection-card-caught {
+    border: 2px solid var(--bs-success) !important;
+}
+
 .collection-card-image {
     position: relative;
     width: 100%;
