@@ -1,5 +1,32 @@
 /* CSS for the Observation Log (v1.3) sub-tab */
 
+/* "Learn more" panel: a plain-language Plan -> Log -> Astrodex flow, built from text
+   and icons (not an image) so every label stays translatable via data-i18n. */
+.observation-log-flow-step {
+    text-align: center;
+    min-width: 160px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--bg-light);
+}
+
+.observation-log-flow-step-active {
+    border-color: var(--bs-primary);
+    border-width: 2px;
+}
+
+.observation-log-flow-caption {
+    color: var(--bs-secondary);
+    font-size: 0.8rem;
+    margin-top: 0.15rem;
+}
+
+.observation-log-flow-arrow {
+    color: var(--bs-secondary);
+    font-size: 1.25rem;
+}
+
 .observation-log-stat-value {
     font-size: 2rem;
     font-weight: bold;
