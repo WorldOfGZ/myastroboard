@@ -2,7 +2,7 @@
 # =================================
 # Builder stage
 # =================================
-FROM python:3.13.14-slim AS builder
+FROM python:3.14.6-slim AS builder
 
 # Build environment
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -12,15 +12,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /build
 
-# Install build dependencies
+# Build dependencies: all production wheels now ship prebuilt (sgp4, cryptography,
+# psutil, astropy, numpy, pandas, matplotlib, qh3/jh2 all publish cp314/abi3 wheels),
+# so no compiler toolchain is needed here anymore.
 RUN apt-get update && apt-get upgrade -y \
-    && apt-get install -y --no-install-recommends \
-       build-essential \
-       python3-dev \
-       libffi-dev \
-       libssl-dev \
-       cargo \
-       rustc \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and build wheels
@@ -39,7 +34,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # =================================
 # Production stage
 # =================================
-FROM python:3.13.14-slim AS production
+FROM python:3.14.6-slim AS production
 
 # Labels
 LABEL maintainer="Gloup"

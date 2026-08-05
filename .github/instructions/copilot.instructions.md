@@ -7,6 +7,7 @@ This document provides comprehensive guidance for GitHub Copilot (or other AI as
 MyAstroBoard is a web-based astronomy observation planning system with a fully built-in observability engine called **SkyTonight** that provides automated observation planning with a user-friendly dashboard - no external container dependency required.
 
 ### Core Concept
+
 - Users configure their location via web dashboard
 - **SkyTonight** internally computes all targets from international catalogues (OpenNGC, Messier, Caldwell, Herschel400, Pensack500, LBN, GaryImm, Arp, Sharpless, Barnard, vdB, comets, planets) using Astropy/Astroplan
 - Scheduler runs at 1 hour after astronomical dawn local time + 1 hour before astronomical dusk (falls back to every 6 hours when clock is untrusted)
@@ -16,7 +17,8 @@ MyAstroBoard is a web-based astronomy observation planning system with a fully b
 ## Architecture
 
 ### Technology Stack
-- **Backend**: Python 3.13 + Flask
+
+- **Backend**: Python 3.14 + Flask
 - **Frontend**: Vanilla HTML/CSS/JavaScript
 - **Astronomy**: Astropy + Astroplan for calculations; Skyfield (`de421.bsp`) for planet/body ephemeris
 - **Catalogues**: PyOngc (OpenNGC/OpenIC/Messier/Caldwell), Herschel 400 (static cross-ref), Pensack 500 (JSON cross-ref), LBN (JSON cross-ref), Minor Planet Center / JPL SBDB (comets), built-in solar system bodies
@@ -26,6 +28,7 @@ MyAstroBoard is a web-based astronomy observation planning system with a fully b
 - **CI/CD**: GitHub Actions for image publishing
 
 ### Directory Structure
+
 ```
 myastroboard/
 ├── backend/
@@ -213,6 +216,7 @@ myastroboard/
 ```
 
 ### SkyTonight data directory layout (`data/skytonight/`)
+
 ```
 skytonight/
 ├── calculations/
@@ -236,11 +240,13 @@ skytonight/
 ## Code Style & Conventions
 
 ### General Guidelines
+
 - **LANGUAGE REQUIREMENT**: All code, comments, documentation, and user-facing text MUST be in English
 - This includes: variable names, function names, class names, comments, docstrings, error messages, UI text, and documentation
 - Exception: Only external library names or technical terms that are internationally recognized
 
 ### Python
+
 - Follow PEP 8 style guidelines
 - Use type hints where beneficial for clarity
 - Docstrings for all public functions/classes
@@ -249,11 +255,13 @@ skytonight/
 - Prefer explicit over implicit
 
 ### Unified Logging System
+
 - **MANDATORY**: Use centralized logging configuration from `utils/logging_config.py`
 - **NEVER** use `print()` statements for logging in backend code
 - **NEVER** import `logging` directly - always use the centralized system
 
 #### Logging Usage Pattern
+
 ```python
 from logging_config import get_logger
 
@@ -277,6 +285,7 @@ except Exception as e:
 ```
 
 #### Log Levels and Configuration
+
 - **Default File Level**: INFO (set via LOG_LEVEL environment variable)
 - **Default Console Level**: WARNING (set via CONSOLE_LOG_LEVEL environment variable)
 - **Available Levels**: DEBUG, INFO, WARNING, ERROR, CRITICAL
@@ -288,6 +297,7 @@ except Exception as e:
   ```
 
 #### Logging Features
+
 - **Automatic Rotation**: 10MB files, keeps 5 backups
 - **Enhanced Format**: Includes module name, function name, and line number
 - **UTF-8 Encoding**: Proper handling of special characters
@@ -295,6 +305,7 @@ except Exception as e:
 - **Performance**: Different levels for console vs file output
 
 #### Logging Guidelines
+
 - Use **DEBUG** for detailed tracing and variable dumps
 - Use **INFO** for normal program flow and important events
 - Use **WARNING** for unexpected conditions that don't stop execution
@@ -304,12 +315,14 @@ except Exception as e:
 - Use f-strings for efficient string formatting in log messages
 
 ### JavaScript
+
 - Use modern ES6+ syntax
 - Async/await for asynchronous operations
 - Clear, descriptive variable names
 - Comment complex logic
 
 #### Frontend XSS Security Rules (MANDATORY)
+
 - **NEVER** use `innerHTML` in `static/js/**` (writes or reads for rendering).
 - **NEVER** introduce new `DOMUtils.setTrustedHTML(...)` callsites.
 - Build UI with explicit DOM APIs: `document.createElement`, `textContent`, `appendChild`, `setAttribute`.
@@ -319,17 +332,21 @@ except Exception as e:
 - If a legacy HTML template must be kept temporarily, isolate it and prioritize migration to node-based rendering.
 
 #### Existing Security Baseline (Do Not Regress)
+
 - `innerHTML` has been removed from `static/js/**`.
 - Major modules (`auth`, `app`, `astrodex`, `weather`, `weather_astro`, `equipment`, `moon`, `sun`, `iss`, `horizon_graph`, `aurora`, `solar_eclipse`, `lunar_eclipse`, `skytonight`, `skytonightScheduler`, `plan_my_night`) now follow node-based DOM updates.
 - Any change reintroducing HTML sinks should be treated as a regression and rewritten.
 
 #### Inline `style` Attribute (MANDATORY)
+
 Full rationale and examples: [CONTRIBUTING.md#inline-style-attribute](../../CONTRIBUTING.md#inline-style-attribute).
-- **NEVER** add `style="..."` in templates, or `element.style.x = ...` in JS, for *static* presentation (colors, sizes, spacing, font-size). Put it in a `static/css/bs_*.css` class instead, even a small new one-off class.
+
+- **NEVER** add `style="..."` in templates, or `element.style.x = ...` in JS, for _static_ presentation (colors, sizes, spacing, font-size). Put it in a `static/css/bs_*.css` class instead, even a small new one-off class.
 - Allowed exceptions: JS-driven show/hide (`style.display`), and genuinely per-instance dynamic values that can't be a static class (Bootstrap's documented `progress-bar` width pattern, a computed color/offset from data).
 - A `<div>` carrying both a `class` and a hardcoded static `style` is the smell — move the static part into the class.
 
 ### File Organization
+
 - One class per file when possible
 - Keep related functionality together
 - Separate concerns (data loading, business logic, presentation)
@@ -337,6 +354,7 @@ Full rationale and examples: [CONTRIBUTING.md#inline-style-attribute](../../CONT
 ## Key Design Patterns
 
 ### 1. Configuration Management
+
 - **Pattern**: JSON file-based configuration with environment variable overrides
 - **Location**: `data/config.json`
 - **Structure**: Hierarchical with sections:
@@ -350,6 +368,7 @@ Full rationale and examples: [CONTRIBUTING.md#inline-style-attribute](../../CONT
 - **CRITICAL RULE (v1.2)**: Backend code MUST NEVER read `config["location"]` directly. Resolve the request's location with `repo_config.get_active_location(config, get_current_user())` (per-user active location), or `repo_config.get_install_default_location(config)` for install-wide jobs (SkyTonight calculation, scheduler anchors). The cache scheduler iterates `repo_config.get_scheduler_locations(config)`. Cap: `constants.MAX_LOCATIONS = 5` (hard-coded, never admin-configurable - rationale in `docs/LOCATIONS.md`).
 
 ### 1.1. User Management
+
 - **Pattern**: JSON file-based user storage with hashed passwords
 - **Location**: `data/users.json`
 - **Structure**: Dictionary of users with:
@@ -366,6 +385,7 @@ Full rationale and examples: [CONTRIBUTING.md#inline-style-attribute](../../CONT
 - **Why**: Persistent user accounts, secure password storage, survives Docker restarts
 
 ### 1.2. User Customization Preferences
+
 - **Pattern**: Per-user preference object persisted in `data/users.json`
 - **Scope**: Preferences are always user-scoped; never shared globally across users
 - **Current Keys**:
@@ -386,6 +406,7 @@ Full rationale and examples: [CONTRIBUTING.md#inline-style-attribute](../../CONT
 - **Why**: Personalized UX without compromising role boundaries or data integrity
 
 ### 2. SkyTonight Target Dataset
+
 - **Source catalogues**: OpenNGC + OpenIC (via PyOngc), Messier (subset of OpenNGC), Caldwell (cross-referenced from PyOngc), Herschel 400 (static cross-ref), Pensack 500 (JSON cross-ref from `backend/catalogues/pensack500.json`), LBN (JSON cross-ref from `backend/catalogues/lbn.json`), GaryImm (JSON cross-ref `garyimm_crossrefs.json` + standalone `garyimm_standalone.json`), Arp (JSON cross-ref from `backend/catalogues/arp.json`), Sharpless/Barnard/vdB (full standalone catalogues from `backend/catalogues/`), Abell PNe (`abell_pne.json`, 71 objects from SIMBAD), Abell Clusters (`abell_clusters.json`, 2712 clusters from VizieR VII/110A ACO 1989), comets (MPC primary + JPL enrichment), solar-system bodies (Skyfield `de421.bsp`)
 - **Dataset file**: `data/skytonight/catalogues/targets.json` - generated offline by `scripts/build_skytonight_catalogue.py` or rebuilt on-demand via API
 - **Model**: `SkyTonightTarget` dataclass (`skytonight_models.py`) - immutable, with `target_id`, `category`, `object_type`, `preferred_name`, `catalogue_names` (dict), `coordinates`, `magnitude`, `size_arcmin`, `source_catalogues`
@@ -397,6 +418,7 @@ Full rationale and examples: [CONTRIBUTING.md#inline-style-attribute](../../CONT
 - **Why**: Stable, offline-capable, no per-request recalculation, extensible for more catalogues
 
 ### 3. SkyTonight Scheduler
+
 - **Pattern**: Threading-based in-process scheduler
 - **Smart schedule**: 06:00 local time + 1 hour before astronomical dusk + first startup (requires valid system clock)
 - **Fallback**: Every 6 hours when `year < 2024` or timezone is untrusted
@@ -406,6 +428,7 @@ Full rationale and examples: [CONTRIBUTING.md#inline-style-attribute](../../CONT
 - **Why**: No external dependencies, survives across container restarts, clock-aware
 
 ### 4. AstroScore
+
 - **Purpose**: Dimensionless [0, 1] ranking of astrophotography suitability for the configured location
 - **Calculation**: Weighted sum of 4 sub-scores - visibility (0.40), sky quality (0.25), object brightness (0.25), comfort (0.10)
 - **Bonuses**: +0.20 for planet at opposition, +0.05 for Messier objects; final value clamped to [0.0, 1.0]
@@ -413,9 +436,10 @@ Full rationale and examples: [CONTRIBUTING.md#inline-style-attribute](../../CONT
 - **Implementation**: `backend/skytonight/skytonight_calculator.py`
 
 ### 5. API Design
+
 - **Pattern**: RESTful JSON API with role-based access control
 - **Endpoint Coverage**:
-    - Routes are defined as Flask Blueprints in `backend/blueprints/*.py` (registered in `backend/app.py`), one module per domain: `auth.py` (auth+users), `push.py`, `locations.py` (config+locations), `connectors.py`, `admin.py` (app-settings/restart/metrics/backup/logs), `misc.py` (skyquality/convert-coordinates/timezones/health/cache/version), `weather.py` (weather+moon+aurora+seeing), `tracking.py` (object/iss/css/spaceflight/translate), `astronomy.py` (sky-widget/sun/events/astro/tonight), `plan_my_night.py`, `astrodex.py` (astrodex+beginner-catalog), `equipment.py`, `skytonight_api.py` (SkyTonight routes; the SkyTonight *calculation pipeline* it calls into still lives in `backend/skytonight/`). `app.py` itself only holds the Flask app factory, extension setup, static/PWA routes, and startup/scheduler init. Cross-domain route helpers (`_resolve_active_location`, `_active_location_cache`) live in `backend/utils/route_helpers.py`.
+  - Routes are defined as Flask Blueprints in `backend/blueprints/*.py` (registered in `backend/app.py`), one module per domain: `auth.py` (auth+users), `push.py`, `locations.py` (config+locations), `connectors.py`, `admin.py` (app-settings/restart/metrics/backup/logs), `misc.py` (skyquality/convert-coordinates/timezones/health/cache/version), `weather.py` (weather+moon+aurora+seeing), `tracking.py` (object/iss/css/spaceflight/translate), `astronomy.py` (sky-widget/sun/events/astro/tonight), `plan_my_night.py`, `astrodex.py` (astrodex+beginner-catalog), `equipment.py`, `skytonight_api.py` (SkyTonight routes; the SkyTonight _calculation pipeline_ it calls into still lives in `backend/skytonight/`). `app.py` itself only holds the Flask app factory, extension setup, static/PWA routes, and startup/scheduler init. Cross-domain route helpers (`_resolve_active_location`, `_active_location_cache`) live in `backend/utils/route_helpers.py`.
   - The current endpoint inventory is maintained in `docs/API_ENDPOINTS.md` and should be updated whenever a route is added, removed, or renamed.
   - Key security constraints:
     - Most `/api/*` routes require login (`@login_required`).
@@ -423,7 +447,7 @@ Full rationale and examples: [CONTRIBUTING.md#inline-style-attribute](../../CONT
     - User update/delete route is `/api/users/<user_id>` (not `<username>`).
     - Self-service endpoints include `/api/auth/change-password` and `/api/auth/preferences`.
 - **SkyTonight endpoints** (all `@login_required`):
-    - Legacy aliases also exist for scheduler compatibility: `GET /api/scheduler/status` and `POST /api/scheduler/trigger`.
+  - Legacy aliases also exist for scheduler compatibility: `GET /api/scheduler/status` and `POST /api/scheduler/trigger`.
   - `GET /api/skytonight/scheduler/status`
   - `POST /api/skytonight/scheduler/trigger` (`@admin_required`)
   - `GET /api/skytonight/dataset/status`
@@ -436,20 +460,20 @@ Full rationale and examples: [CONTRIBUTING.md#inline-style-attribute](../../CONT
   - `GET /api/skytonight/skymap`
   - `GET /api/skytonight/log`
 - **Other key feature endpoints** (`@login_required` unless noted):
-    - Push notifications: `GET /api/push/vapid-public-key`, `GET /api/push/vapid-config-status`, `POST /api/push/subscribe`, `GET/DELETE /api/push/subscriptions`, `DELETE /api/push/unsubscribe`, `POST /api/push/test`, `POST /api/push/test/<trigger_id>`
-    - Admin operations (`@admin_required`): `GET/POST /api/admin/app-settings`, `POST /api/admin/restart`
-    - Seeing forecast: `GET /api/seeing-forecast`
-    - ISS tracking: `GET /api/iss/passes` (returns passes, solar transits **and lunar transits**, all times in configured local TZ), `GET /api/iss/location`, `POST /api/iss/celestrak/restart` (`@admin_required`)
-    - CSS tracking: `GET /api/css/passes` (same structure as ISS, includes `station: "CSS"`), `GET /api/css/location`, `POST /api/css/celestrak/restart` (`@admin_required`)
-    - Moon details: `GET /api/moon/month-calendar`
-    - On-demand translation: `POST /api/translate/on-demand`
-    - Spaceflight: `GET /api/spaceflight/launches`, `GET /api/spaceflight/astronauts`, `GET /api/spaceflight/events`, `GET /api/spaceflight/img/<filename>`, `GET /api/spaceflight/launch/<launch_id>/vidurls`
-    - Object lookup: `GET /api/object/<path:identifier>`
-    - Astrodex helpers: `GET /api/astrodex/catalogue-lookup`
-    - Plan My Night helpers: `GET /api/plan-my-night/list`, `PATCH /api/plan-my-night`, `DELETE /api/plan-my-night/clear-all`
-    - Observation Log (v1.3, self-scoped; see `docs/OBSERVATION_LOG.md`): `GET/POST /api/observation-sessions`, `GET/PUT/DELETE /api/observation-sessions/<session_id>`, `POST /api/observation-sessions/from-plan`, `POST /api/observation-sessions/<session_id>/entries`, `PUT/DELETE /api/observation-sessions/<session_id>/entries/<entry_id>`, `POST /api/observation-sessions/<session_id>/entries/<entry_id>/astrodex-picture`. Adding/updating an entry with `frame_count > 0` auto-registers its target in Astrodex (never auto-reversed); attaching the picture stays a manual step reusing `POST /api/astrodex/upload`.
-    - SkyTonight debug helper: `GET /api/skytonight/target-debug`
-    - Localized manifest route: `GET /manifest.<lang>.webmanifest` (public)
+  - Push notifications: `GET /api/push/vapid-public-key`, `GET /api/push/vapid-config-status`, `POST /api/push/subscribe`, `GET/DELETE /api/push/subscriptions`, `DELETE /api/push/unsubscribe`, `POST /api/push/test`, `POST /api/push/test/<trigger_id>`
+  - Admin operations (`@admin_required`): `GET/POST /api/admin/app-settings`, `POST /api/admin/restart`
+  - Seeing forecast: `GET /api/seeing-forecast`
+  - ISS tracking: `GET /api/iss/passes` (returns passes, solar transits **and lunar transits**, all times in configured local TZ), `GET /api/iss/location`, `POST /api/iss/celestrak/restart` (`@admin_required`)
+  - CSS tracking: `GET /api/css/passes` (same structure as ISS, includes `station: "CSS"`), `GET /api/css/location`, `POST /api/css/celestrak/restart` (`@admin_required`)
+  - Moon details: `GET /api/moon/month-calendar`
+  - On-demand translation: `POST /api/translate/on-demand`
+  - Spaceflight: `GET /api/spaceflight/launches`, `GET /api/spaceflight/astronauts`, `GET /api/spaceflight/events`, `GET /api/spaceflight/img/<filename>`, `GET /api/spaceflight/launch/<launch_id>/vidurls`
+  - Object lookup: `GET /api/object/<path:identifier>`
+  - Astrodex helpers: `GET /api/astrodex/catalogue-lookup`
+  - Plan My Night helpers: `GET /api/plan-my-night/list`, `PATCH /api/plan-my-night`, `DELETE /api/plan-my-night/clear-all`
+  - Observation Log (v1.3, self-scoped; see `docs/OBSERVATION_LOG.md`): `GET/POST /api/observation-sessions`, `GET/PUT/DELETE /api/observation-sessions/<session_id>`, `POST /api/observation-sessions/from-plan`, `POST /api/observation-sessions/<session_id>/entries`, `PUT/DELETE /api/observation-sessions/<session_id>/entries/<entry_id>`, `POST /api/observation-sessions/<session_id>/entries/<entry_id>/astrodex-picture`. Adding/updating an entry with `frame_count > 0` auto-registers its target in Astrodex (never auto-reversed); attaching the picture stays a manual step reusing `POST /api/astrodex/upload`.
+  - SkyTonight debug helper: `GET /api/skytonight/target-debug`
+  - Localized manifest route: `GET /manifest.<lang>.webmanifest` (public)
 - **Error Handling**: Return appropriate HTTP status codes with JSON error objects
   - 401 Unauthorized - Not authenticated
   - 403 Forbidden - Insufficient permissions (not admin)
@@ -463,6 +487,7 @@ Full rationale and examples: [CONTRIBUTING.md#inline-style-attribute](../../CONT
 - **Why**: Clear separation, security through authentication, role-based access control
 
 ### 6. Modern UI/UX
+
 - **Pattern**: Tab-based interface (main tabs + sub-tabs)
 - **Main tabs**: Dashboard, SkyTonight, Plan My Night, Astrodex, Equipment, Weather, Configuration, Parameters
 - **SkyTonight sub-tabs**:
@@ -480,6 +505,7 @@ Full rationale and examples: [CONTRIBUTING.md#inline-style-attribute](../../CONT
 ## Important Implementation Details
 
 ### SkyTonight Calculation Flow
+
 ```
 Scheduler trigger (startup / smart schedule / manual)
   ├─ ensure_skytonight_directories()
@@ -499,6 +525,7 @@ Scheduler trigger (startup / smart schedule / manual)
 ```
 
 ### Scheduler Behavior
+
 ```python
 # Runs immediately on first startup
 # Smart mode (valid clock): 1 h after astronomical dawn + 1 h before astronomical dusk
@@ -508,23 +535,28 @@ Scheduler trigger (startup / smart schedule / manual)
 ```
 
 ### Location Name Sanitization
+
 - `utils.slugify_location_name(name)` → URL-safe slug (e.g., `"Marnes la Coquette"` → `"marnes-la-coquette"`)
 - Used for any per-location sub-directory inside `data/skytonight/`
 - **Always use this function** when constructing location-specific paths; do not roll your own sanitizer
 
 ### Coordinate Format Conversion
+
 - **Input / storage**: decimal degrees (float) in `SkyTonightCoordinates.ra_hours` / `dec_degrees`
 - **API**: `/api/convert-coordinates` endpoint with DMS validation
 - **Frontend**: Real-time conversion with error display
 - **Why**: User-friendly input for astronomers familiar with DMS notation
 
 ### Chart.js Usage
+
 - **Never** use `resizeDelay` option - it schedules a `requestAnimationFrame → setTimeout` chain that crashes if `chart.destroy()` is called before it resolves (e.g., on tab switch)
 - Always call `chart.destroy()` before recreating a chart on the same canvas
 - Use `cleanupTransientCharts()` in `app.js` which is already called on every tab / sub-tab switch
 
 ### Environment Configuration
+
 Key environment variables (set in docker-compose.yml or .env):
+
 - **DATA_DIR**: Configuration and data storage (default: `/app/data`)
 - **SKYTONIGHT_DIR**: SkyTonight runtime data (default: `$DATA_DIR/skytonight`)
 - **LOG_LEVEL**: File logging level - DEBUG, INFO, WARNING, ERROR, CRITICAL (default: INFO)
@@ -539,6 +571,7 @@ Key environment variables (set in docker-compose.yml or .env):
 ### Adding a New API Endpoint
 
 1. Define the route in the matching domain module under `backend/blueprints/` (e.g. `backend/blueprints/misc.py` for a standalone utility endpoint) - do not add new routes to `backend/app.py` itself:
+
 ```python
 @misc_bp.route('/api/new-endpoint', methods=['GET'])
 @login_required
@@ -553,10 +586,11 @@ def new_endpoint():
 ```
 
 2. Add corresponding JavaScript in the relevant `static/js/*.js` file:
+
 ```javascript
 async function callNewEndpoint() {
-    const response = await fetchJSON(`${API_BASE}/api/new-endpoint`);
-    // Handle data
+  const response = await fetchJSON(`${API_BASE}/api/new-endpoint`);
+  // Handle data
 }
 ```
 
@@ -565,43 +599,51 @@ async function callNewEndpoint() {
 ### Adding a New Configuration Parameter
 
 1. Update default config in `backend/utils/config_defaults.py`:
+
 ```python
 DEFAULT_CONFIG["section"]["new_parameter"] = default_value
 ```
 
 2. Add form field in `templates/index.html`:
+
 ```html
 <div class="form-group">
-    <label data-i18n="section.new_parameter_label"></label>
-    <input type="text" id="new-parameter">
+  <label data-i18n="section.new_parameter_label"></label>
+  <input type="text" id="new-parameter" />
 </div>
 ```
 
 3. Update save/load in the relevant JS config file using DOM APIs (no innerHTML):
+
 ```javascript
 // In saveConfiguration()
-new_parameter: document.getElementById('new-parameter').value
+new_parameter: document.getElementById("new-parameter").value;
 // In loadConfiguration()
-document.getElementById('new-parameter').value = config.section.new_parameter
+document.getElementById("new-parameter").value = config.section.new_parameter;
 ```
 
 ### Rebuilding the SkyTonight Dataset
 
 The target dataset is pre-built by an offline script and stored in `data/skytonight/catalogues/targets.json`:
+
 ```bash
 # From project root (with PyOngc and dependencies installed)
 python scripts/build_skytonight_catalogue.py
 ```
+
 Or trigger via API (admin only):
+
 ```
 POST /api/skytonight/dataset/rebuild
 ```
 
 ### Triggering a SkyTonight Recalculation
+
 ```bash
 # Via API (admin required)
 curl -X POST http://localhost:5000/api/skytonight/scheduler/trigger
 ```
+
 Or set `SKYTONIGHT_FALLBACK_INTERVAL_SECONDS` to a shorter value in `backend/skytonight/skytonight_scheduler.py` for testing.
 
 ### Updating the Application Version
@@ -614,6 +656,7 @@ Or set `SKYTONIGHT_FALLBACK_INTERVAL_SECONDS` to a shorter value in `backend/sky
 ## Testing Guidelines
 
 ### Manual Testing Checklist
+
 - [ ] Configuration save/load works
 - [ ] SkyTonight scheduler triggers and completes
 - [ ] DSO / bodies / comets results appear in the UI tables
@@ -625,6 +668,7 @@ Or set `SKYTONIGHT_FALLBACK_INTERVAL_SECONDS` to a shorter value in `backend/sky
 - [ ] Health endpoint responds
 
 ### Testing with Docker
+
 ```bash
 # Build
 docker compose build
@@ -645,6 +689,7 @@ docker compose down
 ```
 
 ### Testing Scheduler (Without Waiting)
+
 Set `SKYTONIGHT_FALLBACK_INTERVAL_SECONDS` in `backend/skytonight/skytonight_scheduler.py` to a shorter value (e.g. 300 for 5 minutes), or use the manual trigger API endpoint.
 
 ## Code Validation Before Committing
@@ -652,6 +697,7 @@ Set `SKYTONIGHT_FALLBACK_INTERVAL_SECONDS` in `backend/skytonight/skytonight_sch
 Full details live in [CONTRIBUTING.md](../../CONTRIBUTING.md#before-submitting) - this is the quick-reference checklist an AI assistant must run (or tell the user to run) before treating a change as done.
 
 ### Required Commands
+
 ```bash
 pytest                              # full test suite
 black backend/                      # Python formatting (PEP 8, 120-char lines)
@@ -659,19 +705,24 @@ flake8 backend/                     # Python linting
 pyright backend/                    # static type checking (reads pyrightconfig.json at repo root)
 djlint templates/ static/offline.html --profile jinja --lint --ignore H021,H023,H030,H031,J004,J018
 ```
+
 - `black` and `flake8` are declared in `requirements-dev.txt`; run them on every `backend/` change, not just new files.
 - `pyright` mirrors the Pylance errors shown inline in VSCode - a clean `pyright backend/` run means Pylance should be clean too. If VSCode still shows stale errors after a config edit, run "Python: Restart Language Server".
 - `djlint` lints `templates/` (Jinja2) and `static/offline.html`; the ignored rule codes are explained in [CONTRIBUTING.md](../../CONTRIBUTING.md#ignored-rules-and-why) - do not silently add more ignores without documenting why there.
 - JavaScript has no standalone lint step: formatting is applied on save by VSCode's built-in formatter (`.vscode/settings.json` + `.editorconfig`). Just make sure the file was opened/saved in VSCode, or match the existing 4-space/single-quote style by hand.
 
 ### Route Inventory Check
+
 If a change touches `app.py` or any `backend/blueprints/*.py` file (route added, removed, renamed, or its HTTP method changed):
+
 ```bash
 pytest tests/blueprints/test_route_inventory.py
 ```
+
 Update `EXPECTED_ROUTES` in that file to match, and document the change in `CHANGELOG_NEXT.md`. The failure output lists exactly which routes are unexpected or missing.
 
 ### Minimum Bar Before Calling a Change Done
+
 - [ ] `pytest` passes
 - [ ] `black backend/` produces no diff
 - [ ] `flake8 backend/` reports no issues
@@ -686,16 +737,19 @@ Update `EXPECTED_ROUTES` in that file to match, and document the change in `CHAN
 ## Security Considerations
 
 ### No Docker Socket Access
+
 - SkyTonight performs all calculations in-process (Python/Astropy) - no Docker-in-Docker, no privileged mode required
 - `docker-compose.yml` runs with `privileged: false`
 
 ### Input Validation
+
 - Always validate user input before:
   - Saving to config
   - Using in file paths (use `slugify_location_name` for location-derived paths)
   - Returning in API responses
 
 ### Dependency Security
+
 - Keep dependencies updated
 - Run security scans via GitHub Actions
 - Pin versions in requirements.txt
@@ -703,11 +757,13 @@ Update `EXPECTED_ROUTES` in that file to match, and document the change in `CHAN
 ## Performance Considerations
 
 ### Scheduler Efficiency
+
 - One thread, sequential execution; file lock prevents multi-worker duplication
 - Acceptable for personal use (thousands of targets processed in a single pass)
 - For large deployments, consider async or queue-based approach
 
 ### Memory Usage
+
 - SkyTonight calculations are done in-process (Astropy/NumPy); objects are released after each run
 - Chart.js charts are created on-demand and destroyed on modal close or tab switch
 - Astropy + Skyfield ephemeris loaded once and reused across calculations
@@ -717,29 +773,35 @@ Update `EXPECTED_ROUTES` in that file to match, and document the change in `CHAN
 ### Common Issues
 
 **Scheduler not starting**
+
 - Check logs: `docker logs myastroboard`
 - Verify scheduler initialization in `app.py`
 - Check `data/skytonight/runtime/scheduler_status.json` for last error
 
 **SkyTonight results missing**
+
 - Check `data/skytonight/logs/last_calculation.log` for calculation errors
 - Verify `data/skytonight/catalogues/targets.json` exists (rebuild if missing)
 - Check `data/skytonight/calculations/calculation_results.json` exists (signals all files complete)
 
 **Altitude-time popup crashes with "Cannot read properties of null (reading 'addEventListener')"**
+
 - This is caused by `resizeDelay` in Chart.js options - **never** add `resizeDelay` to any Chart.js config
 - The delayed resize fires after `chart.destroy()` is called on tab switch, accessing a null canvas
 
 **Targets not loading in UI**
+
 - Check browser console for API errors
 - Test `GET /api/skytonight/data/dso` directly
 - Verify constraints are not filtering out all targets (e.g., `size_constraint_min` too large)
 
 **Coordinate conversion errors**
+
 - Check coordinates are stored as decimal degrees (not DMS) in config
 - Validate using `GET /api/convert-coordinates`
 
 ### Enable Debug Logging
+
 ```bash
 # In docker-compose.yml or .env file
 LOG_LEVEL=DEBUG              # Enable debug logging to file
@@ -747,6 +809,7 @@ CONSOLE_LOG_LEVEL=DEBUG      # Enable debug logging to console
 ```
 
 #### Dynamic Log Level Control
+
 ```python
 from logging_config import set_global_log_level, get_current_log_level
 
@@ -755,6 +818,7 @@ set_global_log_level('DEBUG')
 ```
 
 ### Useful Log Locations
+
 - **Application Log**: `data/myastroboard.log` (mounted volume in `/app/data/`)
 - **SkyTonight Calculation Log**: `data/skytonight/logs/last_calculation.log`
 - **Docker Logs**: `docker logs myastroboard` (shows console output)
@@ -773,37 +837,45 @@ All interactive charts in the UI should follow a consistent, clean presentation 
 Every chart must be wrapped in a Bootstrap card container with the following structure:
 
 ```html
-<div class="col mb-3"> <!-- Adjust col size based on grid requirement -->
-    <div class="card h-100">
-        <!-- Header with title -->
-        <div class="card-header">
-            <h5 class="mb-0">🔥 Chart Title</h5>
-        </div>
-        
-        <!-- Chart container -->
-        <div class="card-body">
-            <canvas id="unique-chart-id" style="height: 350px;"></canvas>
-        </div>
-        
-        <!-- Footer with legend and metadata -->
-        <div class="card-footer text-muted small">
-            <div class="row">
-                <div class="col-auto">
-                    <span class="badge" style="background-color: #COLOR1;">Legend Item 1</span>
-                </div>
-                <div class="col-auto">
-                    <span class="badge" style="background-color: #COLOR2;">Legend Item 2</span>
-                </div>
-                <div class="col-auto">
-                    <span class="text-muted">Additional metadata or unit information</span>
-                </div>
-            </div>
-        </div>
+<div class="col mb-3">
+  <!-- Adjust col size based on grid requirement -->
+  <div class="card h-100">
+    <!-- Header with title -->
+    <div class="card-header">
+      <h5 class="mb-0">🔥 Chart Title</h5>
     </div>
+
+    <!-- Chart container -->
+    <div class="card-body">
+      <canvas id="unique-chart-id" style="height: 350px;"></canvas>
+    </div>
+
+    <!-- Footer with legend and metadata -->
+    <div class="card-footer text-muted small">
+      <div class="row">
+        <div class="col-auto">
+          <span class="badge" style="background-color: #COLOR1;"
+            >Legend Item 1</span
+          >
+        </div>
+        <div class="col-auto">
+          <span class="badge" style="background-color: #COLOR2;"
+            >Legend Item 2</span
+          >
+        </div>
+        <div class="col-auto">
+          <span class="text-muted"
+            >Additional metadata or unit information</span
+          >
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 ```
 
 ### Grid Sizes
+
 - **Full width**: `col-12` (for wide charts like horizon-graph)
 - **Two columns**: `col-6` (for standard side-by-side charts)
 - **Three columns**: `col-4` (for compact displays)
@@ -830,50 +902,50 @@ When implementing charts with Chart.js:
  * Render chart with standard card layout
  */
 function renderMyChart(data) {
-    const container = document.getElementById('my-chart-display');
-    if (!container) return;
+  const container = document.getElementById("my-chart-display");
+  if (!container) return;
 
   // Create card structure with explicit DOM APIs (no innerHTML)
   DOMUtils.clear(container);
-  const col = document.createElement('div');
-  col.className = 'col-12 mb-3';
+  const col = document.createElement("div");
+  col.className = "col-12 mb-3";
 
-  const card = document.createElement('div');
-  card.className = 'card h-100';
+  const card = document.createElement("div");
+  card.className = "card h-100";
 
-  const header = document.createElement('div');
-  header.className = 'card-header';
-  const title = document.createElement('h5');
-  title.className = 'mb-0';
-  title.textContent = '📊 My Chart Title';
+  const header = document.createElement("div");
+  header.className = "card-header";
+  const title = document.createElement("h5");
+  title.className = "mb-0";
+  title.textContent = "📊 My Chart Title";
   header.appendChild(title);
 
-  const body = document.createElement('div');
-  body.className = 'card-body';
-  const canvas = document.createElement('canvas');
-  canvas.id = 'myChartCanvas';
-  canvas.style.height = '350px';
+  const body = document.createElement("div");
+  body.className = "card-body";
+  const canvas = document.createElement("canvas");
+  canvas.id = "myChartCanvas";
+  canvas.style.height = "350px";
   body.appendChild(canvas);
 
-  const footer = document.createElement('div');
-  footer.className = 'card-footer text-muted small';
-  const footerRow = document.createElement('div');
-  footerRow.className = 'row';
+  const footer = document.createElement("div");
+  footer.className = "card-footer text-muted small";
+  const footerRow = document.createElement("div");
+  footerRow.className = "row";
 
-  const badge1Col = document.createElement('div');
-  badge1Col.className = 'col-auto';
-  const badge1 = document.createElement('span');
-  badge1.className = 'badge';
-  badge1.style.backgroundColor = '#3b82f6';
-  badge1.textContent = 'Series 1';
+  const badge1Col = document.createElement("div");
+  badge1Col.className = "col-auto";
+  const badge1 = document.createElement("span");
+  badge1.className = "badge";
+  badge1.style.backgroundColor = "#3b82f6";
+  badge1.textContent = "Series 1";
   badge1Col.appendChild(badge1);
 
-  const badge2Col = document.createElement('div');
-  badge2Col.className = 'col-auto';
-  const badge2 = document.createElement('span');
-  badge2.className = 'badge';
-  badge2.style.backgroundColor = '#8b5cf6';
-  badge2.textContent = 'Series 2';
+  const badge2Col = document.createElement("div");
+  badge2Col.className = "col-auto";
+  const badge2 = document.createElement("span");
+  badge2.className = "badge";
+  badge2.style.backgroundColor = "#8b5cf6";
+  badge2.textContent = "Series 2";
   badge2Col.appendChild(badge2);
 
   footerRow.appendChild(badge1Col);
@@ -885,37 +957,38 @@ function renderMyChart(data) {
   card.appendChild(footer);
   col.appendChild(card);
   container.appendChild(col);
-    
-    // Create Chart.js instance
-    const ctx = document.getElementById('myChartCanvas');
-    if (window.myChartInstance) {
-        window.myChartInstance.destroy();
-    }
-    
-    window.myChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: data.times,
-            datasets: [
-                {
-                    label: 'Series 1',
-                    data: data.series1,
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    // ... other options
-                }
-            ]
+
+  // Create Chart.js instance
+  const ctx = document.getElementById("myChartCanvas");
+  if (window.myChartInstance) {
+    window.myChartInstance.destroy();
+  }
+
+  window.myChartInstance = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: data.times,
+      datasets: [
+        {
+          label: "Series 1",
+          data: data.series1,
+          borderColor: "#3b82f6",
+          backgroundColor: "rgba(59, 130, 246, 0.1)",
+          // ... other options
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-            // ... other options
-        }
-    });
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      // ... other options
+    },
+  });
 }
 ```
 
 ### Files Requiring This Standard
+
 - `weather_astro.js`: astro-seeing-chart, astro-clouds-chart, astro-conditions-chart
 - `weather.js`: cloudConditionsChart, seeingConditionsChart
 - `solar_eclipse.js`: solar-eclipse-altitude-chart
@@ -926,9 +999,11 @@ function renderMyChart(data) {
 ## Internationalization (i18n) & Translations
 
 ### Overview
+
 MyAstroBoard supports multiple languages through a structured i18n system. Currently supported languages: **English (en)**, **French (fr)**, **Spanish (es)**, **German (de)**, **Italian (it)**, **Portuguese (pt)**.
 
 ### Key Principles
+
 - **All user-facing text must be translatable** - No hardcoded strings in UI
 - **Keys use dot notation for organization** - `namespace.section.key` structure
 - **Key naming respects file organization** - Keys grouped by component/file
@@ -940,6 +1015,7 @@ MyAstroBoard supports multiple languages through a structured i18n system. Curre
 - **Parameterized keys must be resolved** - Always pass required placeholders (example: `{time}`) before returning payloads
 
 ### Directory Structure
+
 ```
 static/i18n/
 ├── en.json          # English translations
@@ -957,6 +1033,7 @@ backend/
 ### Frontend Usage
 
 #### 1. HTML Elements with data-i18n attribute
+
 ```html
 <!-- Static content translation -->
 <h2 data-i18n="astro_weather.section_title">🌡️ Current Conditions</h2>
@@ -964,61 +1041,65 @@ backend/
 
 <!-- Initialize i18n translations after page load -->
 <script>
-    window.addEventListener('load', () => {
-        document.querySelectorAll('[data-i18n]').forEach(el => {
-            const key = el.getAttribute('data-i18n');
-            el.textContent = i18n.t(key);
-        });
+  window.addEventListener("load", () => {
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      const key = el.getAttribute("data-i18n");
+      el.textContent = i18n.t(key);
     });
+  });
 </script>
 ```
 
 #### 2. JavaScript Direct Translation Calls
+
 ```javascript
 // Get translated string
-const message = i18n.t('common.loading');
+const message = i18n.t("common.loading");
 
 // Get translated string with parameters (placeholders)
-const alertMsg = i18n.t('weather_alerts.critical_dew_risk', { time: '14:30' });
+const alertMsg = i18n.t("weather_alerts.critical_dew_risk", { time: "14:30" });
 
 // Check if translation exists
-if (i18n.has('my.key')) {
-    console.log(i18n.t('my.key'));
+if (i18n.has("my.key")) {
+  console.log(i18n.t("my.key"));
 }
 ```
 
 #### 3. Language Switching
 
 **Automatic (User-facing)**:
+
 ```html
 <!-- Language selector dropdown in footer -->
 <select id="language-select-footer" class="form-select form-select-sm">
-    <option value="en">English</option>
-    <option value="fr">Français</option>
+  <option value="en">English</option>
+  <option value="fr">Français</option>
 </select>
 ```
 
 The `LanguageSelector` class (in `static/js/language-selector.js`) automatically handles user interactions with this dropdown, switching the language and updating all UI elements.
 
 **Programmatic (Developer)**:
+
 ```javascript
 // Switch language programmatically
-await i18n.setLanguage('fr');  // Switch to French
+await i18n.setLanguage("fr"); // Switch to French
 
 // Get current language
 const currentLang = i18n.getCurrentLanguage();
 
 // Get supported languages
-const langs = i18n.getSupportedLanguages();  // Returns ['en', 'fr', 'es', 'de', 'it', 'pt']
+const langs = i18n.getSupportedLanguages(); // Returns ['en', 'fr', 'es', 'de', 'it', 'pt']
 
 // Listen for language changes (useful for components needing dynamic updates)
-window.addEventListener('i18nLanguageChanged', (e) => {
-    // Update UI elements here
-    console.log(`Language changed to: ${e.detail.language}`);
+window.addEventListener("i18nLanguageChanged", (e) => {
+  // Update UI elements here
+  console.log(`Language changed to: ${e.detail.language}`);
 });
 ```
 
 **User Experience**:
+
 - Footer contains language selector dropdown (next to theme selector)
 - Users can click dropdown to switch between English and Français
 - Language preference persists in browser localStorage
@@ -1026,32 +1107,34 @@ window.addEventListener('i18nLanguageChanged', (e) => {
 - Browser language is auto-detected on first visit
 
 #### 4. Dynamic Content Translation in JavaScript
+
 ```javascript
 // Creating translated content dynamically
 function renderAlert(alert) {
-    const alertDiv = document.createElement('div');
-    
-    // Get translated alert message based on alert type
-    let messageKey;
-    switch(alert.type) {
-        case 'DEW_WARNING':
-            messageKey = 'weather_alerts.alert_dew_warning';
-            break;
-        case 'WIND_WARNING':
-            messageKey = 'weather_alerts.alert_wind_warning';
-            break;
-        default:
-            messageKey = 'weather_alerts.section_title';
-    }
-    
-    alertDiv.textContent = i18n.t(messageKey);
-    container.appendChild(alertDiv);
+  const alertDiv = document.createElement("div");
+
+  // Get translated alert message based on alert type
+  let messageKey;
+  switch (alert.type) {
+    case "DEW_WARNING":
+      messageKey = "weather_alerts.alert_dew_warning";
+      break;
+    case "WIND_WARNING":
+      messageKey = "weather_alerts.alert_wind_warning";
+      break;
+    default:
+      messageKey = "weather_alerts.section_title";
+  }
+
+  alertDiv.textContent = i18n.t(messageKey);
+  container.appendChild(alertDiv);
 }
 ```
 
 ### Backend Usage
 
 #### 1. Python Translation Utilities
+
 ```python
 from i18n_utils import get_translated_message, I18nManager, create_translated_alert
 
@@ -1070,6 +1153,7 @@ weather_namespace = manager.get_namespace('weather_alerts')
 ```
 
 #### 2. Translated API Responses
+
 ```python
 from flask import jsonify
 from i18n_utils import create_translated_alert, I18nManager
@@ -1078,10 +1162,10 @@ from i18n_utils import create_translated_alert, I18nManager
 @login_required
 def get_weather_alerts_api():
     """Get weather alerts with translation support"""
-    
+
     # Get user's preferred language (could come from request headers or DB)
     language = request.args.get('lang', 'en')
-    
+
     # Create alerts with translated messages
     alerts = [
         create_translated_alert(
@@ -1092,11 +1176,12 @@ def get_weather_alerts_api():
         ),
         # ... more alerts
     ]
-    
+
     return jsonify({'alerts': alerts})
 ```
 
 #### 3. Request-Level i18n Initialization
+
 ```python
 from i18n_utils import init_i18n_for_request
 
@@ -1116,11 +1201,13 @@ def some_endpoint():
 ### Translation Key Structure
 
 Keys are organized by component/namespace using dot notation. Hierarchy:
+
 1. **Namespace** (top level) - Component or feature name
 2. **Section** (optional) - Logical grouping within namespace
 3. **Key** - Specific translation key
 
 Example structure:
+
 ```json
 {
   "common": {
@@ -1142,12 +1229,14 @@ Example structure:
 ### Guidelines for Implementing Translations
 
 #### When Adding New User-Facing Text
+
 1. **Define translation keys** in all language files (`en.json`, `fr.json`, `es.json`, `de.json`, `it.json`, `pt.json`)
 2. **Use descriptive key names** that reflect the content location
 3. **Group related keys** in the same namespace
 4. **Include context in comments** if key meaning is ambiguous
 
 #### For HTML Templates
+
 ```html
 <!-- GOOD: Static content with data-i18n attribute -->
 <h2 data-i18n="page.section_name">Section Name</h2>
@@ -1157,16 +1246,18 @@ Example structure:
 ```
 
 #### For JavaScript Components
+
 ```javascript
 // GOOD: Use i18n.t() for dynamic content
-const element = document.createElement('div');
-element.textContent = i18n.t('namespace.key');
+const element = document.createElement("div");
+element.textContent = i18n.t("namespace.key");
 
 // AVOID: Hardcoded strings
-element.textContent = 'This is a message';
+element.textContent = "This is a message";
 ```
 
 #### For Backend API Responses
+
 ```python
 # GOOD: Use translated messages in API responses
 return jsonify({
@@ -1201,6 +1292,7 @@ Every step below is mandatory - missing any one of them causes a partial or brok
 8. Create the translated webmanifest: copy `static/manifest.webmanifest` to `static/manifest.XX.webmanifest` and translate the required keys (`description`, `lang`, `screenshots[].label`, `shortcuts[].name/short_name/description`)
 
 ### Translation Quality Assurance
+
 - **Scientific accuracy** - Translations must maintain accuracy for astronomical terms
 - **Consistency** - Use consistent terminology across all translations
 - **Testing** - Test UI with multiple languages before merging
@@ -1209,17 +1301,20 @@ Every step below is mandatory - missing any one of them causes a partial or brok
 ### Common Issues & Troubleshooting
 
 **Issue**: Text appears untranslated (shows key instead of value)
+
 - Check if key exists in translation file
 - Verify key path matches exactly (case-sensitive)
 - Check browser console for i18n loading errors
 - Verify `i18n.js` loads before dependent scripts
 
 **Issue**: Translations not updating when language changes
+
 - Ensure UI has listener for `i18nLanguageChanged` event
 - Update static content using `data-i18n` attributes
 - Update dynamic content by re-rendering components
 
 **Issue**: Backend returns untranslated messages
+
 - Check if `utils/i18n_utils.py` is imported correctly
 - Verify language parameter is being passed properly
 - Check translation files exist in `/app/static/i18n/`
@@ -1229,6 +1324,7 @@ Every step below is mandatory - missing any one of them causes a partial or brok
 The background cache is **selective-refresh**: the scheduler polls every 25 min but only runs jobs whose individual TTL has elapsed. Full documentation: [docs/CACHE_SYSTEM.md](../../docs/CACHE_SYSTEM.md).
 
 ### Multi-location caches (v1.2)
+
 - Location-dependent caches (moon/sun/eclipses/horizon/sidereal/aurora/ISS/CSS/planetary/phenomena/solar-system/seeing/weather/best-window) keep **one slot per location preset id**; on-disk keys in `astro_cache.json` are `"<name>:<location_id>"`. Access via `cache_store.get_location_cache_entry(name, location_id)` / `load_location_cache(...)` / `update_location_cache(...)` - the old module-level singletons (`_sun_report_cache`, …) no longer exist for these. The full name list is `cache_store.LOCATION_SCOPED_CACHE_TTLS`.
 - Global caches (spaceflight, IERS, AllSky, version) keep the single-slot module-level shape and plain keys. The ISS/CSS TLE fetch stays global; only pass geometry is per-location.
 - `check_and_handle_config_changes()` detects changes **per preset** and calls `reset_caches_for_location(id)` - never wipe all caches for a single preset edit. Deleting a preset calls `drop_location_caches(id)`.
@@ -1236,27 +1332,29 @@ The background cache is **selective-refresh**: the scheduler polls every 25 min 
 - API routes serve the requester's location via the `_active_location_cache(name)` / `_resolve_active_location()` helpers in `backend/utils/route_helpers.py`, imported by whichever `backend/blueprints/*.py` module needs them.
 
 ### Per-Job TTLs (defined in `backend/utils/constants.py`)
-| Job | Constant | TTL |
-|-----|----------|-----|
-| `moon_report` | `CACHE_TTL_MOON_REPORT` | 1 hour |
-| `dark_window` | `CACHE_TTL_DARK_WINDOW` | 1 hour |
-| `moon_planner` | `CACHE_TTL_MOON_PLANNER` | 2 hours |
-| `sun_report` | `CACHE_TTL_SUN_REPORT` | 1 hour |
-| `best_window` | `CACHE_TTL_BEST_WINDOW` | 1 hour |
-| `solar_eclipse` | `CACHE_TTL_SOLAR_ECLIPSE` | 24 hours |
-| `lunar_eclipse` | `CACHE_TTL_LUNAR_ECLIPSE` | 24 hours |
-| `horizon_graph` | `CACHE_TTL_HORIZON_GRAPH` | 1 hour |
-| `aurora` | `CACHE_TTL_AURORA` | 1 hour |
-| `iss_passes` | `CACHE_TTL_ISS_PASSES` | 6 hours |
-| `css_passes` | `CACHE_TTL_CSS_PASSES` | 6 hours |
-| `planetary_events` | `CACHE_TTL_PLANETARY_EVENTS` | 24 hours |
-| `special_phenomena` | `CACHE_TTL_SPECIAL_PHENOMENA` | 24 hours |
+
+| Job                   | Constant                        | TTL      |
+| --------------------- | ------------------------------- | -------- |
+| `moon_report`         | `CACHE_TTL_MOON_REPORT`         | 1 hour   |
+| `dark_window`         | `CACHE_TTL_DARK_WINDOW`         | 1 hour   |
+| `moon_planner`        | `CACHE_TTL_MOON_PLANNER`        | 2 hours  |
+| `sun_report`          | `CACHE_TTL_SUN_REPORT`          | 1 hour   |
+| `best_window`         | `CACHE_TTL_BEST_WINDOW`         | 1 hour   |
+| `solar_eclipse`       | `CACHE_TTL_SOLAR_ECLIPSE`       | 24 hours |
+| `lunar_eclipse`       | `CACHE_TTL_LUNAR_ECLIPSE`       | 24 hours |
+| `horizon_graph`       | `CACHE_TTL_HORIZON_GRAPH`       | 1 hour   |
+| `aurora`              | `CACHE_TTL_AURORA`              | 1 hour   |
+| `iss_passes`          | `CACHE_TTL_ISS_PASSES`          | 6 hours  |
+| `css_passes`          | `CACHE_TTL_CSS_PASSES`          | 6 hours  |
+| `planetary_events`    | `CACHE_TTL_PLANETARY_EVENTS`    | 24 hours |
+| `special_phenomena`   | `CACHE_TTL_SPECIAL_PHENOMENA`   | 24 hours |
 | `solar_system_events` | `CACHE_TTL_SOLAR_SYSTEM_EVENTS` | 24 hours |
-| `sidereal_time` | `CACHE_TTL_SIDEREAL_TIME` | 1 hour |
-| `seeing_forecast` | `CACHE_TTL_SEEING_FORECAST` | 6 hours |
-| `weather_forecast` | `WEATHER_CACHE_TTL` | 1 hour |
+| `sidereal_time`       | `CACHE_TTL_SIDEREAL_TIME`       | 1 hour   |
+| `seeing_forecast`     | `CACHE_TTL_SEEING_FORECAST`     | 6 hours  |
+| `weather_forecast`    | `WEATHER_CACHE_TTL`             | 1 hour   |
 
 ### Computation Optimisations (do not regress)
+
 - **Config loaded once per cycle**: `fully_initialize_caches()` calls `load_config()` once and passes the result to every update function via `functools.partial(fn, config=config)`. All `update_*_cache()` functions accept `config=None` and fall back to `load_config()` only when called directly.
 - **Moon caches merged**: `update_moon_caches(config=None)` in `cache/cache_updater.py` instantiates `MoonService` and calls `get_report()` once, then writes both `moon_report` and `dark_window` caches. The individual `update_moon_report_cache()` / `update_dark_window_cache()` functions delegate to it and exist only for direct/test compatibility.
 - **Best-window single pass**: `AstroTonightService.best_windows_all_modes()` in `astroweather/moon_astrotonight.py` runs one 12-hour night-scan loop, computing Astropy AltAz transforms once per step while evaluating all three modes simultaneously. `best_window_tonight(mode)` delegates to it.
@@ -1266,13 +1364,16 @@ The background cache is **selective-refresh**: the scheduler polls every 25 min 
 - **CSS parallel system**: `css_passes.CSSPassService` is a complete, independent mirror of `ISSPassService` for NORAD 48274 (Tiangong/CSS). All state is separate (`css_tle_cache.json`, `_css_*` functions). Both run as parallel jobs in `PARALLELIZABLE_JOBS` via `ThreadPoolExecutor`. The CSS cache key is `css_passes`; sample keys in observations use `css_altitude_deg`/`css_azimuth_deg`. The `events_aggregator` converts CSS events to `EventType.CSS_PASS`, `CSS_SOLAR_TRANSIT`, `CSS_LUNAR_TRANSIT` with `structure_key="css"`. Frontend at `#spaceflight/orbital-stations` shows both ISS and CSS side-by-side. N8 notification trigger handles CSS solar/lunar transits.
 
 ### Version Comparison
+
 - `version_checker.is_newer_version()` uses `packaging.version.parse()` (from the `packaging` library, declared in `requirements.txt`) for correct PEP 440 semantic version comparison. Do not revert to manual string parsing.
 - `version_checker._save_version_result(result)` is a private helper that writes a result dict to both the in-memory `_version_update_cache` and the shared on-disk cache - always use this helper instead of repeating the three-line save pattern.
 
-### utils/__init__.py Conventions
+### utils/**init**.py Conventions
+
 - numpy is imported **once** at module level as `_np` with `_HAS_NUMPY` flag. Both `_NumpySafeEncoder` and `_sanitize_for_json` reference `_np` directly - never re-introduce per-call `import numpy` inside these functions.
 
 ### Mandatory Rules for New Cache Jobs
+
 1. **Add a `CACHE_TTL_<NAME>` constant** in `utils/constants.py` - never reuse the generic `CACHE_TTL`; choose TTL based on how frequently the underlying data actually changes
 2. **Register** in `cache/cache_updater.py` → `fully_initialize_caches()` `cache_jobs` list with `(name, shared_key, partial(fn, config=config), ttl, cache_entry_ref)`
 3. **Accept `config=None`** in the update function and guard with `if config is None: config = load_config()`
@@ -1281,6 +1382,7 @@ The background cache is **selective-refresh**: the scheduler polls every 25 min 
 6. **Document TTL rationale** in `docs/CACHE_SYSTEM.md` TTL table
 
 ### Cache Metrics
+
 - Per-job execution timing is persisted to `data/cache/astro_cache.json` under `_cache_metrics`
 - `cache_store.record_cache_execution(name, duration_s, success)` records each run
 - `GET /api/cache` response includes `details.execution_metrics` and `details.ttls`
@@ -1288,6 +1390,7 @@ The background cache is **selective-refresh**: the scheduler polls every 25 min 
 - **Never** remove `record_cache_execution()` calls from `fully_initialize_caches()`
 
 ## Resources & References
+
 - [Astropy Documentation](https://docs.astropy.org/)
 - [Astroplan Documentation](https://astroplan.readthedocs.io/)
 - [Coordinate Systems](https://docs.astropy.org/en/stable/coordinates/)
@@ -1295,20 +1398,24 @@ The background cache is **selective-refresh**: the scheduler polls every 25 min 
 - [Skyfield Documentation](https://rhodesmill.org/skyfield/)
 
 ### Catalogues
+
 - [PyOngc (OpenNGC)](https://github.com/mattiaverga/PyOngc)
 - [Minor Planet Center](https://minorplanetcenter.net/)
 - [JPL Small-Body Database](https://ssd.jpl.nasa.gov/tools/sbdb_lookup.html)
 
 ### SkyTonight Documentation
+
 - [SkyTonight Architecture & AstroScore](../../docs/SKYTONIGHT.md)
 - [Plan My Night](../../docs/PLAN_MY_NIGHT.md)
 - [API Endpoints](../../docs/API_ENDPOINTS.md)
 - [Cache System](../../docs/CACHE_SYSTEM.md)
 
 ### Docker
+
 - [Docker Documentation](https://docs.docker.com/)
 
 ### Web Development
+
 - [Flask Documentation](https://flask.palletsprojects.com/)
 - [Chart.js Documentation](https://www.chartjs.org/docs/)
 - [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
