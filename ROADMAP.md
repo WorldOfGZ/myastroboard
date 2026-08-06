@@ -54,6 +54,8 @@ Guided first-run setup wizard, a "what to shoot tonight?" recommender, a curated
 
 Admin-managed location presets (with horizon profile, bortle, SQM) that users can be attributed to, pick a default from, and switch between via a navbar selector - driving every location-aware module (Plan My Night, SkyTonight, forecasts, ISS, Astrodex, notifications).
 
+Also shipped in this release, outside the multi-location theme: the **Plan My Night schedule optimizer**. It proposes a target order plus a single pre-first-target delay derived from each target's real altitude-based visibility window, previews the result with per-entry warnings (never observable, window too short, truncated, pushed past night end), and refuses to apply if the plan changed since the preview.
+
 ---
 
 ### v1.3 - Observation Log
@@ -69,7 +71,7 @@ Users can record what they actually captured after a session, not just what they
 What needs to be built from scratch:
 
 - **Session concept** - date, observing site (linked to multi-location preset from v1.2), equipment combo, start/end time, sky conditions (SQM, seeing, transparency)
-- **Per-target entries** - actual frame count, integration time, notes, rating (1–5), link to Astrodex
+- **Per-target entries** - actual frame count, integration time, notes, rating (1-5), link to Astrodex
 - **New backend module** (`observation_sessions.py`) with per-user JSON storage, same pattern as `astrodex.py`
 - **Import from plan** - one-click to seed a session from tonight's Plan My Night targets
 - **New frontend** - session list, session detail, entry editor, i18n in 6 languages
@@ -82,7 +84,7 @@ The equipment and object models (Equipment, Astrodex) are reusable as references
 
 | | |
 |---|---|
-| **Why** | Advanced imagers need planning depth that matches dedicated tools (Telescopius). These features add no new data model - they derive from existing equipment profiles, SkyTonight data, and Plan My Night. |
+| **Why** | Advanced imagers need planning depth that matches dedicated tools (Telescopius). These features build on the existing equipment profiles, SkyTonight ephemeris, and Plan My Night timeline - but they are not free of new state: the meridian flip estimator adds mount flip fields, and the visibility calendar adds a year-scale ephemeris path with its own cache. |
 | **Effort** | High |
 | **Status** | 💡 Idea - subject to change |
 
@@ -92,16 +94,8 @@ Per-object monthly heatmap: best months to image based on altitude arc + availab
 
 - Accessible from SkyTonight target cards and Astrodex item detail
 - Answers "when is NGC 6992 best this year?" in one glance
-- Computed server-side from ephemeris data already available in the stack
-
-#### Mosaic planner
-
-Multi-panel planning for targets that exceed the sensor FOV:
-
-- Configure panel grid (2×1, 2×2, 3×2…), overlap percentage, rotation angle
-- FOV overlay per equipment combination (reuses existing FOV calculator)
-- Output: list of RA/Dec center points per panel -> one-click add each as a Plan My Night entry
-- Scope: planning-grade (not Telescopius-level interactive sky drag). The value is the Plan My Night integration.
+- Computed server-side on demand: the existing SkyTonight pipeline only ever covers *tonight* (per-target altitude outputs are wiped on every run), so this adds a year-scale ephemeris path with its own cache
+- Deep sky objects only - a fixed-coordinate calendar is meaningless for planets and comets
 
 #### Meridian flip estimator
 
@@ -109,6 +103,7 @@ Given a target and start time, compute when the equatorial mount flip will occur
 
 - Shown inline in Plan My Night timeline as a colored indicator
 - Green: no flip during slot; orange: flip mid-session; red: flip within first 10 minutes
+- Requires new mount fields on the Equipment profile (flip required, past-meridian tracking allowance, flip duration) - the current mount model carries none of them
 - Critical for unattended imaging sessions
 
 #### Advanced SkyTonight filters
@@ -117,13 +112,11 @@ New filter sidebar panel:
 
 - Angular size range (arcmin)
 - Surface brightness threshold
-- Best altitude window (e.g., "above 30° between 22h–02h")
+- Best altitude window (e.g., "above 30° between 22h-02h")
 - FOV fit: does the target fit the active equipment combination's sensor?
-- Estimated minimum integration time
+- Estimated minimum integration time (needs a formula that does not exist yet - the Exposure Calculator sizes subs *from* a total integration, it never estimates the total)
 
-#### Session time optimizer
-
-Given a Plan My Night target list, re-order entries to maximize average altitude during each assigned slot. One-click "optimize order" button in the Plan My Night toolbar.
+Applied server-side, before the result-set truncation: the DSO payload is capped at the top targets by AstroScore, so a filter applied client-side over that list would look like a catalogue-wide search without being one.
 
 **i18n in 6 languages.**
 
@@ -190,6 +183,16 @@ Scope: a planning-grade sky chart integrated with existing data - not a full Ste
 - Toggle: render the active equipment combination's FOV rectangle on any selected target
 - Instantly visualizes framing without leaving the app
 - Pulls directly from the existing FOV calculator
+
+#### Mosaic planner
+
+Multi-panel planning for targets that exceed the sensor FOV - the multi-panel extension of the FOV overlay above. Originally scoped for v1.4 and moved here: the panel grid only becomes genuinely useful when it can be drawn over real sky imagery, and building it before the chart means building the preview twice.
+
+- Configure panel grid (2x1, 2x2, 3x2...), overlap percentage, rotation angle
+- Live grid preview on the chart, over the DSS/HiPS backdrop, per equipment combination
+- Output: list of RA/Dec center points per panel -> one-click add each as a Plan My Night entry
+- Panel centers are arbitrary coordinates, not catalogue targets: plan entries gain a mosaic grouping, and each panel must inherit its parent target's altitude curve so the timeline, optimizer, and exports still report real visibility
+- Panel coordinates must come from a proper spherical offset, not a flat RA/cos(dec) approximation - large mosaics are built precisely at the high declinations where the flat form breaks down
 
 #### Plan My Night integration
 
@@ -446,9 +449,9 @@ Also:
 | v1.1 | First Light - beginner onboarding | Beginners | Medium | ✅ Implemented |
 | v1.2 | Multi-location profiles | All | Medium | ✅ Implemented |
 | v1.3 | Observation Log | Intermediate+ | High | ✅ Implemented |
-| v1.4 | Planning Intelligence | Advanced | High | 💡 Idea |
+| v1.4 | Planning Intelligence (visibility calendar, meridian flip, advanced filters) | Advanced | High | 💡 Idea |
 | v1.5 | Session Analytics | All | Medium | 💡 Idea |
-| v2.0 | Interactive Sky Chart | All | High | 💡 Idea |
+| v2.0 | Interactive Sky Chart + mosaic planner | All | High | 💡 Idea |
 | v2.1 | Community & Sharing | All | Medium | 💡 Idea |
 | v2.2 | Integrations (plate solve, PHD2, NINA) | Advanced | High | 💡 Idea |
 | v2.3 | Astro Intelligence (Night Copilot) | All | High | 💡 Idea |
