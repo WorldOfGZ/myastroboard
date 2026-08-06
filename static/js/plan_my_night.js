@@ -350,6 +350,11 @@ async function loadSeeingWeek() {
     header.appendChild(toggle);
     section.appendChild(header);
 
+    const scaleHint = document.createElement('div');
+    scaleHint.className = 'text-muted small mb-2';
+    scaleHint.textContent = i18n.t('plan_my_night.seeing_week_scale_hint');
+    section.appendChild(scaleHint);
+
     const calBody = document.createElement('div');
     calBody.className = 'plan-moon-calendar-body';
 
@@ -1759,12 +1764,32 @@ function renderPlanMyNight(payload) {
     coverageHeader.appendChild(coverageLabel);
     coverageHeader.appendChild(coverageRightGroup);
 
+    // "En savoir plus" toggle explaining what the shaded observable-zone band means
+    const zoneHelpBtn = document.createElement('button');
+    zoneHelpBtn.type = 'button';
+    zoneHelpBtn.className = 'btn btn-sm btn-outline-secondary mb-2';
+    zoneHelpBtn.setAttribute('data-bs-toggle', 'collapse');
+    zoneHelpBtn.setAttribute('data-bs-target', '#plan-observable-zone-help');
+    zoneHelpBtn.setAttribute('aria-expanded', 'false');
+    zoneHelpBtn.setAttribute('aria-controls', 'plan-observable-zone-help');
+    DOMUtils.append(zoneHelpBtn, DOMUtils.createIcon('bi bi-question-circle me-1'), i18n.t('plan_my_night.observable_zone_help_toggle'));
+
+    const zoneHelpCollapse = document.createElement('div');
+    zoneHelpCollapse.className = 'collapse mb-2';
+    zoneHelpCollapse.id = 'plan-observable-zone-help';
+    const zoneHelpBody = document.createElement('div');
+    zoneHelpBody.className = 'alert alert-info mb-0';
+    zoneHelpBody.textContent = i18n.t('plan_my_night.observable_zone_help_text');
+    zoneHelpCollapse.appendChild(zoneHelpBody);
+
     // Graph container - replaces both the stacked coverage bar and the timeline progress bar
     const graphContainer = document.createElement('div');
     graphContainer.id = 'plan-summary-graph-container';
     graphContainer.className = 'plan-summary-graph-wrap';
 
     coverageWrap.appendChild(coverageHeader);
+    coverageWrap.appendChild(zoneHelpBtn);
+    coverageWrap.appendChild(zoneHelpCollapse);
     coverageWrap.appendChild(graphContainer);
     summaryBody.appendChild(coverageWrap);
 

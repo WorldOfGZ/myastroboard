@@ -334,6 +334,7 @@
                         <i class="bi bi-sunrise icon-inline text-warning" aria-hidden="true"></i>
                         <span data-i18n="astro_weather.horizon_title">Horizon</span>
                     </h2>
+                    <p class="text-muted small mb-2" data-i18n="astro_weather.horizon_description">Below the -18&deg; astronomical twilight line, the sky is fully dark - the best window for faint deep-sky imaging.</p>
                     <div id="horizon-graph-loading" style="display: none;" class="alert alert-info" data-i18n="astro_weather.loading_horizon_graph">Loading horizon graph...</div>
                     <div id="horizon-graph-error" style="display: none;"></div>
                     <div id="horizon-graph-display" class="row row-cols-1"></div>
@@ -364,6 +365,7 @@
                         <i class="bi bi-bar-chart-line icon-inline text-info" aria-hidden="true"></i>
                         <span data-i18n="astro_weather.advanced_analysis_title">Advanced Weather Analysis</span>
                     </h2>
+                    <p class="text-muted small mb-2" data-i18n="astro_weather.advanced_analysis_description">Hour-by-hour breakdown of the astrophotography forecast. Each chart below states whether higher values are good or bad for imaging.</p>
 
                     <!-- Advanced Charts -->
                     <div class="row row-cols-1 row-cols-sm-1 row-cols-lg-1 row-cols-xl-2">
@@ -408,6 +410,7 @@
                         <i class="bi bi-moon-stars icon-inline" aria-hidden="true"></i>
                         <span data-i18n="navbar.moon">Moon</span>
                     </h2>
+                    <p class="text-muted small mb-2" data-i18n="moon.tab_description">A brighter, higher Moon scatters more light across the sky - lower illumination and altitude generally mean darker skies and better conditions for faint deep-sky targets.</p>
                     <div id="moon-display" class="moon-info-card rounded"></div>
                 </div>
 
@@ -448,6 +451,7 @@
                     <h2>
                         <i class="bi bi-brightness-high-fill text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="navbar.sun">Sun</span>
                     </h2>
+                    <p class="text-muted small mb-2" data-i18n="sun.tab_description">Astronomical night starts once the Sun drops below -18&deg; altitude (the darkest twilight stage) and ends when it climbs back above it - that window is when the sky is dark enough for deep-sky imaging.</p>
                     <div id="sun-display" class="sun-info-card rounded"></div>
                 </div>
 
@@ -533,6 +537,20 @@
                     <h2>
                         <i class="bi bi-stopwatch text-info icon-inline" aria-hidden="true"></i> <span data-i18n="weather.observation_next_hours">Observation Conditions - Next 12 Hours</span>
                     </h2>
+                    <p class="text-muted small mb-2" data-i18n="weather.observation_next_hours_description">Hour-by-hour forecast translated into observation-friendly terms.</p>
+                    <button class="btn btn-sm btn-outline-secondary mb-2" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#observation-next-hours-help"
+                            aria-expanded="false" aria-controls="observation-next-hours-help">
+                        <i class="bi bi-question-circle me-1" aria-hidden="true"></i>
+                        <span data-i18n="weather.observation_next_hours_help_toggle">Learn more</span>
+                    </button>
+                    <div class="collapse mb-2" id="observation-next-hours-help">
+                        <div class="alert alert-info mb-0" role="alert">
+                            <p class="mb-2" data-i18n="weather.observation_next_hours_help_intro">Most series on these two charts are 0-100% scores where higher means more favorable conditions: cloudless sky, calm wind, condition, seeing and transparency.</p>
+                            <p class="mb-2" data-i18n="weather.observation_next_hours_help_fog">Fog is the exception on both charts - a higher fog percentage means more risk of fog, which is worse for imaging.</p>
+                            <p class="mb-0" data-i18n="weather.observation_next_hours_help_lifted_index">The Lifted Index is a separate atmospheric stability value in &deg;C, not a percentage: negative values mean unstable air with more turbulence and cloud risk, while positive values mean calmer, more stable air - better for imaging.</p>
+                        </div>
+                    </div>
                     <div id="astro-charts-loading" class="alert alert-info" role="alert" data-i18n="weather.loading_astro">
                         Loading astronomical data...
                     </div>
@@ -777,7 +795,7 @@
                     <h2>
                         <i class="bi bi-moon-stars-fill text-info icon-inline" aria-hidden="true"></i> <span data-i18n="navbar.plan_my_night">Plan My Night</span>
                     </h2>
-                    <p class="text-muted" data-i18n="plan_my_night.section_intro">Build a private timeline for tonight directly from SkyTonight targets.</p>
+                    <p class="text-muted small mb-2" data-i18n="plan_my_night.section_intro">Build a private timeline for tonight directly from SkyTonight targets.</p>
                     <div id="plan-moon-calendar" class="mb-3"></div>
                     <div id="plan-seeing-week" class="mb-3"></div>
                     <div id="plan-my-night-display"></div>
@@ -790,7 +808,7 @@
                     <h2>
                         <i class="bi bi-journal-text text-primary icon-inline" aria-hidden="true"></i> <span data-i18n="observation_log.title">Observation Log</span>
                     </h2>
-                    <p class="text-muted mb-2" data-i18n="observation_log.intro">Log what you actually captured on each night - Plan, Observe, Log, Astrodex.</p>
+                    <p class="text-muted small mb-2" data-i18n="observation_log.intro">Log what you actually captured on each night - Plan, Observe, Log, Astrodex.</p>
                     <button class="btn btn-sm btn-outline-secondary mb-2" type="button"
                             data-bs-toggle="collapse" data-bs-target="#observation-log-help"
                             aria-expanded="false" aria-controls="observation-log-help">
@@ -842,7 +860,7 @@
                     <h2>
                         <i class="bi bi-geo-alt-fill text-danger icon-inline" aria-hidden="true"></i> <span data-i18n="astrodex.map_title">Photo Map</span>
                     </h2>
-                    <p class="text-muted" data-i18n="astrodex.map_intro">See where your Astrodex photos were taken.</p>
+                    <p class="text-muted small mb-2" data-i18n="astrodex.map_intro">See where your Astrodex photos were taken.</p>
                     <div id="astrodex-map-without-location-line"></div>
                     <div id="astrodex-photo-map" class="astrodex-photo-map"></div>
                 </div>
@@ -854,7 +872,7 @@
                     <h2>
                         <i class="bi bi-grid-3x3-gap-fill text-success icon-inline" aria-hidden="true"></i> <span data-i18n="astrodex.collection_title">Catalogue Collection</span>
                     </h2>
-                    <p class="text-muted" data-i18n="astrodex.collection_intro">Browse a whole catalogue and see at a glance which objects you have already captured.</p>
+                    <p class="text-muted small mb-2" data-i18n="astrodex.collection_intro">Browse a whole catalogue and see at a glance which objects you have already captured.</p>
 
                     <div class="row g-3 mt-2">
                         <div class="col-md-4">
@@ -975,7 +993,7 @@
                         <i class="bi bi-stars text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.eq_combinations">Equipment Combinations</span>
                     </h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted" data-i18n="equipment.eq_combinations_description">
+                        <p class="text-muted small" data-i18n="equipment.eq_combinations_description">
                             Combine telescope, camera, mount, accessories, and filters to analyze setup compatibility and FOV. This setup will be also selectable on Astrodex.
                         </p>
                         <button class="btn btn-success btn-new-combination" data-i18n="equipment.new_combination">New Combination</button>
@@ -1013,7 +1031,7 @@
                         <i class="bi bi-telescope icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.telescopes">Telescopes</span>
                     </h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted" data-i18n="equipment.telescopes_description">
+                        <p class="text-muted small" data-i18n="equipment.telescopes_description">
                             Manage your telescope profiles with automatic calculation of focal ratios and effective focal lengths.
                         </p>
                         <button class="btn btn-success btn-new-telescope" data-i18n="equipment.new_telescope">New Telescope</button>
@@ -1031,7 +1049,7 @@
                         <i class="bi bi-camera text-danger icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.cameras">Cameras</span>
                     </h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted" data-i18n="equipment.cameras_description">
+                        <p class="text-muted small" data-i18n="equipment.cameras_description">
                             Manage your camera profiles with automatic calculation of sensor diagonal and image scale.
                         </p>
                         <button class="btn btn-success btn-new-camera" data-i18n="equipment.new_camera">New Camera</button>
@@ -1049,7 +1067,7 @@
                         <i class="bi bi-arrows-move icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.mounts">Mounts</span>
                     </h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted" data-i18n="equipment.mounts_description">
+                        <p class="text-muted small" data-i18n="equipment.mounts_description">
                             Manage your mount profiles with automatic calculation of recommended imaging payload.
                         </p>
                         <button class="btn btn-success btn-new-mount" data-i18n="equipment.new_mount">New Mount</button>
@@ -1067,7 +1085,7 @@
                         <i class="bi bi-funnel text-warning icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.filters">Filters</span>
                     </h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted" data-i18n="equipment.filters_description">
+                        <p class="text-muted small" data-i18n="equipment.filters_description">
                             Manage your filter profiles for LRGB, narrowband, broadband, and other imaging filters.
                         </p>
                         <button class="btn btn-success btn-new-filter" data-i18n="equipment.new_filter">New Filter</button>
@@ -1085,7 +1103,7 @@
                         <i class="bi bi-gear icon-inline" aria-hidden="true"></i> <span data-i18n="equipment.accessories">Accessories</span>
                     </h2>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted" data-i18n="equipment.accessories_description">
+                        <p class="text-muted small" data-i18n="equipment.accessories_description">
                             Manage your accessory profiles for focusers, field flatteners, filter wheels, and other equipment.
                         </p>
                         <button class="btn btn-success btn-new-accessory" data-i18n="equipment.new_accessory">New Accessory</button>

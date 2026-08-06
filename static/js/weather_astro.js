@@ -37,7 +37,7 @@ function destroyAstroWeatherCharts() {
     }
 }
 
-function createAstroChartShell(iconClass, labelText, canvasId, legendItems = [], footerText = '') {
+function createAstroChartShell(iconClass, labelText, canvasId, legendItems = [], footerText = '', directionText = '') {
     const col = document.createElement('div');
     col.className = 'col mb-3';
 
@@ -53,6 +53,12 @@ function createAstroChartShell(iconClass, labelText, canvasId, legendItems = [],
 
     const body = document.createElement('div');
     body.className = 'card-body';
+    if (directionText) {
+        const direction = document.createElement('p');
+        direction.className = 'text-muted small mb-2 astro-chart-direction';
+        DOMUtils.append(direction, DOMUtils.createIcon('bi bi-info-circle icon-inline'), directionText);
+        body.appendChild(direction);
+    }
     const canvas = document.createElement('canvas');
     canvas.id = canvasId;
     canvas.style.width = '100%';
@@ -588,7 +594,7 @@ function renderSeeingTransparencyChart(labels, data) {
     container.appendChild(createAstroChartShell('bi bi-eye icon-inline', i18n.t('astro_weather.chart_seeing_title'), 'astro-seeing-chart', [
         { label: i18n.t('astro_weather.seeing_label'), color: '#3b82f6' },
         { label: i18n.t('astro_weather.transparency_label'), color: '#a855f7' }
-    ], i18n.t('astro_weather.quality_score_label')));
+    ], i18n.t('astro_weather.quality_score_label'), i18n.t('astro_weather.chart_seeing_direction_hint')));
 
     // Render chart
     const ctx = document.getElementById('astro-seeing-chart');
@@ -691,7 +697,7 @@ function renderCloudLayersChart(labels, data) {
         { label: i18n.t('astro_weather.high_cloud_impact'), color: '#22c55e' },
         { label: i18n.t('astro_weather.mid_cloud_impact'), color: '#fbbf24' },
         { label: i18n.t('astro_weather.low_cloud_impact'), color: '#ef4444' }
-    ]));
+    ], '', i18n.t('astro_weather.chart_cloud_direction_hint')));
 
     // Render chart
     const ctx = document.getElementById('astro-clouds-chart');
@@ -799,7 +805,7 @@ function renderDewTrackingChart(labels, data) {
     container.appendChild(createAstroChartShell('bi bi-droplet icon-inline', i18n.t('astro_weather.chart_dew_tracking_title'), 'astro-conditions-chart', [
         { label: i18n.t('astro_weather.dew_label'), color: '#06b6d4' },
         { label: i18n.t('astro_weather.tracking_stability_label'), color: '#f56565' }
-    ], i18n.t('astro_weather.score_100_label')));
+    ], i18n.t('astro_weather.score_100_label'), i18n.t('astro_weather.chart_dew_tracking_direction_hint')));
 
     // Render chart
     const ctx = document.getElementById('astro-conditions-chart');
@@ -901,7 +907,7 @@ function renderWeatherAlerts(alerts, timezone) {
 
     DOMUtils.clear(container);
     const intro = document.createElement('div');
-    intro.className = 'mb-2';
+    intro.className = 'text-muted small mb-2';
     intro.textContent = i18n.t('weather_alerts.conditions_next_6_hours');
     container.appendChild(intro);
 

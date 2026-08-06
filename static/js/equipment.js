@@ -696,8 +696,12 @@ function renderFOVCalculatorTab() {
     seeingInput.min = '0.5';
     seeingInput.max = '5';
     seeingInput.step = '0.1';
+    const seeingHelp = document.createElement('div');
+    seeingHelp.className = 'form-text';
+    seeingHelp.textContent = i18n.t('equipment.seeing_cdt_help');
     seeingCol.appendChild(seeingLabel);
     seeingCol.appendChild(seeingInput);
+    seeingCol.appendChild(seeingHelp);
 
     const buttonCol = document.createElement('div');
     buttonCol.className = 'col-md-6 d-flex align-items-end';
@@ -784,6 +788,11 @@ async function calculateFOVFromUI() {
             table.appendChild(tr);
         });
 
+        const samplingKeys = {
+            'Undersampled': 'equipment.sampling_undersampled',
+            'Optimal': 'equipment.sampling_optimal',
+            'Oversampled': 'equipment.sampling_oversampled'
+        };
         const trSampling = document.createElement('tr');
         const tdSamplingLabel = document.createElement('td');
         const strongSampling = document.createElement('strong');
@@ -792,13 +801,18 @@ async function calculateFOVFromUI() {
         const tdSamplingValue = document.createElement('td');
         const badge = document.createElement('span');
         badge.className = 'badge bg-info';
-        badge.textContent = fov.sampling_classification;
+        const samplingKey = samplingKeys[fov.sampling_classification];
+        badge.textContent = samplingKey ? i18n.t(samplingKey) : fov.sampling_classification;
         tdSamplingValue.appendChild(badge);
         trSampling.appendChild(tdSamplingLabel);
         trSampling.appendChild(tdSamplingValue);
         table.appendChild(trSampling);
 
         alert.appendChild(table);
+        const samplingHint = document.createElement('p');
+        samplingHint.className = 'text-muted small mb-0 mt-2';
+        samplingHint.textContent = i18n.t('equipment.sampling_hint');
+        alert.appendChild(samplingHint);
         resultsDiv.appendChild(alert);
     } catch (error) {
         console.error('Error calculating FOV:', error);

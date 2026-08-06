@@ -1,5 +1,5 @@
 // ======================
-// Orbital Stations (ISS + CSS) – Passes, Real-time Map
+// Orbital Stations (ISS + CSS) - Passes, Real-time Map
 // ======================
 
 // ---- Shared map state ----
@@ -415,7 +415,10 @@ function _createPassesTableCard(passes, stationLabel, stationKey) {
     card.className = 'card h-100';
     const tableHeader = document.createElement('div');
     tableHeader.className = 'card-header fw-bold';
-    DOMUtils.append(tableHeader, DOMUtils.createIcon('bi bi-calendar-event text-danger icon-inline'), `${stationLabel} – ${i18n.t(`${stationKey}.upcoming_passages`)}`);
+    DOMUtils.append(tableHeader, DOMUtils.createIcon('bi bi-calendar-event text-danger icon-inline'), `${stationLabel} - ${i18n.t(`${stationKey}.upcoming_passages`)}`);
+    const visibilityCaption = document.createElement('div');
+    visibilityCaption.className = 'text-muted small px-2 pt-2';
+    visibilityCaption.textContent = i18n.t('iss.visibility_gauge_hint');
     const tableResponsive = document.createElement('div');
     tableResponsive.className = 'table-responsive';
     const table = document.createElement('table');
@@ -425,7 +428,7 @@ function _createPassesTableCard(passes, stationLabel, stationKey) {
     const headRowTop = document.createElement('tr');
     [
         { text: i18n.t('iss.table_date'), rowSpan: 2 },
-        { text: i18n.t('iss.table_visibility'), rowSpan: 2 },
+        { text: i18n.t('iss.table_visibility'), rowSpan: 2, title: i18n.t('iss.visibility_gauge_hint') },
         { text: i18n.t('iss.table_start'), colSpan: 2, className: 'iss-group-head' },
         { text: i18n.t('iss.table_culmination'), colSpan: 2, className: 'iss-group-head' },
         { text: i18n.t('iss.table_end'), colSpan: 2, className: 'iss-group-head' },
@@ -435,6 +438,7 @@ function _createPassesTableCard(passes, stationLabel, stationKey) {
         if (hc.rowSpan) th.rowSpan = hc.rowSpan;
         if (hc.colSpan) th.colSpan = hc.colSpan;
         if (hc.className) th.className = hc.className;
+        if (hc.title) th.title = hc.title;
         headRowTop.appendChild(th);
     });
     const headRowBottom = document.createElement('tr');
@@ -483,6 +487,7 @@ function _createPassesTableCard(passes, stationLabel, stationKey) {
     table.appendChild(tbody);
     tableResponsive.appendChild(table);
     card.appendChild(tableHeader);
+    card.appendChild(visibilityCaption);
     card.appendChild(tableResponsive);
     return card;
 }
@@ -529,7 +534,7 @@ async function loadOrbitalStations() {
     infoAlert.textContent = i18n.t('orbital_stations.info_tab', { days: 20 });
     container.appendChild(infoAlert);
 
-    // Next visible passage – 2 cards side by side
+    // Next visible passage - 2 cards side by side
     const passRow = document.createElement('div');
     passRow.className = 'row row-cols-1 row-cols-md-2 mb-3 g-3';
     passRow.appendChild(_createNextPassCard(issData?.next_visible_passage, 'iss', 'border-warning'));

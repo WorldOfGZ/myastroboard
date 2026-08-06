@@ -577,13 +577,14 @@ function _astroScoreLegendHtml() {
         { key: 'astroscore_average', cls: 'astroscore-badge astroscore-badge-average', range: '45-64%' },
         { key: 'astroscore_poor', cls: 'astroscore-badge astroscore-badge-poor', range: '< 45%' },
     ];
-    let html = `<div class="d-flex flex-wrap gap-2 mb-2 align-items-center small mt-3">`;
+    let html = `<div class="d-flex flex-wrap gap-2 mb-1 align-items-center small mt-3">`;
     html += `<span class="text-muted fw-semibold">${escapeHtml(tSkyTonightCompat('astroscore_legend_title'))}:</span>`;
     tiers.forEach(({ key, cls, range }) => {
         const label = tSkyTonightCompat(key);
         html += `<span class="badge ${cls}">${escapeHtml(range)} - ${escapeHtml(label)}</span>`;
     });
     html += `</div>`;
+    html += `<p class="text-muted small mb-2">${escapeHtml(tSkyTonightCompat('astroscore_composition_hint'))}</p>`;
     return html;
 }
 
@@ -1746,7 +1747,7 @@ function _renderDebugNightCard(container, nightWindow, moon, tz) {
 
     const rows = [];
     if (nightWindow.available) {
-        rows.push([tSkyTonightCompat('altitude_time_night_window'), `${fmtIso(nightWindow.night_start)} – ${fmtIso(nightWindow.night_end)}`]);
+        rows.push([tSkyTonightCompat('altitude_time_night_window'), `${fmtIso(nightWindow.night_start)} - ${fmtIso(nightWindow.night_end)}`]);
         rows.push([tSkyTonightCompat('target_debug_night_hours'), nightWindow.night_hours != null ? `${nightWindow.night_hours.toFixed(1)} h` : '-']);
     }
     if (moon) {
@@ -1960,7 +1961,7 @@ function _renderDebugAltimeChart(container, alttimeData, target) {
         const col = document.createElement('div');
         col.className = 'col-auto ms-auto text-end';
         const span = document.createElement('span');
-        span.textContent = `${tSkyTonightCompat('altitude_time_night_window')}: ${nightStartFmt} – ${nightEndFmt}`;
+        span.textContent = `${tSkyTonightCompat('altitude_time_night_window')}: ${nightStartFmt} - ${nightEndFmt}`;
         col.appendChild(span);
         footerRow.appendChild(col);
     }
