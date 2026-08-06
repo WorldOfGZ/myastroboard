@@ -122,7 +122,48 @@ Applied server-side, before the result-set truncation: the DSO payload is capped
 
 ---
 
-### v1.5 - Session Analytics
+### v1.5 - Feature Registry (plugin foundation)
+
+| | |
+|---|---|
+| **Why** | MyAstroBoard is heading toward a core + integrations model. The manifest and registry work is *identical* whether that ends up as internal structure or as a real distribution mechanism, so it starts here rather than at v3.0: every feature shipped without it is retrofit debt. Nothing becomes separately installable in this release - features still ship in core, they just declare themselves. |
+| **Effort** | High - almost entirely refactoring, with little visible surface. The cost is concentrated in the boundary work below, not the manifest itself. |
+| **Status** | 💡 Idea - subject to change |
+
+#### Feature manifest
+
+Every feature (SkyTonight, Astrodex, Plan My Night, Equipment, Weather, Spaceflight, Observation Log...) declares itself in one place:
+
+- Id, display name, version, author
+- Core version range (min / max)
+- Dependencies on other features, with version ranges
+- Owned API route prefixes
+- Owned i18n namespace
+- Navbar position and sub-tabs
+- Cache jobs with their TTL
+- Notification triggers
+- Location awareness (needs the active location preset / the scheduler locations)
+- Declared capabilities: network egress, filesystem, user data access
+- Data schema version and migration hooks
+- Uninstall behaviour for user data
+
+#### Registry and registration
+
+- Navbar and sub-tab routing driven by the registry instead of the hardcoded switch in `app.js`
+- Per-instance and per-user enable flags, extending the precedent already set by `skytonight.enabled`, `beginner_catalog_enabled`, `recommendations_enabled` and the per-module connector toggles
+- A disabled feature is hidden from the navbar, its routes return 404, and its cache jobs are not scheduled
+
+#### Boundary work
+
+- **Break the five cyclic feature dependencies** (astrodex <-> equipment, equipment <-> observation log, equipment <-> plan my night, events <-> skytonight, skytonight <-> weather). A cycle makes any later separation impossible, so this is the load-bearing task of the release
+- Split the single i18n file per language into per-feature namespaces, and teach `validate_i18n.py` to check parity namespace by namespace
+- Give the route inventory contract a notion of core routes versus feature routes
+
+**Explicitly not in this release:** dynamic loading, installing from a repository, third-party code execution. Those depend on evidence that the boundaries actually hold.
+
+---
+
+### v1.6 - Session Analytics
 
 | | |
 |---|---|
@@ -155,6 +196,39 @@ RA/Dec grid showing captured objects as colored dots:
 #### Conditions correlation
 
 For logged sessions: overlay seeing score, moon phase, and SQM at the time of capture. Helps identify: "my best sessions happen when seeing > 7 and Bortle < 5." Read-only aggregation - no new data model.
+
+**i18n in 6 languages.**
+
+First feature built on the v1.5 registry rather than retrofitted into it - it adds a whole new surface (tab, sub-tabs, i18n namespace, aggregations), which makes it the natural validation case for the manifest.
+
+---
+
+### v1.7 - Connector SDK and mab-plugins
+
+| | |
+|---|---|
+| **Why** | This is where the Home Assistant analogy actually holds. A connector has a narrow, uniform contract - talk to an external system, return data - so a stranger can write one safely, which is never true of a full vertical feature that owns its own UI, storage and i18n. `BaseConnector` already covers roughly half of it; this turns it into a documented, versioned public API with its own repository. |
+| **Effort** | Medium |
+| **Status** | 💡 Idea - subject to change |
+
+#### Connector SDK v2
+
+- Public, documented, versioned `BaseConnector` contract with a stability guarantee
+- Connector manifest reusing the v1.5 feature manifest fields (version, author, core version range, capabilities, health check)
+- Declarative settings schema, so the Parameters -> Connectors form is generated instead of hand-written per connector
+- Per-connector i18n namespace
+- Health check and self-test as part of the contract, not per-connector improvisation
+
+#### mab-plugins repository
+
+- Separate repository (`myastroboard/mab-plugins`) holding community connectors
+- **Curated distribution**: connectors land through reviewed pull requests, not install-from-arbitrary-URL. A connector runs in-process with access to user data, so the trust boundary has to be a human review rather than a checkbox
+- Per-connector version and compatibility matrix against core versions
+- In-app browse and install from the curated index
+
+#### Migration
+
+- The existing AllSky connector becomes the first SDK v2 connector and the reference implementation
 
 **i18n in 6 languages.**
 
@@ -223,7 +297,7 @@ Multi-panel planning for targets that exceed the sensor FOV - the multi-panel ex
 
 - User can set their Astrodex to public -> accessible at `/u/<username>` without login
 - Shareable link; optionally password-protected
-- Profile shows: captured objects, equipment used, observation stats (from v1.5)
+- Profile shows: captured objects, equipment used, observation stats (from v1.6)
 
 #### Export to external tools
 
@@ -252,6 +326,8 @@ Export Plan My Night or SkyTonight results as:
 | **Effort** | High |
 | **Status** | 💡 Idea - subject to change |
 
+Everything here that talks to an external system is built as an SDK v2 connector (v1.7) and lives in `mab-plugins`, not as bespoke in-core code. This release is the first real test of whether that contract is expressive enough for connectors that write back into MAB data rather than only reading.
+
 #### Plate solve (upload -> coordinates)
 
 - User uploads a FITS or JPEG -> MAB calls the Astrometry.net public API -> returns RA/Dec center, field scale, rotation angle
@@ -263,7 +339,7 @@ Export Plan My Night or SkyTonight results as:
 
 - Upload a PHD2 `PHD2_GuideLog` file -> MAB parses: total guide time, RMS error, drift trend
 - Result attached to an Observation Log session (v1.3)
-- Session Analytics dashboard (v1.5) shows guiding quality trend per equipment combination over time
+- Session Analytics dashboard (v1.6) shows guiding quality trend per equipment combination over time
 
 #### NINA sequence export
 
@@ -295,7 +371,7 @@ Suggests the best target for tonight using signals already collected elsewhere i
 - Moon phase and position
 - Seeing & transparency (existing #forecast-astro)
 - User observation history (v1.3 Observation Log)
-- Wishlist (v1.5)
+- Wishlist (v1.6)
 - Available time window (Plan My Night)
 
 Additional features:
@@ -305,7 +381,7 @@ Additional features:
 - **Equipment recommendations** - suggest the best telescope/camera combo from the user's equipment list for a given target
 - **Exposure recommendations** - suggest sub-exposure length and total integration time based on target surface brightness, moon phase, and historical results for similar targets
 
-**Prerequisites** - meaningful recommendations need v1.3 (Observation Log) and v1.5 (Session Analytics/Wishlist) as data sources, and benefit from v2.0 (Sky Chart) for target context.
+**Prerequisites** - meaningful recommendations need v1.3 (Observation Log) and v1.6 (Session Analytics/Wishlist) as data sources, and benefit from v2.0 (Sky Chart) for target context.
 
 **i18n in 6 languages.**
 
@@ -389,7 +465,7 @@ Coordinates:
 - NINA
 - PHD2
 - ASCOM Alpaca
-- Home Assistant *(net-new connector, not covered by earlier versions)*
+- Home Assistant *(net-new connector, built on the v1.7 SDK like the others)*
 - Weather
 - Notifications
 
@@ -412,18 +488,21 @@ One-click night:
 
 | | |
 |---|---|
-| **Why** | Long-term vision, not a committed release. MyAstroBoard orchestrates existing astro software (NINA, PHD2, ASCOM Alpaca, INDI, Seestar, Stellarium, Home Assistant, weather, AllSky…) rather than replacing it, and becomes the one place that remembers everything across years of sessions - the equivalent of Home Assistant for astronomy. |
+| **Why** | Long-term vision, not a committed release. MyAstroBoard orchestrates existing astro software (NINA, PHD2, ASCOM Alpaca, INDI, Seestar, Stellarium, Home Assistant, weather, AllSky…) rather than replacing it, and becomes the one place that remembers everything across years of sessions. |
 | **Effort** | Very high / open-ended |
 | **Status** | 💡 Idea - subject to change |
 
-#### Plugin ecosystem
+#### Plugin ecosystem (matured)
 
-- Public connector API so the community can build and share their own integrations (NINA, PHD2, ASCOM Alpaca, INDI, Seestar, Stellarium, Home Assistant, weather providers, AllSky, etc.)
-- Lets MAB grow its integration surface without one person maintaining every connector
+The public connector API and the curated repository ship in v1.7; the feature registry ships in v1.5. What remains here is the one step neither of them commits to: promoting **core features** (SkyTonight, Astrodex, Plan My Night, Equipment...) from registry-declared to separately installable.
+
+- Only pursued if the v1.5 boundaries held in practice: no cycles reintroduced, per-feature i18n stable, feature routes cleanly separated from core routes
+- Requires a dependency solver plus graceful degradation for every meaningful feature subset. The supported state space grows as 2^N, and the features are not independent (Plan My Night without SkyTonight is meaningless, Astrodex without Equipment loses picture metadata), so this is a deliberate and permanent cost - not a free consequence of modularity
+- By this point the community integration surface (NINA, PHD2, ASCOM Alpaca, INDI, Seestar, Stellarium, Home Assistant, weather providers, AllSky) already grows through v1.7 without one person maintaining every connector
 
 #### Intelligent journal (observatory memory)
 
-Natural-language queries over the history accumulated in Observation Log (v1.3) and Session Analytics (v1.5), e.g.:
+Natural-language queries over the history accumulated in Observation Log (v1.3) and Session Analytics (v1.6), e.g.:
 
 - "What's my best image of M31?"
 - "Which setup works best for galaxies?"
@@ -450,7 +529,9 @@ Also:
 | v1.2 | Multi-location profiles | All | Medium | ✅ Implemented |
 | v1.3 | Observation Log | Intermediate+ | High | ✅ Implemented |
 | v1.4 | Planning Intelligence (visibility calendar, meridian flip, advanced filters) | Advanced | High | 💡 Idea |
-| v1.5 | Session Analytics | All | Medium | 💡 Idea |
+| v1.5 | Feature registry (plugin foundation) | All | High | 💡 Idea |
+| v1.6 | Session Analytics | All | Medium | 💡 Idea |
+| v1.7 | Connector SDK and mab-plugins | All | Medium | 💡 Idea |
 | v2.0 | Interactive Sky Chart + mosaic planner | All | High | 💡 Idea |
 | v2.1 | Community & Sharing | All | Medium | 💡 Idea |
 | v2.2 | Integrations (plate solve, PHD2, NINA) | Advanced | High | 💡 Idea |
