@@ -32,7 +32,7 @@ psutil==7.2.2
 Flask-Login==0.6.3
 
 # Version comparison
-packaging==26.2
+packaging==26.3
 
 # Web Push notifications
 pywebpush==2.3.0
