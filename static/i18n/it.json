@@ -835,7 +835,7 @@
     "push_n8_solar_body": "Transito solare CSS in {minutes} min",
     "push_n8_lunar_body": "Transito lunare CSS in {minutes} min",
     "push_n9_title": "Evento del sistema solare",
-    "push_n9_body": "{title} raggiunge il picco tra {days} giorni",
+    "push_n9_body": "{title} tra {days} giorni",
     "push_kp_visibility_none": "Nessuna",
     "push_kp_visibility_very_low": "Molto bassa",
     "push_kp_visibility_low": "Bassa",
@@ -2357,7 +2357,7 @@
     "n8_body_lunar": "Transito lunare CSS in {minutes} min",
     "n8_body_solar": "Transito solare CSS in {minutes} min",
     "n8_title": "Transito CSS",
-    "n9_body": "{title} raggiunge il picco tra {days} giorni",
+    "n9_body": "{title} tra {days} giorni",
     "n9_title": "Evento del sistema solare"
   },
   "observatory": {

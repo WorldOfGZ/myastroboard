@@ -835,7 +835,7 @@
     "push_n8_solar_body": "CSS solar transit in {minutes} min",
     "push_n8_lunar_body": "CSS lunar transit in {minutes} min",
     "push_n9_title": "Solar System Event",
-    "push_n9_body": "{title} peaks in {days} days",
+    "push_n9_body": "{title} in {days} days",
     "push_kp_visibility_none": "None",
     "push_kp_visibility_very_low": "Very Low",
     "push_kp_visibility_low": "Low",
@@ -2357,7 +2357,7 @@
     "n8_body_lunar": "CSS lunar transit in {minutes} min",
     "n8_body_solar": "CSS solar transit in {minutes} min",
     "n8_title": "CSS Transit",
-    "n9_body": "{title} peaks in {days} days",
+    "n9_body": "{title} in {days} days",
     "n9_title": "Solar System Event"
   },
   "observatory": {

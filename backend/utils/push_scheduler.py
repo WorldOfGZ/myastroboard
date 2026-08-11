@@ -560,6 +560,35 @@ def _check_n4_n5_eclipse(
 _N9_MIN_WINDOW_SECONDS = 36 * 60 * 60
 
 
+def _n9_event_title(user: Any, event: dict) -> str:
+    """Rebuild a solar-system-event title in the user's own language.
+
+    The solar_system_events cache is built once by a background job with no
+    per-user locale (update_solar_system_events_cache never passes `language`,
+    so SolarSystemEventsService defaults to English) - the cached 'title' is
+    therefore always English. Re-derive it from the raw event data using the
+    same i18n keys the cache-building service used, so the push body doesn't
+    splice an English title into a sentence translated for the user.
+    """
+    from utils.i18n_utils import get_translated_message
+
+    lang = user.preferences.get('language', 'en')
+    raw = event.get('raw_data') or {}
+    event_type = event.get('event_type')
+    try:
+        if event_type == 'Meteor Shower' and raw.get('shower'):
+            return get_translated_message(
+                'events_api.solar_system.meteor_shower_title', language=lang, shower_name=raw['shower']
+            )
+        if event_type == 'Comet Appearance' and raw.get('comet'):
+            return get_translated_message(
+                'events_api.solar_system.comet_title', language=lang, comet_name=raw['comet']
+            )
+    except Exception:
+        pass
+    return event.get('title') or 'Solar system event'
+
+
 def _check_n9_solsys_window(user: Any, cache_data: Optional[dict], loc: Optional[dict] = None) -> None:
     """N9 - heads-up ahead of a multi-day solar-system event's peak (meteor shower, comet
     visibility window...). Unlike eclipses/transits, these events carry a start_time..end_time
@@ -613,7 +642,7 @@ def _check_n9_solsys_window(user: Any, cache_data: Optional[dict], loc: Optional
             logger.debug(f"N9 skip {user.username}: cooldown active")
             continue
 
-        title = event.get('title') or 'Solar system event'
+        title = _n9_event_title(user, event)
         days = round(ms_until / 86400)
         _send(
             user,

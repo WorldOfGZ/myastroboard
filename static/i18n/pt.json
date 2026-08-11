@@ -835,7 +835,7 @@
     "push_n8_solar_body": "Trânsito solar CSS em {minutes} min",
     "push_n8_lunar_body": "Trânsito lunar CSS em {minutes} min",
     "push_n9_title": "Evento do sistema solar",
-    "push_n9_body": "{title} atinge o pico em {days} dias",
+    "push_n9_body": "{title} daqui a {days} dias",
     "push_kp_visibility_none": "Nenhuma",
     "push_kp_visibility_very_low": "Muito baixa",
     "push_kp_visibility_low": "Baixa",
@@ -2357,7 +2357,7 @@
     "n8_body_lunar": "Trânsito lunar CSS em {minutes} min",
     "n8_body_solar": "Trânsito solar CSS em {minutes} min",
     "n8_title": "Trânsito CSS",
-    "n9_body": "{title} atinge o pico em {days} dias",
+    "n9_body": "{title} daqui a {days} dias",
     "n9_title": "Evento do sistema solar"
   },
   "observatory": {
