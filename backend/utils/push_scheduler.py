@@ -581,9 +581,7 @@ def _n9_event_title(user: Any, event: dict) -> str:
                 'events_api.solar_system.meteor_shower_title', language=lang, shower_name=raw['shower']
             )
         if event_type == 'Comet Appearance' and raw.get('comet'):
-            return get_translated_message(
-                'events_api.solar_system.comet_title', language=lang, comet_name=raw['comet']
-            )
+            return get_translated_message('events_api.solar_system.comet_title', language=lang, comet_name=raw['comet'])
     except Exception:
         pass
     return event.get('title') or 'Solar system event'
