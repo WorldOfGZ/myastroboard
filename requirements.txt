@@ -10,12 +10,12 @@ astropy==8.0.1
 astroplan==0.10.1
 astronomy-engine==2.1.19
 constellation-enum==0.1.0
-skyfield==1.54
+skyfield==1.55
 sgp4==2.27
 PyOngc==1.2.2
 
 # Data processing
-numpy==2.5.1
+numpy==2.5.2
 matplotlib==3.11.1
 pandas==3.0.5
 
