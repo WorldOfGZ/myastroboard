@@ -45,6 +45,8 @@ IDs are defined as `NOTIF_TRIGGERS` constants in `static/js/notifications.js` an
 
 `N9` is unlike every other trigger: its source events (from `solar_system_events` cache) carry a `start_time`..`end_time` span of several days around `peak_time`, rather than being a single instant. It still follows the same "notify N before peak" shape as N1–N8, just with a day-granularity lead time (stored in the same `lead_minutes` preference field, as day-equivalent minutes — e.g. 2 days = 2880) instead of a minutes one. Events whose window is ≤36h (eclipses, transits — already covered by their own dedicated triggers) are skipped by `_N9_MIN_WINDOW_SECONDS` so N9 only fires for genuinely multi-day events.
 
+The countdown in the body is a **calendar-day** difference computed in the observing site's timezone (`_n9_days_until`, mirroring `EventsAggregator.days_until_event`), not a rounded duration — a peak 11h away that lands after local midnight reads *tomorrow*, not *in 0 days*. Days 0 and 1 use their own i18n keys (`push_n9_body_today` / `push_n9_body_tomorrow`, and `notifications.n9_body_today` / `_tomorrow` client-side); `push_n9_body` with `{days}` covers 2+, which keeps the plural correct in every language.
+
 ### Multi-location behavior (v1.2)
 
 - Location-scoped triggers (N3–N8) are evaluated **once per (user, attributed location)** pair, reading each location's own cache slots. Plan triggers (N1/N2) stay per-plan — a plan is pinned to its own location.

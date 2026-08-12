@@ -836,6 +836,8 @@
     "push_n8_lunar_body": "Tránsito lunar CSS en {minutes} min",
     "push_n9_title": "Evento del sistema solar",
     "push_n9_body": "{title} dentro de {days} días",
+    "push_n9_body_today": "{title} hoy",
+    "push_n9_body_tomorrow": "{title} mañana",
     "push_kp_visibility_none": "Ninguna",
     "push_kp_visibility_very_low": "Muy baja",
     "push_kp_visibility_low": "Baja",
@@ -2358,6 +2360,8 @@
     "n8_body_solar": "Tránsito solar CSS en {minutes} min",
     "n8_title": "Tránsito CSS",
     "n9_body": "{title} dentro de {days} días",
+    "n9_body_today": "{title} hoy",
+    "n9_body_tomorrow": "{title} mañana",
     "n9_title": "Evento del sistema solar"
   },
   "observatory": {

@@ -619,11 +619,19 @@ function _checkSolsysWindowNotifications(eventsData) {
         if (msUntil > leadMs) continue;
         if (notificationManager.wasRecentlyNotified('N9', 20 * 60 * 60 * 1000)) continue;
 
-        const days = Math.round(msUntil / 86400000);
+        // Calendar days (the same field the calendar list renders), not a rounded duration:
+        // a peak 11 h out is "0 days" once rounded, which reads wrong in every language and
+        // can be tomorrow anyway. 0 = today, 1 = tomorrow, both get their own wording.
+        const days = Number.isFinite(event.days_until_event)
+            ? event.days_until_event
+            : Math.round(msUntil / 86400000);
+        let bodyKey = 'notifications.n9_body';
+        if (days <= 0) bodyKey = 'notifications.n9_body_today';
+        else if (days === 1) bodyKey = 'notifications.n9_body_tomorrow';
         notificationManager.notify(
             'N9',
             i18n.t('notifications.n9_title'),
-            i18n.t('notifications.n9_body', { title: event.title, days }),
+            i18n.t(bodyKey, { title: event.title, days }),
             { url: '#forecast-astro/calendar', tag: `mab-N9-${event.event_type}-${event.peak_time}` }
         );
         break; // one solar-system-window notification per check cycle

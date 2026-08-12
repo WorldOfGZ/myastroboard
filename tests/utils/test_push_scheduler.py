@@ -640,6 +640,75 @@ def test_n9_naive_timestamps_are_treated_as_utc(monkeypatch):
     assert len(send_calls) == 1 and send_calls[0][1] == 'N9'
 
 
+def test_n9_days_until_counts_calendar_days_not_rounded_duration():
+    """A peak 6h out lands after local midnight - 1 day away, where rounding the duration gives 0."""
+    from utils import push_scheduler
+
+    now = datetime(2026, 8, 12, 21, 0, tzinfo=timezone.utc)
+    assert push_scheduler._n9_days_until(now + timedelta(hours=2), now, 'UTC') == 0
+    assert push_scheduler._n9_days_until(now + timedelta(hours=6), now, 'UTC') == 1
+    assert push_scheduler._n9_days_until(now + timedelta(days=3), now, 'UTC') == 3
+
+
+def test_n9_days_until_uses_the_observing_site_timezone():
+    """Same instant, two sites: the peak is tomorrow for a Paris observer but today for a Tokyo one."""
+    from utils import push_scheduler
+
+    now = datetime(2026, 8, 12, 20, 0, tzinfo=timezone.utc)  # 22:00 in Paris, 05:00 the 13th in Tokyo
+    peak = now + timedelta(hours=3)  # 01:00 the 13th in Paris, 08:00 the 13th in Tokyo
+    assert push_scheduler._n9_days_until(peak, now, 'Europe/Paris') == 1
+    assert push_scheduler._n9_days_until(peak, now, 'Asia/Tokyo') == 0
+
+
+def test_n9_days_until_falls_back_to_utc_on_unknown_timezone():
+    from utils import push_scheduler
+
+    now = datetime(2026, 8, 12, 12, 0, tzinfo=timezone.utc)
+    assert push_scheduler._n9_days_until(now + timedelta(days=2), now, 'Not/AZone') == 2
+    assert push_scheduler._n9_days_until(now + timedelta(days=2), now, None) == 2
+
+
+def test_n9_body_says_today_instead_of_zero_days(monkeypatch):
+    """'in 0 days' is not a sentence in any supported language - a same-day peak reads 'today'."""
+    from utils import push_scheduler
+    send_calls = []
+    monkeypatch.setattr(push_scheduler, '_send', lambda *a, **kw: send_calls.append(a))
+    monkeypatch.setattr(push_scheduler, '_n9_days_until', lambda *a: 0)
+
+    cache = {'events': [_n9_event({'hours': 6})]}
+    push_scheduler._check_n9_solsys_window(_make_user(), cache)
+
+    assert send_calls[0][3] == 'Perseids Meteor Shower today'
+
+
+def test_n9_body_says_tomorrow_instead_of_one_day(monkeypatch):
+    """Avoids the '1 days' plural slip the generic {days} wording would produce."""
+    from utils import push_scheduler
+    send_calls = []
+    monkeypatch.setattr(push_scheduler, '_send', lambda *a, **kw: send_calls.append(a))
+    monkeypatch.setattr(push_scheduler, '_n9_days_until', lambda *a: 1)
+
+    cache = {'events': [_n9_event({'days': 1})]}
+    push_scheduler._check_n9_solsys_window(_make_user(), cache)
+
+    assert send_calls[0][3] == 'Perseids Meteor Shower tomorrow'
+
+
+def test_n9_body_counts_days_beyond_tomorrow(monkeypatch):
+    from utils import push_scheduler
+    send_calls = []
+    monkeypatch.setattr(push_scheduler, '_send', lambda *a, **kw: send_calls.append(a))
+    monkeypatch.setattr(push_scheduler, '_n9_days_until', lambda *a: 3)
+
+    cache = {'events': [_n9_event(
+        {'days': 3}, start_delta={'days': 1}, end_delta={'days': 5}, title='Geminids Meteor Shower',
+    )]}
+    user = _make_user(triggers={'N9': {'enabled': True, 'lead_minutes': 7200}})
+    push_scheduler._check_n9_solsys_window(user, cache)
+
+    assert send_calls[0][3] == 'Geminids Meteor Shower in 3 days'
+
+
 # ---------------------------------------------------------------------------
 # _send - delivery and dead-subscription cleanup
 # ---------------------------------------------------------------------------

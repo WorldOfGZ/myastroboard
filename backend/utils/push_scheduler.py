@@ -587,6 +587,25 @@ def _n9_event_title(user: Any, event: dict) -> str:
     return event.get('title') or 'Solar system event'
 
 
+def _n9_days_until(peak: datetime, now: datetime, tz_name: Optional[str]) -> int:
+    """Whole calendar days between now and `peak`, in the observing site's own timezone.
+
+    Rounding the raw duration would call a peak 11 hours out "0 days" - not a sentence in
+    any of our languages - and would call it "today" even when it actually lands after
+    local midnight. Comparing local dates instead gives the same day granularity the
+    calendar UI already shows (EventsAggregator.days_until_event): 0 is today, 1 tomorrow.
+    """
+    tz: Any = timezone.utc
+    if tz_name:
+        try:
+            from zoneinfo import ZoneInfo
+
+            tz = ZoneInfo(tz_name)
+        except Exception:
+            logger.debug(f"N9: unknown timezone {tz_name!r}, falling back to UTC")
+    return (peak.astimezone(tz).date() - now.astimezone(tz).date()).days
+
+
 def _check_n9_solsys_window(user: Any, cache_data: Optional[dict], loc: Optional[dict] = None) -> None:
     """N9 - heads-up ahead of a multi-day solar-system event's peak (meteor shower, comet
     visibility window...). Unlike eclipses/transits, these events carry a start_time..end_time
@@ -606,6 +625,7 @@ def _check_n9_solsys_window(user: Any, cache_data: Optional[dict], loc: Optional
     loc = loc or {}
     now = datetime.now(timezone.utc)
     lead_s = t.get('lead_minutes', 2880) * 60
+    tz_name = (cache_data.get('location') or {}).get('timezone')
 
     for event in cache_data.get('events', []):
         start_str = event.get('start_time')
@@ -641,12 +661,18 @@ def _check_n9_solsys_window(user: Any, cache_data: Optional[dict], loc: Optional
             continue
 
         title = _n9_event_title(user, event)
-        days = round(ms_until / 86400)
+        days = _n9_days_until(peak, now, tz_name)
+        if days <= 0:
+            body = _t(user, 'push_n9_body_today', title=title)
+        elif days == 1:
+            body = _t(user, 'push_n9_body_tomorrow', title=title)
+        else:
+            body = _t(user, 'push_n9_body', title=title, days=days)
         _send(
             user,
             trigger_key,
             _t(user, 'push_n9_title'),
-            _with_location(user, _t(user, 'push_n9_body', title=title, days=days), loc.get('name'), loc.get('multi')),
+            _with_location(user, body, loc.get('name'), loc.get('multi')),
             '/#forecast-astro/calendar',
             ttl=int(ms_until),
         )
