@@ -517,9 +517,11 @@ def _check_n4_n5_eclipse(
     now = datetime.now(timezone.utc)
     loc = loc or {}
 
-    for trigger_id, cache_data, title_key, body_key, url in (
-        ('N4', lunar_data, 'push_n4_title', 'push_n4_body', '/#forecast-astro/moon'),
-        ('N5', solar_data, 'push_n5_title', 'push_n5_body', '/#forecast-astro/sun'),
+    # payload_key is the one the eclipse cache jobs actually write (update_solar_eclipse_cache /
+    # update_lunar_eclipse_cache) - the payload is nested, not at the root of the cache entry.
+    for trigger_id, cache_data, payload_key, title_key, body_key, url in (
+        ('N4', lunar_data, 'lunar_eclipse', 'push_n4_title', 'push_n4_body', '/#forecast-astro/moon'),
+        ('N5', solar_data, 'solar_eclipse', 'push_n5_title', 'push_n5_body', '/#forecast-astro/sun'),
     ):
         t = triggers.get(trigger_id, {})
         if not t.get('enabled', True):
@@ -529,7 +531,7 @@ def _check_n4_n5_eclipse(
             logger.debug(f"{trigger_id} skip {user.username}: no cache data")
             continue
 
-        peak_str = (cache_data.get('eclipse') or {}).get('peak_time')
+        peak_str = (cache_data.get(payload_key) or {}).get('peak_time')
         if not peak_str:
             logger.debug(f"{trigger_id} skip {user.username}: no peak_time in cache")
             continue

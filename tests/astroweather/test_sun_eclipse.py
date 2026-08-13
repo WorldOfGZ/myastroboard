@@ -6,7 +6,12 @@ Covers pure-logic scoring and helper methods.
 import pytest
 import datetime
 from unittest.mock import patch, MagicMock
-from astroweather.sun_eclipse import SolarEclipseService, SolarEclipseInfo, EclipsePoint
+from astroweather.sun_eclipse import (
+    IN_PROGRESS_LOOKBACK,
+    SolarEclipseService,
+    SolarEclipseInfo,
+    EclipsePoint,
+)
 
 
 class TestSolarEclipseInit:
@@ -326,6 +331,96 @@ class TestGetNextEclipse:
         assert info.peak_altitude_deg == 0.0
         assert info.astrophotography_score == 0.0
         assert info.score_classification == "not_visible"
+
+
+class TestEclipseInProgress:
+    """An eclipse that is still running must not be replaced by the following one.
+
+    astronomy-engine anchors its search on the peak, so searching from "now" drops the
+    current eclipse as soon as its maximum is passed - while the partial phases can
+    still have an hour to run. The service compensates with a lookback window.
+    """
+
+    def setup_method(self):
+        self.svc = SolarEclipseService(45.0, -73.5, "UTC")
+
+    @staticmethod
+    def _eclipse(peak_dt, end_dt):
+        return _Eclipse(
+            kind="EclipseKind.Partial",
+            peak_dt=peak_dt,
+            peak_altitude=30.0,
+            start_dt=peak_dt - datetime.timedelta(hours=1),
+            end_dt=end_dt,
+            obscuration=0.5,
+        )
+
+    @patch("astroweather.sun_eclipse.SearchLocalSolarEclipse")
+    def test_search_starts_before_now(self, mock_search):
+        """The search window opens in the past, otherwise a running eclipse is skipped."""
+        now = datetime.datetime.now(datetime.timezone.utc)
+        mock_search.return_value = self._eclipse(
+            now + datetime.timedelta(days=30), now + datetime.timedelta(days=30, hours=1)
+        )
+
+        self.svc.get_next_eclipse()
+
+        searched_from = mock_search.call_args[0][0].Utc().replace(tzinfo=datetime.timezone.utc)
+        assert searched_from < now
+        assert now - searched_from <= IN_PROGRESS_LOOKBACK + datetime.timedelta(minutes=1)
+
+    @patch.object(SolarEclipseService, "_generate_altitude_vs_time", return_value=[])
+    @patch.object(SolarEclipseService, "_get_sun_azimuth", return_value=180.0)
+    @patch("astroweather.sun_eclipse.SearchLocalSolarEclipse")
+    def test_running_eclipse_is_kept(self, mock_search, _mock_az, _mock_alttime):
+        """Peak already passed but end still ahead: keep reporting that eclipse."""
+        now = datetime.datetime.now(datetime.timezone.utc)
+        running = self._eclipse(
+            now - datetime.timedelta(minutes=40),
+            now + datetime.timedelta(minutes=30),
+        )
+        mock_search.return_value = running
+
+        info = self.svc.get_next_eclipse()
+
+        assert mock_search.call_count == 1  # no second search: nothing to skip past
+        assert info is not None
+        assert info.peak_time == running.peak.time.Utc().replace(tzinfo=datetime.timezone.utc).isoformat(
+            timespec="seconds"
+        )
+
+    @patch.object(SolarEclipseService, "_generate_altitude_vs_time", return_value=[])
+    @patch.object(SolarEclipseService, "_get_sun_azimuth", return_value=180.0)
+    @patch("astroweather.sun_eclipse.SearchLocalSolarEclipse")
+    def test_finished_eclipse_is_replaced_by_the_next_one(self, mock_search, _mock_az, _mock_alttime):
+        """An eclipse caught by the lookback but already over must not be reported."""
+        now = datetime.datetime.now(datetime.timezone.utc)
+        finished = self._eclipse(
+            now - datetime.timedelta(hours=3),
+            now - datetime.timedelta(hours=2),
+        )
+        upcoming = self._eclipse(
+            now + datetime.timedelta(days=180),
+            now + datetime.timedelta(days=180, hours=1),
+        )
+        mock_search.side_effect = [finished, upcoming]
+
+        info = self.svc.get_next_eclipse()
+
+        assert mock_search.call_count == 2
+        assert info is not None
+        assert info.peak_time.startswith(str((now + datetime.timedelta(days=180)).year))
+
+    @patch("astroweather.sun_eclipse.SearchLocalSolarEclipse")
+    def test_returns_none_when_the_second_search_finds_nothing(self, mock_search):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        finished = self._eclipse(
+            now - datetime.timedelta(hours=3),
+            now - datetime.timedelta(hours=2),
+        )
+        mock_search.side_effect = [finished, None]
+
+        assert self.svc.get_next_eclipse() is None
 
 
 class TestEclipseDataclasses:

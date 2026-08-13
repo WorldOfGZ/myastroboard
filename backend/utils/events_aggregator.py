@@ -496,6 +496,11 @@ class EventsAggregator:
         if not solar_eclipse.get("visible", False):
             return events
 
+        # The cache is refreshed once a day, so it can still hold an eclipse that ended
+        # a few hours ago - it must not be announced as an upcoming event in between.
+        if self._window_end_is_past(solar_eclipse.get("end_time")):
+            return events
+
         peak_time_str = solar_eclipse.get("peak_time")
         peak_time = self._parse_iso_time(peak_time_str)
         days_until = (peak_time.date() - self.local_now.date()).days
@@ -562,6 +567,15 @@ class EventsAggregator:
         if not peak_time_str:
             return events
 
+        # LunarEclipseInfo names its window partial_begin/partial_end (the solar payload
+        # uses start_time/end_time); map it here so the event carries a real span.
+        begin_time_str = lunar_eclipse.get("partial_begin")
+        end_time_str = lunar_eclipse.get("partial_end")
+
+        # Same as the solar case: a daily-refreshed cache can still hold a finished eclipse.
+        if self._window_end_is_past(end_time_str):
+            return events
+
         peak_time = self._parse_iso_time(peak_time_str)
         days_until = (peak_time.date() - self.local_now.date()).days
 
@@ -598,9 +612,9 @@ class EventsAggregator:
                     obscuration_percent=f"{lunar_eclipse.get('obscuration_percent', 0):.1f}",
                 )
             ),
-            start_time=lunar_eclipse.get("start_time"),
+            start_time=begin_time_str,
             peak_time=peak_time_str,
-            end_time=lunar_eclipse.get("end_time"),
+            end_time=end_time_str,
             days_until_event=days_until,
             visibility=visible,
             importance=importance,
@@ -1166,7 +1180,10 @@ class EventsAggregator:
         Events without an end_time (equinox, solstice) are left to the day-based filtering
         elsewhere, since they are momentary rather than window-based.
         """
-        end_time_str = event_data.get("end_time")
+        return self._window_end_is_past(event_data.get("end_time"))
+
+    def _window_end_is_past(self, end_time_str: Optional[str]) -> bool:
+        """True if ``end_time_str`` is a timestamp already behind us (None/empty = False)."""
         if not end_time_str:
             return False
         return self._parse_iso_time(end_time_str) < self.local_now

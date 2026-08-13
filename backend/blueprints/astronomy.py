@@ -167,7 +167,7 @@ def get_solar_eclipse_api():
     """Return next solar eclipse, from cache only"""
     try:
         _, entry = _active_location_cache("solar_eclipse")
-        if cache_store.is_cache_valid(entry, CACHE_TTL):
+        if cache_store.is_cache_valid(entry, CACHE_TTL_SOLAR_ECLIPSE):
             return jsonify(entry["data"])
 
         stale_data = entry.get("data")
@@ -193,7 +193,7 @@ def get_lunar_eclipse_api():
     """Return next lunar eclipse, from cache only"""
     try:
         _, entry = _active_location_cache("lunar_eclipse")
-        if cache_store.is_cache_valid(entry, CACHE_TTL):
+        if cache_store.is_cache_valid(entry, CACHE_TTL_LUNAR_ECLIPSE):
             return jsonify(entry["data"])
 
         stale_data = entry.get("data")

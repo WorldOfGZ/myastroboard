@@ -9,7 +9,7 @@ resets only that preset's caches. Location-independent jobs (spaceflight,
 IERS, AllSky) keep running exactly once per cycle.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 import time
 from typing import Callable, List, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -1072,6 +1072,45 @@ def update_allsky_health_cache(config=None):
     logger.debug("AllSky health cache updated")
 
 
+# Jobs whose payload describes a single dated event: {job_name: (payload_key, end_field)}.
+# Their cache also expires when that event is over - a TTL alone cannot express it. The
+# eclipse caches are refreshed once a day, so without this an eclipse that ended in the
+# evening would still be served as "the next eclipse" until the next day's refresh.
+_EVENT_END_FIELDS = {
+    "solar_eclipse": ("solar_eclipse", "end_time"),
+    "lunar_eclipse": ("lunar_eclipse", "partial_end"),
+}
+
+
+def _cached_event_has_ended(job_name, entry):
+    """True when a single-event cache still holds an event whose window has closed.
+
+    Falls back to False (TTL decides) for any job not listed in _EVENT_END_FIELDS, and
+    whenever the stored end time is missing or cannot be read as an offset-aware ISO
+    timestamp - a cache entry is never dropped on a value we failed to understand.
+    """
+    fields = _EVENT_END_FIELDS.get(job_name)
+    if not fields:
+        return False
+
+    payload_key, end_field = fields
+    payload = ((entry or {}).get("data") or {}).get(payload_key)
+    if not isinstance(payload, dict):
+        return False
+
+    end_raw = payload.get(end_field)
+    if not isinstance(end_raw, str):
+        return False
+    try:
+        end_time = datetime.fromisoformat(end_raw)
+    except ValueError:
+        return False
+    if end_time.tzinfo is None:
+        return False
+
+    return end_time < datetime.now(timezone.utc)
+
+
 # (job_name, shared_cache_name, update_fn_name, ttl_seconds, day_sensitive)
 # Location-scoped jobs: run once per scheduler location; the shared_cache_name is
 # combined with the location id for TTL checks (cache_store.location_cache_key).
@@ -1176,6 +1215,13 @@ def fully_initialize_caches():
                     if day_sensitive
                     else cache_store.is_cache_valid(entry, ttl)
                 )
+                if valid and _cached_event_has_ended(job_name, entry):
+                    logger.info(
+                        "Cache '%s' for location %s holds a finished event, refreshing early",
+                        job_name,
+                        location_id,
+                    )
+                    valid = False
                 if valid:
                     logger.debug(
                         "Cache '%s' still valid for location %s (TTL=%ds), skipping", job_name, location_id, ttl

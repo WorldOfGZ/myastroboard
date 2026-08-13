@@ -802,6 +802,93 @@ class TestExtractLunarEclipseEvents:
         assert len(events) == 1
         assert events[0].visibility is False
 
+    def test_lunar_eclipse_window_comes_from_the_partial_phases(self, aggregator):
+        """The lunar payload names its window partial_begin/partial_end, not start/end_time."""
+        peak = aggregator.local_now + timedelta(days=10)
+        data = {
+            "lunar_eclipse": {
+                "visible": True,
+                "peak_time": peak.isoformat(),
+                "partial_begin": (peak - timedelta(hours=1)).isoformat(),
+                "partial_end": (peak + timedelta(hours=1)).isoformat(),
+                "type": "Total",
+                "obscuration_percent": 100.0,
+            }
+        }
+        events = aggregator._extract_lunar_eclipse_events(data)
+        assert events[0].start_time == (peak - timedelta(hours=1)).isoformat()
+        assert events[0].end_time == (peak + timedelta(hours=1)).isoformat()
+
+
+class TestFinishedEclipsesAreNotAnnounced:
+    """A cache refreshed once a day can still hold an eclipse that already ended.
+
+    Until the next refresh it must not be listed as an upcoming event - day-granularity
+    countdowns alone would keep it at "today"/"yesterday" instead of dropping it.
+    """
+
+    def test_finished_solar_eclipse_is_dropped(self, aggregator):
+        peak = aggregator.local_now - timedelta(hours=3)
+        data = {
+            "solar_eclipse": {
+                "visible": True,
+                "peak_time": peak.isoformat(),
+                "start_time": (peak - timedelta(hours=1)).isoformat(),
+                "end_time": (peak + timedelta(hours=1)).isoformat(),
+                "type": "Total",
+                "astrophotography_score": 9,
+                "obscuration_percent": 100.0,
+                "peak_altitude_deg": 45.0,
+            }
+        }
+        assert aggregator._extract_solar_eclipse_events(data) == []
+
+    def test_running_solar_eclipse_is_kept(self, aggregator):
+        """Peak already passed but the partial phases are still running."""
+        peak = aggregator.local_now - timedelta(minutes=20)
+        data = {
+            "solar_eclipse": {
+                "visible": True,
+                "peak_time": peak.isoformat(),
+                "start_time": (peak - timedelta(hours=1)).isoformat(),
+                "end_time": (peak + timedelta(hours=1)).isoformat(),
+                "type": "Total",
+                "astrophotography_score": 9,
+                "obscuration_percent": 100.0,
+                "peak_altitude_deg": 45.0,
+            }
+        }
+        assert len(aggregator._extract_solar_eclipse_events(data)) == 1
+
+    def test_finished_lunar_eclipse_is_dropped(self, aggregator):
+        peak = aggregator.local_now - timedelta(hours=5)
+        data = {
+            "lunar_eclipse": {
+                "visible": True,
+                "peak_time": peak.isoformat(),
+                "partial_begin": (peak - timedelta(hours=1)).isoformat(),
+                "partial_end": (peak + timedelta(hours=1)).isoformat(),
+                "type": "Total",
+                "obscuration_percent": 100.0,
+            }
+        }
+        assert aggregator._extract_lunar_eclipse_events(data) == []
+
+    def test_eclipse_without_an_end_time_is_kept(self, aggregator):
+        """No window in the payload: fall back to the existing day-based handling."""
+        peak = (aggregator.local_now + timedelta(days=10)).isoformat()
+        data = {
+            "solar_eclipse": {
+                "visible": True,
+                "peak_time": peak,
+                "type": "Partial",
+                "astrophotography_score": 6,
+                "obscuration_percent": 50.0,
+                "peak_altitude_deg": 30.0,
+            }
+        }
+        assert len(aggregator._extract_solar_eclipse_events(data)) == 1
+
 
 class TestExtractAuroraEvents:
     """Tests for _extract_aurora_events."""

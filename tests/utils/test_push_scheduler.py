@@ -443,7 +443,7 @@ def test_n4_sends_for_upcoming_lunar_eclipse_peak(monkeypatch):
     send_calls = []
     monkeypatch.setattr(push_scheduler, '_send', lambda *a, **kw: send_calls.append(a))
 
-    lunar_data = {'eclipse': {'peak_time': _now_iso(minutes=25)}}
+    lunar_data = {'lunar_eclipse': {'peak_time': _now_iso(minutes=25)}}
     push_scheduler._check_n4_n5_eclipse(_make_user(), None, lunar_data)
 
     assert len(send_calls) == 1 and send_calls[0][1] == 'N4'
@@ -454,7 +454,7 @@ def test_n5_sends_for_upcoming_solar_eclipse_peak(monkeypatch):
     send_calls = []
     monkeypatch.setattr(push_scheduler, '_send', lambda *a, **kw: send_calls.append(a))
 
-    solar_data = {'eclipse': {'peak_time': _now_iso(minutes=20)}}
+    solar_data = {'solar_eclipse': {'peak_time': _now_iso(minutes=20)}}
     push_scheduler._check_n4_n5_eclipse(_make_user(), solar_data, None)
 
     assert len(send_calls) == 1 and send_calls[0][1] == 'N5'
@@ -465,7 +465,7 @@ def test_eclipse_skips_when_peak_too_far_away(monkeypatch):
     send_calls = []
     monkeypatch.setattr(push_scheduler, '_send', lambda *a, **kw: send_calls.append(a))
 
-    lunar_data = {'eclipse': {'peak_time': _now_iso(hours=3)}}
+    lunar_data = {'lunar_eclipse': {'peak_time': _now_iso(hours=3)}}
     push_scheduler._check_n4_n5_eclipse(_make_user(), None, lunar_data)
 
     assert not send_calls
@@ -476,10 +476,49 @@ def test_eclipse_skips_past_peak(monkeypatch):
     send_calls = []
     monkeypatch.setattr(push_scheduler, '_send', lambda *a, **kw: send_calls.append(a))
 
-    lunar_data = {'eclipse': {'peak_time': _now_iso(hours=-1)}}
+    lunar_data = {'lunar_eclipse': {'peak_time': _now_iso(hours=-1)}}
     push_scheduler._check_n4_n5_eclipse(_make_user(), None, lunar_data)
 
     assert not send_calls
+
+
+def test_n5_reads_the_payload_the_cache_job_actually_writes(monkeypatch):
+    """Guards the key the trigger looks up against the one update_solar_eclipse_cache stores.
+
+    The payload is built here by the cache updater itself rather than hand-written, so a
+    rename on either side breaks this test instead of silently muting the notification.
+    """
+    from unittest.mock import patch
+    from utils import push_scheduler
+    from cache import cache_updater
+
+    class _Eclipse:
+        """Stands in for SolarEclipseInfo: the job serialises it through __dict__."""
+
+        def __init__(self, peak_time):
+            self.peak_time = peak_time
+            self.altitude_vs_time = []
+
+    eclipse = _Eclipse(_now_iso(minutes=20))
+
+    stored = {}
+    with patch.object(cache_updater, 'SolarEclipseService') as mock_service, patch.object(
+        cache_updater, 'cache_store'
+    ) as mock_store, patch.object(cache_updater, 'load_config', return_value={'locations': []}):
+        mock_service.return_value.get_next_eclipse.return_value = eclipse
+        mock_store.update_location_cache.side_effect = lambda name, loc_id, data: stored.update(data)
+        cache_updater.update_solar_eclipse_cache(
+            config={'locations': []},
+            location={'id': 'loc', 'latitude': 45.0, 'longitude': 2.0, 'timezone': 'UTC'},
+        )
+
+    assert stored, "the cache job did not store anything"
+
+    send_calls = []
+    monkeypatch.setattr(push_scheduler, '_send', lambda *a, **kw: send_calls.append(a))
+    push_scheduler._check_n4_n5_eclipse(_make_user(), stored, None)
+
+    assert len(send_calls) == 1 and send_calls[0][1] == 'N5'
 
 
 # ---------------------------------------------------------------------------
@@ -1236,8 +1275,8 @@ def test_n4n5_disabled_skips(monkeypatch):
     send_calls = []
     monkeypatch.setattr(push_scheduler, '_send', lambda *a, **kw: send_calls.append(a))
     user = _make_user(triggers={'N4': {'enabled': False}, 'N5': {'enabled': False}})
-    push_scheduler._check_n4_n5_eclipse(user, {'eclipse': {'peak_time': _now_iso(minutes=20)}},
-                                         {'eclipse': {'peak_time': _now_iso(minutes=20)}})
+    push_scheduler._check_n4_n5_eclipse(user, {'solar_eclipse': {'peak_time': _now_iso(minutes=20)}},
+                                         {'lunar_eclipse': {'peak_time': _now_iso(minutes=20)}})
     assert not send_calls
 
 
@@ -1245,7 +1284,7 @@ def test_n4_no_peak_time_skips(monkeypatch):
     from utils import push_scheduler
     send_calls = []
     monkeypatch.setattr(push_scheduler, '_send', lambda *a, **kw: send_calls.append(a))
-    push_scheduler._check_n4_n5_eclipse(_make_user(), None, {'eclipse': {}})
+    push_scheduler._check_n4_n5_eclipse(_make_user(), None, {'lunar_eclipse': {}})
     assert not send_calls
 
 
@@ -1253,7 +1292,7 @@ def test_n4_bad_peak_time_exception_swallowed(monkeypatch):
     from utils import push_scheduler
     send_calls = []
     monkeypatch.setattr(push_scheduler, '_send', lambda *a, **kw: send_calls.append(a))
-    push_scheduler._check_n4_n5_eclipse(_make_user(), None, {'eclipse': {'peak_time': 'bad-date'}})
+    push_scheduler._check_n4_n5_eclipse(_make_user(), None, {'lunar_eclipse': {'peak_time': 'bad-date'}})
     assert not send_calls
 
 
@@ -1555,7 +1594,7 @@ def test_n4_naive_peak_datetime_gets_utc(monkeypatch):
     monkeypatch.setattr(push_scheduler, '_send', lambda *a, **kw: send_calls.append(a))
     push_scheduler._last_sent.clear()
     soon = (datetime.now(timezone.utc) + timedelta(minutes=20)).strftime('%Y-%m-%dT%H:%M:%S')  # naive
-    lunar_data = {'eclipse': {'peak_time': soon}}
+    lunar_data = {'lunar_eclipse': {'peak_time': soon}}
     push_scheduler._check_n4_n5_eclipse(_make_user(), None, lunar_data)
     assert len(send_calls) == 1
 

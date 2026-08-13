@@ -2241,3 +2241,114 @@ def test_fully_initialize_caches_iers_absent_but_not_in_parallel(monkeypatch):
 
     assert called == ["dflt"]
 
+
+
+class TestCachedEventHasEnded:
+    """Single-event caches (eclipses) must also expire when their event is over.
+
+    Their TTL is a full day, so without this an eclipse that finished in the evening
+    would still be served as "the next eclipse" until the next day's refresh.
+    """
+
+    @staticmethod
+    def _entry(payload_key, field, offset_hours):
+        from datetime import datetime as _dt, timezone, timedelta
+
+        when = _dt.now(timezone.utc) + timedelta(hours=offset_hours)
+        return {"timestamp": 1, "data": {payload_key: {field: when.isoformat(timespec="seconds")}}}
+
+    def test_finished_solar_eclipse_is_reported_as_ended(self):
+        from cache.cache_updater import _cached_event_has_ended
+
+        assert _cached_event_has_ended("solar_eclipse", self._entry("solar_eclipse", "end_time", -2)) is True
+
+    def test_upcoming_solar_eclipse_is_not_reported_as_ended(self):
+        from cache.cache_updater import _cached_event_has_ended
+
+        assert _cached_event_has_ended("solar_eclipse", self._entry("solar_eclipse", "end_time", 48)) is False
+
+    def test_lunar_eclipse_uses_its_partial_end_field(self):
+        from cache.cache_updater import _cached_event_has_ended
+
+        assert _cached_event_has_ended("lunar_eclipse", self._entry("lunar_eclipse", "partial_end", -1)) is True
+        assert _cached_event_has_ended("lunar_eclipse", self._entry("lunar_eclipse", "partial_end", 1)) is False
+
+    def test_other_jobs_are_left_to_their_ttl(self):
+        from cache.cache_updater import _cached_event_has_ended
+
+        assert _cached_event_has_ended("aurora", self._entry("aurora", "end_time", -2)) is False
+
+    @pytest.mark.parametrize(
+        "entry",
+        [
+            None,
+            {"timestamp": 1, "data": None},
+            {"timestamp": 1, "data": {}},
+            {"timestamp": 1, "data": {"solar_eclipse": None}},
+            {"timestamp": 1, "data": {"solar_eclipse": {}}},
+            {"timestamp": 1, "data": {"solar_eclipse": {"end_time": "not-a-timestamp"}}},
+            # Naive timestamp: no offset to compare against UTC, so the TTL decides
+            {"timestamp": 1, "data": {"solar_eclipse": {"end_time": "2020-01-01T00:00:00"}}},
+        ],
+    )
+    def test_unreadable_payloads_never_drop_the_cache(self, entry):
+        from cache.cache_updater import _cached_event_has_ended
+
+        assert _cached_event_has_ended("solar_eclipse", entry) is False
+
+
+def _run_eclipse_job_cycle(monkeypatch, end_offset_hours):
+    """Run one refresh cycle where the eclipse cache is TTL-valid; return the jobs that ran."""
+    from datetime import datetime as _dt, timezone, timedelta
+    from cache import cache_updater
+
+    ran = []
+
+    def _eclipse_job(config=None, location=None):
+        ran.append(location.get("id"))
+
+    end_time = _dt.now(timezone.utc) + timedelta(hours=end_offset_hours)
+    mock_cs = MagicMock()
+    mock_cs.load_location_cache.return_value = {
+        "timestamp": 1,
+        "data": {"solar_eclipse": {"end_time": end_time.isoformat(timespec="seconds")}},
+    }
+    # TTL says the entry is still fresh - only the event's own end time can expire it
+    mock_cs.is_cache_valid.return_value = True
+    mock_cs.is_cache_valid_for_today.return_value = True
+    mock_cs.sync_cache_from_shared.return_value = None
+    mock_cs._spaceflight_launches_cache = {"data": {}, "timestamp": 1}
+    mock_cs._spaceflight_astronauts_cache = {"data": {}, "timestamp": 1}
+    mock_cs._spaceflight_events_cache = {"data": {}, "timestamp": 1}
+    mock_cs._iers_cache = {"data": {}, "timestamp": 1}
+
+    monkeypatch.setattr(cache_updater, "check_and_handle_config_changes", lambda: False)
+    monkeypatch.setattr(
+        cache_updater,
+        "load_config",
+        lambda: {"locations": [{"id": "dflt", "is_install_default": True}]},
+    )
+    monkeypatch.setattr(cache_updater, "get_scheduler_locations", lambda cfg: cfg["locations"])
+    monkeypatch.setattr(cache_updater, "get_install_default_location", lambda cfg: cfg["locations"][0])
+    monkeypatch.setattr(cache_updater, "cache_store", mock_cs)
+    monkeypatch.setattr(
+        cache_updater,
+        "_LOCATION_JOBS",
+        (("solar_eclipse", "solar_eclipse", "_test_eclipse_job", 86400, False),),
+    )
+    monkeypatch.setattr(cache_updater, "_test_eclipse_job", _eclipse_job, raising=False)
+
+    with patch("astropy.utils.iers.IERS_Auto.iers_table", new=None):
+        cache_updater.fully_initialize_caches()
+
+    return ran
+
+
+def test_finished_eclipse_refreshes_before_its_ttl_expires(monkeypatch):
+    """The eclipse ended two hours ago: recompute now instead of waiting out the 24h TTL."""
+    assert _run_eclipse_job_cycle(monkeypatch, end_offset_hours=-2) == ["dflt"]
+
+
+def test_running_eclipse_is_not_recomputed(monkeypatch):
+    """Still in progress (or upcoming): the TTL keeps deciding, no extra work."""
+    assert _run_eclipse_job_cycle(monkeypatch, end_offset_hours=1) == []

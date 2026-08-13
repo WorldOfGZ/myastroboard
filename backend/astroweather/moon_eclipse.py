@@ -56,6 +56,13 @@ import astropy.units as u
 
 from utils import distant_epoch_precision_warnings_muted
 
+# How far back the search starts so an eclipse that is currently running is still
+# returned. astronomy-engine anchors SearchLunarEclipse on the *peak*, so a search
+# starting at "now" already skips to the following eclipse as soon as the peak is
+# passed - even though the penumbral phases can still have hours to run. The
+# penumbral semi-duration never exceeds ~3.5h, so 6h covers it with margin.
+IN_PROGRESS_LOOKBACK = datetime.timedelta(hours=6)
+
 # =============================
 # Data structures
 # =============================
@@ -110,7 +117,7 @@ class LunarEclipseService:
     # =============================
 
     def get_next_eclipse(self) -> Optional[LunarEclipseInfo]:
-        """Get next lunar eclipse from now.
+        """Get the lunar eclipse in progress right now, or the next one.
 
         Lunar eclipses are visible from a whole hemisphere, so the next one is
         usually near-term - but the search is not bounded, so it can still land
@@ -122,17 +129,21 @@ class LunarEclipseService:
             return self._compute_next_eclipse()
 
     def _compute_next_eclipse(self) -> Optional[LunarEclipseInfo]:
-        """Find the next lunar eclipse and describe it."""
+        """Find the current or next lunar eclipse and describe it."""
 
-        # astronomy.Time expects UTC time
         now_utc = datetime.datetime.now(datetime.timezone.utc)
-        t_start_str = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
-        t_start = AstronTime(t_start_str)
 
-        # Search for next lunar eclipse
-        eclipse = SearchLunarEclipse(t_start)
+        # Start the search in the past (see IN_PROGRESS_LOOKBACK) so an eclipse whose
+        # peak has passed but whose phases are still running stays reported.
+        eclipse = self._search_eclipse(now_utc - IN_PROGRESS_LOOKBACK)
         if eclipse is None:
             return None
+
+        if self._eclipse_end_utc(eclipse) < now_utc:
+            # The one caught by the lookback is over: report the following one.
+            eclipse = self._search_eclipse(now_utc)
+            if eclipse is None:
+                return None
 
         # Convert peak time to local.
         # Time.Utc() returns a NAIVE datetime — attach UTC tzinfo before converting.
@@ -223,6 +234,25 @@ class LunarEclipseService:
     # =============================
     # Core calculations
     # =============================
+
+    def _search_eclipse(self, from_utc: datetime.datetime) -> Any:
+        """Search the next lunar eclipse at or after ``from_utc``.
+
+        astronomy-engine returns None when no eclipse is found within its search span.
+        """
+        # astronomy.Time expects UTC time
+        t_start = AstronTime(from_utc.strftime("%Y-%m-%dT%H:%M:%SZ"))
+        return SearchLunarEclipse(t_start)
+
+    def _eclipse_end_utc(self, eclipse: Any) -> datetime.datetime:
+        """End of the reported window, as an aware UTC datetime.
+
+        Mirrors the begin/end computation below: the partial semi-duration when there
+        is a partial phase, the penumbral one otherwise.
+        """
+        peak_utc = eclipse.peak.Utc().replace(tzinfo=datetime.timezone.utc)
+        semi_duration = eclipse.sd_partial if eclipse.sd_partial > 0 else eclipse.sd_penum
+        return peak_utc + datetime.timedelta(minutes=semi_duration)
 
     def _get_eclipse_type(self, eclipse: Any) -> str:
         """Determine eclipse type from eclipse object"""

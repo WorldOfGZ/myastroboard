@@ -54,6 +54,13 @@ import astropy.units as u
 
 from utils import distant_epoch_precision_warnings_muted
 
+# How far back the search starts so an eclipse that is currently running is still
+# returned. astronomy-engine anchors SearchLocalSolarEclipse on the *peak*, so a
+# search starting at "now" already skips to the following eclipse as soon as the
+# peak is passed - even though the partial phases can still have an hour to run.
+# Local partial phases never exceed ~4h, so 6h covers them with margin.
+IN_PROGRESS_LOOKBACK = datetime.timedelta(hours=6)
+
 # =============================
 # Data structures
 # =============================
@@ -106,7 +113,7 @@ class SolarEclipseService:
     # =============================
 
     def get_next_eclipse(self) -> Optional[SolarEclipseInfo]:
-        """Get next solar eclipse from now.
+        """Get the solar eclipse in progress right now, or the next one.
 
         The next eclipse *visible from this location* can be many years out (for
         Mauna Kea it is in 2031), which is past the horizon of the leap-second
@@ -118,28 +125,32 @@ class SolarEclipseService:
             return self._compute_next_eclipse()
 
     def _compute_next_eclipse(self) -> Optional[SolarEclipseInfo]:
-        """Find the next locally visible solar eclipse and describe it."""
+        """Find the current or next locally visible solar eclipse and describe it."""
 
-        # astronomy.Time expects UTC time
         now_utc = datetime.datetime.now(datetime.timezone.utc)
-        t_start_str = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
-        t_start = AstronTime(t_start_str)
 
-        # Search for next eclipse (astronomy-engine returns None if no eclipse in next ~18 months)
-        eclipse = SearchLocalSolarEclipse(t_start, self.observer)
+        # Start the search in the past (see IN_PROGRESS_LOOKBACK) so an eclipse whose
+        # peak has passed but whose partial phases are still running stays reported.
+        eclipse = self._search_eclipse(now_utc - IN_PROGRESS_LOOKBACK)
         if eclipse is None:
             return None
 
-        # Convert peak time to local.
+        partial_end_utc = self._eclipse_end_utc(eclipse)
+        if partial_end_utc < now_utc:
+            # The one caught by the lookback is over: report the following one.
+            eclipse = self._search_eclipse(now_utc)
+            if eclipse is None:
+                return None
+            partial_end_utc = self._eclipse_end_utc(eclipse)
+
+        # Convert eclipse times to local.
         # Time.Utc() returns a NAIVE datetime — attach UTC tzinfo before converting.
         peak_utc = eclipse.peak.time.Utc().replace(tzinfo=datetime.timezone.utc)
         peak_local = peak_utc.astimezone(self.timezone)
 
-        # Convert eclipse times to local
         partial_begin_utc = eclipse.partial_begin.time.Utc().replace(tzinfo=datetime.timezone.utc)
         partial_begin_local = partial_begin_utc.astimezone(self.timezone)
 
-        partial_end_utc = eclipse.partial_end.time.Utc().replace(tzinfo=datetime.timezone.utc)
         partial_end_local = partial_end_utc.astimezone(self.timezone)
 
         # Calculate altitude/azimuth at peak
@@ -188,6 +199,19 @@ class SolarEclipseService:
     # =============================
     # Core calculations
     # =============================
+
+    def _search_eclipse(self, from_utc: datetime.datetime) -> Any:
+        """Search the next local solar eclipse at or after ``from_utc``.
+
+        astronomy-engine returns None when no eclipse is found within its search span.
+        """
+        # astronomy.Time expects UTC time
+        t_start = AstronTime(from_utc.strftime("%Y-%m-%dT%H:%M:%SZ"))
+        return SearchLocalSolarEclipse(t_start, self.observer)
+
+    def _eclipse_end_utc(self, eclipse: Any) -> datetime.datetime:
+        """End of the partial phases, as an aware UTC datetime."""
+        return eclipse.partial_end.time.Utc().replace(tzinfo=datetime.timezone.utc)
 
     def _get_eclipse_type(self, eclipse: Any) -> str:
         """Determine eclipse type from eclipse object"""

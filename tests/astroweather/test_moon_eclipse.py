@@ -5,7 +5,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from astroweather.moon_eclipse import EclipsePoint, LunarEclipseInfo, LunarEclipseService
+from astroweather.moon_eclipse import (
+    IN_PROGRESS_LOOKBACK,
+    EclipsePoint,
+    LunarEclipseInfo,
+    LunarEclipseService,
+)
 
 
 class _Peak:
@@ -292,6 +297,91 @@ class TestGetNextEclipse:
         assert info.total_duration_minutes == 0
         assert info.astrophotography_score == 0.0
         assert info.score_classification == "not_visible"
+
+
+class TestLunarEclipseInProgress:
+    """A lunar eclipse still running must not be replaced by the following one.
+
+    Same reasoning as the solar service: astronomy-engine anchors its search on the
+    peak, so searching from "now" drops the eclipse as soon as its maximum is passed
+    even though the penumbral phases can still have hours to run.
+    """
+
+    def setup_method(self):
+        self.svc = LunarEclipseService(latitude=48.0, longitude=2.0, timezone="UTC")
+
+    @staticmethod
+    def _eclipse(peak_utc, sd_partial=60):
+        # _Eclipse takes a naive UTC peak, like astronomy-engine's Time.Utc()
+        return _Eclipse(
+            kind="EclipseKind.Partial",
+            peak=peak_utc.replace(tzinfo=None),
+            sd_partial=sd_partial,
+            sd_total=0,
+            sd_penum=120,
+            obscuration=0.6,
+        )
+
+    @patch("astroweather.moon_eclipse.SearchLunarEclipse")
+    def test_search_starts_before_now(self, mock_search):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        mock_search.return_value = self._eclipse(now + datetime.timedelta(days=60))
+
+        self.svc.get_next_eclipse()
+
+        searched_from = mock_search.call_args[0][0].Utc().replace(tzinfo=datetime.timezone.utc)
+        assert searched_from < now
+        assert now - searched_from <= IN_PROGRESS_LOOKBACK + datetime.timedelta(minutes=1)
+
+    @patch.object(LunarEclipseService, "_generate_altitude_vs_time", return_value=[])
+    @patch.object(LunarEclipseService, "_get_moon_altitude_azimuth", return_value=(40.0, 180.0))
+    @patch("astroweather.moon_eclipse.SearchLunarEclipse")
+    def test_running_eclipse_is_kept(self, mock_search, _mock_alt_az, _mock_generate):
+        """Peak passed 30 min ago, partial phase runs for 60 min: still the current one."""
+        now = datetime.datetime.now(datetime.timezone.utc)
+        mock_search.return_value = self._eclipse(now - datetime.timedelta(minutes=30), sd_partial=60)
+
+        info = self.svc.get_next_eclipse()
+
+        assert mock_search.call_count == 1
+        assert info is not None
+
+    @patch.object(LunarEclipseService, "_generate_altitude_vs_time", return_value=[])
+    @patch.object(LunarEclipseService, "_get_moon_altitude_azimuth", return_value=(40.0, 180.0))
+    @patch("astroweather.moon_eclipse.SearchLunarEclipse")
+    def test_finished_eclipse_is_replaced_by_the_next_one(self, mock_search, _mock_alt_az, _mock_generate):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        finished = self._eclipse(now - datetime.timedelta(hours=4), sd_partial=60)
+        upcoming = self._eclipse(now + datetime.timedelta(days=170), sd_partial=60)
+        mock_search.side_effect = [finished, upcoming]
+
+        info = self.svc.get_next_eclipse()
+
+        assert mock_search.call_count == 2
+        assert info is not None
+        assert info.peak_time.startswith(str((now + datetime.timedelta(days=170)).year))
+
+    @patch("astroweather.moon_eclipse.SearchLunarEclipse")
+    def test_returns_none_when_the_second_search_finds_nothing(self, mock_search):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        mock_search.side_effect = [self._eclipse(now - datetime.timedelta(hours=4)), None]
+
+        assert self.svc.get_next_eclipse() is None
+
+    def test_penumbral_only_eclipse_uses_the_penumbral_window(self):
+        """Without a partial phase, the reported window (and this check) uses sd_penum."""
+        now = datetime.datetime.now(datetime.timezone.utc)
+        eclipse = _Eclipse(
+            kind="EclipseKind.Penumbral",
+            peak=(now - datetime.timedelta(minutes=30)).replace(tzinfo=None),
+            sd_partial=0,
+            sd_total=0,
+            sd_penum=90,
+        )
+
+        end = self.svc._eclipse_end_utc(eclipse)
+
+        assert end > now
 
 
 class TestLunarEclipseDistantEpochMuting:
