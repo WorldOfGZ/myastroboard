@@ -113,9 +113,9 @@ async function loadSolarEclipse() {
 
         const timing = createCardCol('bi bi-stopwatch icon-inline', i18n.t('sun.timing'));
         const timingList = createList();
-        timingList.appendChild(createListItem(`${i18n.t('sun.start')}`, formatTimeThenDate(eclipse.start_time)));
-        timingList.appendChild(createListItem(`${i18n.t('sun.peak')}`, formatTimeThenDate(eclipse.peak_time)));
-        timingList.appendChild(createListItem(`${i18n.t('sun.end')}`, formatTimeThenDate(eclipse.end_time)));
+        timingList.appendChild(createListItem(`${i18n.t('sun.start')}`, formatTimeThenDateSmartYear(eclipse.start_time)));
+        timingList.appendChild(createListItem(`${i18n.t('sun.peak')}`, formatTimeThenDateSmartYear(eclipse.peak_time)));
+        timingList.appendChild(createListItem(`${i18n.t('sun.end')}`, formatTimeThenDateSmartYear(eclipse.end_time)));
         timingList.appendChild(createListItem(`${i18n.t('sun.duration')}`, `${eclipse.duration_minutes} ${i18n.t('units.minute')}`));
         timing.card.appendChild(timingList);
         row.appendChild(timing.col);

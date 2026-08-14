@@ -270,6 +270,44 @@ function formatTimeThenDateWithSeconds(isoString, locale = navigator.language) {
     return `${timeFormatter.format(date)} (${dateFormatter.format(date)})`;
 }
 
+// True when the given date falls in the current calendar year, evaluated in the observation
+// timezone so the comparison uses the observer's clock rather than the browser's.
+function _isCurrentYear(date, tz) {
+    const yearFormatter = new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        ...(tz ? { timeZone: tz } : {})
+    });
+    return yearFormatter.format(date) === yearFormatter.format(new Date());
+}
+
+// Same as formatTimeThenDate, but appends a 2-digit year when the date is not in the current
+// year. Rare events (eclipses) can be years away, and a bare "02/08" reads as "in a few days".
+// Example output: "21:30 (30/06)" for this year, "21:30 (02/08/27)" for a 2027 event (fr locale)
+function formatTimeThenDateSmartYear(isoString, locale = navigator.language) {
+    if (!isoString || isoString === 'Not found') return 'N/A';
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return 'N/A';
+
+    const tz = _getObservationTimezone();
+    const tzOpt = tz ? { timeZone: tz } : {};
+
+    const timeFormatter = new Intl.DateTimeFormat(locale, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: getHour12Option(),
+        ...tzOpt
+    });
+
+    const dateFormatter = new Intl.DateTimeFormat(locale, {
+        month: 'numeric',
+        day: 'numeric',
+        ...(_isCurrentYear(date, tz) ? {} : { year: '2-digit' }),
+        ...tzOpt
+    });
+
+    return `${timeFormatter.format(date)} (${dateFormatter.format(date)})`;
+}
+
 // Helper function to format ISO date to localized date string
 // Example output: "6/30/2024" in US locale, "30/06/2024" in many European locales
 function formatDateFull(isoString, locale = navigator.language) {

@@ -12,6 +12,10 @@ straight to the following eclipse - even though the partial phases still had an 
 the solar and lunar services now look a few hours back, so a running eclipse stays on screen until
 it actually ends.
 
+Eclipse timings also read as ambiguous when the next one was years away: a date shown as "02/08"
+looked like next week. Solar and lunar eclipse times now carry a 2-digit year whenever the eclipse
+does not fall in the current year, and stay short (day/month only) when it does.
+
 While checking that path, the eclipse push notifications (N4/N5, "eclipse peak in X minutes") turned
 out to have never fired: they were reading a key that no longer existed in the cache payload, and
 silently skipped every cycle. They now read the payload the cache actually writes.

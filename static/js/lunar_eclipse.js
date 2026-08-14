@@ -117,18 +117,18 @@ async function loadLunarEclipse() {
 
         const timing = createCardCol('bi bi-stopwatch icon-inline', i18n.t('moon.timing'));
         const timingList = createList();
-        timingList.appendChild(createListItem(`${i18n.t('moon.partial_begin')}`, formatTimeThenDate(eclipse.partial_begin)));
+        timingList.appendChild(createListItem(`${i18n.t('moon.partial_begin')}`, formatTimeThenDateSmartYear(eclipse.partial_begin)));
         if (eclipse.total_begin) {
-            timingList.appendChild(createListItem(`${i18n.t('moon.total_begin')}`, formatTimeThenDate(eclipse.total_begin)));
-            timingList.appendChild(createListItem(`${i18n.t('moon.total_end')}`, formatTimeThenDate(eclipse.total_end)));
+            timingList.appendChild(createListItem(`${i18n.t('moon.total_begin')}`, formatTimeThenDateSmartYear(eclipse.total_begin)));
+            timingList.appendChild(createListItem(`${i18n.t('moon.total_end')}`, formatTimeThenDateSmartYear(eclipse.total_end)));
         }
-        timingList.appendChild(createListItem(`${i18n.t('moon.partial_end')}`, formatTimeThenDate(eclipse.partial_end)));
+        timingList.appendChild(createListItem(`${i18n.t('moon.partial_end')}`, formatTimeThenDateSmartYear(eclipse.partial_end)));
         timing.card.appendChild(timingList);
         row.appendChild(timing.col);
 
         const position = createCardCol('bi bi-geo-alt text-danger icon-inline', i18n.t('moon.position_at_peak'));
         const positionList = createList();
-        positionList.appendChild(createListItem(`${i18n.t('moon.peak_time')}`, formatTimeThenDate(eclipse.peak_time)));
+        positionList.appendChild(createListItem(`${i18n.t('moon.peak_time')}`, formatTimeThenDateSmartYear(eclipse.peak_time)));
         positionList.appendChild(createListItem(`${i18n.t('moon.altitude')}`, `${eclipse.peak_altitude_deg.toFixed(2)}${i18n.t('units.degrees')}`));
         positionList.appendChild(createListItem(`${i18n.t('moon.azimuth')}`, `${eclipse.peak_azimuth_deg.toFixed(2)}${i18n.t('units.degrees')}`));
         positionList.appendChild(createListItem(`${i18n.t('moon.direction')}`, getCardinalDirection(eclipse.peak_azimuth_deg)));
