@@ -2,21 +2,21 @@
 -r requirements.txt
 
 # Development and testing dependencies
-pytest==9.1.1
-pytest-cov==7.1.0
+pytest===9.1.1
+pytest-cov===7.1.0
 
 # Browser e2e tests (tests/e2e/) - run `playwright install chromium` once after
 # installing. Excluded from the default `pytest` run (see pytest.ini); run with
 # `pytest -m e2e` or `pytest tests/e2e/ -m e2e`.
-playwright==1.62.0
-pytest-playwright==0.9.0
+playwright===1.62.0
+pytest-playwright===0.9.0
 
 # Development tools (optional)
-black==26.5.1
-flake8==7.3.0
-djlint==1.44.2
-pyright==1.1.411
-pylance==10.0.0
+black===26.5.1
+flake8===7.3.0
+djlint===1.44.2
+pyright===1.1.411
+pylance===10.0.0
 
 # Used by scripts/translate_i18n_values.py
-translators==6.0.4
+translators===6.0.4
