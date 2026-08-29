@@ -60,6 +60,7 @@ _MIN_OBSERVABLE_HOURS_DSO = 1.0
 # Regex pattern for valid alttime target IDs used in file names
 _ALTTIME_ID_SAFE = re.compile(r'[^a-z0-9_-]')
 
+
 def _comet_id_without_ref(target_id: str) -> str:
     """Return a comet target_id with any trailing MPC/MPEC reference token removed."""
     lowered = target_id.lower()

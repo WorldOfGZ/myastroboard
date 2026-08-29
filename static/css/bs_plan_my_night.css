@@ -6,6 +6,39 @@
     font-variant-numeric: tabular-nums;
 }
 
+#plan-my-night-display .plan-my-night-add-btn,
+#plan-my-night-display .plan-my-night-add-btn:focus,
+#plan-my-night-display .plan-my-night-add-btn:hover,
+#plan-my-night-display .plan-my-night-add-btn:active {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 2rem;
+    line-height: 1;
+    padding: 0.42rem 0.8rem;
+    border-radius: var(--border-radius-pill);
+    border: 1px solid color-mix(in srgb, var(--accent-1) 72%, var(--surface-border-strong));
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 74%, var(--surface-card)), color-mix(in srgb, var(--surface-card) 96%, var(--accent-soft) 4%));
+    color: color-mix(in srgb, var(--accent-1) 90%, var(--text-color));
+    font-weight: var(--font-semibold);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-1) 18%, transparent), 0 8px 18px color-mix(in srgb, var(--accent-glow) 16%, transparent);
+}
+
+#plan-my-night-display .plan-my-night-add-btn .bi {
+    font-size: 0.96rem;
+    line-height: 1;
+}
+
+#plan-my-night-display .plan-my-night-add-btn:hover,
+#plan-my-night-display .plan-my-night-add-btn:focus {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 82%, var(--surface-card)), color-mix(in srgb, var(--surface-card) 94%, var(--accent-soft) 6%));
+    border-color: var(--accent-1);
+    color: var(--text-color);
+    transform: translateY(-1px);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-1) 22%, transparent), 0 10px 22px color-mix(in srgb, var(--accent-glow) 22%, transparent);
+}
+
 @media (max-width: 575.98px) {
     #plan-my-night-display .plan-duration-input {
         width: 100%;

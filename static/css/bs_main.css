@@ -865,6 +865,20 @@ button:focus-visible,
     color: var(--text-color);
 }
 
+.btn-outline-info {
+    border-color: color-mix(in srgb, var(--accent-1) 68%, var(--surface-border-strong));
+    background-color: color-mix(in srgb, var(--surface-card) 92%, rgba(255, 255, 255, 0.72));
+    color: color-mix(in srgb, var(--accent-1) 90%, var(--text-color));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-1) 18%, transparent);
+}
+
+.btn-outline-info:hover,
+.btn-outline-info:focus {
+    background-color: var(--accent-soft);
+    border-color: var(--accent-1);
+    color: var(--text-color);
+}
+
 .form-control,
 .form-select,
 .form-check-input,
@@ -912,28 +926,51 @@ textarea.form-control:focus {
     --bs-table-striped-bg: transparent;
     --bs-table-hover-bg: transparent;
     color: var(--text-color);
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
 .table thead th {
-    background-color: color-mix(in srgb, var(--surface-2) 70%, var(--surface-elevated));
+    background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 88%, var(--surface-elevated)), color-mix(in srgb, var(--surface-elevated) 92%, var(--surface-2)));
     border-bottom: 1px solid var(--surface-border-strong);
+    color: var(--text-color);
     text-transform: uppercase;
-    letter-spacing: 0.03em;
-    font-size: 0.74rem;
+    letter-spacing: 0.045em;
+    font-size: 0.72rem;
     font-weight: var(--font-semibold);
-    padding-top: 0.58rem;
-    padding-bottom: 0.58rem;
+    padding-top: 0.72rem;
+    padding-bottom: 0.72rem;
 }
 
 .table tbody td,
 .table tbody th {
-    border-color: var(--surface-border);
+    border-color: color-mix(in srgb, var(--surface-border) 82%, transparent);
+    color: var(--text-color);
     font-size: 0.92rem;
     vertical-align: middle;
+    padding-top: 0.56rem;
+    padding-bottom: 0.56rem;
+    background-color: color-mix(in srgb, var(--surface-card) 96%, transparent);
+}
+
+.table tbody tr {
+    border-bottom: 1px solid color-mix(in srgb, var(--surface-border) 80%, transparent);
+    transition: background-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.table tbody tr:nth-child(odd) > td,
+.table tbody tr:nth-child(odd) > th {
+    background-color: color-mix(in srgb, var(--surface-card) 98%, var(--surface-elevated) 2%);
+}
+
+.table tbody tr:nth-child(even) > td,
+.table tbody tr:nth-child(even) > th {
+    background-color: color-mix(in srgb, var(--accent-soft) 10%, var(--surface-card) 90%);
 }
 
 .table tbody tr:hover {
-    background-color: var(--table-row-hover);
+    background-color: color-mix(in srgb, var(--accent-soft) 24%, var(--table-row-hover));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-1) 18%, transparent);
 }
 
 .badge {
