@@ -2195,7 +2195,7 @@ function renderExposureCalcTab() {
     const btnCol = document.createElement('div');
     btnCol.className = 'col-md-6 d-flex align-items-end';
     const calcBtn = document.createElement('button');
-    calcBtn.className = 'btn btn-success w-100';
+    calcBtn.className = 'btn btn-primary w-100';
     DOMUtils.append(calcBtn, DOMUtils.createIcon('bi bi-calculator icon-inline'), i18n.t('equipment.exposure_calc_calculate'));
     btnCol.appendChild(calcBtn);
 
