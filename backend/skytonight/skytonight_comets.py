@@ -205,7 +205,12 @@ def _parse_comets_txt_line(line: str) -> Optional[Dict[str, Any]]:
         epoch = line[81:89].strip()
         abs_mag = _safe_float(line[91:96].strip() or None)
         slope = _safe_float(line[96:100].strip() or None)
-        name = re.sub(r'\s{2,}', ' ', line[102:]).strip()
+        # Columns 103-158 hold the designation/name; columns 160+ hold the
+        # MPC/MPEC orbit-publication reference (e.g. "MPEC 2026-O98", "MPC xxxxx"),
+        # which the MPC revises every time it republishes a comet's elements.
+        # Slicing it off keeps the comet name - and the target_id derived from
+        # it - stable across dataset refreshes.
+        name = re.sub(r'\s{2,}', ' ', line[102:158]).strip()
         designation = line[5:12].strip()
         if not name:
             name = designation

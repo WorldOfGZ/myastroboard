@@ -182,6 +182,7 @@ def _make_mpc_line(
     abs_mag=10.1,
     slope=4.0,
     designation='0013P  ',
+    reference='MPC191592',
 ):
     """Construct a minimal valid MPC CometEls.txt line."""
     return (
@@ -210,7 +211,9 @@ def _make_mpc_line(
         + f'{abs_mag:5.1f}'       # [91:96]
         + f'{slope:4.1f}'         # [96:100]
         + '  '                    # [100:102]
-        + name                    # [102:]
+        + f'{name:<56}'           # [102:158] designation/name field
+        + ' '                     # [158] column 159 gap
+        + reference               # [159:] MPC/MPEC publication reference
     )
 
 
@@ -225,6 +228,19 @@ def test_parse_comets_txt_line_parses_valid_line():
     assert result['q'] == pytest.approx(1.234567, rel=1e-5)
     assert result['absolute_magnitude'] == pytest.approx(10.1, rel=1e-4)
     assert result['slope'] == pytest.approx(4.0, rel=1e-4)
+
+
+def test_parse_comets_txt_line_excludes_the_volatile_orbit_reference():
+    """The trailing MPC/MPEC publication reference must not bleed into the name.
+
+    The MPC rewrites that reference on every orbit republication, so a name
+    (hence target_id) that embeds it churns across dataset refreshes.
+    """
+    for reference in ('MPEC 2026-O98', 'MPC xxxxx', 'MPC191592'):
+        line = _make_mpc_line(name='10P/Tempel', reference=reference)
+        result = _parse_comets_txt_line(line)
+        assert result is not None
+        assert result['name'] == '10P/Tempel'
 
 
 def test_parse_comets_txt_line_returns_none_for_short_line():

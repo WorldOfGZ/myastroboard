@@ -19,6 +19,7 @@
 .btn-analyze-combination {
     padding: 0.375rem 0.75rem;
     font-size: 0.875rem;
+    border-radius: var(--border-radius-pill);
 }
 
 .card-footer.text-center .btn {
@@ -40,8 +41,10 @@
 }
 
 .checkbox-popup-box {
-    max-height: 150px; 
+    max-height: 150px;
     border: 1px solid var(--bs-border-color);
     padding: 10px;
-    background-color: var(--bg-light);
+    background-color: color-mix(in srgb, var(--surface-elevated) 86%, var(--bg-light));
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-surface-sm);
 }

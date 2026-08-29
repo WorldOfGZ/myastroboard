@@ -7,18 +7,53 @@ let _orbMap = null;
 let _issMarker = null;
 let _cssMarker = null;
 let _userLocationMarker = null;
-let _issPastLines  = [];
+let _issPastLines = [];
 let _issFutureLines = [];
-let _cssPastLines  = [];
+let _cssPastLines = [];
 let _cssFutureLines = [];
 let _orbMapInterval = null;
+let _orbMapBasemapVariant = 'dark';
 
-const ISS_PAST_COLOR    = '#f97316'; // orange
-const ISS_FUTURE_COLOR  = '#6366f1'; // indigo
-const CSS_PAST_COLOR    = '#ef4444'; // red
-const CSS_FUTURE_COLOR  = '#8b5cf6'; // violet
+const ISS_PAST_COLOR = '#f97316'; // orange
+const ISS_FUTURE_COLOR = '#6366f1'; // indigo
+const CSS_PAST_COLOR = '#ef4444'; // red
+const CSS_FUTURE_COLOR = '#8b5cf6'; // violet
 
 const _leafletLoadState = { promise: null };
+
+function _orbitalTrackStyle(trackKind, color) {
+    const onLightBasemap = _orbMapBasemapVariant === 'light';
+
+    if (trackKind === 'past') {
+        return {
+            color,
+            weight: onLightBasemap ? 2.4 : 2,
+            opacity: onLightBasemap ? 0.72 : 0.55,
+            dashArray: '5,6',
+        };
+    }
+
+    return {
+        color,
+        weight: onLightBasemap ? 2.6 : 2,
+        opacity: onLightBasemap ? 0.95 : 0.85,
+    };
+}
+
+function _refreshOrbitalStationMarkerIcons() {
+    if (!_orbMap || !_issMarker || !_cssMarker) return;
+    const shadowColor = _orbMapBasemapVariant === 'light' ? '#111827bb' : '#000a';
+
+    const issLatLng = _issMarker.getLatLng();
+    const cssLatLng = _cssMarker.getLatLng();
+    const issVisible = _issMarker.getElement()?.querySelector('.iss-visibility-ring')?.classList.contains('iss-visible') ? 'iss-visible' : 'iss-not-visible';
+    const cssVisible = _cssMarker.getElement()?.querySelector('.iss-visibility-ring')?.classList.contains('iss-visible') ? 'iss-visible' : 'iss-not-visible';
+
+    _issMarker.setIcon(_makeStationIcon(ISS_PAST_COLOR, issVisible, shadowColor));
+    _cssMarker.setIcon(_makeStationIcon(CSS_PAST_COLOR, cssVisible, shadowColor));
+    _issMarker.setLatLng(issLatLng);
+    _cssMarker.setLatLng(cssLatLng);
+}
 
 /** Lazily load the Leaflet library (only needed for the orbital stations map) so it isn't fetched on every page load. */
 function _ensureLeafletLoaded() {
@@ -89,10 +124,10 @@ function _updateStationMapContent(data, marker, pastArr, futureArr, pastColor, f
 
     _clearTrackLines(pastArr, futureArr);
     _splitAtAntimeridian(data.past_track || []).forEach(seg => {
-        pastArr.push(L.polyline(seg, { color: pastColor, weight: 2, opacity: 0.55, dashArray: '5,6' }).addTo(_orbMap));
+        pastArr.push(L.polyline(seg, _orbitalTrackStyle('past', pastColor)).addTo(_orbMap));
     });
     _splitAtAntimeridian(data.future_track || []).forEach(seg => {
-        futureArr.push(L.polyline(seg, { color: futureColor, weight: 2, opacity: 0.85 }).addTo(_orbMap));
+        futureArr.push(L.polyline(seg, _orbitalTrackStyle('future', futureColor)).addTo(_orbMap));
     });
 }
 
@@ -122,10 +157,10 @@ function _stopOrbMapRefresh() {
     }
 }
 
-function _makeStationIcon(color, ringClass) {
+function _makeStationIcon(color, ringClass, shadowColor = '#000a') {
     return L.divIcon({
         className: '',
-        html: `<span class="iss-marker-icon"><span class="iss-visibility-ring ${ringClass}"></span><i class="bi bi-iss" style="font-size:1.6rem;color:${color};text-shadow:0 0 4px #000a"></i></span>`,
+        html: `<span class="iss-marker-icon"><span class="iss-visibility-ring ${ringClass}"></span><i class="bi bi-iss" style="font-size:1.6rem;color:${color};text-shadow:0 0 4px ${shadowColor}"></i></span>`,
         iconSize: [44, 44],
         iconAnchor: [22, 22],
     });
@@ -186,10 +221,16 @@ async function _createOrbitalMapCard(container) {
     }
 
     _orbMap = L.map('orb-map', { zoomControl: true, scrollWheelZoom: false, touchZoom: false });
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 7,
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
-    }).addTo(_orbMap);
+    attachLeafletBasemapStyleControl(_orbMap, {
+        storageKey: 'myastroboard.orbital.map_basemap',
+        defaultVariant: 'dark',
+        tileOptions: { maxZoom: 7 },
+        onVariantChange: (variant) => {
+            _orbMapBasemapVariant = variant;
+            _refreshOrbitalStationMarkerIcons();
+            _pollOrbitalLocations();
+        },
+    });
 
     _issMarker = L.marker([0, 0], { icon: _makeStationIcon(ISS_PAST_COLOR, 'iss-not-visible') })
         .addTo(_orbMap).bindPopup('<b>ISS</b>');
@@ -327,9 +368,9 @@ function clamp(value, min, max) {
 function computeOrbVisibilityScore(pass) {
     const peakAlt = Number(pass?.peak_altitude_deg);
     const startMs = Date.parse(pass?.start_time || '');
-    const endMs   = Date.parse(pass?.end_time   || '');
+    const endMs = Date.parse(pass?.end_time || '');
     const altScore = Number.isFinite(peakAlt) ? clamp(peakAlt / 90, 0, 1) : 0;
-    const durMin   = (Number.isFinite(startMs) && Number.isFinite(endMs) && endMs >= startMs) ? (endMs - startMs) / 60000 : 0;
+    const durMin = (Number.isFinite(startMs) && Number.isFinite(endMs) && endMs >= startMs) ? (endMs - startMs) / 60000 : 0;
     const durScore = clamp(durMin / 8, 0, 1);
     return clamp(Math.round(((altScore * 0.7) + (durScore * 0.3)) * 100), 0, 100);
 }
@@ -391,8 +432,8 @@ function _createNextPassCard(passData, stationKey, borderClass) {
         ]));
         bodyRow.appendChild(createInfoCol([
             { iconClass: 'bi bi-compass icon-inline', labelText: i18n.t('iss.start_alt_az'), value: formatAltAz(passData.start_altitude_deg, passData.start_azimuth_cardinal, passData.start_azimuth_deg) },
-            { iconClass: 'bi bi-compass icon-inline', labelText: i18n.t('iss.peak_alt_az'),  value: formatAltAz(passData.peak_altitude_deg,  passData.peak_azimuth_cardinal,  passData.peak_azimuth_deg)  },
-            { iconClass: 'bi bi-compass icon-inline', labelText: i18n.t('iss.end_alt_az'),  value: formatAltAz(passData.end_altitude_deg,  passData.end_azimuth_cardinal,  passData.end_azimuth_deg)  },
+            { iconClass: 'bi bi-compass icon-inline', labelText: i18n.t('iss.peak_alt_az'), value: formatAltAz(passData.peak_altitude_deg, passData.peak_azimuth_cardinal, passData.peak_azimuth_deg) },
+            { iconClass: 'bi bi-compass icon-inline', labelText: i18n.t('iss.end_alt_az'), value: formatAltAz(passData.end_altitude_deg, passData.end_azimuth_cardinal, passData.end_azimuth_deg) },
         ]));
         cardBody.appendChild(bodyRow);
         card.appendChild(cardHeader);
@@ -463,8 +504,8 @@ function _createPassesTableCard(passes, stationLabel, stationKey) {
             row.appendChild(visCell);
             [
                 formatTimeThenDateWithSeconds(p.start_time), formatAltAz(p.start_altitude_deg, p.start_azimuth_cardinal, p.start_azimuth_deg),
-                formatTimeThenDateWithSeconds(p.peak_time),  formatAltAz(p.peak_altitude_deg,  p.peak_azimuth_cardinal,  p.peak_azimuth_deg),
-                formatTimeThenDateWithSeconds(p.end_time),   formatAltAz(p.end_altitude_deg,   p.end_azimuth_cardinal,   p.end_azimuth_deg),
+                formatTimeThenDateWithSeconds(p.peak_time), formatAltAz(p.peak_altitude_deg, p.peak_azimuth_cardinal, p.peak_azimuth_deg),
+                formatTimeThenDateWithSeconds(p.end_time), formatAltAz(p.end_altitude_deg, p.end_azimuth_cardinal, p.end_azimuth_deg),
             ].forEach(v => {
                 const td = document.createElement('td');
                 td.className = 'text-center';
@@ -597,7 +638,7 @@ async function loadOrbitalStations() {
         if (!data) continue;
         const src = data.tle_source || {};
         const name = (src.name || '').trim() || i18n.t('iss.footer_unknown_source');
-        const url  = (src.url  || '').trim();
+        const url = (src.url || '').trim();
         const col = document.createElement('div');
         col.className = 'col';
         const footerEl = document.createElement('div');

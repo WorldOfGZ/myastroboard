@@ -41,6 +41,138 @@ function formatDuration(seconds) {
     return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 }
 
+// =======================
+// Leaflet basemaps (no API key)
+// =======================
+
+const _LEAFLET_BASEMAPS = {
+    light: {
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+        maxZoom: 18,
+        attribution: 'Tiles &copy; Esri',
+    },
+    dark: {
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+        maxZoom: 16,
+        attribution: 'Tiles &copy; Esri',
+    },
+};
+
+/**
+ * Add a no-key Leaflet basemap to a map instance.
+ * @param {object} map - Leaflet map instance
+ * @param {'light'|'dark'} variant - Basemap variant
+ * @param {object} tileOptions - Optional Leaflet tile options overrides
+ * @returns {object|null} Leaflet tile layer instance or null
+ */
+function addLeafletBasemap(map, variant = 'light', tileOptions = {}) {
+    if (!map || typeof L === 'undefined') return null;
+
+    const profile = _LEAFLET_BASEMAPS[variant] || _LEAFLET_BASEMAPS.light;
+    return L.tileLayer(profile.url, {
+        maxZoom: profile.maxZoom,
+        attribution: profile.attribution,
+        ...tileOptions,
+    }).addTo(map);
+}
+
+function _normalizeLeafletBasemapVariant(variant, fallback = 'light') {
+    if (!variant || !_LEAFLET_BASEMAPS[variant]) return fallback;
+    return variant;
+}
+
+function _getLeafletBasemapPreference(storageKey, fallback = 'light') {
+    if (!storageKey) return _normalizeLeafletBasemapVariant(fallback, 'light');
+    try {
+        const saved = localStorage.getItem(storageKey);
+        return _normalizeLeafletBasemapVariant(saved, fallback);
+    } catch (_) {
+        return _normalizeLeafletBasemapVariant(fallback, 'light');
+    }
+}
+
+function _setLeafletBasemapPreference(storageKey, variant) {
+    if (!storageKey) return;
+    try {
+        localStorage.setItem(storageKey, variant);
+    } catch (_) { /* localStorage unavailable */ }
+}
+
+/**
+ * Attach a light/dark style switcher to a Leaflet map and persist the choice.
+ * @param {object} map - Leaflet map instance
+ * @param {object} options - Switcher options
+ * @returns {object|null} Control API
+ */
+function attachLeafletBasemapStyleControl(map, options = {}) {
+    if (!map || typeof L === 'undefined') return null;
+
+    const {
+        storageKey = '',
+        defaultVariant = 'light',
+        variants = ['light', 'dark'],
+        position = 'topright',
+        labels = { light: 'Light', dark: 'Dark' },
+        tileOptions = {},
+        onVariantChange = null,
+    } = options;
+
+    const validVariants = variants.filter(variant => Boolean(_LEAFLET_BASEMAPS[variant]));
+    const fallbackVariant = validVariants[0] || 'light';
+    let activeVariant = _getLeafletBasemapPreference(storageKey, _normalizeLeafletBasemapVariant(defaultVariant, fallbackVariant));
+    let activeLayer = null;
+    let buttonRefs = {};
+
+    const setVariant = (variant) => {
+        const nextVariant = _normalizeLeafletBasemapVariant(variant, fallbackVariant);
+        if (activeLayer) {
+            try { map.removeLayer(activeLayer); } catch (_) { /* already removed */ }
+        }
+        activeLayer = addLeafletBasemap(map, nextVariant, tileOptions);
+        activeVariant = nextVariant;
+        _setLeafletBasemapPreference(storageKey, nextVariant);
+        if (typeof onVariantChange === 'function') {
+            try { onVariantChange(nextVariant); } catch (_) { /* ignore callback failures */ }
+        }
+        Object.entries(buttonRefs).forEach(([key, button]) => {
+            if (!button) return;
+            const isActive = key === nextVariant;
+            button.classList.toggle('active', isActive);
+            button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+    };
+
+    const BasemapControl = L.Control.extend({
+        options: { position },
+        onAdd: () => {
+            const container = L.DomUtil.create('div', 'premium-map-style-control leaflet-control');
+            L.DomEvent.disableClickPropagation(container);
+            L.DomEvent.disableScrollPropagation(container);
+
+            validVariants.forEach((variant) => {
+                const button = L.DomUtil.create('button', 'map-style-btn', container);
+                button.type = 'button';
+                button.textContent = labels[variant] || variant;
+                button.setAttribute('aria-label', `${labels[variant] || variant} basemap`);
+                buttonRefs[variant] = button;
+                L.DomEvent.on(button, 'click', () => setVariant(variant));
+            });
+
+            return container;
+        },
+    });
+
+    const control = new BasemapControl();
+    map.addControl(control);
+    setVariant(activeVariant);
+
+    return {
+        control,
+        setVariant,
+        getVariant: () => activeVariant,
+    };
+}
+
 /**
  * Check and display cache status information.
  * Cache is managed entirely server-side with TTL-based expiration.

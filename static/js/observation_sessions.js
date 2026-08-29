@@ -1327,10 +1327,7 @@ async function _obsUpdateLocationMap() {
     _obsDestroyLocationMap();
     _observationLocationMap = L.map(container, { scrollWheelZoom: false, zoomControl: false })
         .setView([coords.lat, coords.lng], 9);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        maxZoom: 18,
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
-    }).addTo(_observationLocationMap);
+    addLeafletBasemap(_observationLocationMap, 'light', { maxZoom: 18 });
     L.marker([coords.lat, coords.lng]).addTo(_observationLocationMap);
 }
 

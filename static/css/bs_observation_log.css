@@ -8,7 +8,8 @@
     padding: 0.5rem 0.75rem;
     border: 1px solid var(--bs-border-color);
     border-radius: var(--border-radius);
-    background-color: var(--bg-light);
+    background-color: color-mix(in srgb, var(--surface-elevated) 82%, var(--bg-light));
+    box-shadow: var(--shadow-surface-sm);
 }
 
 .observation-log-flow-step-active {
@@ -59,7 +60,7 @@
 .observation-log-session-card:hover,
 .observation-log-session-card:focus-within {
     border-color: var(--bs-primary);
-    box-shadow: 0 0 0 2px var(--bs-primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--bs-primary) 70%, transparent);
 }
 
 .observation-log-session-date {
@@ -77,7 +78,8 @@
 .observation-log-entry-row {
     border: 1px solid var(--bs-border-color);
     border-radius: var(--border-radius);
-    background-color: var(--bg-light);
+    background-color: color-mix(in srgb, var(--surface-elevated) 84%, var(--bg-light));
+    box-shadow: var(--shadow-surface-sm);
 }
 
 .observation-log-entry-name,
@@ -128,7 +130,7 @@
 .observation-log-attachments-list {
     border: 1px solid var(--bs-border-color);
     border-radius: var(--border-radius);
-    background-color: var(--bg-light);
+    background-color: color-mix(in srgb, var(--surface-elevated) 84%, var(--bg-light));
     overflow: hidden;
 }
 

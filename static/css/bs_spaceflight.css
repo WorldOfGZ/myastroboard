@@ -7,12 +7,16 @@
    -------------------------------------------------------------------------- */
 .sf-next-launch {
     border-left: 4px solid var(--bs-danger);
-    background: var(--bs-body-bg);
+    background: color-mix(in srgb, var(--surface-elevated) 84%, var(--bs-body-bg));
     overflow: hidden;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-card-unified);
+    transition: box-shadow var(--transition-normal), transform var(--transition-normal), border-color var(--transition-normal);
 }
 
 .sf-next-launch:hover {
-    box-shadow: 0 0 0 2px rgba(var(--bs-danger-rgb), 0.35);
+    box-shadow: 0 0 0 2px rgba(var(--bs-danger-rgb), 0.35), var(--shadow-card-unified-hover);
+    transform: var(--hover-lift-sm);
 }
 
 .sf-hero-img {
@@ -25,9 +29,11 @@
 }
 
 .sf-next-label {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
+    font-weight: var(--font-semibold);
+    opacity: 0.82;
 }
 
 .sf-countdown {
@@ -50,10 +56,6 @@
 }
 .sf-events-card-img {
     width: 160px;
-}
-
-.sf-launch-card:hover {
-    box-shadow: 0 0 0 2px rgba(var(--bs-danger-rgb), 0.25);
 }
 
 /* --------------------------------------------------------------------------
@@ -85,6 +87,20 @@
     display: block;
 }
 
+.sf-launch-modal-card {
+    border-radius: var(--border-radius-lg);
+    border: 1px solid color-mix(in srgb, var(--surface-border-strong) 82%, transparent);
+    background: linear-gradient(155deg, color-mix(in srgb, var(--surface-elevated) 92%, transparent), color-mix(in srgb, var(--surface-1) 88%, transparent));
+}
+
+.sf-launch-modal-card .card-body {
+    padding: 1rem;
+}
+
+.sf-launch-modal-card .badge {
+    box-shadow: 0 6px 14px color-mix(in srgb, var(--accent-glow) 18%, transparent);
+}
+
 /* --------------------------------------------------------------------------
    Status badges
    -------------------------------------------------------------------------- */
@@ -98,11 +114,15 @@
    -------------------------------------------------------------------------- */
 .sf-launch-card {
     border: 1px solid var(--bs-border-color);
-    transition: box-shadow 0.15s ease;
+    transition: box-shadow var(--transition-normal), transform var(--transition-normal), border-color var(--transition-normal);
+    border-radius: var(--border-radius-lg);
+    background: color-mix(in srgb, var(--surface-elevated) 86%, var(--surface-card));
+    box-shadow: var(--shadow-card-unified);
 }
 
 .sf-launch-card:hover {
-    box-shadow: 0 0 0 2px rgba(var(--bs-danger-rgb), 0.25);
+    box-shadow: 0 0 0 2px rgba(var(--bs-danger-rgb), 0.25), var(--shadow-card-unified-hover);
+    transform: var(--hover-lift-sm);
 }
 
 .sf-launch-past {
@@ -115,12 +135,16 @@
 .sf-crew-card,
 .sf-astronaut-card {
     border: 1px solid var(--bs-border-color);
-    transition: box-shadow 0.15s ease;
+    transition: box-shadow var(--transition-normal), transform var(--transition-normal), border-color var(--transition-normal);
+    border-radius: var(--border-radius-lg);
+    background: color-mix(in srgb, var(--surface-elevated) 86%, var(--surface-card));
+    box-shadow: var(--shadow-card-unified);
 }
 
 .sf-crew-card:hover,
 .sf-astronaut-card:hover {
-    box-shadow: 0 0 0 2px rgba(var(--bs-info-rgb), 0.3);
+    box-shadow: 0 0 0 2px rgba(var(--bs-info-rgb), 0.3), var(--shadow-card-unified-hover);
+    transform: var(--hover-lift-sm);
 }
 
 .sf-crew-img {
@@ -172,6 +196,15 @@
    -------------------------------------------------------------------------- */
 .sf-event-card {
     border-left: 3px solid var(--bs-warning);
+    background: color-mix(in srgb, var(--surface-elevated) 86%, var(--surface-card));
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-card-unified);
+    transition: box-shadow var(--transition-normal), transform var(--transition-normal), border-color var(--transition-normal);
+}
+
+.sf-event-card:hover {
+    box-shadow: 0 0 0 2px rgba(var(--bs-warning-rgb), 0.28), var(--shadow-card-unified-hover);
+    transform: var(--hover-lift-sm);
 }
 
 .sf-event-countdown {
@@ -186,6 +219,7 @@
     border-top: 1px solid var(--bs-border-color);
     padding-top: 0.75rem;
     opacity: 0.7;
+    font-size: 0.82rem;
 }
 
 .sf-data-source a {

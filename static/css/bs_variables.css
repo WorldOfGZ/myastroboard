@@ -2,26 +2,29 @@
 
 :root {
     /* Background */
-    --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --sun-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    --bg-violet: #764ba26e;
-    --bg-violet-opac: #764ba26e;
+    --bg-gradient: linear-gradient(130deg, #0b1f33 0%, #154360 48%, #2a6f8f 100%);
+    --sun-gradient: linear-gradient(135deg, #f59e0b 0%, #c2410c 100%);
+    --bg-violet: rgba(30, 127, 170, 0.34);
+    --bg-violet-opac: rgba(30, 127, 170, 0.34);
     --bg-light: #f3f4f6;
     --surface-1: rgba(255, 255, 255, 0.75);
     --surface-2: rgba(255, 255, 255, 0.50);
     --surface-3: rgba(255, 255, 255, 0.35);
     --surface-4: rgba(255, 255, 255, 0.65);
     --surface-card: #f3f4f6;
+    --surface-card-gradient: linear-gradient(160deg, rgba(255, 255, 255, 0.96) 0%, rgba(246, 250, 255, 0.92) 100%);
     --surface-panel: rgba(255, 255, 255, 0.98);
+    --surface-elevated: rgba(255, 255, 255, 0.88);
     --surface-border: rgba(15, 23, 42, 0.08);
     --surface-border-strong: rgba(15, 23, 42, 0.20);
-    --surface-hover: rgba(99, 102, 241, 0.04);
+    --surface-hover: rgba(14, 116, 144, 0.08);
+    --table-row-hover: color-mix(in srgb, var(--surface-hover) 85%, transparent);
 
     /* Text Colors */
     --text-light: #ffffff;
     --text-color: #1f2937;
     --text-grey: #4b4b4b;
-    --text-violet: #764ba2;
+    --text-violet: #0f4f73;
 
     /* Bootstrap contrast overrides for accessible secondary text */
     --bs-secondary-color: #4b4b4b;
@@ -31,21 +34,21 @@
     --success-500: #10b981;
     --success-600: #059669;
     --success-700: #047857;
-    
+
     --error-50: #fef2f2;
     --error-200: #fecaca;
     --error-500: #ef4444;
     --error-600: #dc2626;
     --error-700: #b91c1c;
-    
+
     --warning-50: #fffbeb;
     --warning-200: #fde68a;
     --warning-500: #f59e0b;
     --warning-600: #d97706;
     --warning-700: #b45309;
 
-    /* Borders */    
-    --border-violet: #764ba2;
+    /* Borders */
+    --border-violet: #0f6d90;
     --border-dark: #1f2937;
     --border-radius: 0.5rem;
     --border-radius-half: 0.25rem;
@@ -57,12 +60,14 @@
     --border-muted: var(--surface-border);
 
     /* Accents */
-    --accent-1: #6366f1;
-    --accent-2: #a855f7;
-    --accent-soft: rgba(99, 102, 241, 0.08);
-    --accent-soft-strong: rgba(99, 102, 241, 0.2);
-    --accent-glow: rgba(99, 102, 241, 0.3);
-    --accent-glow-strong: rgba(99, 102, 241, 0.5);
+    --accent-1: #0e7490;
+    --accent-2: #f59e0b;
+    --accent-soft: rgba(14, 116, 144, 0.1);
+    --accent-soft-strong: rgba(14, 116, 144, 0.24);
+    --accent-glow: rgba(14, 116, 144, 0.34);
+    --accent-glow-strong: rgba(14, 116, 144, 0.54);
+    --accent-gradient: linear-gradient(135deg, #0e7490 0%, #2a6f8f 56%, #f59e0b 100%);
+    --accent-gradient-soft: linear-gradient(135deg, rgba(14, 116, 144, 0.16) 0%, rgba(245, 158, 11, 0.12) 100%);
     --primary-color: var(--accent-1);
     --accent-color: var(--accent-1);
     --success-color: var(--success-500);
@@ -72,7 +77,7 @@
     --bg-sub-container: var(--surface-1);
     --text-primary: var(--text-color);
     --text-muted: var(--text-grey);
-    
+
     /* Quality Colors */
     --quality-excellent: #d1fae5;
     --quality-excellent-text: #065f46;
@@ -97,6 +102,19 @@
     --space-3: 0.75rem;
     --space-4: 1rem;
     --space-5: 1.5rem;
+    --section-gap: 1rem;
+    --section-padding: 0.95rem;
+
+    /* Domain icon accents */
+    --domain-weather: #0ea5e9;
+    --domain-skytonight: #06b6d4;
+    --domain-astrodex: #f59e0b;
+    --domain-plan: #22c55e;
+    --domain-equipment: #3b82f6;
+    --domain-spaceflight: #f97316;
+    --domain-observatory: #14b8a6;
+    --domain-metrics: #0ea5e9;
+    --domain-parameters: #38bdf8;
 
     /* Transitions */
     --transition-normal: 0.2s ease;
@@ -112,6 +130,11 @@
     --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.08);
     --shadow-md: 0 8px 20px rgba(15, 23, 42, 0.12);
     --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.18);
+    --shadow-glass: 0 14px 36px rgba(8, 47, 73, 0.2);
+    --shadow-premium: 0 18px 42px rgba(8, 47, 73, 0.22);
+    --shadow-card-unified: 0 6px 18px rgba(15, 23, 42, 0.12);
+    --shadow-card-unified-hover: 0 20px 48px color-mix(in srgb, var(--accent-glow-strong) 40%, rgba(0, 0, 0, 0.2));
+    --shadow-badge-unified: 0 4px 10px rgba(15, 23, 42, 0.12);
     --shadow-login-panel: 0 20px 60px rgba(0, 0, 0, 0.3);
     --shadow-login-title: 2px 2px 4px rgba(0, 0, 0, 0.1);
     --shadow-login-button: 0 4px 12px color-mix(in srgb, var(--accent-1) 30%, transparent);
@@ -123,13 +146,14 @@
     /* Inputs */
     --input-bg: #ffffff;
     --input-border: #e5e7eb;
-    --input-focus-shadow: rgba(118, 75, 162, 0.25);
+    --input-focus-shadow: rgba(14, 116, 144, 0.28);
+    --control-height: 2.6rem;
 
     /* Alerts */
-    --alert-info-bg: #e0e7ff;
-    --alert-info-text: #1e1b4b;
-    --alert-info-border: #818cf8;
-    --alert-info-border-left: #6366f1;
+    --alert-info-bg: #e0f2fe;
+    --alert-info-text: #164e63;
+    --alert-info-border: #7dd3fc;
+    --alert-info-border-left: #0ea5e9;
     --alert-success-bg: #dcfce7;
     --alert-success-text: #166534;
     --alert-success-border: #86efac;
@@ -252,38 +276,46 @@
 }
 
 html[data-theme="dark"] {
-    --bg-gradient: linear-gradient(135deg, #0b1020 0%, #131c2f 100%);
+    --bg-gradient: linear-gradient(130deg, #050b14 0%, #0b1a28 45%, #123348 100%);
     --sun-gradient: linear-gradient(135deg, #b45309 0%, #7c2d12 100%);
-    --bg-violet: rgba(139, 92, 246, 0.35);
+    --bg-violet: rgba(56, 189, 248, 0.3);
     --bg-light: #111827;
     --surface-1: rgba(15, 23, 42, 0.85);
     --surface-2: rgba(15, 23, 42, 0.65);
     --surface-3: rgba(15, 23, 42, 0.5);
     --surface-4: rgba(15, 23, 42, 0.8);
     --surface-card: #0f172a;
+    --surface-card-gradient: linear-gradient(160deg, rgba(17, 30, 47, 0.94) 0%, rgba(11, 23, 39, 0.96) 100%);
     --surface-panel: rgba(15, 23, 42, 0.95);
+    --surface-elevated: rgba(15, 23, 42, 0.9);
     --surface-border: rgba(148, 163, 184, 0.2);
     --surface-border-strong: rgba(148, 163, 184, 0.35);
-    --surface-hover: rgba(139, 92, 246, 0.12);
+    --surface-hover: rgba(56, 189, 248, 0.16);
+    --table-row-hover: rgba(56, 189, 248, 0.1);
 
     --text-light: #f8fafc;
     --text-color: #e5e7eb;
     --text-grey: #a1a1aa;
-    --text-violet: #a78bfa;
+    --text-violet: #7dd3fc;
 
-    --border-violet: #8b5cf6;
+    --border-violet: #38bdf8;
     --border-dark: #0f172a;
 
-    --accent-1: #8b5cf6;
-    --accent-2: #6366f1;
-    --accent-soft: rgba(139, 92, 246, 0.15);
-    --accent-soft-strong: rgba(139, 92, 246, 0.35);
-    --accent-glow: rgba(139, 92, 246, 0.35);
-    --accent-glow-strong: rgba(139, 92, 246, 0.55);
+    --accent-1: #38bdf8;
+    --accent-2: #22d3ee;
+    --accent-soft: rgba(56, 189, 248, 0.16);
+    --accent-soft-strong: rgba(56, 189, 248, 0.36);
+    --accent-glow: rgba(56, 189, 248, 0.38);
+    --accent-glow-strong: rgba(56, 189, 248, 0.58);
+    --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 54%, #22d3ee 100%);
+    --accent-gradient-soft: linear-gradient(135deg, rgba(56, 189, 248, 0.18) 0%, rgba(34, 211, 238, 0.12) 100%);
+    --shadow-card-unified: 0 8px 20px rgba(2, 8, 23, 0.46);
+    --shadow-card-unified-hover: 0 22px 52px color-mix(in srgb, var(--accent-glow-strong) 34%, rgba(2, 8, 23, 0.65));
+    --shadow-badge-unified: 0 5px 12px rgba(2, 8, 23, 0.36);
 
     --input-bg: #0b1220;
     --input-border: rgba(148, 163, 184, 0.35);
-    --input-focus-shadow: rgba(139, 92, 246, 0.35);
+    --input-focus-shadow: rgba(56, 189, 248, 0.38);
 
     --alert-info-bg: rgba(59, 130, 246, 0.18);
     --alert-info-text: #dbeafe;
@@ -349,18 +381,28 @@ html[data-theme="dark"] {
     --bs-body-secondary-color: #a1a1aa;
 
     /* Bootstrap primary - use the accent purple instead of the harsh default blue */
-    --bs-primary: #8b5cf6;
-    --bs-primary-rgb: 139, 92, 246;
-    --bs-primary-bg-subtle: rgba(139, 92, 246, 0.2);
-    --bs-primary-border-subtle: rgba(139, 92, 246, 0.45);
-    --bs-primary-text-emphasis: #c4b5fd;
-    --bs-link-color: #a78bfa;
-    --bs-link-hover-color: #c4b5fd;
+    --bs-primary: #38bdf8;
+    --bs-primary-rgb: 56, 189, 248;
+    --bs-primary-bg-subtle: rgba(56, 189, 248, 0.2);
+    --bs-primary-border-subtle: rgba(56, 189, 248, 0.45);
+    --bs-primary-text-emphasis: #bae6fd;
+    --bs-link-color: #7dd3fc;
+    --bs-link-hover-color: #bae6fd;
 
     /* success-50 used by timeline */
     --success-50: rgba(16, 185, 129, 0.3);
 
-    /* Quality colors - dark mode: translucent tinted backgrounds + bright text */      
+    --domain-weather: #38bdf8;
+    --domain-skytonight: #22d3ee;
+    --domain-astrodex: #fbbf24;
+    --domain-plan: #4ade80;
+    --domain-equipment: #60a5fa;
+    --domain-spaceflight: #fb923c;
+    --domain-observatory: #2dd4bf;
+    --domain-metrics: #38bdf8;
+    --domain-parameters: #7dd3fc;
+
+    /* Quality colors - dark mode: translucent tinted backgrounds + bright text */
     --quality-excellent: rgba(16, 185, 129, 0.18);
     --quality-excellent-text: #6ee7b7;
     --quality-good: rgba(59, 130, 246, 0.18);
@@ -430,10 +472,13 @@ html[data-theme="red"] {
     --surface-3: rgba(32, 0, 0, 0.5);
     --surface-4: rgba(32, 0, 0, 0.8);
     --surface-card: #140000;
+    --surface-card-gradient: linear-gradient(160deg, rgba(36, 3, 3, 0.95) 0%, rgba(23, 2, 2, 0.97) 100%);
     --surface-panel: rgba(32, 0, 0, 0.95);
+    --surface-elevated: rgba(32, 0, 0, 0.9);
     --surface-border: rgba(255, 120, 120, 0.2);
     --surface-border-strong: rgba(255, 120, 120, 0.35);
     --surface-hover: rgba(255, 90, 90, 0.15);
+    --table-row-hover: rgba(255, 90, 90, 0.1);
 
     --text-light: #ffecec;
     --text-color: #ffd1d1;
@@ -449,6 +494,11 @@ html[data-theme="red"] {
     --accent-soft-strong: rgba(255, 90, 90, 0.4);
     --accent-glow: rgba(255, 90, 90, 0.45);
     --accent-glow-strong: rgba(255, 90, 90, 0.65);
+    --accent-gradient: linear-gradient(135deg, #ff6b6b 0%, #ff4d4d 52%, #f97316 100%);
+    --accent-gradient-soft: linear-gradient(135deg, rgba(255, 107, 107, 0.18) 0%, rgba(249, 115, 22, 0.12) 100%);
+    --shadow-card-unified: 0 8px 20px rgba(20, 0, 0, 0.48);
+    --shadow-card-unified-hover: 0 22px 52px color-mix(in srgb, var(--accent-glow-strong) 34%, rgba(20, 0, 0, 0.68));
+    --shadow-badge-unified: 0 5px 12px rgba(20, 0, 0, 0.38);
 
     --input-bg: #120000;
     --input-border: rgba(255, 120, 120, 0.4);
@@ -530,6 +580,16 @@ html[data-theme="red"] {
 
     /* success-50 used by timeline */
     --success-50: rgba(255, 90, 90, 0.3);
+
+    --domain-weather: #ff8a80;
+    --domain-skytonight: #ffb4a8;
+    --domain-astrodex: #ffd166;
+    --domain-plan: #86efac;
+    --domain-equipment: #fca5a5;
+    --domain-spaceflight: #fda4af;
+    --domain-observatory: #f9a8d4;
+    --domain-metrics: #ff9e9e;
+    --domain-parameters: #fecaca;
 
     /* Quality colors - red mode: tinted backgrounds + light text */
     --quality-excellent: rgba(16, 185, 129, 0.18);

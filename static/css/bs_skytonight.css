@@ -1,6 +1,6 @@
 /* CSS for SkyTonight section */
 
-/* Limit plot-container to 50% of the width on larger screens 
+/* Limit plot-container to 50% of the width on larger screens
     and make it full width on smaller screens */
 .plot-container {
     max-width: 50%;
@@ -21,7 +21,7 @@
     line-height: 1.5;
     color: var(--bs-success);
     padding: var(--space-1) var(--space-2);
-    border-radius: var(--border-radius-half);
+    border-radius: var(--border-radius-pill);
     font-size: 0.875rem;
     border: 1px solid var(--bs-success);
 }
@@ -43,7 +43,7 @@ button.in-astrodex-badge:focus-visible {
     font-weight: 600;
     line-height: 1;
     padding: 0.18em 0.45em;
-    border-radius: 0.3em;
+    border-radius: var(--border-radius-pill);
     vertical-align: middle;
     margin-right: 0.35em;
     background-color: #1a6fa8;
@@ -70,7 +70,9 @@ button.in-astrodex-badge:focus-visible {
     max-height: calc(min(100vh - 220px, 780px) - 180px);
     min-height: 220px;
     overflow-y: auto;
-    border-radius: var(--border-radius-half);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--surface-border);
+    background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
 }
 
 .sky-map-legend {
@@ -100,14 +102,88 @@ button.in-astrodex-badge:focus-visible {
 /* ── Sky Map filter buttons ─────────────────────────────────────────────── */
 .sky-map-filter-btn {
     font-size: 0.78rem;
-    padding: 0.2rem 0.55rem;
+    padding: 0.26rem 0.66rem;
+    border-radius: var(--border-radius-pill);
+}
+
+#skytonight-tab .card {
+    box-shadow: var(--shadow-card-unified);
+    border-color: color-mix(in srgb, var(--surface-border-strong) 74%, transparent) !important;
+}
+
+#skytonight-tab .card:hover {
+    box-shadow: 0 22px 52px color-mix(in srgb, var(--domain-skytonight) 22%, rgba(15, 23, 42, 0.24));
+}
+
+/* ── Recommendations panel ──────────────────────────────────────────────── */
+#skytonight-recommendations-panel .card-body .d-flex.flex-nowrap {
+    scroll-snap-type: x proximity;
+}
+
+.skyt-reco-card {
+    overflow: hidden;
+    scroll-snap-align: start;
+    border-color: color-mix(in srgb, var(--domain-skytonight) 30%, var(--surface-border)) !important;
+}
+
+.skyt-reco-thumb {
+    position: relative;
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    margin: 0;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+
+.skyt-reco-thumb:disabled {
+    cursor: default;
+}
+
+.skyt-reco-thumb .card-img-top {
+    display: block;
+    width: 100%;
+    max-height: 140px;
+    object-fit: cover;
+    border-radius: 0;
+    transition: transform 220ms var(--transition-smooth), filter 220ms var(--transition-smooth);
+}
+
+.skyt-reco-thumb::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 36%;
+    background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.18));
+    pointer-events: none;
+    opacity: 0.66;
+    transition: opacity 220ms var(--transition-smooth);
+}
+
+.skyt-reco-card:hover .skyt-reco-thumb .card-img-top,
+.skyt-reco-thumb:focus-visible .card-img-top {
+    transform: scale(1.018);
+    filter: saturate(1.05);
+}
+
+.skyt-reco-card:hover .skyt-reco-thumb::after,
+.skyt-reco-thumb:focus-visible::after {
+    opacity: 0.9;
+}
+
+.skyt-reco-thumb:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--accent-glow-strong);
 }
 
 /* Theme-safe surface for object-info modal cards used by SkyTonight/Astrodex. */
 .object-info-tile {
-    background-color: var(--surface-2);
+    background-color: color-mix(in srgb, var(--surface-2) 76%, var(--surface-elevated));
     border: 1px solid var(--surface-border);
     color: var(--text-color);
+    border-radius: var(--border-radius);
 }
 
 /* Dedicated AstroScore colors keep tiers distinct in every theme (especially red). */
@@ -162,7 +238,7 @@ html[data-theme="red"] .astroscore-badge-poor {
 }
 
 .skyt-pagination-bar .pagination .page-link {
-    border-radius: var(--border-radius-half);
+    border-radius: var(--border-radius-pill);
     line-height: 1.2;
     padding: 0.3rem 0.55rem;
 }

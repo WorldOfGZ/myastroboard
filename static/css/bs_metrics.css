@@ -15,12 +15,14 @@
 }
 
 #metrics-subtab .card-title {
-    font-size: 1rem;
+    font-size: 0.98rem;
     font-weight: var(--font-semibold);
     margin-bottom: 1rem;
     color: var(--text-color);
-    border-bottom: 2px solid var(--surface-border);
+    border-bottom: 1px solid var(--surface-border-strong);
     padding-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 #metrics-subtab .metrics-kv-item {
@@ -88,10 +90,11 @@
 }
 
 #metrics-subtab .processes-panel {
-    background: var(--surface-1);
+    background: color-mix(in srgb, var(--surface-elevated) 88%, var(--surface-1));
     border: 1px solid var(--surface-border);
-    border-radius: var(--border-radius-card);
+    border-radius: var(--border-radius-lg);
     padding: 1rem;
+    box-shadow: var(--shadow-surface-sm);
 }
 
 #metrics-subtab .processes-panel-head {
@@ -140,7 +143,7 @@
 
 #metrics-subtab .processes-table-wrap {
     border: 1px solid var(--surface-border);
-    border-radius: var(--border-radius-card);
+    border-radius: var(--border-radius-lg);
     overflow: hidden;
 }
 
@@ -149,17 +152,17 @@
 }
 
 #metrics-subtab .processes-table thead th {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    background: var(--surface-card);
+    letter-spacing: 0.06em;
+    background: color-mix(in srgb, var(--surface-2) 70%, var(--surface-elevated));
     border-bottom-color: var(--surface-border);
     cursor: pointer;
 }
 
 #metrics-subtab .processes-table tbody td {
-    font-size: 0.82rem;
+    font-size: 0.84rem;
     vertical-align: middle;
     border-bottom-color: var(--surface-border);
 }
@@ -196,7 +199,7 @@
     margin-left: 0.35rem;
     padding: 0.1rem 0.4rem;
     border-radius: var(--border-radius-pill);
-    font-size: 0.62rem;
+    font-size: 0.6rem;
     font-weight: var(--font-bold);
     letter-spacing: 0.03em;
     text-transform: uppercase;
@@ -221,7 +224,7 @@
 #metrics-subtab .process-cpu-bar-bg {
     width: 48px;
     height: 6px;
-    background: var(--surface-card);
+    background: color-mix(in srgb, var(--surface-card) 85%, var(--surface-elevated));
     border-radius: var(--border-radius-pill);
     overflow: hidden;
 }
@@ -268,10 +271,11 @@
 #metrics-subtab h3 {
     color: var(--text-color);
     font-weight: var(--font-semibold);
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--accent-color);
+    border-bottom: 1px solid var(--accent-color);
+    letter-spacing: 0.02em;
 }
 
 #metrics-subtab p {
@@ -297,11 +301,11 @@
     #metrics-subtab .col-md-6 {
         margin-bottom: 1rem;
     }
-    
+
     #metrics-subtab h3 {
         font-size: 1.1rem;
     }
-    
+
     #metrics-subtab .card-title {
         font-size: 0.95rem;
     }

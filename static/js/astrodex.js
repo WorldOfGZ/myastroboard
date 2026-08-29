@@ -460,7 +460,7 @@ function _getRatingWidgetValue(prefix) {
 
 async function loadAstrodex() {
     try {
-           
+
         // Get role user
         const roleUser = await getUserRole();
         // Display Astrodex if roleUser is user or admin
@@ -471,12 +471,12 @@ async function loadAstrodex() {
         astrodexData.stats = response.stats || {};
         astrodexData.privateMode = response.private_mode !== false;
         astrodexData.currentUserId = response.current_user_id || null;
-        
+
         // Load equipment data for Astrodex integration
-        if(isAllowedAstrodex) {
+        if (isAllowedAstrodex) {
             await loadEquipmentForAstrodex();
         }
-        
+
         renderAstrodexView(isAllowedAstrodex);
     } catch (error) {
         console.error('Error loading astrodex:', error);
@@ -541,10 +541,10 @@ function renderAstrodexView(isAllowedAstrodex) {
 
     // Render stats
     renderAstrodexStats();
-    
+
     // Apply filters and sorting
     const filteredItems = filterAndSortAstrodexItems();
-    
+
     // Render items grid
     renderAstrodexGrid(filteredItems, isAllowedAstrodex);
 }
@@ -611,7 +611,7 @@ function getPersonalAstrodexStats() {
 function renderAstrodexStats() {
     const statsContainer = document.getElementById('astrodex-stats');
     if (!statsContainer) return;
-    
+
     const stats = astrodexData.stats;
     const totalItems = Number(stats.total_items || 0);
     const itemsWithPictures = Number(stats.items_with_pictures || 0);
@@ -673,7 +673,7 @@ function renderAstrodexStats() {
 function renderAstrodexGrid(items, isAllowedAstrodex) {
     const gridContainer = document.getElementById('astrodex-grid');
     if (!gridContainer) return;
-    
+
     if (items.length === 0) {
         DOMUtils.clear(gridContainer);
         if (isAllowedAstrodex) {
@@ -814,14 +814,14 @@ function getMainPicture(item) {
     if (!item.pictures || item.pictures.length === 0) {
         return null;
     }
-    
+
     // Find main picture
     for (const picture of item.pictures) {
         if (picture.is_main) {
             return picture;
         }
     }
-    
+
     // If no main picture is set, return first picture
     return item.pictures[0];
 }
@@ -889,33 +889,33 @@ function getCardMainPicture(item) {
 
 function filterAndSortAstrodexItems() {
     let items = [...astrodexData.items];
-    
+
     // Apply search filter
     if (astrodexFilters.search) {
         const searchLower = astrodexFilters.search.toLowerCase();
-        items = items.filter(item => 
+        items = items.filter(item =>
             item.name.toLowerCase().includes(searchLower) ||
             (item.type && item.type.toLowerCase().includes(searchLower)) ||
             (item.constellation && item.constellation.toLowerCase().includes(searchLower))
         );
     }
-    
+
     // Apply type filter
     if (astrodexFilters.type !== 'all') {
         items = items.filter(item => item.type === astrodexFilters.type);
     }
-    
+
     // Apply photo filter
     if (astrodexFilters.hasPhotos === 'yes') {
         items = items.filter(item => item.pictures && item.pictures.length > 0);
     } else if (astrodexFilters.hasPhotos === 'no') {
         items = items.filter(item => !item.pictures || item.pictures.length === 0);
     }
-    
+
     // Apply sorting
     items.sort((a, b) => {
         let compareA, compareB;
-        
+
         switch (astrodexFilters.sortBy) {
             case 'name':
                 compareA = a.name.toLowerCase();
@@ -936,12 +936,12 @@ function filterAndSortAstrodexItems() {
             default:
                 return 0;
         }
-        
+
         if (compareA < compareB) return astrodexFilters.sortOrder === 'asc' ? -1 : 1;
         if (compareA > compareB) return astrodexFilters.sortOrder === 'asc' ? 1 : -1;
         return 0;
     });
-    
+
     return items;
 }
 
@@ -996,20 +996,20 @@ async function addToAstrodex(itemData) {
 async function addFromCatalogue(catalogueItem) {
     // Extract item name from catalogue data
     const itemName = catalogueItem.id || catalogueItem['target name'] || catalogueItem.name;
-    
+
     if (!itemName) {
         showMessage('error', i18n.t('astrodex.invalid_item_data'));
         return;
     }
-    
+
     // Detect type properly - check for comet designation patterns
     let itemType = catalogueItem.type || catalogueItem.targettype || 'Unknown';
-    
+
     // If type is still Unknown, try to detect from catalogue or name patterns
     if (itemType === 'Unknown' || !itemType) {
         const catalogue = catalogueItem.catalogue || currentCatalogueTab || '';
         const catalogueLower = catalogue.toLowerCase();
-        
+
         // Force comet type if from comets catalogue
         if (catalogueLower.includes('comet')) {
             itemType = 'Comet';
@@ -1018,16 +1018,16 @@ async function addFromCatalogue(catalogueItem) {
             itemType = 'Comet';
         }
     }
-    
+
     const itemData = {
         name: itemName,
         type: itemType,
         catalogue: catalogueItem.catalogue || currentCatalogueTab || '',
         constellation: catalogueItem.constellation || catalogueItem.const || ''
     };
-    
+
     const success = await addToAstrodex(itemData);
-    
+
     // On success, switch to Astrodex tab and explicitly activate the astrodex sub-tab
     if (success) {
         switchMainTab('astrodex');
@@ -1047,7 +1047,7 @@ async function addFromCatalogue(catalogueItem) {
                 resolve();
             }, 2000);
         });
-        
+
         const addedItem = astrodexData.items.find(item => item.name === itemName);
         if (addedItem) {
             showAstrodexItemDetail(addedItem.id);
@@ -1092,7 +1092,7 @@ async function showAddAstrodexItemModal() {
                 <select id="item-type" class="form-select">
                     ${getObjectTypeOptionsHtml()}
                 </select>
-            </div>            
+            </div>
             <div class="col-md-6">
                 <label for="item-constellation" class="form-label">${i18n.t('astrodex.form_constellation')}</label>
                 <select id="item-constellation" class="form-select">
@@ -1210,7 +1210,7 @@ async function showAddAstrodexItemModal() {
         });
     }
     // --- end catalogue search ---
-    
+
     const submitHandler = async (e) => {
         e.preventDefault();
 
@@ -1259,7 +1259,7 @@ async function showAddAstrodexItemModal() {
 // Item Detail View
 // ============================================
 
-async function showAstrodexItemDetail(itemId) { 
+async function showAstrodexItemDetail(itemId) {
     const item = astrodexData.items.find(i => i.id === itemId);
     if (!item) return;
 
@@ -1267,12 +1267,12 @@ async function showAstrodexItemDetail(itemId) {
         showPictureSlideshow(itemId);
         return;
     }
-    
+
     currentAstrodexItem = item;
 
     // Get list of constellations for select options
     const constellations = await getConstellationsList();
-    
+
     const catalogueAliasesSection = renderCatalogueAliasesSection(item);
     const ownPicturesCount = Array.isArray(item.own_pictures)
         ? item.own_pictures.length
@@ -1281,7 +1281,7 @@ async function showAstrodexItemDetail(itemId) {
     const picturesTitle = totalPicturesCount > ownPicturesCount
         ? i18n.t('astrodex.my_photos', { ownPicturesCount, totalPicturesCount })
         : i18n.t('astrodex.all_photos', { ownPicturesCount });
-    
+
     // No location on the item itself (v1.2) - the same object commonly gets
     // re-photographed from different sites over its lifetime, so this is a
     // live summary of the distinct locations across the item's own pictures
@@ -1303,13 +1303,13 @@ async function showAstrodexItemDetail(itemId) {
     const observationLogBadge = uniqueSessionIds.length > 0 ? `
         <div class="d-flex flex-wrap gap-2 mb-3">
             ${uniqueSessionIds.map(sessionId => {
-                const match = sessionMatches.find(candidate => candidate.session_id === sessionId);
-                return `
+        const match = sessionMatches.find(candidate => candidate.session_id === sessionId);
+        return `
                     <button type="button" class="btn btn-sm btn-outline-secondary" data-action="view-observation-session" data-session-id="${escapeHtml(sessionId)}">
                         <i class="bi bi-journal-text icon-inline" aria-hidden="true"></i>${i18n.t('astrodex.observation_log_link', { date: escapeHtml(match?.session_date || '') })}
                     </button>
                 `;
-            }).join('')}
+    }).join('')}
         </div>
     ` : '';
 
@@ -1425,7 +1425,7 @@ function renderPicturesGrid(item) {
             </div>
         `;
     }
-    
+
     return editablePictures.map(picture => {
         const imageUrl = `/api/astrodex/images/${picture.filename}`;
         const escapedImageUrl = escapeHtml(imageUrl);
@@ -1633,12 +1633,8 @@ async function _updatePictureLocationMap(prefix) {
     }
     _pictureLocationMap = L.map(container, { scrollWheelZoom: false, zoomControl: false })
         .setView([coords.lat, coords.lng], 9);
-    // Voyager, not a dark basemap - stays legible for remote sites with
-    // little infrastructure (mirrors the admin location cards' minimap).
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        maxZoom: 18,
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
-    }).addTo(_pictureLocationMap);
+    // Light basemap stays legible for remote sites with little infrastructure.
+    addLeafletBasemap(_pictureLocationMap, 'light', { maxZoom: 18 });
     L.marker([coords.lat, coords.lng]).addTo(_pictureLocationMap);
 }
 
@@ -1876,7 +1872,7 @@ async function showAddPictureModal(itemId) {
         }
 
         //Remove self listener to prevent duplicates if modal is opened again
-        document.getElementById('modal_lg_close').removeEventListener('hidden.bs.modal', () => {});
+        document.getElementById('modal_lg_close').removeEventListener('hidden.bs.modal', () => { });
     });
 }
 
@@ -1960,7 +1956,7 @@ async function setMainPicture(itemId, pictureId) {
         await fetchJSON(`/api/astrodex/items/${itemId}/pictures/${pictureId}/main`, {
             method: 'POST'
         });
-        
+
         // No alert on success
         await loadAstrodex();
         closeModal();
@@ -1977,7 +1973,7 @@ async function deletePicture(itemId, pictureId) {
             await fetchJSON(`/api/astrodex/items/${itemId}/pictures/${pictureId}`, {
                 method: 'DELETE'
             });
-            
+
             showMessage('success', i18n.t('astrodex.photo_deleted'));
             await loadAstrodex();
             showAstrodexItemDetail(itemId);
@@ -1996,21 +1992,21 @@ async function deleteAstrodexItem(itemId) {
     // Get the item name before deleting
     const item = astrodexData.items.find(i => i.id === itemId);
     const itemPayload = item ? item : null;
-    
+
     if (window.confirm(i18n.t('astrodex.confirm_delete_item'))) {
         try {
             await fetchJSON(`/api/astrodex/items/${itemId}`, {
                 method: 'DELETE'
             });
-            
+
             showMessage('success', i18n.t('astrodex.item_deleted'));
             await loadAstrodex();
-            
+
             // Update catalogue badges if the function exists (from app.js)
             if (itemPayload && typeof updateCatalogueCapturedBadge === 'function') {
                 updateCatalogueCapturedBadge(itemPayload, false);
             }
-            
+
             closeModal();
         } catch (error) {
             console.error('Error deleting item:', error);
@@ -2046,7 +2042,7 @@ async function updateItemField(itemId, field, value) {
     try {
         const updates = {};
         updates[field] = value;
-        
+
         await fetchJSON(`/api/astrodex/items/${itemId}`, {
             method: 'PUT',
             headers: {
@@ -2054,13 +2050,13 @@ async function updateItemField(itemId, field, value) {
             },
             body: JSON.stringify(updates)
         });
-        
+
         // Update local data
         const item = astrodexData.items.find(i => i.id === itemId);
         if (item) {
             item[field] = value;
         }
-        
+
         showMessage('success', i18n.t('astrodex.updated_successfully'));
     } catch (error) {
         console.error('Error updating item:', error);
@@ -2186,7 +2182,7 @@ async function showEditPictureModal(itemId, pictureId) {
         }
 
         //Remove self listener to prevent duplicates if modal is opened again
-        document.getElementById('modal_lg_close').removeEventListener('hidden.bs.modal', () => {});
+        document.getElementById('modal_lg_close').removeEventListener('hidden.bs.modal', () => { });
     });
 }
 
@@ -2440,27 +2436,27 @@ function _mountPictureSlideshow(slideshowPictures, opts) {
             ` : ''}
         </div>
         `;
-        
+
         const leftArrow = slideshowPictures.length > 1 && currentIndex > 0 ? `
-            <button type="button" 
-                class="btn btn-lg slideshow-arrow astrodex-slideshow-arrow slideshow-prev position-absolute top-50 start-0 translate-middle-y ms-3 
-                    d-flex align-items-center justify-content-center" 
-                aria-label="Previous photo" 
+            <button type="button"
+                class="btn btn-lg slideshow-arrow astrodex-slideshow-arrow slideshow-prev position-absolute top-50 start-0 translate-middle-y ms-3
+                    d-flex align-items-center justify-content-center"
+                aria-label="Previous photo"
                 style="z-index: 10; opacity: 0.7; border-radius: 50%; width: 50px; height: 50px;">
                 <i class="bi bi-chevron-double-left" aria-hidden="true"></i>
             </button>
         ` : '';
-        
+
         const rightArrow = slideshowPictures.length > 1 && currentIndex < slideshowPictures.length - 1 ? `
-            <button type="button" 
-                class="btn btn-lg slideshow-arrow astrodex-slideshow-arrow slideshow-next position-absolute top-50 end-0 translate-middle-y me-3 
+            <button type="button"
+                class="btn btn-lg slideshow-arrow astrodex-slideshow-arrow slideshow-next position-absolute top-50 end-0 translate-middle-y me-3
                     d-flex align-items-center justify-content-center"
                 aria-label="Next photo"
                 style="z-index: 10; opacity: 0.7; border-radius: 50%; width: 50px; height: 50px;">
                 <i class="bi bi-chevron-double-right" aria-hidden="true"></i>
             </button>
         ` : '';
-        
+
         const modalContent = `
             <div class="slideshow-body">
                 <div class="slideshow-container position-relative text-center mb-4">
@@ -2471,25 +2467,25 @@ function _mountPictureSlideshow(slideshowPictures, opts) {
                 ${pictureInfo}
             </div>
         `;
-        
+
         // Update only the slideshow sub-container so the info card below is preserved
         const slideshowWrapper = document.getElementById('slideshow-content-wrapper');
         if (slideshowWrapper) {
             DOMUtils.clear(slideshowWrapper);
             const fragment = document.createRange().createContextualFragment(modalContent);
             slideshowWrapper.appendChild(fragment);
-            
+
             // Re-attach event listeners to navigation buttons
             attachNavigationListeners();
         }
     }
-    
+
     function attachNavigationListeners() {
         if (slideshowPictures.length <= 1) return;
-        
+
         const prevBtn = document.querySelector('.slideshow-prev');
         const nextBtn = document.querySelector('.slideshow-next');
-        
+
         if (prevBtn) {
             prevBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -2498,7 +2494,7 @@ function _mountPictureSlideshow(slideshowPictures, opts) {
                     updateModalContent();
                 }
             });
-            
+
             // Add hover effects
             prevBtn.addEventListener('mouseenter', () => {
                 prevBtn.style.opacity = '1';
@@ -2507,7 +2503,7 @@ function _mountPictureSlideshow(slideshowPictures, opts) {
                 prevBtn.style.opacity = '0.7';
             });
         }
-        
+
         if (nextBtn) {
             nextBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -2516,7 +2512,7 @@ function _mountPictureSlideshow(slideshowPictures, opts) {
                     updateModalContent();
                 }
             });
-            
+
             // Add hover effects
             nextBtn.addEventListener('mouseenter', () => {
                 nextBtn.style.opacity = '1';
@@ -2526,13 +2522,13 @@ function _mountPictureSlideshow(slideshowPictures, opts) {
             });
         }
     }
-    
+
     function setupKeyboardNavigation() {
         // Remove old keyboard handler if exists
         if (keyHandler) {
             document.removeEventListener('keydown', keyHandler);
         }
-        
+
         // Create and add new keyboard handler
         keyHandler = (e) => {
             if (e.key === 'ArrowLeft' && currentIndex > 0) {
@@ -2550,10 +2546,10 @@ function _mountPictureSlideshow(slideshowPictures, opts) {
                 }
             }
         };
-        
+
         document.addEventListener('keydown', keyHandler);
     }
-    
+
     // Create modal using existing Bootstrap structure - body has two stable sub-containers:
     // #slideshow-content-wrapper (replaced on navigation) and #slideshow-object-info-wrapper (persistent)
     createModal(opts.title, '', 'full');
@@ -2576,7 +2572,7 @@ function _mountPictureSlideshow(slideshowPictures, opts) {
         focus: true,
         keyboard: true
     });
-    
+
     // Setup cleanup when modal is hidden
     document.getElementById('modal_full_close').addEventListener('hidden.bs.modal', function cleanup() {
         // Remove keyboard handler
@@ -2584,11 +2580,11 @@ function _mountPictureSlideshow(slideshowPictures, opts) {
             document.removeEventListener('keydown', keyHandler);
             keyHandler = null;
         }
-        
+
         // Remove this event listener to prevent duplicates
         document.getElementById('modal_full_close').removeEventListener('hidden.bs.modal', cleanup);
     });
-    
+
     // Initialize content and show modal
     updateModalContent();
     setupKeyboardNavigation();
@@ -2632,7 +2628,7 @@ function createModal(title, content, size = 'lg') {
     //Prepare modal title
     const titleElement = document.getElementById(`modal_${size}_close_title`);
     titleElement.textContent = `${title}`;
-    
+
     //Prepare modal content
     const contentElement = document.getElementById(`modal_${size}_close_body`);
     DOMUtils.clear(contentElement);
@@ -2693,7 +2689,7 @@ async function initializeAstrodexEventListeners() {
     const astrodexTab = document.getElementById('astrodex-tab');
     if (!astrodexTab) return;
 
-    //Buttons 
+    //Buttons
 
     //Init buttons - wait for translations to be loaded before setting labels
     await i18n.ready;
@@ -2703,16 +2699,16 @@ async function initializeAstrodexEventListeners() {
     const buttonAddItem = document.getElementById('add-astrodex-item');
     DOMUtils.clear(buttonAddItem);
     DOMUtils.append(buttonAddItem, DOMUtils.createIcon('bi bi-plus-circle icon-inline'), i18n.t('astrodex.add_object'));
-    
+
     // ============================================
     // Event delegation on document.body for modals and dynamic content
     // ============================================
-    
+
     // Handle clicks on modals and dynamic elements (anywhere in document)
     document.body.addEventListener('click', (e) => {
         const target = e.target;
         const button = target.closest('button');
-        
+
         // Handle buttons with data-action
         if (button) {
             const action = button.getAttribute('data-action');
@@ -2721,7 +2717,7 @@ async function initializeAstrodexEventListeners() {
             const catalogue = button.getAttribute('data-catalogue');
             const sessionId = button.getAttribute('data-session-id');
 
-            switch(action) {
+            switch (action) {
                 case 'close-modal':
                     e.preventDefault();
                     closeModal();
@@ -2732,37 +2728,37 @@ async function initializeAstrodexEventListeners() {
                     break;
                 case 'add-picture':
                     e.preventDefault();
-                    if(isAllowedAstrodex) {
+                    if (isAllowedAstrodex) {
                         showAddPictureModal(itemId);
                     }
                     break;
                 case 'delete-item':
                     e.preventDefault();
-                    if(isAllowedAstrodex) {
+                    if (isAllowedAstrodex) {
                         deleteAstrodexItem(itemId);
                     }
                     break;
                 case 'set-main-picture':
                     e.preventDefault();
-                    if(isAllowedAstrodex) {
+                    if (isAllowedAstrodex) {
                         setMainPicture(itemId, pictureId);
                     }
                     break;
                 case 'edit-picture':
                     e.preventDefault();
-                    if(isAllowedAstrodex) {
+                    if (isAllowedAstrodex) {
                         showEditPictureModal(itemId, pictureId);
                     }
                     break;
                 case 'delete-picture':
                     e.preventDefault();
-                    if(isAllowedAstrodex) {
+                    if (isAllowedAstrodex) {
                         deletePicture(itemId, pictureId);
                     }
                     break;
                 case 'switch-catalogue-name':
                     e.preventDefault();
-                    if(isAllowedAstrodex) {
+                    if (isAllowedAstrodex) {
                         switchItemCatalogueName(itemId, catalogue);
                     }
                     break;
@@ -2776,38 +2772,38 @@ async function initializeAstrodexEventListeners() {
                     break;
             }
         }
-        
+
         // Handle modal overlay clicks
         if (target.classList.contains('modal-overlay')) {
             handleModalClick(e);
         }
     });
-    
+
     // ============================================
     // Event delegation on #astrodex-tab for tab-specific content
     // ============================================
-    
+
     // Handle clicks on Astrodex tab
     astrodexTab.addEventListener('click', (e) => {
         const target = e.target;
         const button = target.closest('button');
         const cardImage = target.closest('.astrodex-card-image');
         const cardBody = target.closest('.astrodex-card-body');
-        
+
         // Handle buttons with data-action (tab-specific)
         if (button) {
             const action = button.getAttribute('data-action');
 
-            switch(action) {
+            switch (action) {
                 case 'add-astrodex-item':
                     e.preventDefault();
-                    if(isAllowedAstrodex) {
+                    if (isAllowedAstrodex) {
                         showAddAstrodexItemModal();
                     }
                     break;
             }
         }
-        
+
         // Handle card image clicks (slideshow)
         if (cardImage && !button) {
             const itemId = cardImage.getAttribute('data-item-id');
@@ -2815,7 +2811,7 @@ async function initializeAstrodexEventListeners() {
                 showPictureSlideshow(itemId);
             }
         }
-        
+
         // Handle card body clicks (detail view)
         if (cardBody && !button && !cardImage) {
             const itemId = cardBody.getAttribute('data-item-id');
@@ -2834,11 +2830,11 @@ async function initializeAstrodexEventListeners() {
             }
         }
     });
-    
+
     // Handle keyboard events on Astrodex tab
     astrodexTab.addEventListener('keydown', (e) => {
         const target = e.target;
-        
+
         if (e.key === 'Enter' || e.key === ' ') {
             const cardImage = target.closest('.astrodex-card-image');
             const cardBody = target.closest('.astrodex-card-body');
@@ -2860,17 +2856,17 @@ async function initializeAstrodexEventListeners() {
                 } else if (isAllowedAstrodex) {
                     showAstrodexItemDetail(itemId);
                 }
-            } 
+            }
         }
     });
-    
+
     // Handle change events on document.body for modal form fields
     document.body.addEventListener('change', (e) => {
         const target = e.target;
         const action = target.getAttribute('data-action');
         const itemId = target.getAttribute('data-item-id');
         const field = target.getAttribute('data-field');
-        
+
         if (action === 'update-field' && itemId && field) {
             const item = astrodexData.items.find(i => i.id === itemId);
             if (item && item.is_owned_by_current_user === false) {
@@ -2879,38 +2875,38 @@ async function initializeAstrodexEventListeners() {
             updateItemField(itemId, field, target.value);
         }
     });
-    
+
     // Handle change events on filter/sort controls
     const searchInput = document.getElementById('astrodex-search');
     const typeFilter = document.getElementById('astrodex-type-filter');
     const photoFilter = document.getElementById('astrodex-photo-filter');
     const sortSelect = document.getElementById('astrodex-sort');
     const sortOrderBtn = document.getElementById('astrodex-sort-order');
-    
+
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
             updateAstrodexFilter('search', e.target.value, isAllowedAstrodex);
         });
     }
-    
+
     if (typeFilter) {
         typeFilter.addEventListener('change', (e) => {
             updateAstrodexFilter('type', e.target.value, isAllowedAstrodex);
         });
     }
-    
+
     if (photoFilter) {
         photoFilter.addEventListener('change', (e) => {
             updateAstrodexFilter('hasPhotos', e.target.value, isAllowedAstrodex);
         });
     }
-    
+
     if (sortSelect) {
         sortSelect.addEventListener('change', (e) => {
             updateAstrodexFilter('sortBy', e.target.value, isAllowedAstrodex);
         });
     }
-    
+
     if (sortOrderBtn) {
         sortOrderBtn.addEventListener('click', () => {
             toggleAstrodexSortOrder();

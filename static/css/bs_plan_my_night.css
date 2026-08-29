@@ -15,6 +15,7 @@
 
 .plan-current-banner {
     border-left: 4px solid var(--bs-success);
+    background: color-mix(in srgb, var(--bs-success-bg-subtle) 20%, var(--surface-elevated));
 }
 
 .plan-summary-graph-wrap {
@@ -52,6 +53,8 @@
 #plan-my-night-display .plan-my-night-timeline .timeline-item {
     border: 1px solid var(--border-muted);
     margin-left: 0;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-surface-sm);
 }
 
 #plan-my-night-display .plan-my-night-timeline .plan-target-current {
@@ -89,7 +92,8 @@
     font-weight: var(--font-bold);
     letter-spacing: 0.02em;
     color: #ffffff;
-    background-color: var(--bs-info);
+    background: var(--accent-gradient);
+    box-shadow: 0 8px 18px color-mix(in srgb, var(--accent-glow) 28%, transparent);
 }
 
 #plan-my-night-display .plan-my-night-timeline .timeline-icon.plan-time-badge.plan-time-badge-current {
@@ -123,9 +127,10 @@
 
 .plan-moon-calendar-section {
     border: 1px solid var(--surface-border);
-    border-radius: var(--border-radius);
+    border-radius: var(--border-radius-lg);
     padding: 0.6rem 0.75rem 0.5rem;
-    background-color: var(--surface-card);
+    background-color: color-mix(in srgb, var(--surface-elevated) 86%, var(--surface-card));
+    box-shadow: var(--shadow-surface-sm);
 }
 
 .plan-moon-calendar-header {
@@ -155,7 +160,7 @@
 }
 
 .plan-moon-cal-cell {
-    border-radius: 4px;
+    border-radius: var(--border-radius-half);
     padding: 4px 2px 3px;
     text-align: center;
     cursor: default;
@@ -244,7 +249,7 @@
 }
 
 .plan-seeing-week-cell {
-    border-radius: 4px;
+    border-radius: var(--border-radius-half);
     padding: 4px 2px 3px;
     text-align: center;
     cursor: default;

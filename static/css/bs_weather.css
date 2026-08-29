@@ -54,7 +54,8 @@
     gap: 0.35rem;
     padding: 0.3rem 0.4rem;
     border-radius: var(--border-radius);
-    background: var(--bs-secondary-bg);
+    background: color-mix(in srgb, var(--surface-elevated) 78%, var(--bs-secondary-bg));
+    border: 1px solid var(--surface-border);
     min-width: 0;
 }
 
@@ -198,6 +199,7 @@
 
 .night-score-card-now {
     border: 2px solid var(--accent-glow-strong) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-glow) 28%, transparent);
 }
 
 .night-score-card .card-body {
@@ -324,6 +326,7 @@
 .astro-condition-card {
     border-top: 3px solid var(--quality-border, var(--dew-border, var(--color-border)));
     transition: border-top-color var(--transition-normal);
+    border-radius: var(--border-radius-lg);
 }
 
 /* Trend charts */

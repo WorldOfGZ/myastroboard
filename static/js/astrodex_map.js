@@ -112,13 +112,12 @@ async function _renderAstrodexPhotoMap(data) {
         scrollWheelZoom: true,
     });
 
-    // CartoDB Voyager (light), not the dark_all basemap used by the orbital
-    // stations map - Photo Map browses real-world geographic diversity, and
-    // dark tiles render remote/rural astrophotography sites near-blank.
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        maxZoom: 18,
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
-    }).addTo(map);
+    // Default to light, while letting users switch dark/light and persist choice.
+    attachLeafletBasemapStyleControl(map, {
+        storageKey: 'myastroboard.astrodex.photo_map_basemap',
+        defaultVariant: 'light',
+        tileOptions: { maxZoom: 18 },
+    });
 
     // Clicking a cluster bubble opens the slideshow for its photos directly
     // rather than zooming/spiderfying toward them - the user can still zoom

@@ -8,8 +8,9 @@
     max-height: 600px;
     overflow-y: auto;
     font-family: 'Courier New', monospace;
-    font-size: 13px;
-    line-height: 1.6;
+    font-size: 12.5px;
+    line-height: 1.55;
+    border: 1px solid var(--log-border);
 }
 
 /* Structured log row — 5 fixed-width columns */
@@ -41,7 +42,7 @@
 /* Level badge */
 .log-col-level {
     text-align: center;
-    border-radius: 3px;
+    border-radius: var(--border-radius-pill);
     padding: 0 0.2rem;
     font-weight: 700;
     font-size: 11px;
@@ -88,13 +89,14 @@
 .log-info-header {
     padding: var(--space-3);
     background: var(--log-header-bg);
-    border-radius: var(--border-radius);
+    border-radius: var(--border-radius-lg);
     margin-bottom: var(--space-5);
     display: flex;
     align-items: center;
     justify-content: space-between;
     color: var(--log-header-text);
     font-size: 14px;
+    border: 1px solid var(--log-border);
 }
 
 .log-info-header select {
