@@ -94,6 +94,10 @@ Thousands of deep-sky objects from multiple catalogues, scored and sorted. Filte
 
 ![Deep Sky Objects](img/skytonight_dso.png)
 
+The beginner catalogue offers a curated entry point with high-value targets for quick session planning.
+
+![Beginner Catalogue](img/skytonight_beginnercatalogue.png)
+
 ### Celestial Bodies
 Planets, asteroids, and other solar system objects with rise/set times, magnitude, angular size, and observability ratings - updated nightly.
 
@@ -131,6 +135,14 @@ Astrodex is your personal tracker for every object you've imaged. Browse your co
 
 ![Astrodex Collection](img/astrodex_astrodex.png)
 
+Observation Log integration helps you review captures night-by-night and keep context tied to each object.
+
+![Observation Log](img/astrodex_observationlog.png)
+
+Photo Map view lets you explore where your captures were taken across your observing locations.
+
+![Astrodex Photo Map](img/astrodex_photomap.png)
+
 ### Object Editor
 Log every detail of a capture session:
 - Target name, coordinates, and catalogue reference
@@ -140,6 +152,10 @@ Log every detail of a capture session:
 - Processing notes and ideas for the next session
 
 ![Astrodex Editor](img/astrodex_astrodex_edit.png)
+
+Session detail view captures each target's notes and imaging metadata in a structured timeline.
+
+![Observation Session Detail](img/astrodex_observationlog_session.png)
 
 ---
 
