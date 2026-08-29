@@ -44,6 +44,7 @@ _cleanup_calculation_memory = calc._cleanup_calculation_memory
 load_calculation_results = calc.load_calculation_results
 run_calculations = calc.run_calculations
 compute_comet_alttime_on_demand = calc.compute_comet_alttime_on_demand
+_comet_id_without_ref = calc._comet_id_without_ref
 from skytonight.skytonight_models import SkyTonightTarget, SkyTonightCoordinates
 from skytonight.skytonight_targets import normalize_object_name
 
@@ -213,9 +214,9 @@ class TestSampleTimes:
         """Test that sample_times returns an Astropy Time object."""
         night_start = datetime(2026, 4, 17, 21, 0, 0, tzinfo=timezone.utc)
         night_end = datetime(2026, 4, 18, 5, 0, 0, tzinfo=timezone.utc)
-        
+
         result = _sample_times(night_start, night_end)
-        
+
         assert result is not None
         # Astropy Time has 'size' attribute
         assert hasattr(result, 'jd')
@@ -224,18 +225,18 @@ class TestSampleTimes:
         """Test that at least minimum steps are created."""
         night_start = datetime(2026, 4, 17, 21, 0, 0, tzinfo=timezone.utc)
         night_end = datetime(2026, 4, 17, 21, 30, 0, tzinfo=timezone.utc)  # 30 minutes
-        
+
         result = _sample_times(night_start, night_end)
-        
+
         assert len(result) >= calc._MIN_STEPS
 
     def test_sample_times_reasonable_number_for_full_night(self):
         """Test that a full night gets reasonable number of samples."""
         night_start = datetime(2026, 4, 17, 21, 0, 0, tzinfo=timezone.utc)
         night_end = datetime(2026, 4, 18, 5, 0, 0, tzinfo=timezone.utc)  # 8 hours
-        
+
         result = _sample_times(night_start, night_end)
-        
+
         # 8 hours * 60 min / 15 min + 1 ≈ 33 steps
         assert 20 < len(result) < 50
 
@@ -259,7 +260,7 @@ class TestComputeAstroScore:
             is_planet=False,
             is_opposition=False
         )
-        
+
         assert score >= 0.6  # Should be quite high
 
     def test_poor_conditions_score_low(self):
@@ -278,7 +279,7 @@ class TestComputeAstroScore:
             is_planet=False,
             is_opposition=False
         )
-        
+
         assert score < 0.3
 
     def test_score_bounded_to_one(self):
@@ -297,7 +298,7 @@ class TestComputeAstroScore:
             is_planet=True,
             is_opposition=True
         )
-        
+
         assert score <= 1.0
 
     def test_score_bounded_to_zero(self):
@@ -316,7 +317,7 @@ class TestComputeAstroScore:
             is_planet=False,
             is_opposition=False
         )
-        
+
         assert score >= 0.0
 
     def test_messier_bonus_applied(self):
@@ -335,7 +336,7 @@ class TestComputeAstroScore:
             is_planet=False,
             is_opposition=False
         )
-        
+
         messier_score = compute_astro_score(
             max_altitude=45.0,
             observable_hours=3.0,
@@ -350,7 +351,7 @@ class TestComputeAstroScore:
             is_planet=False,
             is_opposition=False
         )
-        
+
         assert messier_score > base_score
 
     def test_opposition_bonus_for_planets(self):
@@ -369,7 +370,7 @@ class TestComputeAstroScore:
             is_planet=True,
             is_opposition=False
         )
-        
+
         opposition_score = compute_astro_score(
             max_altitude=60.0,
             observable_hours=4.0,
@@ -384,7 +385,7 @@ class TestComputeAstroScore:
             is_planet=True,
             is_opposition=True
         )
-        
+
         assert opposition_score > base_score
 
 
@@ -395,7 +396,7 @@ class TestHorizonFloorArray:
         """Test that empty profile returns all zeros."""
         az_deg = np.array([0.0, 90.0, 180.0, 270.0])
         result = _horizon_floor_array(az_deg, [])
-        
+
         assert len(result) == len(az_deg)
         assert np.all(result == 0.0)
 
@@ -403,9 +404,9 @@ class TestHorizonFloorArray:
         """Test with single profile point."""
         az_deg = np.array([0.0, 90.0, 180.0, 270.0])
         profile = [{"az": 180.0, "alt": 20.0}]
-        
+
         result = _horizon_floor_array(az_deg, profile)
-        
+
         assert len(result) == len(az_deg)
         assert np.all(result >= 0.0)
         assert np.all(result <= 90.0)
@@ -419,9 +420,9 @@ class TestHorizonFloorArray:
             {"az": 180.0, "alt": 20.0},
             {"az": 270.0, "alt": 15.0}
         ]
-        
+
         result = _horizon_floor_array(az_deg, profile)
-        
+
         assert len(result) == len(az_deg)
         assert np.all(result >= 0.0)
         assert np.all(result <= 90.0)
@@ -432,9 +433,9 @@ class TestHorizonFloorArray:
         """Test that invalid profile returns zeros."""
         az_deg = np.array([0.0, 90.0, 180.0, 270.0])
         profile = [{"bad": "data"}]  # Missing 'az' and 'alt'
-        
+
         result = _horizon_floor_array(az_deg, profile)
-        
+
         assert len(result) == len(az_deg)
         assert np.all(result == 0.0)
 
@@ -445,9 +446,9 @@ class TestHorizonFloorArray:
             {"az": 350.0, "alt": 15.0},
             {"az": 10.0, "alt": 20.0}
         ]
-        
+
         result = _horizon_floor_array(az_deg, profile)
-        
+
         assert len(result) == len(az_deg)
         assert np.all(result >= 0.0)
         # Should interpolate smoothly across the 0° boundary
@@ -459,20 +460,20 @@ class TestAlttimeJsonPath:
     def test_sanitizes_target_id(self):
         """Test that target ID is sanitized."""
         result = _alttime_json_path("M 31 (Andromeda)")
-        
+
         assert "_alttime.json" in result
         assert " " not in result.split("/")[-1]  # No spaces in filename
 
     def test_lowercase_conversion(self):
         """Test that path uses lowercase."""
         result = _alttime_json_path("M31")
-        
+
         assert "m31_alttime.json" in result.lower()
 
     def test_valid_characters_preserved(self):
         """Test that valid characters are preserved."""
         result = _alttime_json_path("NGC-224_test")
-        
+
         assert "_alttime.json" in result
 
 
@@ -1335,6 +1336,20 @@ class TestComputeCometAlttimeOnDemand:
         assert result is not None
         assert 'night_astro_start' not in result
         assert 'night_astro_end' not in result
+
+
+class TestCometIdWithoutRef:
+    """Cover deterministic comet-id suffix stripping logic."""
+
+    def test_strips_trailing_mpc_reference_suffix(self):
+        assert _comet_id_without_ref('comet-1phalleympc191592') == 'comet-1phalley'
+
+    def test_strips_trailing_mpec_reference_suffix(self):
+        assert _comet_id_without_ref('comet-10ptempelmpec2026o98') == 'comet-10ptempel'
+
+    def test_keeps_non_trailing_or_non_alnum_tail_unchanged(self):
+        assert _comet_id_without_ref('comet-mpcfoo-bar') == 'comet-mpcfoo-bar'
+        assert _comet_id_without_ref('comet-67p') == 'comet-67p'
 
 
 class TestGetAstroNightWindow:
