@@ -692,7 +692,7 @@ function renderAstrodexGrid(items, isAllowedAstrodex) {
             const footer = document.createElement('div');
             footer.className = 'card-footer text-center';
             const button = document.createElement('button');
-            button.className = 'btn btn-outline-primary';
+            button.className = 'btn btn-primary';
             button.setAttribute('data-action', 'add-astrodex-item');
             DOMUtils.append(button, DOMUtils.createIcon('bi bi-plus-circle icon-inline'), i18n.t('astrodex.add_object'));
             footer.appendChild(button);
