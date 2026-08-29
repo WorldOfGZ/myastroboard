@@ -239,7 +239,7 @@ jobs:
           echo "" >> release_notes.md
           echo "## 🐳 Docker Images" >> release_notes.md
           echo "" >> release_notes.md
-          echo "### GitHub Container Registry (ghcr.io)" >> release_notes.md
+          echo "### GitHub Container Registry (ghcr.io) - Preferred" >> release_notes.md
           echo '```bash' >> release_notes.md
           echo "docker pull ghcr.io/${{ steps.image.outputs.name }}:${{ steps.version.outputs.VERSION }}" >> release_notes.md
           echo "docker pull ghcr.io/${{ steps.image.outputs.name }}:latest" >> release_notes.md
@@ -254,7 +254,7 @@ jobs:
           echo "### Supported platforms" >> release_notes.md
           echo "| Platform | Architecture |" >> release_notes.md
           echo "|----------|-------------|" >> release_notes.md
-          echo "| \`linux/amd64\` | x86_64 (PC, serveur) |" >> release_notes.md
+          echo "| \`linux/amd64\` | x86_64 (PC, server) |" >> release_notes.md
           echo "| \`linux/arm64\` | ARM 64-bit (Raspberry Pi 4/5, Apple Silicon) |" >> release_notes.md
 
       - name: Create GitHub Release
