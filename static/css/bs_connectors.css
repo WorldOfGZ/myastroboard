@@ -4,10 +4,17 @@
 
 .connector-suggest-card {
     border: 2px dashed var(--bs-border-color);
+    border-radius: var(--border-radius-lg);
+    background: color-mix(in srgb, var(--surface-elevated) 84%, var(--surface-card));
 }
 
 .connector-suggest-card .small {
     font-size: 0.75rem;
+    letter-spacing: 0.015em;
+}
+
+.connector-config-panel {
+    background: color-mix(in srgb, var(--surface-elevated) 86%, var(--surface-card));
 }
 
 .allsky-media-fit {
@@ -22,6 +29,16 @@
 
 .allsky-zoomable:hover {
     opacity: 0.9;
+}
+
+.allsky-media-fit,
+.allsky-modal-img,
+.allsky-media-thumb,
+.allsky-media-video,
+.allsky-keogram {
+    border-radius: var(--border-radius);
+    border: 1px solid var(--surface-border);
+    background: color-mix(in srgb, var(--surface-elevated) 82%, var(--surface-card));
 }
 
 .allsky-modal-img {

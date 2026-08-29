@@ -227,7 +227,7 @@ function _sfStartLiveCountdown(netIso, valueEl) {
 
 function _sfShowLaunchModal(launch) {
     const titleEl = document.getElementById('sf-launch-modal-title');
-    const bodyEl  = document.getElementById('sf-launch-modal-body');
+    const bodyEl = document.getElementById('sf-launch-modal-body');
     if (!titleEl || !bodyEl) return;
 
     titleEl.textContent = launch.name || '-';
@@ -304,7 +304,7 @@ function _sfShowLaunchModal(launch) {
     }
 
     const contentCard = document.createElement('div');
-    contentCard.className = 'card m-3';
+    contentCard.className = 'card m-3 sf-launch-modal-card';
     const content = document.createElement('div');
     content.className = 'card-body';
     contentCard.appendChild(content);
@@ -367,12 +367,12 @@ function _sfShowLaunchModal(launch) {
         content.appendChild(row);
     }
 
-    _row('spaceflight.agency',       'Agency',        launch.agency_name + (launch.agency_abbrev ? ` (${launch.agency_abbrev})` : ''));
-    _row('spaceflight.pad',          'Launch pad',    launch.pad_name ? (launch.pad_name + (launch.pad_location_name ? `, ${launch.pad_location_name}` : '')) : null);
-    _row('spaceflight.window',       'Launch Window', launch.window_start ? (_sfFormatDate(launch.window_start) + (launch.window_end && launch.window_end !== launch.window_start ? ` → ${_sfFormatDate(launch.window_end)}` : '')) : null);
-    _row('spaceflight.mission',      'Mission',       launch.mission_name);
-    _row('spaceflight.mission_type', 'Mission type',  launch.mission_type);
-    _row('spaceflight.orbit',        'Orbit',         launch.orbit);
+    _row('spaceflight.agency', 'Agency', launch.agency_name + (launch.agency_abbrev ? ` (${launch.agency_abbrev})` : ''));
+    _row('spaceflight.pad', 'Launch pad', launch.pad_name ? (launch.pad_name + (launch.pad_location_name ? `, ${launch.pad_location_name}` : '')) : null);
+    _row('spaceflight.window', 'Launch Window', launch.window_start ? (_sfFormatDate(launch.window_start) + (launch.window_end && launch.window_end !== launch.window_start ? ` → ${_sfFormatDate(launch.window_end)}` : '')) : null);
+    _row('spaceflight.mission', 'Mission', launch.mission_name);
+    _row('spaceflight.mission_type', 'Mission type', launch.mission_type);
+    _row('spaceflight.orbit', 'Orbit', launch.orbit);
 
     if (launch.mission_description) {
         const desc = document.createElement('p');
@@ -420,14 +420,14 @@ function _sfShowLaunchModal(launch) {
 
 // Launch status → Bootstrap badge classes
 const _STATUS_BADGE = {
-    'Go':       'badge bg-success',
-    'TBC':      'badge bg-secondary',
-    'TBD':      'badge bg-secondary',
-    'Hold':     'badge bg-warning text-dark',
-    'In Flight':'badge bg-primary',
-    'Success':  'badge bg-success',
+    'Go': 'badge bg-success',
+    'TBC': 'badge bg-secondary',
+    'TBD': 'badge bg-secondary',
+    'Hold': 'badge bg-warning text-dark',
+    'In Flight': 'badge bg-primary',
+    'Success': 'badge bg-success',
     'Partial Failure': 'badge bg-warning text-dark',
-    'Failure':  'badge bg-danger',
+    'Failure': 'badge bg-danger',
 };
 
 /**
@@ -498,7 +498,7 @@ function _renderLaunches(container, data) {
     DOMUtils.clear(container);
 
     const upcoming = (data.upcoming && data.upcoming.results) || [];
-    const past     = (data.past && data.past.results) || [];
+    const past = (data.past && data.past.results) || [];
 
     if (upcoming.length === 0 && past.length === 0) {
         _sfError(container, 'spaceflight.no_data', 'No data available.');
@@ -927,8 +927,8 @@ function _makeAstronautCard(ast) {
         if (ast.station_abbrev) {
             const station = document.createElement('span');
             const stationClass = ast.station_abbrev === 'ISS' ? 'bg-info text-dark'
-                               : ast.station_abbrev === 'CSS' ? 'bg-warning text-dark'
-                               : 'bg-secondary';
+                : ast.station_abbrev === 'CSS' ? 'bg-warning text-dark'
+                    : 'bg-secondary';
             station.className = `badge ${stationClass}`;
             station.textContent = ast.station_abbrev;
             badges.appendChild(station);

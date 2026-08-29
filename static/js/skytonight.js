@@ -2144,7 +2144,7 @@ function _buildRecommendationCard(target) {
     const identifier = target.id || target.messier || target.preferred_name;
 
     const card = document.createElement('div');
-    card.className = 'card';
+    card.className = 'card skyt-reco-card';
     // Grow to fill the strip on wide screens (no leftover blank space); never
     // shrink below 160px so small/mobile screens keep the horizontal scroll.
     card.style.flex = '1 0 160px';
@@ -2153,11 +2153,11 @@ function _buildRecommendationCard(target) {
     // ── Thumbnail (clickable -> Object Information modal) ──────────────────
     const thumbBtn = document.createElement('button');
     thumbBtn.type = 'button';
-    thumbBtn.className = 'btn p-0 border-0 bg-transparent w-100';
+    thumbBtn.className = 'skyt-reco-thumb';
     thumbBtn.disabled = !identifier;
     const img = document.createElement('img');
     img.className = 'card-img-top';
-    img.style.height = '90px';
+    img.style.maxHeight = '140px';
     img.style.objectFit = 'cover';
     img.loading = 'lazy';
     img.alt = target.preferred_name || '';

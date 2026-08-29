@@ -21,6 +21,9 @@ let equipmentFilters = {
     type: 'all'
 };
 
+let _equipmentEventListenersBound = false;
+let _equipmentSharedRefreshBound = false;
+
 // ============================================
 // Equipment Presets (static/data/equipment_presets.json)
 // ============================================
@@ -170,6 +173,9 @@ async function initializeEquipment() {
 }
 
 function setupEquipmentSharedRefresh() {
+    if (_equipmentSharedRefreshBound) return;
+    _equipmentSharedRefreshBound = true;
+
     // Case 1: admin switches back to Equipment from another main tab.
     // MutationObserver detects 'active' being added to #equipment-tab.
     // Skip the very first activation (already loaded above at init).
@@ -183,17 +189,12 @@ function setupEquipmentSharedRefresh() {
             }
         }).observe(equipmentTabEl, { attributes: true, attributeFilter: ['class'] });
     }
-
-    // Case 2: admin clicks any subtab within Equipment (Filters, Mounts, etc.).
-    // Click events on .sub-tab-btn inside #equipment-tab trigger a reload.
-    document.addEventListener('click', (e) => {
-        const btn = e.target.closest('.sub-tab-btn');
-        if (!btn) return;
-        if (btn.closest('#equipment-tab')) loadAllEquipment();
-    });
 }
 
 function setupEquipmentEventListeners() {
+    if (_equipmentEventListenersBound) return;
+    _equipmentEventListenersBound = true;
+
     // Main equipment buttons
     document.addEventListener('click', (e) => {
         // Resolve the actual button even when clicking an inner icon element
@@ -231,10 +232,10 @@ function setupEquipmentEventListeners() {
 // ============================================
 
 async function loadAllEquipment() {
-   
+
     try {
         await fetchJSON('/api/equipment/summary');
-        
+
         // Load each equipment type
         await loadEquipmentType('telescopes');
         await loadEquipmentType('cameras');
@@ -242,7 +243,7 @@ async function loadAllEquipment() {
         await loadEquipmentType('filters');
         await loadEquipmentType('accessories');
         await loadEquipmentType('combinations');
-        
+
         renderAllEquipmentTabs();
     } catch (error) {
         console.error('Error loading equipment:', error);
@@ -617,7 +618,7 @@ function renderFOVCalculatorTab() {
 
     const telescopes = [...equipmentData.telescopes, ...equipmentData.sharedTelescopes];
     const cameras = [...equipmentData.cameras, ...equipmentData.sharedCameras];
-    
+
     DOMUtils.clear(container);
 
     const card = document.createElement('div');
@@ -728,7 +729,7 @@ async function calculateFOVFromUI() {
     const telescopeId = document.getElementById('fov-telescope-select')?.value;
     const cameraId = document.getElementById('fov-camera-select')?.value;
     const seeing = parseFloat(document.getElementById('fov-seeing')?.value || 2.0);
-    
+
     if (!telescopeId || !cameraId) {
         showMessage('warning', i18n.t('equipment.please_select_telescope_camera'));
         return;
@@ -740,7 +741,7 @@ async function calculateFOVFromUI() {
         showMessage('warning', i18n.t('equipment.selected_equipment_not_found'));
         return;
     }
-    
+
     try {
         const response = await fetchJSON('/api/equipment/fov-calculator', {
             method: 'POST',
@@ -753,7 +754,7 @@ async function calculateFOVFromUI() {
                 seeing_arcsec: seeing
             })
         });
-        
+
         const fov = response;
         const resultsDiv = document.getElementById('fov-results');
 
@@ -1242,7 +1243,7 @@ async function saveTelescope(id) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        
+
         const modal = bootstrap.Modal.getInstance(document.getElementById('modal_lg_close'));
         if (modal) {
             document.activeElement?.blur();
@@ -1369,17 +1370,17 @@ async function saveCamera(id) {
     data.cooling_supported = data.cooling_supported === 'true';
     data.is_shared = form.querySelector('#camera-is-shared')?.checked ?? false;
     data.is_disabled = form.querySelector('#camera-is-disabled')?.checked ?? false;
-    
+
     try {
         const url = id ? `/api/equipment/cameras/${id}` : '/api/equipment/cameras';
         const method = id ? 'PUT' : 'POST';
-        
+
         await fetchJSON(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        
+
         const modal = bootstrap.Modal.getInstance(document.getElementById('modal_lg_close'));
         if (modal) {
             document.activeElement?.blur();
@@ -1486,17 +1487,17 @@ async function saveMount(id) {
     data.guiding_supported = data.guiding_supported === 'true';
     data.is_shared = form.querySelector('#mount-is-shared')?.checked ?? false;
     data.is_disabled = form.querySelector('#mount-is-disabled')?.checked ?? false;
-    
+
     try {
         const url = id ? `/api/equipment/mounts/${id}` : '/api/equipment/mounts';
         const method = id ? 'PUT' : 'POST';
-        
+
         await fetchJSON(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        
+
         const modal = bootstrap.Modal.getInstance(document.getElementById('modal_lg_close'));
         if (modal) {
             document.activeElement?.blur();
@@ -1606,17 +1607,17 @@ async function saveFilter(id) {
     const data = Object.fromEntries(formData);
     data.is_shared = form.querySelector('#filter-is-shared')?.checked ?? false;
     data.is_disabled = form.querySelector('#filter-is-disabled')?.checked ?? false;
-    
+
     try {
         const url = id ? `/api/equipment/filters/${id}` : '/api/equipment/filters';
         const method = id ? 'PUT' : 'POST';
-        
+
         await fetchJSON(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        
+
         const modal = bootstrap.Modal.getInstance(document.getElementById('modal_lg_close'));
         if (modal) {
             document.activeElement?.blur();
@@ -1713,13 +1714,13 @@ async function saveAccessory(id) {
     try {
         const url = id ? `/api/equipment/accessories/${id}` : '/api/equipment/accessories';
         const method = id ? 'PUT' : 'POST';
-        
+
         await fetchJSON(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        
+
         const modal = bootstrap.Modal.getInstance(document.getElementById('modal_lg_close'));
         if (modal) {
             document.activeElement?.blur();
@@ -1891,13 +1892,13 @@ async function saveCombination(id) {
     try {
         const url = id ? `/api/equipment/combinations/${id}` : '/api/equipment/combinations';
         const method = id ? 'PUT' : 'POST';
-        
+
         await fetchJSON(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        
+
         const modal = bootstrap.Modal.getInstance(document.getElementById('modal_lg_close'));
         if (modal) {
             document.activeElement?.blur();
@@ -1956,7 +1957,7 @@ async function deleteEquipment(type, id) {
         }
 
         await loadEquipmentType(type);
-        
+
         // Reload combinations if deleting equipment that affects payload or names
         if (['telescopes', 'cameras', 'mounts', 'filters', 'accessories'].includes(type)) {
             await loadEquipmentType('combinations');
@@ -1982,7 +1983,7 @@ async function deleteEquipment(type, id) {
         } else if (type === 'combinations') {
             renderCombinationsTab();
         }
-        
+
         showMessage('success', i18n.t('equipment.item_deleted'));
     } catch (error) {
         console.error('Error deleting equipment:', error);
@@ -2003,23 +2004,23 @@ const BORTLE_SQM = {
 const VEGA_PHOTONS_M2_S_ARCSEC2 = 9e9;
 
 function _computeExposure({ aperture_mm, focal_length_mm, pixel_size_um, read_noise_e, qe, bortle, total_hours }) {
-    const sqm      = BORTLE_SQM[bortle] ?? 20.3;
-    const D_m      = aperture_mm / 1000;
-    const area_m2  = Math.PI / 4 * D_m * D_m;
+    const sqm = BORTLE_SQM[bortle] ?? 20.3;
+    const D_m = aperture_mm / 1000;
+    const area_m2 = Math.PI / 4 * D_m * D_m;
 
     // Plate scale (arcsec/px)
     const plate_scale = 206.265 * pixel_size_um / focal_length_mm;
 
     // Sky background photon rate (e/px/s) using SQM-referenced Vega flux
     const sky_flux = VEGA_PHOTONS_M2_S_ARCSEC2 * Math.pow(10, -sqm / 2.5);
-    const B_sky    = sky_flux * qe * area_m2 * plate_scale * plate_scale;
+    const B_sky = sky_flux * qe * area_m2 * plate_scale * plate_scale;
 
     // Optimal sub-exposure: sky contributes 5× more noise variance than read noise
     // B × t = 5 × RN²  →  t = 5 × RN² / B
     const t_sub_s = 5 * read_noise_e * read_noise_e / B_sky;
 
     const total_s = total_hours * 3600;
-    const n_subs  = Math.max(1, Math.round(total_s / t_sub_s));
+    const n_subs = Math.max(1, Math.round(total_s / t_sub_s));
     const actual_total_s = n_subs * t_sub_s;
 
     return { plate_scale, sqm, B_sky, t_sub_s, n_subs, actual_total_s };
@@ -2063,7 +2064,7 @@ function renderExposureCalcTab() {
     if (!container) return;
 
     const telescopes = [...equipmentData.telescopes, ...equipmentData.sharedTelescopes];
-    const cameras    = [...equipmentData.cameras,    ...equipmentData.sharedCameras];
+    const cameras = [...equipmentData.cameras, ...equipmentData.sharedCameras];
 
     DOMUtils.clear(container);
 
@@ -2220,20 +2221,20 @@ function renderExposureCalcTab() {
 
     calcBtn.addEventListener('click', () => {
         const tel = [...equipmentData.telescopes, ...equipmentData.sharedTelescopes].find(t => t.id === tSel.value);
-        const cam = [...equipmentData.cameras,    ...equipmentData.sharedCameras].find(c => c.id === cSel.value);
+        const cam = [...equipmentData.cameras, ...equipmentData.sharedCameras].find(c => c.id === cSel.value);
         if (!tel || !cam) { showMessage('warning', i18n.t('equipment.please_select_telescope_camera')); return; }
 
         const read_noise_e = parseFloat(rnInput.value);
-        const qe           = parseFloat(qeInput.value) / 100;
-        const total_hours  = parseFloat(hoursInput.value);
-        const bortle       = parseInt(borSel.value);
+        const qe = parseFloat(qeInput.value) / 100;
+        const total_hours = parseFloat(hoursInput.value);
+        const bortle = parseInt(borSel.value);
 
         if (!Number.isFinite(read_noise_e) || read_noise_e <= 0) { showMessage('warning', i18n.t('equipment.exposure_calc_invalid_rn')); return; }
 
         const r = _computeExposure({
-            aperture_mm:     tel.aperture_mm,
+            aperture_mm: tel.aperture_mm,
             focal_length_mm: tel.effective_focal_length || tel.focal_length_mm,
-            pixel_size_um:   cam.pixel_size_um,
+            pixel_size_um: cam.pixel_size_um,
             read_noise_e,
             qe,
             bortle,

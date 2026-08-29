@@ -60,6 +60,18 @@ _MIN_OBSERVABLE_HOURS_DSO = 1.0
 # Regex pattern for valid alttime target IDs used in file names
 _ALTTIME_ID_SAFE = re.compile(r'[^a-z0-9_-]')
 
+# Trailing MPC/MPEC orbit-reference token on a comet target_id (e.g.
+# "comet-10ptempelmpec2026o98", "comet-1phalleympc191592"). Historically the
+# comet name - and therefore the id - embedded this reference, which the MPC
+# revises on every orbit republication. Stripping it lets an id minted from an
+# older dataset build still resolve after a refresh.
+_COMET_REF_SUFFIX = re.compile(r'mpe?c[a-z0-9]*$')
+
+
+def _comet_id_without_ref(target_id: str) -> str:
+    """Return a comet target_id with any trailing MPC/MPEC reference token removed."""
+    return _COMET_REF_SUFFIX.sub('', target_id)
+
 
 def _alttime_json_path(target_id: str, location_id: Optional[str] = None) -> str:
     """Return the full path for a target's altitude-time JSON file (per location)."""
@@ -152,7 +164,15 @@ def compute_comet_alttime_on_demand(target_id: str, location: Dict[str, Any]) ->
     treats that the same as "no data available".
     """
     dataset = load_targets_dataset()
-    target = next((t for t in dataset.get('targets', []) if t.target_id == target_id), None)
+    targets = dataset.get('targets', [])
+    target = next((t for t in targets if t.target_id == target_id), None)
+    if target is None:
+        # A cached Notable Events entry can carry a comet id minted from an
+        # earlier dataset build whose embedded MPC/MPEC reference has since
+        # changed. Retry the match with that reference token stripped off.
+        wanted = _comet_id_without_ref(target_id)
+        if wanted != target_id:
+            target = next((t for t in targets if _comet_id_without_ref(t.target_id) == wanted), None)
     if target is None or target.coordinates is None:
         return None
 

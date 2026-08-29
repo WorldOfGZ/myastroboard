@@ -132,15 +132,8 @@ async function _initLocationCardMaps() {
             // hidden element focusable
         }).setView([lat, lon], 9);
 
-        // CartoDB Voyager, not the orbital stations map's dark_all basemap:
-        // dark_all only renders roads/labels over solid black, so remote
-        // sites (volcano summits, rural areas) with little infrastructure
-        // show up as a near-blank black card. Voyager fills in land/water/
-        // terrain colour so every card stays legible regardless of location.
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            maxZoom: 18,
-            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
-        }).addTo(map);
+        // Light basemap keeps remote areas readable on small minimaps.
+        addLeafletBasemap(map, 'light', { maxZoom: 18 });
         L.marker([lat, lon]).addTo(map);
 
         _locationCardMaps[loc.id] = map;
