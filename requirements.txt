@@ -35,4 +35,4 @@ Flask-Login===0.6.3
 packaging===26.3
 
 # Web Push notifications
-pywebpush===2.4.0
+pywebpush===2.5.0

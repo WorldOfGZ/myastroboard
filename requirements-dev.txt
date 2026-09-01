@@ -16,7 +16,6 @@ black===26.5.1
 flake8===7.3.0
 djlint===1.44.2
 pyright===1.1.411
-pylance===10.0.0
 
 # Used by scripts/translate_i18n_values.py
 translators===6.0.4
