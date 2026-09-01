@@ -126,6 +126,13 @@ def _write_tle_cache(payload: Dict[str, Any]) -> None:
 # a freshly-set celestrak_blocked flag). Network fetches stay outside the lock.
 _TLE_CACHE_LOCK = threading.Lock()
 
+# Gates the actual TLE fetch (network calls + cache decision) so that when several
+# locations' pass jobs ask for the ISS TLE at once - it is the same satellite-wide
+# resource for every location - only one of them performs the upstream request.
+# The others block here and then read back the TLE the winner just cached, instead
+# of each independently hammering Celestrak/mirrors at the same instant.
+_TLE_FETCH_LOCK = threading.Lock()
+
 
 def _update_tle_cache(mutator) -> None:
     """Apply ``mutator(payload)`` to the on-disk TLE cache atomically."""
@@ -252,6 +259,18 @@ def _is_celestrak_timeout_error(exc: Exception) -> bool:
     return "timed out" in message or "connect timeout" in message
 
 
+class _CelestrakHTTPError(RuntimeError):
+    """Raised when Celestrak answers a TLE request with a non-200 status.
+
+    Carries the actual HTTP status code so callers can log/record it exactly,
+    instead of guessing it back out of a formatted error string.
+    """
+
+    def __init__(self, status_code: int, message: str):
+        super().__init__(message)
+        self.status_code = status_code
+
+
 def _clear_celestrak_block(reset_failure_cooldown: bool = True) -> None:
     def _mutate(payload: Dict[str, Any]) -> None:
         payload['celestrak_blocked'] = False
@@ -290,7 +309,14 @@ def get_celestrak_status() -> Dict[str, Any]:
 
 def clear_celestrak_block_flag() -> Dict[str, Any]:
     """Clear persisted Celestrak block flag after manual operator confirmation."""
+    previous_status = get_celestrak_status()
     _clear_celestrak_block(reset_failure_cooldown=True)
+    logger.info(
+        "Celestrak block manually cleared by operator (was blocked=%s, status_code=%s, reason=%s)",
+        previous_status.get("blocked"),
+        previous_status.get("blocked_status_code") or "n/a",
+        previous_status.get("blocked_reason") or "n/a",
+    )
     return get_celestrak_status()
 
 
@@ -390,120 +416,111 @@ class ISSPassService:
             line1, line2, _ = cached_recent
             return line1, line2
 
-        # Circuit breaker: if a recent failure happened, avoid hammering providers.
-        if _in_tle_failure_cooldown():
+        # The TLE is shared across every configured location, so serialise the
+        # actual fetch: only the first caller does the network round-trip, the
+        # rest block here and then re-read the cache the winner just wrote.
+        with _TLE_FETCH_LOCK:
+            cached_recent = _get_cached_tle(max_age_seconds=ISS_TLE_MAX_AGE_SECONDS)
+            if cached_recent is not None:
+                line1, line2, _ = cached_recent
+                return line1, line2
+
+            # Circuit breaker: if a recent failure happened, avoid hammering providers.
+            if _in_tle_failure_cooldown():
+                cached_any = _get_cached_tle(max_age_seconds=None)
+                if cached_any is not None:
+                    line1, line2, fetched_at = cached_any
+                    age_hours = (_utc_timestamp() - fetched_at) / 3600.0
+                    logger.warning(f"ISS TLE fetch is in cooldown; reusing stale cached TLE ({age_hours:.1f}h old)")
+                    return line1, line2
+                raise RuntimeError('ISS TLE fetch is in cooldown and no cached TLE is available')
+
+            last_error: Optional[Exception] = None
+            celestrak_status = get_celestrak_status()
+
+            for tle_url in ISS_TLE_URLS:
+                if celestrak_status.get("blocked") and _is_celestrak_url(tle_url):
+                    logger.warning("Celestrak is flagged as blocked; skipping Celestrak query until manually reset")
+                    continue
+
+                try:
+                    response = requests.get(tle_url, timeout=REQUEST_TIMEOUT_SECONDS)
+                    status_code = int(getattr(response, "status_code", 200) or 0)
+
+                    # Celestrak policy compliance: a non-200 response must stop further
+                    # Celestrak queries and be escalated to human review, but the other
+                    # (non-Celestrak) sources below are still tried in this same pass.
+                    if _is_celestrak_url(tle_url) and status_code != 200:
+                        _reset_celestrak_timeout_streak()
+                        _set_tle_error_timestamp()
+                        _set_celestrak_block(
+                            status_code=status_code,
+                            reason=f"HTTP {status_code}",
+                            source_url=tle_url,
+                        )
+                        raise _CelestrakHTTPError(
+                            status_code,
+                            f"Celestrak returned HTTP {status_code};"
+                            " stopping Celestrak queries and requiring manual investigation",
+                        )
+
+                    response.raise_for_status()
+                    line1, line2 = self._parse_iss_tle_from_response(response.text)
+                    _set_cached_tle_with_source(line1, line2, tle_url)
+                    if _is_celestrak_url(tle_url):
+                        _reset_celestrak_timeout_streak()
+                        _clear_celestrak_block(reset_failure_cooldown=True)
+                    return line1, line2
+                except Exception as exc:
+                    if _is_celestrak_url(tle_url):
+                        if isinstance(exc, _CelestrakHTTPError):
+                            logger.error(
+                                "Celestrak rejected a TLE request with a non-200 response (HTTP %s). "
+                                "Automatic Celestrak queries have been stopped and human intervention is "
+                                "required. See %s and %s",
+                                exc.status_code,
+                                CELESTRAK_USAGE_POLICY_URL,
+                                CELESTRAK_ADDENDUM_URL,
+                            )
+                        elif _is_celestrak_timeout_error(exc):
+                            timeout_streak = _increment_celestrak_timeout_streak(str(exc), tle_url)
+                            logger.warning(
+                                "Celestrak timeout detected (%s/%s consecutive): %s",
+                                timeout_streak,
+                                CELESTRAK_TIMEOUT_BLOCK_THRESHOLD,
+                                exc,
+                            )
+                            if timeout_streak >= CELESTRAK_TIMEOUT_BLOCK_THRESHOLD:
+                                _set_tle_error_timestamp()
+                                _set_celestrak_block(
+                                    status_code=0,
+                                    reason=(
+                                        "Consecutive Celestrak timeout threshold reached "
+                                        f"({CELESTRAK_TIMEOUT_BLOCK_THRESHOLD})"
+                                    ),
+                                    source_url=tle_url,
+                                )
+                                logger.error(
+                                    "Celestrak was auto-flagged as blocked after %s consecutive timeouts. "
+                                    "Automatic Celestrak queries are paused until manual reset.",
+                                    CELESTRAK_TIMEOUT_BLOCK_THRESHOLD,
+                                )
+                        else:
+                            _reset_celestrak_timeout_streak()
+
+                    last_error = exc
+                    logger.debug(f"ISS TLE fetch failed for {tle_url}: {exc}")
+
+            _set_tle_error_timestamp()
             cached_any = _get_cached_tle(max_age_seconds=None)
             if cached_any is not None:
                 line1, line2, fetched_at = cached_any
                 age_hours = (_utc_timestamp() - fetched_at) / 3600.0
-                logger.warning(f"ISS TLE fetch is in cooldown; reusing stale cached TLE ({age_hours:.1f}h old)")
+                logger.warning(f"All ISS TLE sources failed; using stale cached TLE ({age_hours:.1f}h old)")
                 return line1, line2
-            raise RuntimeError('ISS TLE fetch is in cooldown and no cached TLE is available')
 
-        last_error: Optional[Exception] = None
-        celestrak_status = get_celestrak_status()
-
-        for tle_url in ISS_TLE_URLS:
-            if celestrak_status.get("blocked") and _is_celestrak_url(tle_url):
-                logger.warning("Celestrak is flagged as blocked; skipping Celestrak query until manually reset")
-                continue
-
-            try:
-                response = requests.get(tle_url, timeout=REQUEST_TIMEOUT_SECONDS)
-                status_code = int(getattr(response, "status_code", 200) or 0)
-
-                # Celestrak policy compliance: any non-200 response must stop
-                # further upstream querying and be escalated to human review.
-                if _is_celestrak_url(tle_url) and status_code != 200:
-                    _reset_celestrak_timeout_streak()
-                    _set_tle_error_timestamp()
-                    _set_celestrak_block(
-                        status_code=status_code,
-                        reason=f"HTTP {status_code}",
-                        source_url=tle_url,
-                    )
-                    raise RuntimeError(
-                        f"Celestrak returned HTTP {status_code};"
-                        " stopping TLE queries and requiring manual investigation"
-                    )
-
-                response.raise_for_status()
-                line1, line2 = self._parse_iss_tle_from_response(response.text)
-                _set_cached_tle_with_source(line1, line2, tle_url)
-                if _is_celestrak_url(tle_url):
-                    _reset_celestrak_timeout_streak()
-                    _clear_celestrak_block(reset_failure_cooldown=True)
-                return line1, line2
-            except Exception as exc:
-                if _is_celestrak_url(tle_url):
-                    status_message = str(exc).upper()
-                    if (isinstance(exc, RuntimeError) and "CELESTRAK RETURNED HTTP" in status_message) or (
-                        "403" in status_message
-                    ):
-                        _set_tle_error_timestamp()
-                        _set_celestrak_block(
-                            status_code=403 if "403" in status_message else 0,
-                            reason=str(exc),
-                            source_url=tle_url,
-                        )
-                        logger.error(
-                            "Celestrak rejected a TLE request with a non-200 response. "
-                            "Automatic queries have been stopped and human intervention is required. "
-                            f"See {CELESTRAK_USAGE_POLICY_URL} and "
-                            f"{CELESTRAK_ADDENDUM_URL}"
-                        )
-                        cached_any = _get_cached_tle(max_age_seconds=None)
-                        if cached_any is not None:
-                            line1, line2, fetched_at = cached_any
-                            age_hours = (_utc_timestamp() - fetched_at) / 3600.0
-                            logger.warning(
-                                f"Celestrak policy block detected; reusing stale cached TLE ({age_hours:.1f}h old)"
-                            )
-                            return line1, line2
-                        raise RuntimeError(
-                            "Celestrak returned a non-200 response and no cached TLE is available; "
-                            "manual intervention required"
-                        ) from exc
-
-                    if _is_celestrak_timeout_error(exc):
-                        timeout_streak = _increment_celestrak_timeout_streak(str(exc), tle_url)
-                        logger.warning(
-                            "Celestrak timeout detected (%s/%s consecutive): %s",
-                            timeout_streak,
-                            CELESTRAK_TIMEOUT_BLOCK_THRESHOLD,
-                            exc,
-                        )
-                        if timeout_streak >= CELESTRAK_TIMEOUT_BLOCK_THRESHOLD:
-                            _set_tle_error_timestamp()
-                            _set_celestrak_block(
-                                status_code=0,
-                                reason=(
-                                    "Consecutive Celestrak timeout threshold reached "
-                                    f"({CELESTRAK_TIMEOUT_BLOCK_THRESHOLD})"
-                                ),
-                                source_url=tle_url,
-                            )
-                            logger.error(
-                                "Celestrak was auto-flagged as blocked after %s consecutive timeouts. "
-                                "Automatic Celestrak queries are paused until manual reset.",
-                                CELESTRAK_TIMEOUT_BLOCK_THRESHOLD,
-                            )
-                    else:
-                        _reset_celestrak_timeout_streak()
-
-                last_error = exc
-                logger.debug(f"ISS TLE fetch failed for {tle_url}: {exc}")
-
-        _set_tle_error_timestamp()
-        cached_any = _get_cached_tle(max_age_seconds=None)
-        if cached_any is not None:
-            line1, line2, fetched_at = cached_any
-            age_hours = (_utc_timestamp() - fetched_at) / 3600.0
-            logger.warning(f"All ISS TLE sources failed; using stale cached TLE ({age_hours:.1f}h old)")
-            return line1, line2
-
-        logger.warning("All ISS TLE sources failed and no cached TLE is available")
-        raise RuntimeError(f"Failed to fetch ISS TLE from all sources: {last_error}")
+            logger.warning("All ISS TLE sources failed and no cached TLE is available")
+            raise RuntimeError(f"Failed to fetch ISS TLE from all sources: {last_error}")
 
     def _parse_iss_tle_from_response(self, response_text: str) -> Tuple[str, str]:
         """Extract ISS TLE pair from a response payload (JSON or plain-text)."""

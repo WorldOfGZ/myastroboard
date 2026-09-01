@@ -298,7 +298,14 @@ function _appendCelestrakBanner(container, celestrakStatus, station) {
 
     const description = document.createElement('div');
     description.className = 'mb-2';
-    description.textContent = i18n.t('iss.celestrak_blocked_description');
+    const statusCode = Number(celestrakStatus.blocked_status_code || 0);
+    if (statusCode >= 500 && statusCode < 600) {
+        description.textContent = i18n.t('iss.celestrak_blocked_description_overload', { code: statusCode });
+    } else if (statusCode >= 400 && statusCode < 500) {
+        description.textContent = i18n.t('iss.celestrak_blocked_description_denied', { code: statusCode });
+    } else {
+        description.textContent = i18n.t('iss.celestrak_blocked_description');
+    }
     alert.appendChild(description);
 
     const linksWrap = document.createElement('div');
