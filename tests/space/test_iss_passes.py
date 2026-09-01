@@ -1089,6 +1089,28 @@ def test_fetch_tle_recent_cache_fast_path(monkeypatch):
     assert svc._fetch_iss_tle() == ("1 A", "2 B")
 
 
+def test_fetch_tle_lock_recheck_finds_fresh_cache_from_concurrent_winner(monkeypatch):
+    """A concurrent location job may refresh the shared TLE while this thread waits
+    on _TLE_FETCH_LOCK; the post-lock re-check must return that TLE without touching
+    the network, instead of re-entering the fetch loop."""
+    svc = mod.ISSPassService(45.5, -73.5, 10, "UTC")
+    calls = {"n": 0}
+
+    def _cached(max_age_seconds=None):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return None  # pre-lock fast path: nothing cached yet
+        return ("1 A", "2 B", 1)  # post-lock re-check: another thread just refreshed it
+
+    monkeypatch.setattr(mod, "_get_cached_tle", _cached)
+    monkeypatch.setattr(
+        mod.requests, "get", lambda *a, **k: (_ for _ in ()).throw(AssertionError("network should not be called"))
+    )
+
+    assert svc._fetch_iss_tle() == ("1 A", "2 B")
+    assert calls["n"] == 2
+
+
 def test_fetch_tle_cooldown_without_cache_raises(monkeypatch):
     svc = mod.ISSPassService(45.5, -73.5, 10, "UTC")
     monkeypatch.setattr(mod, "_get_cached_tle", lambda max_age_seconds=None: None)
