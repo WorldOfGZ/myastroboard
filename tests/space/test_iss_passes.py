@@ -139,40 +139,56 @@ class TestISSPassServiceTleFallback:
         monkeypatch.setattr("space.iss_passes._set_celestrak_block", lambda *args, **kwargs: None)
         monkeypatch.setattr("space.iss_passes._clear_celestrak_block", lambda *args, **kwargs: None)
 
-    def test_fetch_iss_tle_stops_immediately_after_celestrak_http_403(self, monkeypatch):
+    def test_fetch_iss_tle_falls_through_to_mirror_after_celestrak_non_200(self, monkeypatch):
+        """A non-200 Celestrak response (e.g. a manual/IP block) records the block with
+        the real status code but still lets the mirror sources be tried in the same pass."""
         service = ISSPassService(45.5, -73.5, 30, "America/Montreal")
         calls = {"count": 0}
 
         monkeypatch.setattr("space.iss_passes._get_cached_tle", lambda max_age_seconds=None: None)
         monkeypatch.setattr("space.iss_passes._in_tle_failure_cooldown", lambda: False)
         monkeypatch.setattr("space.iss_passes._set_tle_error_timestamp", lambda: None)
+        monkeypatch.setattr("space.iss_passes._set_cached_tle_with_source", lambda *a, **k: None)
 
-        class _Response:
-            def __init__(self, text: str, error=None):
-                self.text = text
-                self._error = error
+        recorded_block = {}
+        monkeypatch.setattr(
+            "space.iss_passes._set_celestrak_block",
+            lambda status_code, reason, source_url: recorded_block.update(status_code=status_code),
+        )
+
+        class _CelestrakResponse:
+            status_code = 403
+            text = ""
 
             def raise_for_status(self):
-                if self._error is not None:
-                    raise self._error
+                return None
 
-        def _mock_get(*args, **kwargs):
-            calls["count"] += 1
-            if calls["count"] == 1:
-                return _Response("", HTTPError("403 Client Error: Forbidden"))
-            return _Response(
+        class _MirrorResponse:
+            text = (
                 "ISS (ZARYA)\n"
                 "1 25544U 98067A   26100.00000000  .00010000  00000+0  18000-3 0  9991\n"
                 "2 25544  51.6400 120.0000 0005000 200.0000 160.0000 15.50000000000000\n"
             )
 
+            def raise_for_status(self):
+                return None
+
+        def _mock_get(*args, **kwargs):
+            calls["count"] += 1
+            if calls["count"] == 1:
+                return _CelestrakResponse()
+            return _MirrorResponse()
+
         monkeypatch.setattr("space.iss_passes.requests.get", _mock_get)
 
-        with pytest.raises(RuntimeError):
-            service._fetch_iss_tle()
+        line1, line2 = service._fetch_iss_tle()
 
-        # Policy compliance: non-200 on Celestrak must stop immediately.
-        assert calls["count"] == 1
+        # The block is recorded with the real status code, but the mirror is still
+        # tried in the same pass instead of aborting the whole fetch.
+        assert recorded_block["status_code"] == 403
+        assert calls["count"] == 2
+        assert line1.startswith("1 25544")
+        assert line2.startswith("2 25544")
 
     def test_fetch_iss_tle_raises_when_all_sources_fail(self, monkeypatch):
         service = ISSPassService(45.5, -73.5, 30, "America/Montreal")
@@ -1675,20 +1691,6 @@ def test_fetch_tle_cooldown_with_stale_cache(monkeypatch):
 
     monkeypatch.setattr(mod, "_get_cached_tle", _cached)
     monkeypatch.setattr(mod, "_utc_timestamp", lambda: 100)
-    assert svc._fetch_iss_tle() == ("1 A", "2 B")
-
-
-def test_fetch_tle_celestrak_403_message_uses_cached_fallback(monkeypatch):
-    svc = mod.ISSPassService(45.5, -73.5, 10, "UTC")
-    monkeypatch.setattr(
-        mod, "_get_cached_tle", lambda max_age_seconds=None: ("1 A", "2 B", 1) if max_age_seconds is None else None
-    )
-    monkeypatch.setattr(mod, "_in_tle_failure_cooldown", lambda: False)
-    monkeypatch.setattr(mod, "get_celestrak_status", lambda: {"blocked": False})
-    monkeypatch.setattr(mod, "_set_tle_error_timestamp", lambda: None)
-    monkeypatch.setattr(mod, "_set_celestrak_block", lambda *a, **k: None)
-
-    monkeypatch.setattr(mod.requests, "get", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("403 Forbidden")))
     assert svc._fetch_iss_tle() == ("1 A", "2 B")
 
 
