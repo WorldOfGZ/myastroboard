@@ -822,7 +822,7 @@ class TestMoonExtendedEndpoints:
         assert resp.status_code == 401
 
     def test_phase_calendar_defaults_to_current_month(self, client_admin, monkeypatch):
-        monkeypatch.setattr(_route_helpers_mod, 'load_config', lambda: _v12_config())
+        monkeypatch.setattr(_route_helpers_mod, 'load_config', _v12_config)
         monkeypatch.setattr(_weather_mod, '_moon_phase_calendar_cache', {})
         resp = client_admin.get('/api/moon/phase-calendar')
         assert resp.status_code == 200
@@ -835,7 +835,7 @@ class TestMoonExtendedEndpoints:
         assert all(expected_keys <= set(d) for d in body['days'])
 
     def test_phase_calendar_next_month_navigation(self, client_admin, monkeypatch):
-        monkeypatch.setattr(_route_helpers_mod, 'load_config', lambda: _v12_config())
+        monkeypatch.setattr(_route_helpers_mod, 'load_config', _v12_config)
         monkeypatch.setattr(_weather_mod, '_moon_phase_calendar_cache', {})
         now = self._utc_now()
         nxt = (now.replace(day=1) + datetime.timedelta(days=32)).replace(day=1)
@@ -848,7 +848,7 @@ class TestMoonExtendedEndpoints:
         assert body['can_go_next'] is False
 
     def test_phase_calendar_clamps_out_of_window_request(self, client_admin, monkeypatch):
-        monkeypatch.setattr(_route_helpers_mod, 'load_config', lambda: _v12_config())
+        monkeypatch.setattr(_route_helpers_mod, 'load_config', _v12_config)
         monkeypatch.setattr(_weather_mod, '_moon_phase_calendar_cache', {})
         now = self._utc_now()
         resp = client_admin.get(f'/api/moon/phase-calendar?year={now.year + 3}&month=7')
@@ -858,21 +858,21 @@ class TestMoonExtendedEndpoints:
         assert body['year'] * 12 + (body['month'] - 1) == current_index + 1  # clamped to current + 1
 
     def test_phase_calendar_past_request_clamps_to_current(self, client_admin, monkeypatch):
-        monkeypatch.setattr(_route_helpers_mod, 'load_config', lambda: _v12_config())
+        monkeypatch.setattr(_route_helpers_mod, 'load_config', _v12_config)
         monkeypatch.setattr(_weather_mod, '_moon_phase_calendar_cache', {})
         resp = client_admin.get('/api/moon/phase-calendar?year=2000&month=1')
         assert resp.status_code == 200
         assert resp.get_json()['is_current_month'] is True
 
     def test_phase_calendar_malformed_params_do_not_500(self, client_admin, monkeypatch):
-        monkeypatch.setattr(_route_helpers_mod, 'load_config', lambda: _v12_config())
+        monkeypatch.setattr(_route_helpers_mod, 'load_config', _v12_config)
         monkeypatch.setattr(_weather_mod, '_moon_phase_calendar_cache', {})
         resp = client_admin.get('/api/moon/phase-calendar?year=abc&month=xyz')
         assert resp.status_code == 200
         assert resp.get_json()['is_current_month'] is True
 
     def test_phase_calendar_serves_warm_cache(self, client_admin, monkeypatch):
-        monkeypatch.setattr(_route_helpers_mod, 'load_config', lambda: _v12_config())
+        monkeypatch.setattr(_route_helpers_mod, 'load_config', _v12_config)
         now = self._utc_now()
         key = f'UTC:{now.year:04d}-{now.month:02d}'
         days_in_month = calendar.monthrange(now.year, now.month)[1]
@@ -898,7 +898,7 @@ class TestMoonExtendedEndpoints:
         assert resp.get_json()['days'] == warm['days']
 
     def test_phase_calendar_computation_failure_returns_500(self, client_admin, monkeypatch):
-        monkeypatch.setattr(_route_helpers_mod, 'load_config', lambda: _v12_config())
+        monkeypatch.setattr(_route_helpers_mod, 'load_config', _v12_config)
         monkeypatch.setattr(_weather_mod, '_moon_phase_calendar_cache', {})
 
         def _boom(*_a, **_k):
@@ -909,7 +909,7 @@ class TestMoonExtendedEndpoints:
         assert resp.status_code == 500
 
     def test_phase_calendar_cache_is_bounded(self, client_admin, monkeypatch):
-        monkeypatch.setattr(_route_helpers_mod, 'load_config', lambda: _v12_config())
+        monkeypatch.setattr(_route_helpers_mod, 'load_config', _v12_config)
         monkeypatch.setattr(_weather_mod, '_MOON_PHASE_CALENDAR_CACHE_MAX', 3)
         stale = {f'Old/Zone{i}:2000-0{i + 1}': {'timestamp': float(i), 'data': {'days': [], 'principal_phases': []}}
                  for i in range(10)}
