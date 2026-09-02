@@ -91,6 +91,7 @@ EXPECTED_ROUTES = {
     ('/api/moon/month-calendar', ('GET',)),
     ('/api/moon/next-7-nights', ('GET',)),
     ('/api/moon/next-eclipse', ('GET',)),
+    ('/api/moon/phase-calendar', ('GET',)),
     ('/api/moon/report', ('GET',)),
     ('/api/object/<path:identifier>', ('GET',)),
     ('/api/seeing-forecast', ('GET',)),

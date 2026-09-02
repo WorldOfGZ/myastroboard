@@ -1,3 +1,12 @@
+#### Lunar phase calendar
+
+The Moon tab now shows, under "Moon next days", a full calendar of the current month with the
+Moon phase drawn for every day (same renderer as the main Moon visual). New moon, first quarter,
+full moon and last quarter days are flagged, and near-new-moon nights are shaded as the better
+deep-sky windows. A "Next month" / "Current month" switch lets you look one month ahead.
+
+New endpoint: `GET /api/moon/phase-calendar?year=&month=`.
+
 #### Celestrak
 
 As some of you probably noticed, Celestrak is encountering issues due to high load caused

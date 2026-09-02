@@ -3,13 +3,15 @@
 Routes: /api/weather/*, /api/moon/*, /api/aurora/predictions, /api/seeing-forecast
 """
 
+import datetime
 import json
 import time as _time
+from zoneinfo import ZoneInfo
 
 from flask import Blueprint, request, jsonify
 
 from cache import cache_store
-from astroweather import moon_planner
+from astroweather import moon_calendar, moon_planner
 from utils.auth import login_required
 from utils.constants import CACHE_TTL, WEATHER_CACHE_TTL
 from utils.i18n_utils import I18nManager
@@ -270,6 +272,75 @@ def get_moon_month_calendar_api():
 
     except Exception as e:
         logger.error(f"Error computing moon month calendar: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+_moon_phase_calendar_cache: dict = {}  # "<tz>:<yyyy-mm>" -> {"timestamp", "data"}
+_MOON_PHASE_CALENDAR_TTL = 21600  # 6 hours - the per-day phase data is deterministic
+
+
+def _clamp_calendar_month(req_year, req_month, cur_year: int, cur_month: int) -> tuple[int, int]:
+    """Clamp a requested (year, month) to the allowed window [current month, current month + 1].
+
+    Missing or malformed values fall back to the current month.
+    """
+    cur_index = cur_year * 12 + (cur_month - 1)
+    try:
+        req_index = int(req_year) * 12 + (int(req_month) - 1)
+    except (TypeError, ValueError):
+        req_index = cur_index
+    req_index = max(cur_index, min(req_index, cur_index + 1))
+    clamped_year, month_zero_based = divmod(req_index, 12)
+    return clamped_year, month_zero_based + 1
+
+
+@weather_bp.route("/api/moon/phase-calendar", methods=["GET"])
+@login_required
+def get_moon_phase_calendar_api():
+    """Return a full calendar month of Moon phases for the active location.
+
+    Query params ``year`` and ``month`` are clamped to the allowed 2-month window
+    (current month and the next one); anything outside or malformed falls back to
+    the current month. Pure ephemeris - always available, never 'pending'.
+    """
+    try:
+        location = _resolve_active_location()
+        tz_name = location.get("timezone", "UTC")
+        now_local = datetime.datetime.now(ZoneInfo(tz_name))
+
+        year, month = _clamp_calendar_month(
+            request.args.get("year"), request.args.get("month"), now_local.year, now_local.month
+        )
+
+        cache_key = f"{tz_name}:{year:04d}-{month:02d}"
+        slot = _moon_phase_calendar_cache.setdefault(cache_key, {"timestamp": 0.0, "data": None})
+        clock = _time.time()
+        if not slot["data"] or (clock - slot["timestamp"]) >= _MOON_PHASE_CALENDAR_TTL:
+            slot["data"] = moon_calendar.build_phase_calendar(year, month, tz_name)
+            slot["timestamp"] = clock
+
+        calendar_data = slot["data"]
+        current_index = now_local.year * 12 + (now_local.month - 1)
+        viewed_index = year * 12 + (month - 1)
+        is_current_month = viewed_index == current_index
+
+        return jsonify(
+            {
+                "year": year,
+                "month": month,
+                "timezone": tz_name,
+                "location": {"id": location.get("id"), "name": location.get("name")},
+                "today": now_local.date().isoformat(),
+                "is_current_month": is_current_month,
+                "can_go_prev": viewed_index == current_index + 1,
+                "can_go_next": is_current_month,
+                "days": calendar_data["days"],
+                "principal_phases": calendar_data["principal_phases"],
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Error computing moon phase calendar: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
 
