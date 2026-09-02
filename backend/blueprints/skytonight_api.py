@@ -824,6 +824,9 @@ def _resolve_combination_optics(user_id: str, combination_id: str) -> Optional[D
                 optics['fov_h_arcmin'] = round(fov.horizontal_fov_deg * 60.0, 2)
                 optics['fov_v_arcmin'] = round(fov.vertical_fov_deg * 60.0, 2)
             except (TypeError, ValueError, ZeroDivisionError):
+                # Malformed sensor/optics numbers: leave fov_*_arcmin as None so the
+                # "fits my sensor" filter treats this combination's FOV as unknown
+                # (a missing FOV never excludes a row) rather than 500-ing the table.
                 pass
     return optics
 
