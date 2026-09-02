@@ -101,8 +101,9 @@ This page lists the HTTP routes currently declared across `backend/blueprints/*.
 - `GET /api/skytonight/reports/<catalogue>`
 - `GET /api/skytonight/alttime/<target_id>`
 - `POST /api/skytonight/combination-recommendations`
+- `GET /api/skytonight/visibility-calendar` - 12-month "best months to image this target" calendar for a fixed deep-sky object at the active location. Params: `target` (catalogue id or name, required), `year` (4-digit, defaults to the current year, clamped to [current-1, current+5]). Returns `supported: false` for solar-system bodies and comets.
 - `GET /api/skytonight/skymap`
-- `GET /api/skytonight/data/dso`
+- `GET /api/skytonight/data/dso` - Optional `catalogue` filter, plus the v1.4 advanced filters applied server-side before the result-set truncation: `size_min`, `size_max`, `sb_max`, `alt_window_min_deg`, `alt_window_start`, `alt_window_end`, `combination_id`, `fov_fit`, `max_integration_h`. Malformed values are ignored rather than rejected. See [SKYTONIGHT.md](SKYTONIGHT.md#advanced-dso-filters).
 - `GET /api/skytonight/data/bodies`
 - `GET /api/skytonight/data/comets`
 - `GET /api/skytonight/logs/<catalogue>`
@@ -120,7 +121,6 @@ This page lists the HTTP routes currently declared across `backend/blueprints/*.
 - `GET /api/moon/report`
 - `GET /api/moon/dark-window`
 - `GET /api/moon/next-7-nights`
-- `GET /api/moon/month-calendar`
 - `GET /api/moon/phase-calendar` - Full calendar month of Moon phases (illumination, waxing/waning, near-new-moon flag) plus the month's principal phase timestamps, for the active location. Params: `year`, `month` (1-12); both are clamped to the allowed 2-month window (current month and the next one), and missing or malformed values fall back to the current month. Response includes `is_current_month`, `can_go_prev`, `can_go_next`, `today`, `days`, `principal_phases`.
 - `GET /api/aurora/predictions`
 - `GET /api/iss/passes` - Returns ISS passes, solar transits, and lunar transits; all times in configured local TZ. Response includes `passes`, `solar_transits`, `lunar_transits`, `next_visible_passage`, `next_solar_transit`, `next_lunar_transit`, `total_passes`, `total_solar_transits`, `total_lunar_transits`.

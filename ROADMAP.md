@@ -86,7 +86,7 @@ The equipment and object models (Equipment, Astrodex) are reusable as references
 |---|---|
 | **Why** | Advanced imagers need planning depth that matches dedicated tools (Telescopius). These features build on the existing equipment profiles, SkyTonight ephemeris, and Plan My Night timeline - but they are not free of new state: the meridian flip estimator adds mount flip fields, and the visibility calendar adds a year-scale ephemeris path with its own cache. |
 | **Effort** | High |
-| **Status** | 💡 Idea - subject to change |
+| **Status** | ✅ Implemented |
 
 #### Target visibility calendar
 
@@ -528,7 +528,7 @@ Also:
 | v1.1 | First Light - beginner onboarding | Beginners | Medium | ✅ Implemented |
 | v1.2 | Multi-location profiles | All | Medium | ✅ Implemented |
 | v1.3 | Observation Log | Intermediate+ | High | ✅ Implemented |
-| v1.4 | Planning Intelligence (visibility calendar, meridian flip, advanced filters) | Advanced | High | 💡 Idea |
+| v1.4 | Planning Intelligence (visibility calendar, meridian flip, advanced filters) | Advanced | High | ✅ Implemented |
 | v1.5 | Feature registry (plugin foundation) | All | High | 💡 Idea |
 | v1.6 | Session Analytics | All | Medium | 💡 Idea |
 | v1.7 | Connector SDK and mab-plugins | All | Medium | 💡 Idea |

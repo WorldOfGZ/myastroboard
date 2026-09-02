@@ -46,6 +46,34 @@ A plan is **pinned to the user's active location at creation time** (`location_i
 - Add target to Astrodex directly.
 - Timeline progress bar and current-target banner while within night timeframe.
 
+## Meridian flip
+
+Each timeline entry shows a meridian-flip indicator when the plan is pinned to a location and its
+equipment combination has a mount. The flip time is derived at read time from the entry's stored RA
+plus the plan's pinned location (reusing `skytonight_calculator._meridian_transit_time`), offset by
+the mount's `meridian_flip_delay_min` - old plans need no migration.
+
+| State | Meaning | Colour |
+|-------|---------|--------|
+| `none` | Flip not required, no meridian transit tonight, or the flip falls before this slot starts | no badge |
+| `after` | Flip at or after the slot end | green |
+| `mid` | Flip strictly inside the slot | orange |
+| `early` | Flip within the first 10 minutes of the slot | red |
+| `unknown` | The plan's combination has no resolvable mount - no flip is guessed | grey |
+
+The tooltip carries the flip time and the mount's `meridian_flip_duration_min` (minutes lost to the
+flip). The indicator also appears in the schedule-optimizer preview and the PDF export.
+
+## Schedule optimizer
+
+`GET /api/plan-my-night/optimize` previews a target order plus a single pre-first-target delay,
+derived from each target's real altitude-based visibility window; `POST
+/api/plan-my-night/optimize/apply` applies it (rejected if the plan changed since the preview). As of
+v1.4 the ordering is **flip-aware**: among targets whose earliest observable run starts close
+together, the one whose meridian flip comes sooner is scheduled first, so it can finish before
+flipping. Targets with no flip or an unknown mount are neutral in the ordering. A `flip_mid_session`
+plan warning is raised when a target still ends up straddling its flip.
+
 ## Legacy Plan Purge
 
 Plans are daily/ephemeral, so the pre-combination (telescope-keyed) plan schema is never migrated: on every app startup, any plan file whose `plan` dict still contains the old `telescope_id` key is deleted outright rather than converted.

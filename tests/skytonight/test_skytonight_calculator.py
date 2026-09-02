@@ -695,6 +695,96 @@ class TestTargetAndBodyResultBuilders:
         assert result["target_id"] == "m31"
         assert result["observation"]["max_altitude"] == 45.0
 
+    def test_compute_target_result_exposes_surface_brightness_and_hourly_altitude(self):
+        """v1.4 advanced-filter fields: mean surface brightness and a compact
+        1-per-local-hour altitude vector (sample nearest :00)."""
+        target = SimpleNamespace(
+            target_id="ngc7000",
+            preferred_name="NGC 7000",
+            catalogue_names={},
+            category="deep_sky",
+            object_type="nebula",
+            constellation="Cyg",
+            magnitude=4.5,
+            size_arcmin=30.0,
+            coordinates=SimpleNamespace(ra_hours=0.7, dec_degrees=41.3),
+            source_catalogues=[],
+            metadata={},
+        )
+        moon = SimpleNamespace(phase=0.1, ra_deg=None, dec_deg=None)
+        constraints = {
+            "altitude_constraint_min": 20,
+            "altitude_constraint_max": 80,
+            "size_constraint_min": 5,
+            "size_constraint_max": 300,
+            "fraction_of_time_observable_threshold": 0.0,
+            "airmass_constraint": 2.0,
+        }
+        alt = np.array([25.0, 30.0, 45.0, 40.0], dtype=np.float32)
+        az = np.array([100.0, 120.0, 150.0, 180.0], dtype=np.float32)
+        times_local = [
+            datetime(2026, 4, 17, 21, 0),
+            datetime(2026, 4, 17, 21, 30),
+            datetime(2026, 4, 17, 22, 0),
+            datetime(2026, 4, 17, 22, 30),
+        ]
+        lst = np.array([0.5, 0.7, 0.9, 1.1])
+
+        result = _compute_target_result(
+            target=target,
+            times=None,
+            altaz_values=alt,
+            location=object(),
+            moon=moon,
+            constraints=constraints,
+            night_start=datetime(2026, 4, 17, 21, 0),
+            night_end=datetime(2026, 4, 18, 5, 0),
+            lat=45.0,
+            lon=-75.0,
+            az_values=az,
+            lst_hours=lst,
+            times_local=times_local,
+        )
+
+        assert result is not None
+        # magnitude 4.5 over pi*(15)^2 arcmin^2 -> ~11.6 mag/arcmin^2
+        assert result["surface_brightness"] == pytest.approx(11.62, abs=0.05)
+        assert result["hourly_altitude"] == [{"h": 21, "alt": 25.0}, {"h": 22, "alt": 45.0}]
+
+    def test_compute_target_result_surface_brightness_none_without_size(self):
+        target = SimpleNamespace(
+            target_id="x",
+            preferred_name="X",
+            catalogue_names={},
+            category="deep_sky",
+            object_type="nebula",
+            constellation="Ori",
+            magnitude=5.0,
+            size_arcmin=None,
+            coordinates=SimpleNamespace(ra_hours=1.0, dec_degrees=10.0),
+            source_catalogues=[],
+            metadata={},
+        )
+        moon = SimpleNamespace(phase=0.1, ra_deg=None, dec_deg=None)
+        constraints = {"fraction_of_time_observable_threshold": 0.0, "altitude_constraint_min": 5}
+        result = _compute_target_result(
+            target=target,
+            times=None,
+            altaz_values=np.array([20.0, 40.0, 30.0], dtype=np.float32),
+            location=object(),
+            moon=moon,
+            constraints=constraints,
+            night_start=datetime(2026, 4, 17, 21, 0),
+            night_end=datetime(2026, 4, 18, 5, 0),
+            lat=45.0,
+            lon=-75.0,
+            az_values=np.array([100.0, 150.0, 200.0], dtype=np.float32),
+            lst_hours=np.array([0.5, 0.7, 0.9]),
+            times_local=[datetime(2026, 4, 17, 21, 0), datetime(2026, 4, 17, 22, 0), datetime(2026, 4, 17, 23, 0)],
+        )
+        assert result is not None
+        assert result["surface_brightness"] is None
+
     def test_compute_target_result_filters_on_size(self):
         target = SimpleNamespace(
             target_id="x",

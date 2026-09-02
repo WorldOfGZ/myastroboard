@@ -126,6 +126,14 @@ function _applyMountPreset(preset) {
     document.getElementById('mount-payload-capacity').value = preset.payload_capacity_kg ?? '';
     document.getElementById('mount-tracking-accuracy').value = preset.tracking_accuracy_arcsec ?? '';
     document.getElementById('mount-guiding-supported').value = preset.guiding_supported ? 'true' : 'false';
+    const flipRequired = document.getElementById('mount-flip-required');
+    if (flipRequired) {
+        flipRequired.value = preset.meridian_flip_required == null ? '' : (preset.meridian_flip_required ? 'true' : 'false');
+    }
+    const flipDelay = document.getElementById('mount-flip-delay');
+    if (flipDelay) flipDelay.value = preset.meridian_flip_delay_min ?? '';
+    const flipDuration = document.getElementById('mount-flip-duration');
+    if (flipDuration) flipDuration.value = preset.meridian_flip_duration_min ?? '';
 }
 
 function _applyFilterPreset(preset) {
@@ -999,6 +1007,16 @@ function renderMountCard(mount, isReadOnly) {
     appendInfoLine(p, i18n.t('equipment.type'), mount.mount_type);
     appendInfoLine(p, i18n.t('equipment.max_payload'), `${mount.payload_capacity_kg}${i18n.t('units.kg')}`);
     appendInfoLine(p, i18n.t('equipment.guiding'), mount.guiding_supported ? i18n.t('equipment.yes') : i18n.t('equipment.no'));
+    if (mount.meridian_flip_required) {
+        appendInfoLine(
+            p,
+            i18n.t('equipment.meridian_flip'),
+            i18n.t('equipment.meridian_flip_summary', {
+                delay: Math.round(mount.meridian_flip_delay_min ?? 0),
+                duration: Math.round(mount.meridian_flip_duration_min ?? 5),
+            })
+        );
+    }
     body.appendChild(p);
 
     card.appendChild(body);
@@ -1440,6 +1458,26 @@ async function showMountModal(id = null) {
                     <option value="true" ${mount?.guiding_supported === true ? 'selected' : ''}>${i18n.t('equipment.yes')}</option>
                 </select>
             </div>
+            <div class="col-12">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="mount-flip-required" class="form-label">${i18n.t('equipment.form_meridian_flip_required')}</label>
+                        <select class="form-select" id="mount-flip-required" name="meridian_flip_required">
+                            <option value="" ${mount == null || mount.meridian_flip_required == null ? 'selected' : ''}>${i18n.t('equipment.form_meridian_flip_auto')}</option>
+                            <option value="true" ${mount?.meridian_flip_required === true ? 'selected' : ''}>${i18n.t('equipment.yes')}</option>
+                            <option value="false" ${mount?.meridian_flip_required === false ? 'selected' : ''}>${i18n.t('equipment.no')}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="mount-flip-delay" class="form-label">${i18n.t('equipment.form_meridian_flip_delay')}</label>
+                        <input type="number" class="form-control" id="mount-flip-delay" name="meridian_flip_delay_min" value="${mount?.meridian_flip_delay_min ?? ''}" min="0" max="120" step="1" inputmode="numeric" placeholder="0">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="mount-flip-duration" class="form-label">${i18n.t('equipment.form_meridian_flip_duration')}</label>
+                        <input type="number" class="form-control" id="mount-flip-duration" name="meridian_flip_duration_min" value="${mount?.meridian_flip_duration_min ?? ''}" min="0" max="60" step="1" inputmode="numeric" placeholder="5">
+                    </div>
+                </div>
+            </div>
             <div class="col-md-12">
                 <label for="mount-notes" class="form-label">${i18n.t('equipment.form_notes')}</label>
                 <textarea class="form-control" id="mount-notes" name="notes" rows="2">${escapeHtml(mount?.notes || '')}</textarea>
@@ -1485,6 +1523,8 @@ async function saveMount(id) {
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
     data.guiding_supported = data.guiding_supported === 'true';
+    // meridian_flip_required is tri-state: '' means "derive from mount type" (null).
+    data.meridian_flip_required = data.meridian_flip_required === '' ? null : data.meridian_flip_required === 'true';
     data.is_shared = form.querySelector('#mount-is-shared')?.checked ?? false;
     data.is_disabled = form.querySelector('#mount-is-disabled')?.checked ?? false;
 

@@ -242,7 +242,7 @@ class TestSkytonightDataEndpoints:
         monkeypatch.setattr(
             _skytonight_api_mod,
             '_build_dso_section_payload',
-            lambda catalogue, user_id, username: {'targets': []},
+            lambda catalogue, user_id, username, filters=None: {'targets': []},
         )
         resp = client_admin.get('/api/skytonight/data/dso')
         assert resp.status_code == 200

@@ -208,7 +208,7 @@ All paths are relative to `/data/skytonight/`.
 
 | File | Description |
 |---|---|
-| `calculations/dso_results.json` | Deep-sky objects passing all constraints, sorted by AstroScore desc |
+| `calculations/dso_results.json` | Deep-sky objects passing all constraints, sorted by AstroScore desc. Each entry also carries `surface_brightness` (mean mag/arcmin^2 from integrated magnitude + catalogue size, or `null`) and `hourly_altitude` (a compact `[{h, alt}]` vector, one sample per local hour) - both feed the v1.4 advanced DSO filters without re-reading per-target alttime files |
 | `calculations/bodies_results.json` | Solar-system bodies (planets, Moon, etc.) |
 | `calculations/comets_results.json` | Comets from MPC |
 | `calculations/skymap_data.json` | Sky map trajectory data (az/alt arrays per visible target) |
@@ -227,15 +227,95 @@ All paths are relative to `/data/skytonight/`.
 | `POST` | `/api/skytonight/scheduler/trigger` | Manually trigger a recalculation (admin) |
 | `GET` | `/api/skytonight/dataset/status` | Dataset build status and catalogue counts |
 | `POST` | `/api/skytonight/dataset/rebuild` | Force a dataset rebuild |
-| `GET` | `/api/skytonight/data/dso` | Deep-sky results for the UI (reactive, per-section) - optional `?catalogue=` filter |
+| `GET` | `/api/skytonight/data/dso` | Deep-sky results for the UI (reactive, per-section) - optional `?catalogue=` filter, plus the v1.4 advanced filters below |
 | `GET` | `/api/skytonight/data/bodies` | Solar-system body results (reactive, per-section) |
 | `GET` | `/api/skytonight/data/comets` | Comet results (reactive, per-section) |
 | `POST` | `/api/skytonight/combination-recommendations` | Rate the user's equipment combinations (1-5) for one target |
+| `GET` | `/api/skytonight/visibility-calendar` | 12-month visibility calendar for one fixed deep-sky target - see below |
 | `GET` | `/api/skytonight/alttime/<id>` | Altitude-time data for one target |
 | `GET` | `/api/skytonight/skymap` | Sky map trajectory data |
 | `GET` | `/api/skytonight/log` | Last calculation log content (JSONL) |
 
 Full parameter details: [API_ENDPOINTS.md](API_ENDPOINTS.md)
+
+---
+
+## Target visibility calendar
+
+`GET /api/skytonight/visibility-calendar?target=<id_or_name>&year=<yyyy>` answers "when is this
+object best this year?" for the user's active location. It is computed on demand (the SkyTonight
+pipeline only ever covers *tonight*) and cached in a small bounded in-process LRU keyed
+`(target, location, year)` - deliberately not a scheduler cache job, because the key space (any
+target x any location) is unbounded and the underlying ephemeris changes only once a year.
+
+**Deep-sky objects only.** Planets and comets move measurably over a year, so a fixed-RA calendar
+is meaningless for them - the response returns `supported: false` with `reason: "moving_target"`.
+`reason: "not_found"` means the identifier could not be resolved to coordinates (SkyTonight dataset
+first, then a SIMBAD fallback for Astrodex items outside the dataset).
+
+### Sampling scheme
+
+- **24 sample nights**: the 1st and 15th of each month across the requested year. Two samples per
+  month keep a single unlucky Moon phase from dominating the monthly figure.
+- Per sample night, the Sun and Moon altitude grid (18:00 -> 06:00 local, 10-minute steps) is built
+  once via the shared `astroweather.moon_planner.night_body_altitude_grid` helper (one Astropy AltAz
+  transform per body).
+- The **target's own altitude/azimuth is analytic**, from the hour angle
+  `H = LST - RA` -> `alt = asin(sin(dec)*sin(lat) + cos(dec)*cos(lat)*cos(H))`, with LST from the
+  same time grid. Arcminute accuracy at O(1) trig per sample.
+
+### Constraint gates (kept in sync with the live calculator)
+
+A sample step counts toward `observable_hours` when the Sun is below -18 deg (astronomical dark) and
+the target sits between the effective altitude floor and `altitude_constraint_max`. The floor is the
+stricter of `altitude_constraint_min`, the airmass-derived altitude
+(`asin(1 / airmass_constraint)`), and the active location preset's custom `horizon_profile` at the
+target's azimuth (same `_horizon_floor_array` helper the calculator uses).
+`moonless_observable_hours` additionally requires the Moon below the horizon.
+
+### Response shape
+
+```
+{
+  target:   { id, name, type },
+  location: { id, name },
+  year, supported, reason?,
+  months:  [ { month, dark_hours, observable_hours, moonless_observable_hours,
+               max_altitude, moon_illumination_pct, score, bucket } ],   // 12 aggregates
+  samples: [ { date, dark_hours, observable_hours, moonless_observable_hours,
+               max_altitude, transit_local_time, moon_illumination_pct } ], // 24 raw nights
+  constraints: { altitude_min, altitude_max, has_horizon_profile }
+}
+```
+
+`score` is `moonless_observable_hours` normalized against the best month of the year (falling back to
+`observable_hours` when the target is never moonless-observable); `bucket` is `score` mapped to
+0-5 for the heatmap cell colour. The 24 raw samples drive the per-month tooltip.
+
+---
+
+## Advanced DSO filters
+
+The Deep Sky Objects tab has a collapsible **Advanced filters** panel above the table. Unlike the
+text / constellation / type / catalogue / difficulty filters (which run client-side over the rows
+already on screen), these five run **server-side in `_build_dso_section_payload`, applied before the
+`max_deep_sky_rows` truncation cut** - so a filtered result set is a genuine catalogue-wide search,
+not a filter over the top N by AstroScore. They are passed as query params on
+`GET /api/skytonight/data/dso` and debounced (~400 ms) with a spinner.
+
+| Param | Filter | Notes |
+|---|---|---|
+| `size_min`, `size_max` | Angular size (arcmin) | A view filter *inside* the configured `size_constraint_min/max` band, which the panel shows as "within your configured N-M arcmin". |
+| `sb_max` | Surface brightness threshold (mag/arcmin^2) | Keeps only targets at or brighter than the threshold (lower number = brighter). |
+| `alt_window_min_deg` + `alt_window_start` + `alt_window_end` | Best altitude window | "above X deg between HHh and HHh". Evaluated against the row's `hourly_altitude` vector; the window may wrap past midnight. |
+| `combination_id` + `fov_fit` | FOV fit | Needs a chosen equipment combination. Per row: `fov_fit: {fits, fill_pct}` with `fill_pct = size_arcmin / min(fov_h_arcmin, fov_v_arcmin)`. The guide camera is never part of FOV math; a camera-only combination uses its lens fields. |
+| `combination_id` + `max_integration_h` | Estimated minimum integration time | Needs a chosen combination. See [EXPOSURE_CALC.md](EXPOSURE_CALC.md#estimated-minimum-integration-time-v14). |
+
+**Unknown values are never silently dropped.** A target with no magnitude or size (so no surface
+brightness, no FOV fill, no integration estimate) stays in the result and is shown as unknown; a
+size / SB / integration filter only excludes a target whose value is *present and fails*. The
+response echoes `advanced_filters.size_band` and the resolved combination so the UI can label the
+result set and state how many targets were considered after filtering.
 
 ---
 

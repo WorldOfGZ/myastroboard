@@ -48,6 +48,7 @@
     -->
     <link rel="stylesheet" href="/static/css/bs_logs.css?v={{ version }}" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="/static/css/bs_skytonight.css?v={{ version }}" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="/static/css/bs_visibility_calendar.css?v={{ version }}" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="/static/css/bs_astrodex.css?v={{ version }}" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="/static/css/bs_astrodex_map.css?v={{ version }}" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="/static/css/bs_astrodex_collection.css?v={{ version }}" media="print" onload="this.media='all'">
@@ -64,6 +65,7 @@
     <noscript>
         <link rel="stylesheet" href="/static/css/bs_logs.css?v={{ version }}">
         <link rel="stylesheet" href="/static/css/bs_skytonight.css?v={{ version }}">
+        <link rel="stylesheet" href="/static/css/bs_visibility_calendar.css?v={{ version }}">
         <link rel="stylesheet" href="/static/css/bs_astrodex.css?v={{ version }}">
         <link rel="stylesheet" href="/static/css/bs_astrodex_map.css?v={{ version }}">
         <link rel="stylesheet" href="/static/css/bs_astrodex_collection.css?v={{ version }}">
@@ -797,8 +799,6 @@
                         <i class="bi bi-moon-stars-fill text-info icon-inline" aria-hidden="true"></i> <span data-i18n="navbar.plan_my_night">Plan My Night</span>
                     </h2>
                     <p class="text-muted small mb-2" data-i18n="plan_my_night.section_intro">Build a private timeline for tonight directly from SkyTonight targets.</p>
-                    <div id="plan-moon-calendar" class="mb-3"></div>
-                    <div id="plan-seeing-week" class="mb-3"></div>
                     <div id="plan-my-night-display"></div>
                 </div>
             </div>
@@ -3345,6 +3345,7 @@
     <script src="/static/js/weather_astro.js?v={{ version }}"></script>
     <script src="/static/js/weather_alerts.js?v={{ version }}"></script>
     <script src="/static/js/object_info.js?v={{ version }}"></script>
+    <script src="/static/js/visibility_calendar.js?v={{ version }}"></script>
     <script src="/static/js/astrodex.js?v={{ version }}"></script>
     <script src="/static/js/plan_my_night.js?v={{ version }}"></script>
     <script src="/static/js/equipment.js?v={{ version }}"></script>

@@ -248,3 +248,25 @@ html[data-theme="red"] .astroscore-badge-poor {
     border-color: var(--accent-1);
     color: #fff;
 }
+
+/* ── Advanced DSO filters panel (v1.4) ──────────────────────────────────── */
+.skyt-adv-panel {
+    border: 1px solid var(--surface-border, rgba(15, 23, 42, 0.15));
+    border-radius: var(--border-radius, 0.375rem);
+    padding: 0.5rem 0.75rem;
+    background-color: var(--bg-sub-container, transparent);
+}
+
+.skyt-adv-toggle {
+    cursor: pointer;
+    font-weight: 600;
+    list-style: revert;
+}
+
+.skyt-adv-body {
+    padding-top: 0.25rem;
+}
+
+.skyt-adv-body .form-text {
+    margin-top: 0.15rem;
+}

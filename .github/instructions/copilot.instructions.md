@@ -465,7 +465,6 @@ Full rationale and examples: [CONTRIBUTING.md#inline-style-attribute](../../CONT
   - Seeing forecast: `GET /api/seeing-forecast`
   - ISS tracking: `GET /api/iss/passes` (returns passes, solar transits **and lunar transits**, all times in configured local TZ), `GET /api/iss/location`, `POST /api/iss/celestrak/restart` (`@admin_required`)
   - CSS tracking: `GET /api/css/passes` (same structure as ISS, includes `station: "CSS"`), `GET /api/css/location`, `POST /api/css/celestrak/restart` (`@admin_required`)
-  - Moon details: `GET /api/moon/month-calendar`
   - On-demand translation: `POST /api/translate/on-demand`
   - Spaceflight: `GET /api/spaceflight/launches`, `GET /api/spaceflight/astronauts`, `GET /api/spaceflight/events`, `GET /api/spaceflight/img/<filename>`, `GET /api/spaceflight/launch/<launch_id>/vidurls`
   - Object lookup: `GET /api/object/<path:identifier>`

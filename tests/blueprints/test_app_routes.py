@@ -809,10 +809,6 @@ class TestMoonExtendedEndpoints:
         resp = client_admin.get('/api/moon/next-7-nights')
         assert resp.status_code in (200, 202, 400)
 
-    def test_month_calendar_returns_response(self, client_admin):
-        resp = client_admin.get('/api/moon/month-calendar')
-        assert resp.status_code in (200, 202, 400)
-
     @staticmethod
     def _utc_now():
         return datetime.datetime.now(ZoneInfo('UTC'))
@@ -3005,10 +3001,6 @@ class TestMoonPlannerEndpoints:
         monkeypatch.setitem(_LEGACY['moon_planner'], 'data', {'nights': []})
         resp = client_admin.get('/api/moon/next-7-nights')
         assert resp.status_code in (200, 202)
-
-    def test_moon_month_calendar_no_cache_returns_202(self, client_admin):
-        resp = client_admin.get('/api/moon/month-calendar')
-        assert resp.status_code in (200, 202, 400)
 
 
 # ---------------------------------------------------------------------------
@@ -5643,13 +5635,6 @@ class TestCacheRouteExceptionHandlers:
         resp = client_admin.get('/api/moon/next-eclipse')
         assert resp.status_code == 500
 
-    def test_moon_calendar_exception_returns_500(self, client_admin, monkeypatch):
-        # v1.2: _moon_calendar_cache is keyed by location id - clear it whole
-        monkeypatch.setattr(_weather_mod, '_moon_calendar_cache', {})
-        monkeypatch.setattr(_route_helpers_mod, 'load_config', lambda: (_ for _ in ()).throw(RuntimeError("cfg fail")))
-        resp = client_admin.get('/api/moon/month-calendar')
-        assert resp.status_code == 500
-
     def test_iss_location_runtime_error_returns_503(self, client_admin, monkeypatch):
         monkeypatch.setattr(
             _app_mod.iss_passes, 'get_current_position', lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("fail"))
@@ -5693,28 +5678,6 @@ class TestCacheRouteExceptionHandlers:
         )
         resp = client_admin.get('/api/plan-my-night')
         assert resp.status_code == 500
-
-
-# ---------------------------------------------------------------------------
-# Moon month calendar — no location configured → 400
-# ---------------------------------------------------------------------------
-
-
-class TestMoonCalendarNoLocation:
-
-    def test_no_location_returns_400(self, client_admin, monkeypatch):
-        monkeypatch.setattr(
-            _route_helpers_mod, 'load_config', lambda: _v12_config({'latitude': None, 'longitude': None})
-        )
-        resp = client_admin.get('/api/moon/month-calendar')
-        assert resp.status_code == 400
-
-    def test_no_longitude_returns_400(self, client_admin, monkeypatch):
-        monkeypatch.setattr(
-            _route_helpers_mod, 'load_config', lambda: _v12_config({'latitude': 48.5, 'longitude': None})
-        )
-        resp = client_admin.get('/api/moon/month-calendar')
-        assert resp.status_code == 400
 
 
 # ---------------------------------------------------------------------------
@@ -9942,43 +9905,6 @@ class TestLocationsApiErrorArcs:
                 user_manager.delete_user(user.user_id)
             except Exception:
                 pass  # test may have already deleted the user; nothing to clean up
-
-    def test_moon_calendar_warm_cache_and_computed_paths(self, client_admin, monkeypatch):
-        from utils.repo_config import load_config, get_install_default_location
-
-        loc_id = get_install_default_location(load_config()).get('id')
-
-        # Warm per-location slot -> served directly
-        monkeypatch.setitem(
-            _weather_mod._moon_calendar_cache, loc_id,
-            {'timestamp': _time.time(), 'data': {'nights': [{'date': '2030-01-01'}]}},
-        )
-        resp = client_admin.get('/api/moon/month-calendar')
-        assert resp.status_code == 200
-        assert resp.get_json()['nights'][0]['date'] == '2030-01-01'
-
-        # Cold slot -> computed via MoonPlanner (stubbed) and cached
-        monkeypatch.setitem(_weather_mod._moon_calendar_cache, loc_id, {'timestamp': 0, 'data': None})
-
-        class _StubPlanner:
-            def __init__(self, *_a, **_k):
-                pass
-
-            def next_n_nights(self, n):
-                return [
-                    {
-                        'date': f'2030-01-{i + 1:02d}',
-                        'moon': {'illumination_percent': 42.0},
-                        'dark_hours': {'strict': 6.5},
-                        'astrophoto_score': 0.8,
-                    }
-                    for i in range(n)
-                ]
-
-        monkeypatch.setattr(_app_mod.moon_planner, 'MoonPlanner', _StubPlanner)
-        resp = client_admin.get('/api/moon/month-calendar')
-        assert resp.status_code == 200
-        assert len(resp.get_json()['nights']) == 30
 
 
 class TestCachedLocationScore:

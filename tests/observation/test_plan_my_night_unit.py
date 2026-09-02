@@ -2581,6 +2581,131 @@ class TestScheduleOptimizer:
         assert apply_optimized_schedule("eeee3017-0000-4000-8000-000000000000", "user", None, ["a"], 0) is False
 
 
+class TestMeridianFlip:
+    """_compute_entry_meridian_flip: classifies a target's meridian flip against a planned slot."""
+
+    NIGHT_START = datetime(2026, 7, 18, 21, 0, tzinfo=timezone.utc)
+    NIGHT_END = datetime(2026, 7, 19, 5, 0, tzinfo=timezone.utc)
+    EQ_MOUNT = {'meridian_flip_required': True, 'meridian_flip_delay_min': 15, 'meridian_flip_duration_min': 6}
+
+    def _flip(self, monkeypatch, slot_start, slot_end, mount=None, transit='23:30'):
+        monkeypatch.setattr(plan_my_night, '_meridian_transit_time', lambda *_a, **_k: transit)
+        return plan_my_night._compute_entry_meridian_flip(
+            {'ra': '00h 42m 44s'},
+            slot_start,
+            slot_end,
+            self.EQ_MOUNT if mount is None else mount,
+            48.0,
+            2.0,
+            self.NIGHT_START,
+            self.NIGHT_END,
+        )
+
+    def test_no_mount_is_unknown(self):
+        assert plan_my_night._compute_entry_meridian_flip(
+            {'ra': '1'}, self.NIGHT_START, self.NIGHT_END, None, 48.0, 2.0, self.NIGHT_START, self.NIGHT_END
+        ) == {'state': 'unknown'}
+
+    def test_alt_az_mount_never_flips(self, monkeypatch):
+        alt_az = {'meridian_flip_required': False, 'meridian_flip_delay_min': 0, 'meridian_flip_duration_min': 5}
+        result = self._flip(monkeypatch, self.NIGHT_START, self.NIGHT_END, mount=alt_az)
+        assert result == {'state': 'none'}
+
+    def test_no_transit_tonight_is_none(self, monkeypatch):
+        result = self._flip(monkeypatch, self.NIGHT_START, self.NIGHT_END, transit=None)
+        assert result == {'state': 'none'}
+
+    def test_flip_after_slot_end(self, monkeypatch):
+        slot_start = datetime(2026, 7, 18, 22, 0, tzinfo=timezone.utc)
+        slot_end = datetime(2026, 7, 18, 23, 0, tzinfo=timezone.utc)
+        result = self._flip(monkeypatch, slot_start, slot_end)  # flip = 23:45
+        assert result['state'] == 'after'
+        assert result['lost_minutes'] == 6.0
+
+    def test_flip_mid_session(self, monkeypatch):
+        slot_start = datetime(2026, 7, 18, 23, 0, tzinfo=timezone.utc)
+        slot_end = datetime(2026, 7, 19, 0, 30, tzinfo=timezone.utc)
+        result = self._flip(monkeypatch, slot_start, slot_end)  # flip 23:45, > start+10
+        assert result['state'] == 'mid'
+
+    def test_flip_early_within_first_10_minutes(self, monkeypatch):
+        slot_start = datetime(2026, 7, 18, 23, 40, tzinfo=timezone.utc)
+        slot_end = datetime(2026, 7, 19, 0, 40, tzinfo=timezone.utc)
+        result = self._flip(monkeypatch, slot_start, slot_end)  # flip 23:45 <= 23:50
+        assert result['state'] == 'early'
+
+    def test_flip_exactly_10_minutes_is_early(self, monkeypatch):
+        slot_start = datetime(2026, 7, 18, 23, 35, tzinfo=timezone.utc)
+        slot_end = datetime(2026, 7, 19, 0, 35, tzinfo=timezone.utc)
+        result = self._flip(monkeypatch, slot_start, slot_end)  # flip 23:45 == 23:35 + 10
+        assert result['state'] == 'early'
+
+    def test_flip_before_slot_start_is_none(self, monkeypatch):
+        slot_start = datetime(2026, 7, 19, 0, 0, tzinfo=timezone.utc)
+        slot_end = datetime(2026, 7, 19, 1, 0, tzinfo=timezone.utc)
+        result = self._flip(monkeypatch, slot_start, slot_end)  # flip 23:45 < 00:00
+        assert result['state'] == 'none'
+
+
+class TestOptimizerFlipAwareOrdering:
+    """v1.4: among targets that would start at the same time, the earlier meridian flip goes first."""
+
+    def _plan(self, temp_plan_dir, uid, monkeypatch):
+        night_start = datetime(2026, 7, 18, 21, 0, tzinfo=timezone.utc)
+        night_end = datetime(2026, 7, 19, 5, 0, tzinfo=timezone.utc)
+        monkeypatch.setattr(plan_my_night, "_now", lambda: night_start)
+        payload = {
+            "user_id": uid, "username": "user",
+            "plan": {
+                "night_start": night_start.isoformat(),
+                "night_end": night_end.isoformat(),
+                "start_delay_minutes": 0,
+                "location_id": "loc-1",
+                "combination_id": "combo-1",
+                # No alttime_file -> both share run_start = night_start, so ordering falls to the tie-break.
+                "entries": [
+                    {"id": "late_flip", "name": "Late", "ra": "05h 00m 00s", "planned_minutes": 60, "done": False},
+                    {"id": "early_flip", "name": "Early", "ra": "02h 00m 00s", "planned_minutes": 60, "done": False},
+                ],
+            },
+        }
+        save_user_plan(uid, payload, username="user")
+
+    def test_earlier_flip_scheduled_first(self, temp_plan_dir, monkeypatch):
+        uid = "eeee3020-0000-4000-8000-000000000000"
+        self._plan(temp_plan_dir, uid, monkeypatch)
+        monkeypatch.setattr(plan_my_night, "_plan_location_latlon", lambda *_a, **_k: (48.0, 2.0))
+        monkeypatch.setattr(
+            plan_my_night, "_resolve_plan_mount",
+            lambda *_a, **_k: {'meridian_flip_required': True, 'meridian_flip_delay_min': 0, 'meridian_flip_duration_min': 5},
+        )
+
+        def _fake_transit_and_flip(entry, mount, _lat, _lon, night_start, _night_end):
+            if mount is None:
+                return None, None
+            # early_flip's flip lands mid first slot; late_flip's lands mid second slot.
+            offset_min = 30 if '02h' in str(entry.get('ra')) else 90
+            when = night_start + timedelta(minutes=offset_min)
+            return when, when
+
+        monkeypatch.setattr(plan_my_night, "_entry_transit_and_flip", _fake_transit_and_flip)
+
+        result = compute_optimized_schedule(uid, "user")
+        # Both share run_start (never observable) - the earlier flip breaks the tie.
+        assert result["order"] == ["early_flip", "late_flip"]
+        assert "flip_mid_session" in result["plan_warnings"]
+
+    def test_no_mount_keeps_original_order(self, temp_plan_dir, monkeypatch):
+        uid = "eeee3021-0000-4000-8000-000000000000"
+        self._plan(temp_plan_dir, uid, monkeypatch)
+        monkeypatch.setattr(plan_my_night, "_plan_location_latlon", lambda *_a, **_k: (None, None))
+        monkeypatch.setattr(plan_my_night, "_resolve_plan_mount", lambda *_a, **_k: None)
+        result = compute_optimized_schedule(uid, "user")
+        # Falls straight through to the stable sort by run_start -> plan order preserved.
+        assert result["order"] == ["late_flip", "early_flip"]
+        assert all(p["meridian_flip"]["state"] == "unknown" for p in result["preview"])
+
+
 class TestLoadAlttime:
     def test_returns_none_for_falsy_filename(self):
         assert _load_alttime('', None) is None

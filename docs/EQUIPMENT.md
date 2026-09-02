@@ -65,6 +65,13 @@ Data is stored per-user in `data/equipments/<user_id>_<type>.json`.
 | `recommended_payload_kg` | Auto-calculated: 75 % of max payload (safe imaging load) |
 | `tracking_accuracy_arcsec` | Periodic error in arcseconds |
 | `guiding_supported` | Whether the mount accepts autoguider input |
+| `meridian_flip_required` | Whether the mount flips at the meridian. Left as "Auto", it is derived from `mount_type` (`Equatorial` -> yes; alt-az / Dobsonian / fork -> no); set it explicitly for the exceptions (a fork mount on a wedge does flip). |
+| `meridian_flip_delay_min` | Minutes the mount keeps tracking past the meridian before a flip is needed (0-120). |
+| `meridian_flip_duration_min` | Dead time for the flip plus re-centre and re-guide (0-60, default 5). |
+
+The last three feed the Plan My Night **meridian flip** indicator - see
+[PLAN_MY_NIGHT.md](PLAN_MY_NIGHT.md#meridian-flip). Absent on older mount files, they fall back to
+these defaults on load; nothing is rewritten.
 
 ---
 
