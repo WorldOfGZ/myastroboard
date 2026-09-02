@@ -6,7 +6,9 @@ All /api/skytonight/* and /api/catalogues routes, plus the payload-builder helpe
 import json
 import os
 import re
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+from zoneinfo import ZoneInfo
 
 from flask import Blueprint, jsonify, request
 
@@ -15,6 +17,8 @@ from observation import beginner_catalog
 from equipment import equipment_profiles
 from observation import object_info
 from observation import plan_my_night
+from observation import visibility_calendar
+from equipment import exposure_math
 from skytonight import skytonight_targets
 from utils.auth import admin_required, get_current_user, login_required, user_manager
 from utils.constants import (
@@ -696,12 +700,223 @@ def _build_comets_section_payload(user_id: str, username: str) -> Dict[str, Any]
     }
 
 
-def _build_dso_section_payload(catalogue: Optional[str], user_id: str, username: str) -> Dict[str, Any]:
-    """Build the deep-sky objects payload for the reactive UI section."""
+def _clamp_optional_float(value: Any, low: float, high: float) -> Optional[float]:
+    """Parse a query-param float and clamp it to [low, high]; None on any bad value."""
+    if value in (None, ''):
+        return None
+    try:
+        return max(low, min(high, float(value)))
+    except (TypeError, ValueError):
+        return None
+
+
+def _clamp_optional_hour(value: Any) -> Optional[int]:
+    """Parse an integer local hour (0-23) query param; None on any bad value."""
+    if value in (None, ''):
+        return None
+    try:
+        return int(value) % 24
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_dso_advanced_filters(args: Any, constraints: Dict[str, Any]) -> Dict[str, Any]:
+    """Parse and clamp the advanced DSO filter query params (v1.4).
+
+    Malformed values are dropped (treated as "not set") rather than 400-ing the
+    whole table. ``size_band`` is the configured size constraint, echoed back so
+    the UI can show "within your configured N-M arcmin".
+    """
+    band_min = float(constraints.get('size_constraint_min', 0) or 0.0)
+    band_max = float(constraints.get('size_constraint_max', 300) or 300.0)
+    return {
+        'size_min': _clamp_optional_float(args.get('size_min'), 0.0, 100000.0),
+        'size_max': _clamp_optional_float(args.get('size_max'), 0.0, 100000.0),
+        'sb_max': _clamp_optional_float(args.get('sb_max'), -50.0, 50.0),
+        'alt_window_min_deg': _clamp_optional_float(args.get('alt_window_min_deg'), 0.0, 90.0),
+        'alt_window_start': _clamp_optional_hour(args.get('alt_window_start')),
+        'alt_window_end': _clamp_optional_hour(args.get('alt_window_end')),
+        'combination_id': (args.get('combination_id') or '').strip() or None,
+        'fov_fit': str(args.get('fov_fit', '')).lower() in ('1', 'true', 'yes'),
+        'max_integration_h': _clamp_optional_float(args.get('max_integration_h'), 0.1, 10000.0),
+        'size_band': [band_min, band_max],
+    }
+
+
+def _dso_advanced_filters_active(filters: Optional[Dict[str, Any]]) -> bool:
+    if not filters:
+        return False
+    return any(
+        filters.get(key) not in (None, False)
+        for key in ('size_min', 'size_max', 'sb_max', 'alt_window_min_deg', 'fov_fit', 'max_integration_h')
+    )
+
+
+def _resolve_combination_optics(user_id: str, combination_id: str) -> Optional[Dict[str, Any]]:
+    """Resolve one combination (own or shared) to the optics the FOV / integration filters need.
+
+    Mirrors ``_recommend_combinations_for_target``: effective focal length / ratio from the
+    telescope, or the combination's own lens fields for a camera-only setup. The guide camera
+    is never part of FOV math.
+    """
+    if not combination_id:
+        return None
+    combo = equipment_profiles.get_combination(user_id, combination_id)
+    if combo is None:
+        combo = next(
+            (c for c in equipment_profiles.load_all_shared_combinations(user_id) if c.get('id') == combination_id),
+            None,
+        )
+    if combo is None:
+        return None
+
+    telescopes_by_id, cameras_by_id = equipment_profiles.index_telescopes_and_cameras(user_id)
+    telescope = telescopes_by_id.get(combo.get('telescope_id') or '')
+    camera = cameras_by_id.get(combo.get('camera_id') or '')
+
+    if telescope:
+        focal_length = _to_float(telescope.get('effective_focal_length')) or _to_float(telescope.get('focal_length_mm'))
+        focal_ratio = _to_float(telescope.get('effective_focal_ratio')) or _to_float(
+            telescope.get('native_focal_ratio')
+        )
+    else:
+        focal_length = _to_float(combo.get('lens_focal_length_mm'))
+        focal_ratio = _to_float(combo.get('lens_focal_ratio'))
+
+    if not focal_length or not focal_ratio:
+        return None
+
+    optics: Dict[str, Any] = {
+        'combination_id': combination_id,
+        'combination_name': str(combo.get('name') or ''),
+        'focal_length_mm': focal_length,
+        'focal_ratio': focal_ratio,
+        'fov_h_arcmin': None,
+        'fov_v_arcmin': None,
+        'pixel_size_um': None,
+        'quantum_efficiency': None,
+    }
+    if camera:
+        sensor_w = _to_float(camera.get('sensor_width_mm'))
+        sensor_h = _to_float(camera.get('sensor_height_mm'))
+        pixel = _to_float(camera.get('pixel_size_um'))
+        optics['pixel_size_um'] = pixel
+        optics['quantum_efficiency'] = _to_float(camera.get('quantum_efficiency'))
+        if sensor_w and sensor_h and pixel:
+            try:
+                fov = equipment_profiles.calculate_fov(focal_length, sensor_w, sensor_h, pixel)
+                optics['fov_h_arcmin'] = round(fov.horizontal_fov_deg * 60.0, 2)
+                optics['fov_v_arcmin'] = round(fov.vertical_fov_deg * 60.0, 2)
+            except (TypeError, ValueError, ZeroDivisionError):
+                pass
+    return optics
+
+
+def _dso_row_passes_advanced_filters(
+    row: Dict[str, Any],
+    calc_item: Dict[str, Any],
+    filters: Dict[str, Any],
+    optics: Optional[Dict[str, Any]],
+    bortle: Optional[float],
+    sqm: Optional[float],
+) -> bool:
+    """Apply the v1.4 advanced filters to one calculated DSO row.
+
+    Annotates the row with ``surface_brightness``, ``fov_fit`` and ``est_integration_h``
+    (any of which may be ``None`` = unknown), and returns False when the row is
+    definitively excluded by an active filter. A missing input never excludes a row -
+    the value is surfaced as ``None`` and the UI shows it as unknown.
+    """
+    size = _to_float(calc_item.get('size_arcmin'))
+    surface_brightness = _to_float(calc_item.get('surface_brightness'))
+    row['surface_brightness'] = surface_brightness
+
+    # --- Angular size (view filter inside the configured band) ---
+    if filters.get('size_min') is not None and size is not None and size < filters['size_min']:
+        return False
+    if filters.get('size_max') is not None and size is not None and size > filters['size_max']:
+        return False
+
+    # --- Surface brightness threshold (higher magnitude number = fainter) ---
+    if filters.get('sb_max') is not None and surface_brightness is not None and surface_brightness > filters['sb_max']:
+        return False
+
+    # --- Best altitude window ---
+    window_min = filters.get('alt_window_min_deg')
+    if window_min is not None:
+        start = filters.get('alt_window_start')
+        end = filters.get('alt_window_end')
+        hourly = {entry.get('h'): entry.get('alt') for entry in calc_item.get('hourly_altitude', []) or []}
+        if start is not None and end is not None and hourly:
+            window_hours = (
+                list(range(start, end + 1)) if start <= end else list(range(start, 24)) + list(range(0, end + 1))
+            )
+            present = [hourly[h] for h in window_hours if h in hourly]
+            if not present or any(alt is None or alt < window_min for alt in present):
+                return False
+
+    # --- FOV fit + estimated minimum integration time (need a combination) ---
+    fits: Optional[bool] = None
+    fill_pct: Optional[float] = None
+    est_integration_h: Optional[float] = None
+    if optics is not None:
+        min_fov_arcmin = None
+        if optics.get('fov_h_arcmin') and optics.get('fov_v_arcmin'):
+            min_fov_arcmin = min(optics['fov_h_arcmin'], optics['fov_v_arcmin'])
+        if size is not None and min_fov_arcmin:
+            fill_pct = round(size / min_fov_arcmin, 3)
+            fits = fill_pct <= 1.0
+
+        est_integration_h = exposure_math.estimate_min_integration_hours(
+            surface_brightness,
+            optics.get('focal_length_mm'),
+            optics.get('focal_ratio'),
+            optics.get('pixel_size_um'),
+            bortle=bortle,
+            quantum_efficiency=optics.get('quantum_efficiency'),
+            sqm=sqm,
+        )
+        if est_integration_h is not None:
+            est_integration_h = round(est_integration_h, 1)
+
+        row['fov_fit'] = {'fits': fits, 'fill_pct': fill_pct}
+        row['est_integration_h'] = est_integration_h
+
+        if filters.get('fov_fit') and fits is False:
+            return False
+        if (
+            filters.get('max_integration_h') is not None
+            and est_integration_h is not None
+            and est_integration_h > filters['max_integration_h']
+        ):
+            return False
+
+    return True
+
+
+def _build_dso_section_payload(
+    catalogue: Optional[str],
+    user_id: str,
+    username: str,
+    filters: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Build the deep-sky objects payload for the reactive UI section.
+
+    ``filters`` carries the v1.4 advanced filters (angular size, surface brightness,
+    altitude window, FOV fit, minimum integration time). They run here, server-side,
+    *before* the ``max_rows`` truncation cut, so a filtered result set is a real
+    catalogue-wide search rather than a filter over the top N by AstroScore.
+    """
     plan_payload = plan_my_night.get_plan_with_timeline(user_id, username)
     plan_state = plan_payload.get('state', 'none')
     max_rows = 1000 if not catalogue else 4000
-    location_id = _skytonight_request_location().get('id')
+    request_location = _skytonight_request_location()
+    location_id = request_location.get('id')
+
+    filters = filters or {}
+    optics = _resolve_combination_optics(user_id, filters['combination_id']) if filters.get('combination_id') else None
+    location_bortle = _to_float(request_location.get('bortle'))
+    location_sqm = _to_float(request_location.get('sqm'))
 
     # Pre-load user data once to avoid N×file-reads inside the per-item annotation loop.
     _preloaded_astrodex = astrodex.load_user_astrodex(user_id)
@@ -763,6 +978,9 @@ def _build_dso_section_payload(catalogue: Optional[str], user_id: str, username:
                 'source_type': 'calculated',
                 'plan_state': plan_state,
             }
+            # v1.4 advanced filters run here, before the max_rows cut.
+            if not _dso_row_passes_advanced_filters(row, calc_item, filters, optics, location_bortle, location_sqm):
+                continue
             _annotate_skytonight_item(
                 row,
                 user_id,
@@ -782,6 +1000,13 @@ def _build_dso_section_payload(catalogue: Optional[str], user_id: str, username:
             'source_type': 'calculated',
             'report_truncated': rows_added >= max_rows,
             'report_limit': max_rows,
+            'advanced_filters': {
+                'active': _dso_advanced_filters_active(filters),
+                'size_band': filters.get('size_band'),
+                'combination_id': filters.get('combination_id'),
+                'combination_name': optics.get('combination_name') if optics else None,
+                'combination_resolved': optics is not None,
+            },
         }
 
     # Fallback: static dataset
@@ -802,6 +1027,14 @@ def _build_dso_section_payload(catalogue: Optional[str], user_id: str, username:
                 continue
         else:
             display_name = preferred_name
+        # Only the angular-size filter is meaningful before a calculation run:
+        # surface brightness / altitude window / integration time all need the
+        # scheduler-computed payload fields, which do not exist in the raw dataset.
+        target_size = _to_float(_target_attr(target, 'size_arcmin', None))
+        if filters.get('size_min') is not None and target_size is not None and target_size < filters['size_min']:
+            continue
+        if filters.get('size_max') is not None and target_size is not None and target_size > filters['size_max']:
+            continue
         const = str(_target_attr(target, 'constellation', '') or '')
         const_full = _CONSTELLATION_ABBR_MAP.get(const, const)
         row = {
@@ -840,6 +1073,13 @@ def _build_dso_section_payload(catalogue: Optional[str], user_id: str, username:
         'source_type': 'dataset',
         'report_truncated': rows_added >= max_rows,
         'report_limit': max_rows,
+        'advanced_filters': {
+            'active': _dso_advanced_filters_active(filters),
+            'size_band': filters.get('size_band'),
+            'combination_id': filters.get('combination_id'),
+            'combination_name': None,
+            'combination_resolved': False,
+        },
     }
 
 
@@ -1281,6 +1521,46 @@ def get_skytonight_alttime_api(target_id):
     return jsonify(data)
 
 
+@skytonight_bp.route('/api/skytonight/visibility-calendar', methods=['GET'])
+@login_required
+def get_skytonight_visibility_calendar_api():
+    """Return the 12-month visibility calendar for a fixed deep-sky target.
+
+    Query params:
+      - ``target``: catalogue id or name (required).
+      - ``year``: 4-digit year; defaults to the current year at the active location,
+        clamped to [current_year - 1, current_year + 5].
+    """
+    target = (request.args.get('target') or '').strip()
+    if not target or not re.match(r'^[A-Za-z0-9 _.+\-]{1,64}$', target):
+        return jsonify({'error': 'Invalid target identifier'}), 400
+
+    location = _skytonight_request_location()
+    tz_name = str(location.get('timezone') or 'UTC')
+    try:
+        now_local = datetime.now(ZoneInfo(tz_name))
+    except Exception:
+        now_local = datetime.now(timezone.utc)
+    current_year = now_local.year
+
+    year_raw = request.args.get('year')
+    try:
+        year = int(year_raw) if year_raw not in (None, '') else current_year
+    except (TypeError, ValueError):
+        year = current_year
+    year = max(
+        current_year + visibility_calendar.YEAR_OFFSET_MIN,
+        min(current_year + visibility_calendar.YEAR_OFFSET_MAX, year),
+    )
+
+    try:
+        payload = visibility_calendar.get_visibility_calendar(target, location, year)
+    except Exception:
+        logger.exception(f'Error building visibility calendar for {target!r}')
+        return jsonify({'error': 'Internal server error'}), 500
+    return jsonify(payload)
+
+
 @skytonight_bp.route('/api/skytonight/combination-recommendations', methods=['POST'])
 @login_required
 def get_skytonight_combination_recommendations_api():
@@ -1436,7 +1716,12 @@ def get_skytonight_data_comets_api():
 def get_skytonight_data_dso_api():
     """Return only deep-sky object results (reactive per-section endpoint).
 
-    Optional query param ``catalogue`` filters to a single catalogue.
+    Optional query params:
+      - ``catalogue``: filter to a single catalogue.
+      - v1.4 advanced filters, all applied server-side before the result-set cut:
+        ``size_min``, ``size_max``, ``sb_max``, ``alt_window_min_deg``,
+        ``alt_window_start``, ``alt_window_end``, ``combination_id``, ``fov_fit``,
+        ``max_integration_h``. Malformed values are ignored rather than rejected.
     """
     try:
         user = get_current_user()
@@ -1445,7 +1730,13 @@ def get_skytonight_data_dso_api():
         catalogue = request.args.get('catalogue', '').strip() or None
         if catalogue and not re.match(r'^[a-zA-Z0-9_-]+$', catalogue):
             return jsonify({'error': 'Invalid catalogue name'}), 400
-        return jsonify(_build_dso_section_payload(catalogue, user.user_id, user.username))
+        combination_id = (request.args.get('combination_id') or '').strip()
+        if combination_id and not re.match(r'^[A-Za-z0-9_-]{1,64}$', combination_id):
+            return jsonify({'error': 'Invalid combination id'}), 400
+        cfg = load_config()
+        constraints = cfg.get('skytonight', {}).get('constraints', {}) if isinstance(cfg, dict) else {}
+        filters = _parse_dso_advanced_filters(request.args, constraints)
+        return jsonify(_build_dso_section_payload(catalogue, user.user_id, user.username, filters=filters))
     except Exception:
         logger.exception('Error building DSO section payload')
         return jsonify({'error': 'Internal server error'}), 500

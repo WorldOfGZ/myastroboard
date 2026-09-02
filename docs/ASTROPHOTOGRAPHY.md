@@ -99,12 +99,6 @@ The window score (0–100) reflects how good the dark window is:
 
 **API**: `GET /api/moon/next-7-nights`
 
-### Moon calendar (`astroweather/moon_planner.py`)
-
-Rolling 30-night strip (dark hours + astrophoto score per night) used by the Plan My Night calendar widget.
-
-**API**: `GET /api/moon/month-calendar`
-
 ### Lunar phase calendar (`astroweather/moon_calendar.py`)
 
 Full calendar-month grid shown under "Moon next days". For every day it computes the illuminated

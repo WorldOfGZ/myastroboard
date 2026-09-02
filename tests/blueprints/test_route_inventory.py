@@ -88,7 +88,6 @@ EXPECTED_ROUTES = {
     ('/api/astro/sidereal-time', ('GET',)),
     ('/api/aurora/predictions', ('GET',)),
     ('/api/moon/dark-window', ('GET',)),
-    ('/api/moon/month-calendar', ('GET',)),
     ('/api/moon/next-7-nights', ('GET',)),
     ('/api/moon/next-eclipse', ('GET',)),
     ('/api/moon/phase-calendar', ('GET',)),
@@ -236,6 +235,7 @@ EXPECTED_ROUTES = {
     ('/api/skytonight/skymap', ('GET',)),
     ('/api/skytonight/target-debug', ('GET',)),
     ('/api/skytonight/combination-recommendations', ('POST',)),
+    ('/api/skytonight/visibility-calendar', ('GET',)),
 }
 
 

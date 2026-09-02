@@ -583,6 +583,9 @@
       "payload_capacity_kg": 5.0,
       "tracking_accuracy_arcsec": null,
       "guiding_supported": true,
+      "meridian_flip_required": true,
+      "meridian_flip_delay_min": 0,
+      "meridian_flip_duration_min": 3,
       "suggests_experience": "beginner",
       "source_url": "https://www.skywatcher.com/product/star-adventurer-gti/"
     },
@@ -594,6 +597,9 @@
       "payload_capacity_kg": 13.6,
       "tracking_accuracy_arcsec": null,
       "guiding_supported": true,
+      "meridian_flip_required": true,
+      "meridian_flip_delay_min": 10,
+      "meridian_flip_duration_min": 5,
       "suggests_experience": "beginner",
       "source_url": "https://www.celestron.com/products/advanced-vx-mount-and-tripod"
     },
@@ -605,6 +611,9 @@
       "payload_capacity_kg": 15.0,
       "tracking_accuracy_arcsec": 10,
       "guiding_supported": true,
+      "meridian_flip_required": true,
+      "meridian_flip_delay_min": 10,
+      "meridian_flip_duration_min": 5,
       "suggests_experience": "intermediate",
       "source_url": "http://skywatcher.com/product/heq5-synscan/"
     },
@@ -616,6 +625,9 @@
       "payload_capacity_kg": 20.4,
       "tracking_accuracy_arcsec": 7,
       "guiding_supported": true,
+      "meridian_flip_required": true,
+      "meridian_flip_delay_min": 15,
+      "meridian_flip_duration_min": 4,
       "suggests_experience": "intermediate",
       "source_url": "https://www.ioptron.com/product-p/7603a.htm"
     },
@@ -627,6 +639,9 @@
       "payload_capacity_kg": 20.0,
       "tracking_accuracy_arcsec": 7,
       "guiding_supported": true,
+      "meridian_flip_required": true,
+      "meridian_flip_delay_min": 15,
+      "meridian_flip_duration_min": 5,
       "suggests_experience": "advanced",
       "source_url": "https://skywatcher.com/product/eq6r-pro/"
     },
@@ -638,6 +653,9 @@
       "payload_capacity_kg": 31.8,
       "tracking_accuracy_arcsec": 3.5,
       "guiding_supported": true,
+      "meridian_flip_required": true,
+      "meridian_flip_delay_min": 15,
+      "meridian_flip_duration_min": 4,
       "suggests_experience": "advanced",
       "source_url": "https://www.ioptron.com/product-p/c70aw.htm"
     }

@@ -2609,8 +2609,45 @@ function _mountPictureSlideshow(slideshowPictures, opts) {
         const infoContainer = document.getElementById('slideshow-object-info-wrapper');
         if (infoContainer) {
             injectObjectInfoIntoContainer(opts.objectInfoName, infoContainer);
+            appendVisibilityCalendarSection(opts.objectInfoName, infoContainer);
         }
     }
+}
+
+/**
+ * Append a lazily-loaded "Visibility calendar" collapsible below the object-info
+ * card in the Astrodex item detail modal. Renders the calendar the first time the
+ * section is expanded.
+ * @param {string} identifier
+ * @param {HTMLElement} container
+ */
+function appendVisibilityCalendarSection(identifier, container) {
+    if (typeof renderVisibilityCalendarInto !== 'function' || !identifier || !container) return;
+    const t = (key, fb) => (typeof i18n !== 'undefined' && i18n.has(key)) ? i18n.t(key) : fb;
+
+    const details = document.createElement('details');
+    details.className = 'slideshow-info mt-3 vc-astrodex-details';
+    const summary = document.createElement('summary');
+    summary.className = 'fw-semibold';
+    DOMUtils.append(
+        summary,
+        DOMUtils.createIcon('bi bi-calendar-range icon-inline'),
+        ` ${t('visibility_calendar.title', 'Visibility calendar')}`
+    );
+    details.appendChild(summary);
+
+    const target = document.createElement('div');
+    target.className = 'mt-2';
+    details.appendChild(target);
+    container.appendChild(details);
+
+    let loaded = false;
+    details.addEventListener('toggle', () => {
+        if (details.open && !loaded) {
+            loaded = true;
+            renderVisibilityCalendarInto(identifier, null, target);
+        }
+    });
 }
 
 // ============================================

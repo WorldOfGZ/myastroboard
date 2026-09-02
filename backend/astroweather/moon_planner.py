@@ -52,6 +52,59 @@ def moon_illumination_percent(dt_local: datetime.datetime) -> float:
     return float(moon_illumination(Time(utc_dt)) * 100)
 
 
+def night_body_altitude_grid(
+    latitude: float,
+    longitude: float,
+    timezone_name: str,
+    night_date: datetime.date,
+    step_minutes: int = 10,
+) -> dict:
+    """Vectorized Sun and Moon altitude over one night (18:00 local -> 06:00 next day).
+
+    One Astropy ``AltAz`` transform per body over the whole time grid, matching the
+    optimisation used by :meth:`MoonPlanner._night_data`. Shared with the target
+    visibility calendar (``observation/visibility_calendar.py``) so all three consumers
+    compute the night grid the same way instead of keeping separate copies.
+
+    Args:
+        latitude: Observer latitude in degrees.
+        longitude: Observer longitude in degrees.
+        timezone_name: IANA timezone name (e.g. ``"Europe/Paris"``).
+        night_date: The calendar date the night starts on (evening).
+        step_minutes: Sampling resolution in minutes.
+
+    Returns:
+        Dict with:
+          - ``time``: Astropy ``Time`` array over the grid.
+          - ``sun_alt_deg`` / ``moon_alt_deg``: numpy arrays of altitudes in degrees.
+          - ``moon_illumination_pct``: Moon illumination (%) at the start of the night.
+    """
+    tz = ZoneInfo(timezone_name)
+    location = EarthLocation(lat=latitude * u.deg, lon=longitude * u.deg)
+
+    start = datetime.datetime.combine(night_date, datetime.time(18, 0), tzinfo=tz)
+    end = datetime.datetime.combine(night_date + datetime.timedelta(days=1), datetime.time(6, 0), tzinfo=tz)
+    step = datetime.timedelta(minutes=step_minutes)
+
+    utc_times = []
+    dt = start
+    while dt <= end:
+        utc_times.append(dt.astimezone(datetime.timezone.utc))
+        dt += step
+
+    t_arr = Time(utc_times)
+    frame = AltAz(obstime=t_arr, location=location)
+    sun_alts = np.asarray(get_sun(t_arr).transform_to(frame).alt.deg)  # type: ignore[union-attr]
+    moon_alts = np.asarray(get_body("moon", t_arr).transform_to(frame).alt.deg)  # type: ignore[union-attr]
+
+    return {
+        "time": t_arr,
+        "sun_alt_deg": sun_alts,
+        "moon_alt_deg": moon_alts,
+        "moon_illumination_pct": moon_illumination_percent(start),
+    }
+
+
 class MoonPlanner:
 
     def __init__(self, latitude: float, longitude: float, timezone: str):
@@ -108,27 +161,15 @@ class MoonPlanner:
         array at once.  That yields 2 vectorized calls (sun + moon) per night
         instead of 146 individual ones - ~50× fewer coordinate transforms.
         """
-        start = datetime.datetime.combine(date, datetime.time(18, 0), tzinfo=self.timezone)
-        end = datetime.datetime.combine(date + datetime.timedelta(days=1), datetime.time(6, 0), tzinfo=self.timezone)
-
         step_minutes = 10
-        step = datetime.timedelta(minutes=step_minutes)
-
-        # Build array of UTC time points
-        utc_times = []
-        dt = start
-        while dt <= end:
-            utc_times.append(dt.astimezone(datetime.timezone.utc))
-            dt += step
-
-        # Single vectorized Astropy call per celestial body
-        t_arr = Time(utc_times)
-        frame = AltAz(obstime=t_arr, location=self.location)
-        sun_alts = np.asarray(get_sun(t_arr).transform_to(frame).alt.deg)  # type: ignore[union-attr]
-        moon_alts = np.asarray(get_body("moon", t_arr).transform_to(frame).alt.deg)  # type: ignore[union-attr]
+        grid = night_body_altitude_grid(
+            self.latitude, self.longitude, str(self.timezone.key), date, step_minutes=step_minutes
+        )
+        sun_alts = grid["sun_alt_deg"]
+        moon_alts = grid["moon_alt_deg"]
 
         # Illumination is constant across the night (computed once)
-        illum_percent = self._moon_illumination(start)
+        illum_percent = grid["moon_illumination_pct"]
         moon_max_alt = float(np.max(moon_alts))
 
         astro_night = sun_alts < -18

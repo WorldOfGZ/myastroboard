@@ -17,7 +17,7 @@ import numpy as np
 from skytonight import skytonight_targets
 from utils.constants import DATA_DIR
 from utils.logging_config import get_logger
-from skytonight.skytonight_calculator import _horizon_floor_array
+from skytonight.skytonight_calculator import _horizon_floor_array, _meridian_transit_time
 
 logger = get_logger(__name__)
 
@@ -362,6 +362,186 @@ def _compute_entry_visibility(
         night_end,
     )
     return _visibility_summary(runs, window_start, window_end)
+
+
+# ---------------------------------------------------------------------------
+# Meridian flip estimator (v1.4)
+# ---------------------------------------------------------------------------
+
+_MERIDIAN_FLIP_EARLY_MINUTES = 10
+
+
+def _ra_to_hours(value: Any) -> Optional[float]:
+    """Parse a stored RA (``HHh MMm SSs``, ``HH:MM:SS`` or decimal degrees) to hours [0, 24)."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    match = re.match(r'(\d+)\s*h\s*(\d+)\s*m\s*([\d.]+)\s*s?', text, re.IGNORECASE)
+    if not match:
+        match = re.match(r'(\d+):(\d+):([\d.]+)', text)
+    if match:
+        return (int(match.group(1)) + int(match.group(2)) / 60.0 + float(match.group(3)) / 3600.0) % 24.0
+    try:
+        return (float(text) / 15.0) % 24.0  # bare decimal is interpreted as degrees
+    except (TypeError, ValueError):
+        return None
+
+
+def _transit_datetime_from_hhmm(hhmm: str, night_start: datetime, night_end: datetime) -> Optional[datetime]:
+    """Resolve an ``HH:MM`` local wall-clock transit time to a datetime inside the night window."""
+    try:
+        hour, minute = (int(part) for part in hhmm.split(':'))
+    except (TypeError, ValueError):
+        return None
+    candidate = night_start.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if candidate < night_start:
+        candidate += timedelta(days=1)
+    if night_start <= candidate <= night_end:
+        return candidate
+    return None
+
+
+def _plan_location_latlon(location_id: Optional[str]) -> Tuple[Optional[float], Optional[float]]:
+    """Resolve a pinned plan location id to (latitude, longitude) in degrees."""
+    if not location_id:
+        return None, None
+    try:
+        from utils.repo_config import load_config, get_location_by_id
+
+        preset = get_location_by_id(load_config(), location_id)
+        if not preset:
+            return None, None
+        latitude = preset.get('latitude')
+        longitude = preset.get('longitude')
+        if latitude is None or longitude is None:
+            return None, None
+        return float(latitude), float(longitude)
+    except (TypeError, ValueError, ImportError):
+        return None, None
+
+
+def _resolve_plan_mount(user_id: str, combination_id: Optional[str]) -> Optional[Dict[str, Any]]:
+    """Resolve a plan's pinned combination (own or shared) to its mount dict, or None.
+
+    Lazy import: equipment_profiles imports plan_my_night for its delete guards, so a
+    module-level import here would close the cycle.
+    """
+    if not combination_id:
+        return None
+    try:
+        from equipment import equipment_profiles
+    except ImportError:  # pragma: no cover - equipment package always present in practice
+        return None
+
+    combo = equipment_profiles.get_combination(user_id, combination_id)
+    if combo is None:
+        combo = next(
+            (c for c in equipment_profiles.load_all_shared_combinations(user_id) if c.get('id') == combination_id),
+            None,
+        )
+    mount_id = (combo or {}).get('mount_id')
+    if not mount_id:
+        return None
+
+    mount = equipment_profiles.get_mount(user_id, mount_id)
+    if mount is None:
+        own_by_id, shared_by_id = equipment_profiles.index_owned_and_shared_equipment(user_id)
+        mount = own_by_id.get(mount_id) or shared_by_id.get(mount_id)
+    return mount
+
+
+def _entry_transit_and_flip(
+    entry: Dict[str, Any],
+    mount: Optional[Dict[str, Any]],
+    lat: Optional[float],
+    lon: Optional[float],
+    night_start: Optional[datetime],
+    night_end: Optional[datetime],
+) -> Tuple[Optional[datetime], Optional[datetime]]:
+    """Return (meridian_transit, flip_time) datetimes for an entry, or (None, None).
+
+    ``flip_time = transit + mount.meridian_flip_delay_min``. Both are None whenever the
+    mount does not flip, the location/RA cannot be resolved, or the target does not
+    transit during the night window.
+    """
+    if (
+        mount is None
+        or not mount.get('meridian_flip_required')
+        or lat is None
+        or lon is None
+        or not night_start
+        or not night_end
+        or night_end <= night_start
+    ):
+        return None, None
+    ra_hours = _ra_to_hours(entry.get('ra'))
+    if ra_hours is None:
+        return None, None
+    transit_hhmm = _meridian_transit_time(ra_hours, night_start, night_end, lat, lon)
+    if not transit_hhmm:
+        return None, None
+    transit_dt = _transit_datetime_from_hhmm(transit_hhmm, night_start, night_end)
+    if transit_dt is None:
+        return None, None
+    delay_min = float(mount.get('meridian_flip_delay_min') or 0.0)
+    return transit_dt, transit_dt + timedelta(minutes=delay_min)
+
+
+def _flip_state_for_slot(
+    flip_time: Optional[datetime],
+    slot_start: Optional[datetime],
+    slot_end: Optional[datetime],
+) -> str:
+    """Classify a flip time against a planned slot: none / after / mid / early."""
+    if flip_time is None or slot_start is None or slot_end is None:
+        return 'none'
+    if flip_time < slot_start:
+        return 'none'
+    if flip_time >= slot_end:
+        return 'after'
+    if flip_time <= slot_start + timedelta(minutes=_MERIDIAN_FLIP_EARLY_MINUTES):
+        return 'early'
+    return 'mid'
+
+
+def _compute_entry_meridian_flip(
+    entry: Dict[str, Any],
+    slot_start: Optional[datetime],
+    slot_end: Optional[datetime],
+    mount: Optional[Dict[str, Any]],
+    lat: Optional[float],
+    lon: Optional[float],
+    night_start: Optional[datetime],
+    night_end: Optional[datetime],
+) -> Dict[str, Any]:
+    """Estimate the meridian-flip state for one plan timeline entry.
+
+    States:
+      - ``unknown``: no mount could be resolved from the plan's combination - never guess.
+      - ``none``: flip not required, no meridian transit tonight, or the flip falls before
+        the entry's slot starts.
+      - ``after``: flip at or after the slot end.
+      - ``mid``: flip strictly inside the slot.
+      - ``early``: flip within the first 10 minutes of the slot.
+
+    ``flip_time`` (ISO) and ``lost_minutes`` (the mount's flip dead time) are returned for
+    the tooltip whenever a transit was found.
+    """
+    if mount is None:
+        return {'state': 'unknown'}
+
+    transit_dt, flip_time = _entry_transit_and_flip(entry, mount, lat, lon, night_start, night_end)
+    if flip_time is None:
+        return {'state': 'none'}
+
+    return {
+        'state': _flip_state_for_slot(flip_time, slot_start, slot_end),
+        'flip_time': _to_iso(flip_time),
+        'transit_time': _to_iso(transit_dt) if transit_dt else None,
+        'lost_minutes': round(float(mount.get('meridian_flip_duration_min') or 0.0), 1),
+    }
 
 
 def ensure_plan_directory() -> None:
@@ -1039,6 +1219,9 @@ def get_plan_with_timeline(user_id: str, username: str, combination_id: Optional
         cursor = night_start + timedelta(minutes=start_delay_minutes)
         location_id = plan_copy.get('location_id')
         alttime_cache: Dict[str, Any] = {}
+        # Meridian-flip estimator inputs, resolved once for the whole plan (v1.4).
+        flip_mount = _resolve_plan_mount(user_id, plan_copy.get('combination_id'))
+        flip_lat, flip_lon = _plan_location_latlon(location_id)
         for entry in entries:
             planned_minutes = int(entry.get('planned_minutes') or 0)
             start_dt = cursor
@@ -1052,6 +1235,9 @@ def get_plan_with_timeline(user_id: str, username: str, combination_id: Optional
             entry['timeline_end'] = _to_iso(end_dt)
             entry['visibility'] = _compute_entry_visibility(
                 entry, location_id, night_start, night_end, start_dt, end_dt, alttime_cache
+            )
+            entry['meridian_flip'] = _compute_entry_meridian_flip(
+                entry, start_dt, end_dt, flip_mount, flip_lat, flip_lon, night_start, night_end
             )
 
             if is_inside_night and not entry.get('done') and start_dt <= now_dt <= end_dt:
@@ -1107,6 +1293,10 @@ def compute_optimized_schedule(
     location_id = plan.get('location_id')
     alttime_cache: Dict[str, Any] = {}
 
+    # v1.4: flip-aware ordering inputs, resolved once for the whole plan.
+    flip_mount = _resolve_plan_mount(user_id, plan.get('combination_id'))
+    flip_lat, flip_lon = _plan_location_latlon(location_id)
+
     candidates = []
     for entry in entries:
         planned_minutes = int(entry.get('planned_minutes') or 0)
@@ -1145,10 +1335,29 @@ def compute_optimized_schedule(
             chosen_run = (night_start, night_end)
             warnings.append('never_observable')
 
-        candidates.append({'entry': entry, 'run_start': chosen_run[0], 'runs': runs, 'warnings': warnings})
+        _, flip_time = _entry_transit_and_flip(entry, flip_mount, flip_lat, flip_lon, night_start, night_end)
+        candidates.append(
+            {
+                'entry': entry,
+                'run_start': chosen_run[0],
+                'runs': runs,
+                'warnings': warnings,
+                'flip_time': flip_time,
+            }
+        )
 
-    # Stable sort: ties keep the plan's current relative order.
-    candidates.sort(key=lambda c: c['run_start'])
+    # Primary key: earliest observable run start (unchanged). Tie-break refinement (v1.4):
+    # among targets that would start at the same time, schedule the one whose meridian flip
+    # comes soonest first, so it can finish before flipping. Targets with no flip / unknown
+    # mount sort last within the tie and keep their existing stable relative order, so a
+    # plan without a mount reorders exactly as it did before.
+    def _flip_sort_key(c: Dict[str, Any]) -> Tuple[datetime, int, datetime]:
+        flip_time = c['flip_time']
+        if flip_time is None:
+            return (c['run_start'], 1, night_start)
+        return (c['run_start'], 0, flip_time)
+
+    candidates.sort(key=_flip_sort_key)
 
     cursor = night_start
     preview = []
@@ -1167,6 +1376,8 @@ def compute_optimized_schedule(
                 warnings.append('truncated')
                 end = night_end
 
+        flip_time = c['flip_time']
+        flip_state = _flip_state_for_slot(flip_time, start, end)
         preview.append(
             {
                 'id': entry.get('id'),
@@ -1175,6 +1386,11 @@ def compute_optimized_schedule(
                 'end': _to_iso(end),
                 'visibility': _visibility_summary(c['runs'], start, end),
                 'warnings': warnings,
+                'meridian_flip': (
+                    {'state': flip_state, 'flip_time': _to_iso(flip_time)}
+                    if flip_time is not None
+                    else {'state': 'unknown' if flip_mount is None else 'none'}
+                ),
             }
         )
         cursor = end
@@ -1193,6 +1409,8 @@ def compute_optimized_schedule(
     plan_warnings = []
     if any('truncated' in p['warnings'] or 'pushed_past_night_end' in p['warnings'] for p in preview):
         plan_warnings.append('total_duration_exceeds_night')
+    if any(p.get('meridian_flip', {}).get('state') in ('mid', 'early') for p in preview):
+        plan_warnings.append('flip_mid_session')
 
     return {
         'order': [p['id'] for p in preview],
@@ -1658,6 +1876,23 @@ def generate_plan_pdf(payload: Dict, metrics: Dict, i18n_manager) -> io.BytesIO:
         ax.text(COL_X[3], mid_y, typ, va='center', ha='left', fontsize=7, color=C_TXT_DRK, transform=ax.transAxes)
         ax.text(COL_X[4], mid_y, const, va='center', ha='left', fontsize=7, color=C_TXT_DRK, transform=ax.transAxes)
 
+        # v1.4 meridian-flip marker: only drawn when the flip lands within (early/mid) or
+        # right after this entry's slot, so an unattended session can spot it at a glance.
+        flip = entry.get('meridian_flip') or {}
+        flip_state = flip.get('state')
+        if flip_state in ('early', 'mid', 'after'):
+            flip_color = {'early': '#c0392b', 'mid': '#e67e22'}.get(flip_state, C_TXT_MID)
+            ax.text(
+                0.995,
+                mid_y,
+                f"⚑ {_fmt_hm(flip.get('flip_time'))}",
+                va='center',
+                ha='right',
+                fontsize=6.5,
+                color=flip_color,
+                transform=ax.transAxes,
+            )
+
     def _setup_list_ax(ax) -> None:
         ax.set_facecolor(C_WHITE)
         ax.axis('off')
@@ -1840,19 +2075,26 @@ def generate_plan_pdf(payload: Dict, metrics: Dict, i18n_manager) -> io.BytesIO:
                     ax_chart.fill_between(xs, 0, ys, color=color, alpha=0.07, zorder=3)
 
                     peak_idx = ys.index(max(ys))
+                    peak_alt = ys[peak_idx]
                     label = (entry.get('name') or entry.get('target_name') or '')[:14]
+                    # Near the top of the frame there is no room above the curve (and the
+                    # info panel sits just above), so drop the label below the peak there.
+                    label_below = peak_alt > 78.0
                     ax_chart.annotate(
                         label,
-                        xy=(xs[peak_idx], ys[peak_idx]),
-                        xytext=(0, 5),
+                        xy=(xs[peak_idx], peak_alt),
+                        xytext=(0, -7 if label_below else 5),
                         textcoords='offset points',
                         fontsize=6.5,
                         color=color,
                         fontweight='bold',
                         ha='center',
-                        va='bottom',
-                        zorder=6,
+                        va='top' if label_below else 'bottom',
+                        zorder=7,
                         clip_on=True,
+                        bbox=dict(
+                            boxstyle='round,pad=0.18', facecolor=C_WHITE, edgecolor=color, linewidth=0.4, alpha=0.9
+                        ),
                     )
 
                 ns_num = float(mdates.date2num(ns_dt))

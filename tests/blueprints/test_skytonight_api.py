@@ -15,6 +15,7 @@ from utils.auth import user_manager  # type: ignore[import-not-found]
 
 app = app_module.app
 from skytonight.skytonight_models import SkyTonightTarget  # type: ignore[import-not-found]
+from observation import visibility_calendar as visibility_calendar_module  # type: ignore[import-not-found]
 
 
 @pytest.fixture
@@ -2433,3 +2434,266 @@ def test_skytonight_alttime_path_escape_returns_400(client_admin, monkeypatch):
     monkeypatch.setattr(skytonight_api_module, "_alttime_json_path", lambda *_a, **_k: "/definitely/outside/output_dir.json")
     resp = client_admin.get('/api/skytonight/alttime/valid_target')
     assert resp.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# GET /api/skytonight/visibility-calendar
+# ---------------------------------------------------------------------------
+
+
+def _stub_calendar(monkeypatch, capture=None):
+    def _fake(identifier, location, year):
+        if capture is not None:
+            capture.append({'identifier': identifier, 'location': location, 'year': year})
+        return {
+            'target': {'id': identifier, 'name': identifier, 'type': 'Nebula'},
+            'location': {'id': location.get('id'), 'name': location.get('name')},
+            'year': year,
+            'supported': True,
+            'months': [{'month': m, 'score': 0.0, 'bucket': 0} for m in range(1, 13)],
+            'samples': [],
+            'constraints': {'altitude_min': 30, 'altitude_max': 80, 'has_horizon_profile': False},
+        }
+
+    monkeypatch.setattr(skytonight_api_module.visibility_calendar, 'get_visibility_calendar', _fake)
+
+
+def test_visibility_calendar_requires_auth(client):
+    resp = client.get('/api/skytonight/visibility-calendar?target=M31')
+    assert resp.status_code in (401, 302)
+
+
+def test_visibility_calendar_rejects_invalid_target(client_admin):
+    resp = client_admin.get('/api/skytonight/visibility-calendar?target=' + '%3Cscript%3E')
+    assert resp.status_code == 400
+
+
+def test_visibility_calendar_missing_target_is_400(client_admin):
+    resp = client_admin.get('/api/skytonight/visibility-calendar')
+    assert resp.status_code == 400
+
+
+def test_visibility_calendar_returns_payload_shape(client_admin, monkeypatch):
+    _stub_calendar(monkeypatch)
+    resp = client_admin.get('/api/skytonight/visibility-calendar?target=NGC 7000')
+    assert resp.status_code == 200
+    payload = resp.get_json()
+    assert payload['supported'] is True
+    assert len(payload['months']) == 12
+    assert set(payload['constraints']) == {'altitude_min', 'altitude_max', 'has_horizon_profile'}
+
+
+def test_visibility_calendar_clamps_out_of_range_year(client_admin, monkeypatch):
+    captured = []
+    _stub_calendar(monkeypatch, capture=captured)
+    import datetime as _dt
+
+    current_year = _dt.datetime.now().year
+    resp = client_admin.get('/api/skytonight/visibility-calendar?target=M31&year=2099')
+    assert resp.status_code == 200
+    assert captured[0]['year'] == current_year + visibility_calendar_module.YEAR_OFFSET_MAX
+
+    captured.clear()
+    resp = client_admin.get('/api/skytonight/visibility-calendar?target=M31&year=notanumber')
+    assert resp.status_code == 200
+    assert captured[0]['year'] == current_year
+
+
+def test_visibility_calendar_handles_internal_error(client_admin, monkeypatch):
+    monkeypatch.setattr(
+        skytonight_api_module.visibility_calendar,
+        'get_visibility_calendar',
+        lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError('boom')),
+    )
+    resp = client_admin.get('/api/skytonight/visibility-calendar?target=M31')
+    assert resp.status_code == 500
+
+
+# ---------------------------------------------------------------------------
+# v1.4 advanced DSO filters (server-side, before truncation)
+# ---------------------------------------------------------------------------
+
+
+def _dso_calc_items():
+    return [
+        {
+            'target_id': 'dso-bright-small',
+            'preferred_name': 'NGC 1',
+            'catalogue_names': {'OpenNGC': 'NGC 1'},
+            'object_type': 'Galaxy',
+            'magnitude': 8.0,
+            'size_arcmin': 8.0,
+            'astro_score': 0.9,
+            'surface_brightness': 12.0,
+            'hourly_altitude': [{'h': 22, 'alt': 55.0}, {'h': 23, 'alt': 60.0}, {'h': 0, 'alt': 50.0}],
+            'observation': {},
+        },
+        {
+            'target_id': 'dso-faint-large',
+            'preferred_name': 'NGC 2',
+            'catalogue_names': {'OpenNGC': 'NGC 2'},
+            'object_type': 'Nebula',
+            'magnitude': 11.0,
+            'size_arcmin': 120.0,
+            'astro_score': 0.7,
+            'surface_brightness': 23.0,
+            'hourly_altitude': [{'h': 22, 'alt': 20.0}, {'h': 23, 'alt': 25.0}, {'h': 0, 'alt': 18.0}],
+            'observation': {},
+        },
+        {
+            'target_id': 'dso-unknown-sb',
+            'preferred_name': 'NGC 3',
+            'catalogue_names': {'OpenNGC': 'NGC 3'},
+            'object_type': 'Nebula',
+            'magnitude': None,
+            'size_arcmin': None,
+            'astro_score': 0.6,
+            'surface_brightness': None,
+            'hourly_altitude': [{'h': 22, 'alt': 45.0}, {'h': 23, 'alt': 48.0}],
+            'observation': {},
+        },
+    ]
+
+
+def _patch_dso_calc(monkeypatch, items=None):
+    monkeypatch.setattr(skytonight_api_module, 'has_dso_results', lambda *_a, **_k: True)
+    monkeypatch.setattr(
+        skytonight_api_module,
+        'load_json_file',
+        lambda *_a, **_k: {'metadata': {}, 'deep_sky': items if items is not None else _dso_calc_items()},
+    )
+    monkeypatch.setattr(skytonight_api_module, '_annotate_skytonight_item', lambda *a, **k: None)
+    monkeypatch.setattr(skytonight_api_module.astrodex, 'load_user_astrodex', lambda *_a, **_k: {'items': []})
+    monkeypatch.setattr(skytonight_api_module, '_preload_all_current_plan_entries', lambda *_a, **_k: [])
+    monkeypatch.setattr(skytonight_api_module.plan_my_night, 'get_plan_with_timeline', lambda *_a, **_k: {'state': 'none'})
+    monkeypatch.setattr(
+        skytonight_api_module,
+        '_skytonight_request_location',
+        lambda: {'id': 'loc-1', 'name': 'Home', 'bortle': 5, 'sqm': None, 'horizon_profile': []},
+    )
+
+
+def _filters(**overrides):
+    base = {
+        'size_min': None,
+        'size_max': None,
+        'sb_max': None,
+        'alt_window_min_deg': None,
+        'alt_window_start': None,
+        'alt_window_end': None,
+        'combination_id': None,
+        'fov_fit': False,
+        'max_integration_h': None,
+        'size_band': [0.0, 300.0],
+    }
+    base.update(overrides)
+    return base
+
+
+def test_dso_payload_surfaces_surface_brightness_and_advanced_filters_block(monkeypatch):
+    _patch_dso_calc(monkeypatch)
+    payload = skytonight_api_module._build_dso_section_payload(None, 'uid-1', 'U', filters=_filters())
+    names = {row['target name']: row for row in payload['report']}
+    assert names['NGC 1']['surface_brightness'] == 12.0
+    assert names['NGC 3']['surface_brightness'] is None
+    assert payload['advanced_filters']['active'] is False
+    assert payload['advanced_filters']['size_band'] == [0.0, 300.0]
+
+
+def test_dso_surface_brightness_filter_keeps_unknown_rows(monkeypatch):
+    _patch_dso_calc(monkeypatch)
+    payload = skytonight_api_module._build_dso_section_payload(
+        None, 'uid-1', 'U', filters=_filters(sb_max=18.0)
+    )
+    names = {row['target name'] for row in payload['report']}
+    assert names == {'NGC 1', 'NGC 3'}  # NGC 2 (SB 23) dropped, NGC 3 (unknown) kept
+
+
+def test_dso_size_band_filter(monkeypatch):
+    _patch_dso_calc(monkeypatch)
+    payload = skytonight_api_module._build_dso_section_payload(
+        None, 'uid-1', 'U', filters=_filters(size_min=5.0, size_max=50.0)
+    )
+    names = {row['target name'] for row in payload['report']}
+    assert names == {'NGC 1', 'NGC 3'}  # NGC 2 is 120 arcmin -> dropped; NGC 3 unknown -> kept
+
+
+def test_dso_altitude_window_filter(monkeypatch):
+    _patch_dso_calc(monkeypatch)
+    payload = skytonight_api_module._build_dso_section_payload(
+        None,
+        'uid-1',
+        'U',
+        filters=_filters(alt_window_min_deg=30.0, alt_window_start=22, alt_window_end=0),
+    )
+    names = {row['target name'] for row in payload['report']}
+    # NGC 2 sits at 18-25 deg across 22h-00h -> dropped. NGC 3 has no 00h sample but its
+    # present window hours (22, 23) are all above 30 -> kept.
+    assert names == {'NGC 1', 'NGC 3'}
+
+
+def test_dso_fov_fit_and_integration_filters(monkeypatch):
+    _patch_dso_calc(monkeypatch)
+    monkeypatch.setattr(
+        skytonight_api_module,
+        '_resolve_combination_optics',
+        lambda *_a, **_k: {
+            'combination_id': 'combo-1',
+            'combination_name': 'Rig',
+            'focal_length_mm': 500.0,
+            'focal_ratio': 5.0,
+            'fov_h_arcmin': 90.0,
+            'fov_v_arcmin': 60.0,
+            'pixel_size_um': 3.76,
+            'quantum_efficiency': 0.8,
+        },
+    )
+    payload = skytonight_api_module._build_dso_section_payload(
+        None, 'uid-1', 'U', filters=_filters(combination_id='combo-1', fov_fit=True)
+    )
+    names = {row['target name']: row for row in payload['report']}
+    # NGC 2 is 120 arcmin vs a 60 arcmin min FOV -> does not fit -> dropped.
+    assert 'NGC 2' not in names
+    assert names['NGC 1']['fov_fit']['fits'] is True
+    assert names['NGC 3']['fov_fit']['fits'] is None  # no size -> unknown, kept
+    assert 'est_integration_h' in names['NGC 1']
+    assert payload['advanced_filters']['combination_resolved'] is True
+
+
+def test_dso_filters_run_before_truncation(monkeypatch):
+    many = []
+    for i in range(1500):
+        many.append(
+            {
+                'target_id': f'dso-{i}',
+                'preferred_name': f'NGC {i}',
+                'catalogue_names': {'OpenNGC': f'NGC {i}'},
+                'object_type': 'Galaxy',
+                'magnitude': 9.0,
+                'size_arcmin': 5.0 if i % 2 == 0 else 400.0,
+                'astro_score': 1.0 - i / 2000.0,
+                'surface_brightness': 12.0,
+                'hourly_altitude': [],
+                'observation': {},
+            }
+        )
+    _patch_dso_calc(monkeypatch, items=many)
+    payload = skytonight_api_module._build_dso_section_payload(
+        None, 'uid-1', 'U', filters=_filters(size_max=10.0)
+    )
+    # 750 small targets pass; all are returned (well under the 1000 cap) even though
+    # they are scattered through 1500 rows - i.e. the filter ran catalogue-wide.
+    assert len(payload['report']) == 750
+    assert payload['report_truncated'] is False
+
+
+def test_dso_route_rejects_bad_combination_id(client_admin):
+    resp = client_admin.get('/api/skytonight/data/dso?combination_id=' + 'x' * 80)
+    assert resp.status_code == 400
+
+
+def test_dso_route_ignores_malformed_filter_values(client_admin, monkeypatch):
+    _patch_dso_calc(monkeypatch)
+    resp = client_admin.get('/api/skytonight/data/dso?sb_max=abc&size_min=&alt_window_start=99')
+    assert resp.status_code == 200
+    assert 'advanced_filters' in resp.get_json()

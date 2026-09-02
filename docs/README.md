@@ -81,6 +81,7 @@ Welcome to the comprehensive documentation for MyAstroBoard, the integrated astr
 | Weather forecast | Weather → Weather | [WEATHER.md](WEATHER.md) |
 | Seeing forecast | Weather → Seeing | [WEATHER.md](WEATHER.md) |
 | Target catalogue & AstroScore | SkyTonight | [SKYTONIGHT.md](SKYTONIGHT.md) |
+| Target visibility calendar | SkyTonight -> DSO / Astrodex item | [SKYTONIGHT.md](SKYTONIGHT.md) |
 | Guided setup wizard (first run) | Startup modal | [BEGINNER_EXPERIENCE.md](BEGINNER_EXPERIENCE.md) |
 | Difficulty ratings & "Tonight for you" | SkyTonight → DSO | [BEGINNER_EXPERIENCE.md](BEGINNER_EXPERIENCE.md) |
 | Beginner Catalog | SkyTonight → Beginner | [BEGINNER_EXPERIENCE.md](BEGINNER_EXPERIENCE.md) |

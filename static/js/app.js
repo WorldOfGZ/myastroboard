@@ -507,8 +507,6 @@ function switchSubTab(parentTab, subtabName, options = {}) {
             loadSpaceflightEvents();
             break; // Spaceflight tab
         case 'plan-my-night':
-            loadMoonCalendar();
-            loadSeeingWeek();
             loadPlanMyNight();
             break; // Plan My Night tab
         case 'observation-log':

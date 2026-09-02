@@ -928,6 +928,25 @@ def _compute_target_result(
 
     difficulty_score, difficulty = compute_difficulty_score(target)
 
+    # Mean surface brightness (mag/arcmin^2) from integrated magnitude + catalogue size.
+    # None whenever magnitude or size is missing - consumers keep the row, tagged unknown.
+    surface_brightness = _surface_brightness(target.magnitude, target.size_arcmin)
+
+    # Compact hourly altitude vector (local hour -> altitude at the sample nearest :00),
+    # used by the "best altitude window" advanced DSO filter so it never has to re-read
+    # one *_alttime.json file per target. Only available on the batched DSO path.
+    hourly_altitude: List[Dict[str, Any]] = []
+    if times_local is not None and len(times_local) == len(altaz_values):
+        best_offset: Dict[int, int] = {}
+        by_hour: Dict[int, float] = {}
+        for sample_idx, sample_local in enumerate(times_local):
+            offset = min(sample_local.minute, 60 - sample_local.minute)
+            hour = sample_local.hour
+            if hour not in best_offset or offset < best_offset[hour]:
+                best_offset[hour] = offset
+                by_hour[hour] = round(float(altaz_values[sample_idx]), 1)
+        hourly_altitude = [{'h': hour, 'alt': by_hour[hour]} for hour in sorted(by_hour)]
+
     return {
         'target_id': target.target_id,
         'preferred_name': (
@@ -963,6 +982,8 @@ def _compute_target_result(
         'astro_score': astro_score,
         'difficulty_score': difficulty_score,
         'difficulty': difficulty,
+        'surface_brightness': round(surface_brightness, 2) if surface_brightness is not None else None,
+        'hourly_altitude': hourly_altitude,
         'moon_angular_distance': round(angular_distance_moon, 1) if angular_distance_moon is not None else None,
         'source_catalogues': target.source_catalogues,
         'metadata': target.metadata,

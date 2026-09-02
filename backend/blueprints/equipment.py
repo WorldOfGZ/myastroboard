@@ -89,6 +89,8 @@ def _validate_mount_data(data):
         [
             ('payload_capacity_kg', 0.1, 100, 'kg'),
             ('tracking_accuracy_arcsec', 0.1, 10, 'arcsec'),
+            ('meridian_flip_delay_min', 0, 120, 'min'),
+            ('meridian_flip_duration_min', 0, 60, 'min'),
         ],
     )
 

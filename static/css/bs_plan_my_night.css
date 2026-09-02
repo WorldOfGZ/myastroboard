@@ -156,163 +156,6 @@
     transform: translateX(-50%);
 }
 
-/* Moon Calendar */
-
-.plan-moon-calendar-section {
-    border: 1px solid var(--surface-border);
-    border-radius: var(--border-radius-lg);
-    padding: 0.6rem 0.75rem 0.5rem;
-    background-color: color-mix(in srgb, var(--surface-elevated) 86%, var(--surface-card));
-    box-shadow: var(--shadow-surface-sm);
-}
-
-.plan-moon-calendar-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 0.5rem;
-}
-
-.plan-moon-calendar-toggle {
-    text-decoration: none;
-    line-height: 1;
-}
-
-.plan-moon-calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 3px;
-}
-
-.plan-moon-cal-weekday-header {
-    font-size: 0.65rem;
-    font-weight: 600;
-    text-align: center;
-    text-transform: uppercase;
-    opacity: 0.55;
-    padding-bottom: 2px;
-}
-
-.plan-moon-cal-cell {
-    border-radius: var(--border-radius-half);
-    padding: 4px 2px 3px;
-    text-align: center;
-    cursor: default;
-}
-
-.plan-moon-cal-blank {
-    visibility: hidden;
-}
-
-.plan-moon-cal-day {
-    font-size: 0.78rem;
-    font-weight: 700;
-    line-height: 1.2;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.plan-moon-cal-month-abbr {
-    font-size: 0.58rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    opacity: 0.7;
-    line-height: 1;
-    letter-spacing: 0.03em;
-}
-
-.plan-moon-cal-dark {
-    font-size: 0.65rem;
-    font-weight: 600;
-    line-height: 1.2;
-    margin-top: 1px;
-}
-
-.plan-moon-cal-illum {
-    font-size: 0.62rem;
-    opacity: 0.65;
-    line-height: 1.1;
-}
-
-.plan-moon-cal-today {
-    outline: 2px solid var(--bs-info);
-    outline-offset: -2px;
-}
-
-.plan-moon-cal-good {
-    background-color: color-mix(in srgb, var(--bs-success-bg-subtle) 70%, transparent);
-}
-
-.plan-moon-cal-ok {
-    background-color: color-mix(in srgb, var(--bs-warning-bg-subtle) 70%, transparent);
-}
-
-.plan-moon-cal-bright {
-    background-color: color-mix(in srgb, var(--bs-danger-bg-subtle) 50%, transparent);
-}
-
-.plan-moon-cal-legend {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-top: 0.4rem;
-    font-size: 0.7rem;
-    opacity: 0.8;
-}
-
-.plan-moon-cal-legend-dot {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 2px;
-    flex-shrink: 0;
-}
-
-.plan-moon-cal-legend-label {
-    margin-right: 0.5rem;
-}
-
-/* Seeing Week strip */
-
-.plan-seeing-week-grid {
-    display: grid;
-    /* column count set dynamically via style attribute to match available data */
-    gap: 4px;
-}
-
-.plan-seeing-week-cell {
-    border-radius: var(--border-radius-half);
-    padding: 4px 2px 3px;
-    text-align: center;
-    cursor: default;
-}
-
-.plan-seeing-week-dow {
-    font-size: 0.65rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    opacity: 0.55;
-    line-height: 1.2;
-}
-
-.plan-seeing-week-score {
-    font-size: 1rem;
-    font-weight: 700;
-    line-height: 1.2;
-    margin-top: 1px;
-}
-
-.plan-seeing-week-quality {
-    font-size: 0.58rem;
-    opacity: 0.75;
-    line-height: 1.2;
-    margin-top: 1px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 /* Combination selector badge buttons */
 .plan-combination-badge {
     font-size: 0.78rem;
@@ -347,3 +190,32 @@
     outline: none;
 }
 
+/* ── Meridian flip indicator (v1.4) ─────────────────────────────────────── */
+.pmn-flip {
+    font-weight: 600;
+}
+
+.pmn-flip--early {
+    background-color: #dc3545;
+    color: #ffffff;
+}
+
+.pmn-flip--mid {
+    background-color: #fd7e14;
+    color: #111827;
+}
+
+.pmn-flip--after {
+    background-color: #198754;
+    color: #ffffff;
+}
+
+.pmn-flip--unknown {
+    background-color: #6c757d;
+    color: #ffffff;
+}
+
+html[data-theme="red"] .pmn-flip--after {
+    background-color: #15803d;
+    color: #ecfdf5;
+}

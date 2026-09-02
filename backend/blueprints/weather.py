@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 from flask import Blueprint, request, jsonify
 
 from cache import cache_store
-from astroweather import moon_calendar, moon_planner
+from astroweather import moon_calendar
 from utils.auth import login_required
 from utils.constants import CACHE_TTL, WEATHER_CACHE_TTL
 from utils.i18n_utils import I18nManager
@@ -229,50 +229,6 @@ def get_next_7_nights_api():
     except Exception as e:
         logger.error(f"Error getting Moon Planner cache: {e}")
         return jsonify({'error': 'Internal server error'}), 500
-
-
-_moon_calendar_cache: dict = {}  # location_id -> {"timestamp", "data"}
-_MOON_CALENDAR_TTL = 3600  # 1 hour - recompute once per hour at most
-
-
-@weather_bp.route("/api/moon/month-calendar", methods=["GET"])
-@login_required
-def get_moon_month_calendar_api():
-    """Return next 30 nights moon/darkness data for the Plan My Night calendar widget."""
-    try:
-        location = _resolve_active_location()
-        cache_slot = _moon_calendar_cache.setdefault(location.get("id"), {"timestamp": 0, "data": None})
-
-        now = _time.time()
-        if cache_slot["data"] and (now - cache_slot["timestamp"]) < _MOON_CALENDAR_TTL:
-            return jsonify(cache_slot["data"])
-
-        lat = location.get("latitude")
-        lon = location.get("longitude")
-        tz = location.get("timezone", "UTC")
-        if lat is None or lon is None:
-            return jsonify({"error": "Location not configured"}), 400
-
-        planner = moon_planner.MoonPlanner(float(lat), float(lon), tz)
-        nights = planner.next_n_nights(30)
-        result = {
-            "nights": [
-                {
-                    "date": n["date"],
-                    "illumination_percent": n["moon"]["illumination_percent"],
-                    "strict_hours": n["dark_hours"]["strict"],
-                    "astrophoto_score": n["astrophoto_score"],
-                }
-                for n in nights
-            ]
-        }
-        cache_slot["data"] = result
-        cache_slot["timestamp"] = now
-        return jsonify(result)
-
-    except Exception as e:
-        logger.error(f"Error computing moon month calendar: {e}")
-        return jsonify({"error": "Internal server error"}), 500
 
 
 _moon_phase_calendar_cache: dict = {}  # "<tz>:<yyyy-mm>" -> {"timestamp", "data"}

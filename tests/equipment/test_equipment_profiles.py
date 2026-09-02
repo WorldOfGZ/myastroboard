@@ -1220,6 +1220,53 @@ class TestDataclassBranchCoverage:
         m = Mount(id='m1', name='No Payload', payload_capacity_kg=0)
         assert m.recommended_payload_kg == 0.0
 
+    def test_mount_meridian_flip_required_derived_from_type(self):
+        Mount = equipment_profiles.Mount
+        assert Mount(id='m', name='EQ', mount_type='Equatorial').meridian_flip_required is True
+        assert Mount(id='m', name='AZ', mount_type='Alt-Azimuth').meridian_flip_required is False
+        assert Mount(id='m', name='Dob', mount_type='Dobsonian').meridian_flip_required is False
+        assert Mount(id='m', name='Fork', mount_type='Fork Mount').meridian_flip_required is False
+
+    def test_mount_meridian_flip_required_explicit_override(self):
+        Mount = equipment_profiles.Mount
+        # A fork mount on a wedge does flip - the stored override wins over the derivation.
+        m = Mount(id='m', name='Fork+wedge', mount_type='Fork Mount', meridian_flip_required=True)
+        assert m.meridian_flip_required is True
+
+    def test_mount_meridian_flip_fields_clamped(self):
+        Mount = equipment_profiles.Mount
+        m = Mount(
+            id='m',
+            name='Clamp',
+            mount_type='Equatorial',
+            meridian_flip_delay_min=999,
+            meridian_flip_duration_min=-5,
+        )
+        assert m.meridian_flip_delay_min == 120.0
+        assert m.meridian_flip_duration_min == 0.0
+
+    def test_mount_meridian_flip_defaults_when_absent(self):
+        Mount = equipment_profiles.Mount
+        m = Mount(id='m', name='Defaults', mount_type='Equatorial')
+        assert m.meridian_flip_delay_min == 0.0
+        assert m.meridian_flip_duration_min == 5.0
+
+    def test_old_mount_json_without_flip_keys_loads_with_defaults(self, temp_data_dir, test_user_id):
+        # Simulate a pre-v1.4 mount file with none of the flip keys.
+        equipment_profiles.ensure_equipment_directories()
+        path = equipment_profiles.get_user_equipment_file(test_user_id, 'mounts')
+        with open(path, 'w') as handle:
+            json.dump(
+                {'items': [{'id': 'legacy', 'name': 'Old EQ', 'mount_type': 'Equatorial', 'payload_capacity_kg': 15}]},
+                handle,
+            )
+        loaded = equipment_profiles.get_mount(test_user_id, 'legacy')
+        assert loaded is not None
+        # Round-trip through the dataclass to apply defaults, as update_mount does.
+        rebuilt = equipment_profiles.Mount(**{k: v for k, v in loaded.items() if k in equipment_profiles.Mount.__dataclass_fields__})
+        assert rebuilt.meridian_flip_required is True
+        assert rebuilt.meridian_flip_duration_min == 5.0
+
     def test_equipment_combination_none_lists_set_to_empty(self):
         EquipmentCombination = equipment_profiles.EquipmentCombination
         combo = EquipmentCombination(id='c1', name='Test')

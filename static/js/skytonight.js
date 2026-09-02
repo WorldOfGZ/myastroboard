@@ -15,6 +15,12 @@ let _skytHasCombinationsCache = null;
 let _skytHasCombinationsPromise = null;
 const _skytListenerTimers = {};  // catalogue+type -> pending setTimeout id (cancelled on re-render)
 
+// v1.4 advanced DSO filters (server-side, applied before the result-set truncation).
+// Persisted under _skytFilterState.advanced so they survive paging and tab switches.
+let _skytAdvTimer = null;
+let _skytAdvLastMeta = null;      // last { size_band, combination_name, ... } from the DSO payload
+const _SKYT_ADV_DEBOUNCE_MS = 400;
+
 const _plotlyLoadState = { promise: null };
 
 /** Lazily load the Plotly library (only needed for the SkyTonight sky map) so it isn't fetched on every page load. */
@@ -2643,6 +2649,7 @@ async function _showSkyTonightDataSection(sectionKey, container) {
             data = await fetchJSON(endpoint);
             if (data.error) throw new Error(data.error);
             _skytSectionCache[sectionKey] = data;
+            if (sectionKey === 'report' && data.advanced_filters) _skytAdvLastMeta = data.advanced_filters;
             _skytCurrentPages[sectionKey] = 0; // reset to first page when loading fresh data
             _skytFilteredData[sectionKey] = null; // clear any previous filter
             delete _skytFilterState[sectionKey];  // clear saved filter state
@@ -2874,6 +2881,24 @@ async function showMorePopupFromRowData(moreData) {
         const hasValue = value !== null && value !== undefined && value !== '';
         let displayValue = hasValue ? String(value) : '-';
 
+        // v1.4 advanced-filter fields.
+        if (field === 'surface_brightness') {
+            displayValue = hasValue && !isNaN(value)
+                ? `${parseFloat(value).toFixed(1)} ${i18n.t('skytonight.surface_brightness_unit')}`
+                : i18n.t('skytonight.value_unknown');
+        } else if (field === 'est_integration_h') {
+            displayValue = hasValue && !isNaN(value)
+                ? i18n.t('skytonight.integration_hours', { h: parseFloat(value).toFixed(1) })
+                : i18n.t('skytonight.value_unknown');
+        } else if (field === 'fov_fit') {
+            if (value && typeof value === 'object' && value.fits !== null && value.fits !== undefined) {
+                const pct = value.fill_pct != null ? ` (${Math.round(value.fill_pct * 100)}%)` : '';
+                displayValue = (value.fits ? i18n.t('skytonight.fov_fits') : i18n.t('skytonight.fov_no_fit')) + pct;
+            } else {
+                displayValue = i18n.t('skytonight.value_unknown');
+            }
+        }
+
         // Comet-specific field formatting
         if (type === 'comets') {
             if (field === 'absolute magnitude' && hasValue && !isNaN(value)) {
@@ -2944,6 +2969,279 @@ async function showMorePopupFromRowData(moreData) {
  * Apply filters to the full cached dataset for a SkyTonight section, then re-render.
  * Falls back to the standard DOM row-hide filterTable() for non-paginated sections.
  */
+/**
+ * Build the collapsible "Advanced filters" panel for the DSO report table (v1.4).
+ * These run server-side, before the result-set truncation.
+ * @param {string} eCat - escaped catalogue key
+ * @param {string} eType - escaped table type
+ * @returns {string} HTML string (all interpolated text is escaped)
+ */
+function _skytAdvancedFiltersPanelHtml(eCat, eType) {
+    const a = (k) => escapeHtml(tSkyTonightCompat(k));
+    return `
+    <details id="skyt-adv-panel-${eCat}-${eType}" class="skyt-adv-panel mt-2">
+        <summary class="skyt-adv-toggle">
+            <i class="bi bi-sliders icon-inline" aria-hidden="true"></i> ${a('adv_filters_title')}
+            <span id="skyt-adv-count-${eCat}-${eType}" class="badge bg-primary ms-1" hidden>0</span>
+        </summary>
+        <div class="skyt-adv-body row g-3 mt-1">
+            <div class="col-12 col-lg-6">
+                <label class="form-label small mb-1" for="skyt-adv-size-min-${eCat}-${eType}">${a('adv_filter_size_range')}</label>
+                <div class="input-group input-group-sm">
+                    <input type="number" min="0" step="1" inputmode="decimal" class="form-control" id="skyt-adv-size-min-${eCat}-${eType}" placeholder="${a('adv_filter_min')}">
+                    <span class="input-group-text">-</span>
+                    <input type="number" min="0" step="1" inputmode="decimal" class="form-control" id="skyt-adv-size-max-${eCat}-${eType}" placeholder="${a('adv_filter_max')}">
+                    <span class="input-group-text">'</span>
+                </div>
+                <div class="form-text small" id="skyt-adv-size-band-${eCat}-${eType}"></div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <label class="form-label small mb-1" for="skyt-adv-sb-max-${eCat}-${eType}">${a('adv_filter_sb_max')}</label>
+                <input type="number" step="0.5" inputmode="decimal" class="form-control form-control-sm" id="skyt-adv-sb-max-${eCat}-${eType}" placeholder="${a('adv_filter_sb_placeholder')}">
+                <div class="form-text small">${a('adv_filter_sb_hint')}</div>
+            </div>
+            <div class="col-12">
+                <label class="form-label small mb-1" for="skyt-adv-altmin-${eCat}-${eType}">${a('adv_filter_alt_window')}</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">&ge;</span>
+                    <input type="number" min="0" max="90" step="1" inputmode="numeric" class="form-control" id="skyt-adv-altmin-${eCat}-${eType}" placeholder="30">
+                    <span class="input-group-text">&deg; ${a('adv_filter_between')}</span>
+                    <input type="number" min="0" max="23" step="1" inputmode="numeric" class="form-control" id="skyt-adv-altstart-${eCat}-${eType}" placeholder="22">
+                    <span class="input-group-text">h -</span>
+                    <input type="number" min="0" max="23" step="1" inputmode="numeric" class="form-control" id="skyt-adv-altend-${eCat}-${eType}" placeholder="2">
+                    <span class="input-group-text">h</span>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <label class="form-label small mb-1" for="skyt-adv-combo-${eCat}-${eType}">${a('adv_filter_combination')}</label>
+                <select class="form-select form-select-sm" id="skyt-adv-combo-${eCat}-${eType}">
+                    <option value="">${a('adv_filter_no_combination')}</option>
+                </select>
+            </div>
+            <div class="col-12 col-lg-6 d-flex align-items-end pb-1">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="skyt-adv-fovfit-${eCat}-${eType}">
+                    <label class="form-check-label small" for="skyt-adv-fovfit-${eCat}-${eType}">${a('adv_filter_fov_fit')}</label>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <label class="form-label small mb-1" for="skyt-adv-maxint-${eCat}-${eType}">${a('adv_filter_max_integration')}</label>
+                <input type="number" min="0" step="0.5" inputmode="decimal" class="form-control form-control-sm" id="skyt-adv-maxint-${eCat}-${eType}" placeholder="${a('adv_filter_hours')}">
+                <div class="form-text small">${a('adv_filter_integration_hint')}</div>
+            </div>
+            <div class="col-12 d-flex align-items-center gap-2 flex-wrap">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="skyt-adv-reset-${eCat}-${eType}">${a('adv_filter_reset')}</button>
+                <span class="spinner-border spinner-border-sm text-primary" id="skyt-adv-spinner-${eCat}-${eType}" role="status" aria-hidden="true" hidden></span>
+                <span class="small text-muted" id="skyt-adv-note-${eCat}-${eType}"></span>
+            </div>
+        </div>
+    </details>`;
+}
+
+/**
+ * Read the current advanced-filter control values into a plain object.
+ * @param {string} catalogue
+ * @param {string} type
+ * @returns {Object}
+ */
+function _skytReadAdvancedFilterInputs(catalogue, type) {
+    const val = (id) => {
+        const el = document.getElementById(`skyt-adv-${id}-${catalogue}-${type}`);
+        return el ? el.value.trim() : '';
+    };
+    const checked = (id) => {
+        const el = document.getElementById(`skyt-adv-${id}-${catalogue}-${type}`);
+        return el ? el.checked : false;
+    };
+    return {
+        sizeMin: val('size-min'),
+        sizeMax: val('size-max'),
+        sbMax: val('sb-max'),
+        altMin: val('altmin'),
+        altStart: val('altstart'),
+        altEnd: val('altend'),
+        combinationId: val('combo'),
+        fovFit: checked('fovfit'),
+        maxIntegration: val('maxint'),
+    };
+}
+
+/**
+ * Count how many advanced filters are currently active (for the summary badge).
+ * @param {Object} vals - output of _skytReadAdvancedFilterInputs
+ * @returns {number}
+ */
+function _skytAdvancedActiveCount(vals) {
+    let count = 0;
+    if (vals.sizeMin !== '' || vals.sizeMax !== '') count++;
+    if (vals.sbMax !== '') count++;
+    if (vals.altMin !== '' && vals.altStart !== '' && vals.altEnd !== '') count++;
+    if (vals.fovFit) count++;
+    if (vals.maxIntegration !== '') count++;
+    return count;
+}
+
+/**
+ * Populate the combination select, restore persisted state, and wire debounced
+ * server-side re-fetch listeners on the advanced-filter panel.
+ * @param {string} catalogue
+ * @param {string} type
+ */
+async function _skytSetupAdvancedFilters(catalogue, type) {
+    const panel = document.getElementById(`skyt-adv-panel-${catalogue}-${type}`);
+    if (!panel || panel._skytAdvReady) return;
+    panel._skytAdvReady = true;
+
+    const setVal = (id, value) => {
+        const el = document.getElementById(`skyt-adv-${id}-${catalogue}-${type}`);
+        if (el && value !== undefined && value !== null) el.value = String(value);
+    };
+    const setChecked = (id, value) => {
+        const el = document.getElementById(`skyt-adv-${id}-${catalogue}-${type}`);
+        if (el) el.checked = Boolean(value);
+    };
+
+    // Restore persisted advanced state.
+    const saved = _skytFilterState.advanced || {};
+    setVal('size-min', saved.sizeMin);
+    setVal('size-max', saved.sizeMax);
+    setVal('sb-max', saved.sbMax);
+    setVal('altmin', saved.altMin);
+    setVal('altstart', saved.altStart);
+    setVal('altend', saved.altEnd);
+    setVal('maxint', saved.maxIntegration);
+    setChecked('fovfit', saved.fovFit);
+
+    // Populate the combination select from the user's equipment.
+    const comboSelect = document.getElementById(`skyt-adv-combo-${catalogue}-${type}`);
+    if (comboSelect) {
+        try {
+            const payload = await fetchJSON('/api/equipment/combinations');
+            const combos = [
+                ...(Array.isArray(payload?.data) ? payload.data : []),
+                ...(Array.isArray(payload?.shared_from_others) ? payload.shared_from_others : []),
+            ].filter(c => c && c.id && !c.is_disabled);
+            combos.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.name || c.id;
+                comboSelect.appendChild(opt);
+            });
+            if (saved.combinationId && combos.some(c => c.id === saved.combinationId)) {
+                comboSelect.value = saved.combinationId;
+            }
+        } catch (_err) {
+            // No equipment / request failed - the FOV + integration filters just stay unavailable.
+        }
+    }
+
+    _skytUpdateAdvancedFilterMeta(catalogue, type);
+
+    // Debounced server-side re-fetch on any change.
+    const schedule = () => {
+        clearTimeout(_skytAdvTimer);
+        _skytAdvTimer = setTimeout(() => _skytApplyAdvancedFilters(catalogue, type), _SKYT_ADV_DEBOUNCE_MS);
+    };
+    panel.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener(el.tagName === 'SELECT' || el.type === 'checkbox' ? 'change' : 'input', schedule);
+    });
+    const resetBtn = document.getElementById(`skyt-adv-reset-${catalogue}-${type}`);
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            panel.querySelectorAll('input').forEach(el => {
+                if (el.type === 'checkbox') el.checked = false;
+                else el.value = '';
+            });
+            if (comboSelect) comboSelect.value = '';
+            _skytApplyAdvancedFilters(catalogue, type);
+        });
+    }
+
+    // If active filters were restored from a previous visit, apply them now. A bare
+    // combination (no fov-fit / max-integration) does not filter anything, so it is
+    // not worth an extra round-trip on every section load.
+    if (_skytAdvancedActiveCount(_skytReadAdvancedFilterInputs(catalogue, type)) > 0) {
+        _skytApplyAdvancedFilters(catalogue, type);
+    }
+}
+
+/** Refresh the size-band hint, active-filter badge and result note from the last payload. */
+function _skytUpdateAdvancedFilterMeta(catalogue, type) {
+    const vals = _skytReadAdvancedFilterInputs(catalogue, type);
+    const count = _skytAdvancedActiveCount(vals);
+    const badge = document.getElementById(`skyt-adv-count-${catalogue}-${type}`);
+    if (badge) {
+        badge.textContent = String(count);
+        badge.hidden = count === 0;
+    }
+    const bandEl = document.getElementById(`skyt-adv-size-band-${catalogue}-${type}`);
+    if (bandEl && _skytAdvLastMeta && Array.isArray(_skytAdvLastMeta.size_band)) {
+        const [lo, hi] = _skytAdvLastMeta.size_band;
+        bandEl.textContent = i18n.t('skytonight.adv_filter_size_band', { min: Math.round(lo), max: Math.round(hi) });
+    }
+    const note = document.getElementById(`skyt-adv-note-${catalogue}-${type}`);
+    if (note && _skytAdvLastMeta) {
+        const considered = _skytSectionCache[type]?.report?.length ?? 0;
+        note.textContent = count > 0 || _skytAdvLastMeta.combination_id
+            ? i18n.t('skytonight.adv_filter_considered', { count: considered })
+            : '';
+    }
+}
+
+/**
+ * Gather advanced-filter values, re-fetch the DSO section server-side with those
+ * query params, and re-render the table. Shows a spinner while in flight.
+ * @param {string} catalogue
+ * @param {string} type
+ */
+async function _skytApplyAdvancedFilters(catalogue, type) {
+    if (catalogue !== 'SkyTonight' || type !== 'report') return;
+    const vals = _skytReadAdvancedFilterInputs(catalogue, type);
+    _skytFilterState.advanced = vals;
+
+    const params = new URLSearchParams();
+    if (vals.sizeMin !== '') params.set('size_min', vals.sizeMin);
+    if (vals.sizeMax !== '') params.set('size_max', vals.sizeMax);
+    if (vals.sbMax !== '') params.set('sb_max', vals.sbMax);
+    if (vals.altMin !== '' && vals.altStart !== '' && vals.altEnd !== '') {
+        params.set('alt_window_min_deg', vals.altMin);
+        params.set('alt_window_start', vals.altStart);
+        params.set('alt_window_end', vals.altEnd);
+    }
+    if (vals.combinationId) params.set('combination_id', vals.combinationId);
+    if (vals.fovFit) params.set('fov_fit', 'true');
+    if (vals.maxIntegration !== '') params.set('max_integration_h', vals.maxIntegration);
+
+    const spinner = document.getElementById(`skyt-adv-spinner-${catalogue}-${type}`);
+    if (spinner) spinner.hidden = false;
+
+    try {
+        const qs = params.toString();
+        const data = await fetchJSON(`/api/skytonight/data/dso${qs ? `?${qs}` : ''}`);
+        if (data.error) throw new Error(data.error);
+        _skytSectionCache[type] = data;
+        _skytAdvLastMeta = data.advanced_filters || null;
+        window.catalogueReports = window.catalogueReports || {};
+        window.catalogueReports['SkyTonight'] = window.catalogueReports['SkyTonight'] || { report: [], bodies: [], comets: [] };
+        window.catalogueReports['SkyTonight'].report = data.report || [];
+        _skytCurrentPages[type] = 0;
+
+        // Re-apply any active client-side filter on top of the new server result set.
+        if (_skytFilterState[type] && catalogue === 'SkyTonight') {
+            _skytApplyFilter(catalogue, type);
+        } else {
+            _skytFilteredData[type] = null;
+            _reRenderTablePage(type, 0);
+        }
+    } catch (err) {
+        console.error('Advanced filter refresh failed:', err);
+        showMessage('error', tSkyTonightCompat('failed_to_load_catalogue_results'));
+    } finally {
+        if (spinner) spinner.hidden = true;
+        _skytUpdateAdvancedFilterMeta(catalogue, type);
+    }
+}
+
 function _skytApplyFilter(catalogue, type) {
     if (catalogue !== 'SkyTonight' || !_skytSectionCache[type]) {
         filterTable(catalogue, type);
@@ -3120,6 +3418,12 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
     let columns;
     if (type === 'report') {
         columns = reportColumns;
+        // v1.4: surface brightness is always available; FOV fit + integration estimate
+        // only when the advanced-filter combination is set (their values are on the rows).
+        moreFields = [...moreFields, 'surface_brightness'];
+        if (report.some(r => r && r.fov_fit !== undefined)) {
+            moreFields.push('fov_fit', 'est_integration_h');
+        }
     } else if (type === 'bodies') {
         columns = bodiesColumns;
     } else if (type === 'comets') {
@@ -3267,6 +3571,13 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
 
         html += `
         </div>`; // closes filter row div
+
+        // v1.4 advanced filters - DSO report only. Server-side, applied before the
+        // result-set truncation, so a filtered result is a real catalogue-wide search.
+        if (type === 'report') {
+            html += _skytAdvancedFiltersPanelHtml(eCat, eType);
+        }
+
         html += `</div>`; // closes skyt-ctrl div
     }
 
@@ -3422,7 +3733,8 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
                     if (col.key === 'id' && type === 'report') {
                         const infoId = (row['id'] || row['target name'] || '').trim();
                         if (infoId) {
-                            html += `<td style="text-align: ${col.align}">${messierBadge}<a href="#" class="link-underline link-underline-opacity-0 skyt-info-link" data-identifier="${escapeHtml(infoId)}">${displayValue}</a></td>`;
+                            const vcTitle = escapeHtml(tSkyTonightCompat('visibility_calendar_open'));
+                            html += `<td style="text-align: ${col.align}">${messierBadge}<a href="#" class="link-underline link-underline-opacity-0 skyt-info-link" data-identifier="${escapeHtml(infoId)}">${displayValue}</a> <a href="#" class="link-underline link-underline-opacity-0 vc-open-link" data-identifier="${escapeHtml(infoId)}" title="${vcTitle}" aria-label="${vcTitle}"><i class="bi bi-calendar-range icon-inline" aria-hidden="true"></i></a></td>`;
                         } else {
                             html += `<td style="text-align: ${col.align}">${messierBadge}${displayValue}</td>`;
                         }
@@ -3539,6 +3851,11 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
         if (_diffSelEl && !_diffSelEl._skytListened) {
             _diffSelEl._skytListened = true;
             _diffSelEl.addEventListener('change', () => _skytApplyFilter(catalogue, type));
+        }
+
+        // v1.4 advanced filters panel (DSO report only) - server-side, debounced.
+        if (type === 'report' && catalogue === 'SkyTonight' && !isRerender) {
+            _skytSetupAdvancedFilters(catalogue, type);
         }
 
         // Add event listeners for Astrodex "Add" buttons
@@ -3677,6 +3994,17 @@ function generateReportTable(report, catalogue, type, displayAstrodex = true, pa
                 const identifier = link.getAttribute('data-identifier');
                 if (identifier && typeof showObjectInfoModal === 'function') {
                     showObjectInfoModal(identifier);
+                }
+            });
+        });
+
+        // DSO calendar icon: open the target visibility calendar
+        document.querySelectorAll('.vc-open-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const identifier = link.getAttribute('data-identifier');
+                if (identifier && typeof openVisibilityCalendar === 'function') {
+                    openVisibilityCalendar(identifier);
                 }
             });
         });

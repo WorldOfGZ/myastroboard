@@ -136,294 +136,6 @@ function patchPlanMyNightView(payload) {
     return true;
 }
 
-async function loadMoonCalendar() {
-    const container = document.getElementById('plan-moon-calendar');
-    if (!container) return;
-
-    let data;
-    try {
-        data = await fetchJSON('/api/moon/month-calendar');
-    } catch (_) {
-        return;
-    }
-    if (!data || !data.nights || data.nights.length === 0) return;
-
-    // Re-render each time (preference may have changed); clear previous render
-    DOMUtils.clear(container);
-
-    const startOnMonday = (currentUserPreferences?.first_day_of_week || 'monday') === 'monday';
-    const locale = typeof i18n?.getCurrentLanguage === 'function' ? i18n.getCurrentLanguage() : navigator.language;
-
-    const section = document.createElement('div');
-    section.className = 'plan-moon-calendar-section';
-
-    // ── Header ──────────────────────────────────────────────────────────────
-    const header = document.createElement('div');
-    header.className = 'plan-moon-calendar-header';
-    const title = document.createElement('span');
-    title.className = 'fw-semibold small';
-    DOMUtils.append(title, DOMUtils.createIcon('bi bi-moon-stars-fill text-info icon-inline'), ` ${i18n.t('plan_my_night.moon_calendar_title')}`);
-    const toggle = document.createElement('button');
-    toggle.type = 'button';
-    toggle.className = 'btn btn-link btn-sm p-0 ms-2 text-muted plan-moon-calendar-toggle';
-    toggle.setAttribute('aria-expanded', 'true');
-    toggle.appendChild(DOMUtils.createIcon('bi bi-chevron-up'));
-    header.appendChild(title);
-    header.appendChild(toggle);
-    section.appendChild(header);
-
-    const calBody = document.createElement('div');
-    calBody.className = 'plan-moon-calendar-body';
-
-    // ── Grid ─────────────────────────────────────────────────────────────────
-    const grid = document.createElement('div');
-    grid.className = 'plan-moon-calendar-grid';
-
-    // Weekday header row
-    // Jan 5 2025 = Sunday (getDay()=0), Jan 6 = Monday (getDay()=1) ... Jan 11 = Saturday (getDay()=6)
-    // Column order: if startOnMonday → Mon(1) Tue(2) Wed(3) Thu(4) Fri(5) Sat(6) Sun(0)
-    //               if startOnSunday → Sun(0) Mon(1) Tue(2) Wed(3) Thu(4) Fri(5) Sat(6)
-    for (let col = 0; col < 7; col++) {
-        const dowIndex = startOnMonday ? (col + 1) % 7 : col; // 0=Sun,1=Mon..6=Sat
-        const refDate = new Date(2025, 0, 5 + dowIndex); // Jan 5 2025 = Sunday
-        const hdr = document.createElement('div');
-        hdr.className = 'plan-moon-cal-weekday-header';
-        hdr.textContent = refDate.toLocaleDateString(locale, { weekday: 'short' });
-        grid.appendChild(hdr);
-    }
-
-    // Blank cells before first night
-    const firstDate = new Date(data.nights[0].date + 'T12:00:00');
-    const firstDow = firstDate.getDay(); // 0=Sun..6=Sat
-    const offset = startOnMonday ? (firstDow + 6) % 7 : firstDow;
-    for (let b = 0; b < offset; b++) {
-        const blank = document.createElement('div');
-        blank.className = 'plan-moon-cal-cell plan-moon-cal-blank';
-        grid.appendChild(blank);
-    }
-
-    // Night cells
-    data.nights.forEach((night, idx) => {
-        const d = new Date(night.date + 'T12:00:00');
-        const dayNum = d.getDate();
-        const isToday = idx === 0;
-        const isFirstOfMonth = dayNum === 1;
-
-        const cell = document.createElement('div');
-        cell.className = 'plan-moon-cal-cell';
-        if (isToday) cell.classList.add('plan-moon-cal-today');
-        if (night.astrophoto_score >= 80) cell.classList.add('plan-moon-cal-good');
-        else if (night.astrophoto_score >= 50) cell.classList.add('plan-moon-cal-ok');
-        else cell.classList.add('plan-moon-cal-bright');
-
-        // Day number - prefix month abbreviation when it's the 1st
-        const dayEl = document.createElement('div');
-        dayEl.className = 'plan-moon-cal-day';
-        if (isFirstOfMonth) {
-            const monthAbbr = d.toLocaleDateString(locale, { month: 'short' });
-            const mo = document.createElement('span');
-            mo.className = 'plan-moon-cal-month-abbr';
-            mo.textContent = monthAbbr;
-            dayEl.appendChild(mo);
-        }
-        dayEl.appendChild(document.createTextNode(dayNum));
-
-        // Dark hours (strict)
-        const darkEl = document.createElement('div');
-        darkEl.className = 'plan-moon-cal-dark';
-        darkEl.textContent = `${night.strict_hours.toFixed(1)}h`;
-
-        // Moon illumination
-        const illumEl = document.createElement('div');
-        illumEl.className = 'plan-moon-cal-illum';
-        illumEl.textContent = `${Math.round(night.illumination_percent)}%`;
-
-        cell.title = `${night.date} - ${i18n.t('moon.illumination')}${Math.round(night.illumination_percent)}% - ${i18n.t('best_window.strict')}: ${night.strict_hours.toFixed(1)}h`;
-        cell.appendChild(dayEl);
-        cell.appendChild(darkEl);
-        cell.appendChild(illumEl);
-        grid.appendChild(cell);
-    });
-
-    calBody.appendChild(grid);
-
-    // ── Legend ────────────────────────────────────────────────────────────────
-    const legend = document.createElement('div');
-    legend.className = 'plan-moon-cal-legend';
-    [
-        ['plan-moon-cal-good', i18n.t('plan_my_night.moon_calendar_legend_good')],
-        ['plan-moon-cal-ok', i18n.t('plan_my_night.moon_calendar_legend_ok')],
-        ['plan-moon-cal-bright', i18n.t('plan_my_night.moon_calendar_legend_bright')],
-    ].forEach(([cls, label]) => {
-        const dot = document.createElement('span');
-        dot.className = `plan-moon-cal-legend-dot ${cls}`;
-        const txt = document.createElement('span');
-        txt.className = 'plan-moon-cal-legend-label';
-        txt.textContent = label;
-        legend.appendChild(dot);
-        legend.appendChild(txt);
-    });
-    calBody.appendChild(legend);
-
-    section.appendChild(calBody);
-    container.appendChild(section);
-
-    toggle.addEventListener('click', () => {
-        const expanded = toggle.getAttribute('aria-expanded') === 'true';
-        toggle.setAttribute('aria-expanded', String(!expanded));
-        DOMUtils.clear(toggle);
-        toggle.appendChild(DOMUtils.createIcon(expanded ? 'bi bi-chevron-down' : 'bi bi-chevron-up'));
-        calBody.style.display = expanded ? 'none' : '';
-    });
-}
-
-// ── Seeing strip ──────────────────────────────────────────────────────────────
-
-function _seeingLocalDateKey(utcDate, tz) {
-    return utcDate.toLocaleDateString('en-CA', { timeZone: tz }); // 'YYYY-MM-DD'
-}
-
-function _aggregateSeeingByDate(forecast, tz) {
-    // Groups all forecast points by local calendar date, keeps best (lowest) seeing per day.
-    // No nighttime filtering: 7Timer ASTRO seeing represents the atmospheric column quality
-    // for the whole day. Simpler and avoids timezone edge-cases with hour boundaries.
-    const map = new Map();
-    for (const point of (forecast || [])) {
-        const key = _seeingLocalDateKey(new Date(point.time), tz);
-        const current = map.get(key);
-        if (current === undefined || point.seeing < current) {
-            map.set(key, point.seeing);
-        }
-    }
-    return map;
-}
-
-async function loadSeeingWeek() {
-    const container = document.getElementById('plan-seeing-week');
-    if (!container) return;
-
-    DOMUtils.clear(container);
-
-    let data;
-    try {
-        data = await fetchJSON('/api/seeing-forecast');
-    } catch (_) {
-        return;
-    }
-
-    const seeingData = data?.seeing_forecast;
-    const forecast = seeingData?.forecast;
-    const tz = seeingData?.location?.timezone || 'UTC';
-    if (!forecast || forecast.length === 0) return;
-
-    const dateMap = _aggregateSeeingByDate(forecast, tz);
-    const locale = typeof i18n?.getCurrentLanguage === 'function' ? i18n.getCurrentLanguage() : navigator.language;
-
-    // Collect only the dates that have data, up to 7 days starting from today.
-    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: tz });
-    const [ty, tm, td] = todayStr.split('-').map(Number);
-    const nights = [];
-    for (let i = 0; i < 7; i++) {
-        const utc = new Date(Date.UTC(ty, tm - 1, td + i));
-        const key = _seeingLocalDateKey(utc, tz);
-        if (dateMap.has(key)) nights.push({ key, utc });
-    }
-
-    // No data at all → skip rendering entirely
-    if (nights.length === 0) return;
-
-    const section = document.createElement('div');
-    section.className = 'plan-moon-calendar-section';
-
-    // Header
-    const header = document.createElement('div');
-    header.className = 'plan-moon-calendar-header';
-    const title = document.createElement('span');
-    title.className = 'fw-semibold small';
-    DOMUtils.append(title, DOMUtils.createIcon('bi bi-eye text-info icon-inline'), ` ${i18n.t('plan_my_night.seeing_week_title')}`);
-    const toggle = document.createElement('button');
-    toggle.type = 'button';
-    toggle.className = 'btn btn-link btn-sm p-0 ms-2 text-muted plan-moon-calendar-toggle';
-    toggle.setAttribute('aria-expanded', 'true');
-    toggle.appendChild(DOMUtils.createIcon('bi bi-chevron-up'));
-    header.appendChild(title);
-    header.appendChild(toggle);
-    section.appendChild(header);
-
-    const scaleHint = document.createElement('div');
-    scaleHint.className = 'text-muted small mb-2';
-    scaleHint.textContent = i18n.t('plan_my_night.seeing_week_scale_hint');
-    section.appendChild(scaleHint);
-
-    const calBody = document.createElement('div');
-    calBody.className = 'plan-moon-calendar-body';
-
-    const grid = document.createElement('div');
-    grid.className = 'plan-seeing-week-grid';
-    // Adapt column count to however many nights have data (not always 7)
-    grid.style.gridTemplateColumns = `repeat(${nights.length}, 1fr)`;
-
-    nights.forEach(({ key, utc }, idx) => {
-        const isToday = idx === 0;
-        const bestSeeing = dateMap.get(key);
-
-        const cell = document.createElement('div');
-        cell.className = 'plan-seeing-week-cell';
-        if (isToday) cell.classList.add('plan-moon-cal-today');
-        if (bestSeeing <= 2) cell.classList.add('plan-moon-cal-good');
-        else if (bestSeeing <= 3) cell.classList.add('plan-moon-cal-ok');
-        else cell.classList.add('plan-moon-cal-bright');
-
-        // Weekday abbreviation
-        const dowEl = document.createElement('div');
-        dowEl.className = 'plan-seeing-week-dow';
-        dowEl.textContent = utc.toLocaleDateString(locale, { timeZone: tz, weekday: 'short' });
-
-        // Day number (+ month abbr on 1st)
-        const dayNum = parseInt(key.split('-')[2]);
-        const dayEl = document.createElement('div');
-        dayEl.className = 'plan-moon-cal-day';
-        if (dayNum === 1) {
-            const mo = document.createElement('span');
-            mo.className = 'plan-moon-cal-month-abbr';
-            mo.textContent = utc.toLocaleDateString(locale, { timeZone: tz, month: 'short' });
-            dayEl.appendChild(mo);
-        }
-        dayEl.appendChild(document.createTextNode(dayNum));
-
-        // Score (coloured)
-        const scoreEl = document.createElement('div');
-        scoreEl.className = `plan-seeing-week-score ${getSeeingBadgeClass(bestSeeing)}`;
-        scoreEl.textContent = bestSeeing;
-
-        // Quality label
-        const qualEl = document.createElement('div');
-        qualEl.className = 'plan-seeing-week-quality';
-        qualEl.textContent = getLocalizedSeeingQuality(bestSeeing, '');
-
-        cell.title = `${key} - ${i18n.t('seeing_forecast.current_seeing')}: ${bestSeeing}/8 - ${getLocalizedSeeingQuality(bestSeeing, '')}`;
-        cell.appendChild(dowEl);
-        cell.appendChild(dayEl);
-        cell.appendChild(scoreEl);
-        cell.appendChild(qualEl);
-        grid.appendChild(cell);
-    });
-
-    calBody.appendChild(grid);
-    section.appendChild(calBody);
-    container.appendChild(section);
-
-    toggle.addEventListener('click', () => {
-        const expanded = toggle.getAttribute('aria-expanded') === 'true';
-        toggle.setAttribute('aria-expanded', String(!expanded));
-        DOMUtils.clear(toggle);
-        toggle.appendChild(DOMUtils.createIcon(expanded ? 'bi bi-chevron-down' : 'bi bi-chevron-up'));
-        calBody.style.display = expanded ? 'none' : '';
-    });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
 async function loadPlanMyNight(options = {}) {
     const {
         silent = false,
@@ -920,6 +632,48 @@ function _planVisibilityBadge(entry) {
     return badge;
 }
 
+/**
+ * Build the meridian-flip indicator for a plan timeline entry (v1.4).
+ * Colour is never the only signal: each state also carries an icon and a
+ * title / aria-label describing the flip time and lost minutes.
+ * @param {Object} entry
+ * @returns {HTMLElement|null} - null when there is nothing worth showing
+ */
+function _planMeridianFlipBadge(entry) {
+    const flip = entry.meridian_flip;
+    if (!flip || flip.state === 'none') return null;
+
+    const CONFIG = {
+        early: { cls: 'pmn-flip pmn-flip--early', icon: 'bi bi-arrow-repeat', key: 'meridian_flip_early' },
+        mid: { cls: 'pmn-flip pmn-flip--mid', icon: 'bi bi-arrow-repeat', key: 'meridian_flip_mid' },
+        after: { cls: 'pmn-flip pmn-flip--after', icon: 'bi bi-arrow-repeat', key: 'meridian_flip_after' },
+        unknown: { cls: 'pmn-flip pmn-flip--unknown', icon: 'bi bi-question-circle', key: 'meridian_flip_unknown' },
+    };
+    const cfg = CONFIG[flip.state];
+    if (!cfg) return null;
+
+    const badge = document.createElement('span');
+    badge.className = `badge ms-2 align-middle ${cfg.cls}`;
+
+    let title = i18n.t(`plan_my_night.${cfg.key}`);
+    if (flip.flip_time) {
+        title += ' ' + i18n.t('plan_my_night.meridian_flip_at', { time: formatTimeOnly(flip.flip_time) });
+    }
+    if (flip.lost_minutes) {
+        title += ' ' + i18n.t('plan_my_night.meridian_flip_lost', { minutes: Math.round(flip.lost_minutes) });
+    }
+    badge.title = title;
+    badge.setAttribute('aria-label', title);
+
+    const label = flip.state === 'unknown'
+        ? i18n.t('plan_my_night.meridian_flip_badge_unknown')
+        : (flip.flip_time
+            ? i18n.t('plan_my_night.meridian_flip_badge', { time: formatTimeOnly(flip.flip_time) })
+            : i18n.t('plan_my_night.meridian_flip_badge_short'));
+    DOMUtils.append(badge, DOMUtils.createIcon(`${cfg.icon} icon-inline`), ` ${label}`);
+    return badge;
+}
+
 async function buildPlanSummaryGraph(container, entries, plan, timeline) {
     destroyPlanSummaryChart();
     const myGen = planSummaryGraphGen;
@@ -1346,6 +1100,9 @@ function _planOptimizeRow(previewEntry) {
     }
     statusTd.appendChild(badge);
 
+    const flipBadge = _planMeridianFlipBadge(previewEntry);
+    if (flipBadge) statusTd.appendChild(flipBadge);
+
     tr.appendChild(nameTd);
     tr.appendChild(timeTd);
     tr.appendChild(statusTd);
@@ -1376,6 +1133,12 @@ async function openPlanOptimizeModal() {
         const warn = document.createElement('div');
         warn.className = 'alert alert-warning py-2';
         warn.textContent = i18n.t('plan_my_night.optimize_total_exceeds_night');
+        bodyEl.appendChild(warn);
+    }
+    if ((result.plan_warnings || []).includes('flip_mid_session')) {
+        const warn = document.createElement('div');
+        warn.className = 'alert alert-warning py-2';
+        warn.textContent = i18n.t('plan_my_night.optimize_flip_mid_session');
         bodyEl.appendChild(warn);
     }
 
@@ -1949,6 +1712,8 @@ function renderPlanMyNight(payload) {
         head.appendChild(timeRange);
         const visibilityBadge = _planVisibilityBadge(entry);
         if (visibilityBadge) head.appendChild(visibilityBadge);
+        const flipBadge = _planMeridianFlipBadge(entry);
+        if (flipBadge) head.appendChild(flipBadge);
 
         const controls = document.createElement('div');
         controls.className = 'd-flex gap-1 flex-wrap';

@@ -31,6 +31,15 @@ def _get_float_or_none(value, default=None):
     return float(value)
 
 
+def _parse_optional_bool(value):
+    """Parse an optional tri-state boolean form field. '' and None mean "not set" (-> None)."""
+    if value is None or value == '':
+        return None
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in ('true', '1', 'yes', 'on')
+
+
 class TelescopeType(str, Enum):
     """Telescope types"""
 
@@ -121,6 +130,12 @@ class Camera:
         self.sensor_diagonal_mm = round(math.sqrt(self.sensor_width_mm**2 + self.sensor_height_mm**2), 2)
 
 
+# Mount types that track past the meridian and eventually need a flip. A wedge-mounted
+# fork mount also flips, so meridian_flip_required stays an explicit stored override
+# (defaulted from this set) rather than being recomputed from mount_type on every read.
+_MERIDIAN_FLIP_MOUNT_TYPES = {"Equatorial"}
+
+
 @dataclass
 class Mount:
     """Mount profile"""
@@ -133,6 +148,11 @@ class Mount:
     recommended_payload_kg: float = 0.0  # Auto-calculated: 50-70% of max
     tracking_accuracy_arcsec: Optional[float] = None  # Periodic error in arcsec
     guiding_supported: bool = False
+    # v1.4 meridian-flip estimator fields. Absent keys on older data fall back to these
+    # defaults on load, exactly like the other optional fields - no migration needed.
+    meridian_flip_required: Optional[bool] = None  # None -> derived from mount_type
+    meridian_flip_delay_min: float = 0.0  # minutes tracked past the meridian before a flip is needed
+    meridian_flip_duration_min: float = 5.0  # dead time for the flip + re-centre + re-guide
     notes: str = ""
     created_at: str = ""
     updated_at: str = ""
@@ -140,10 +160,17 @@ class Mount:
     is_disabled: bool = False
 
     def __post_init__(self):
-        """Calculate recommended payload"""
+        """Calculate recommended payload and normalise the meridian-flip fields."""
         if self.payload_capacity_kg > 0:
             # Recommended imaging payload: 75% of max capacity
             self.recommended_payload_kg = round(self.payload_capacity_kg * 0.75, 2)
+
+        if self.meridian_flip_required is None:
+            self.meridian_flip_required = self.mount_type in _MERIDIAN_FLIP_MOUNT_TYPES
+        else:
+            self.meridian_flip_required = bool(self.meridian_flip_required)
+        self.meridian_flip_delay_min = max(0.0, min(120.0, float(self.meridian_flip_delay_min or 0.0)))
+        self.meridian_flip_duration_min = max(0.0, min(60.0, float(self.meridian_flip_duration_min or 0.0)))
 
 
 @dataclass
@@ -963,6 +990,9 @@ def create_mount(user_id: str, mount_data: Dict) -> Optional[Dict]:
                 float(mount_data['tracking_accuracy_arcsec']) if mount_data.get('tracking_accuracy_arcsec') else None
             ),
             guiding_supported=mount_data.get('guiding_supported', False),
+            meridian_flip_required=_parse_optional_bool(mount_data.get('meridian_flip_required')),
+            meridian_flip_delay_min=_get_float_or_none(mount_data.get('meridian_flip_delay_min'), 0.0),
+            meridian_flip_duration_min=_get_float_or_none(mount_data.get('meridian_flip_duration_min'), 5.0),
             notes=mount_data.get('notes', ''),
             created_at=datetime.now(timezone.utc).isoformat(),
             updated_at=datetime.now(timezone.utc).isoformat(),
@@ -1011,6 +1041,17 @@ def update_mount(user_id: str, mount_id: str, mount_data: Dict) -> Optional[Dict
                         else None
                     ),
                     guiding_supported=mount_data.get('guiding_supported', False),
+                    meridian_flip_required=_parse_optional_bool(
+                        mount_data['meridian_flip_required']
+                        if 'meridian_flip_required' in mount_data
+                        else item.get('meridian_flip_required')
+                    ),
+                    meridian_flip_delay_min=_get_float_or_none(
+                        mount_data.get('meridian_flip_delay_min'), item.get('meridian_flip_delay_min', 0.0)
+                    ),
+                    meridian_flip_duration_min=_get_float_or_none(
+                        mount_data.get('meridian_flip_duration_min'), item.get('meridian_flip_duration_min', 5.0)
+                    ),
                     is_shared=bool(mount_data.get('is_shared', item.get('is_shared', False))),
                     is_disabled=bool(mount_data.get('is_disabled', item.get('is_disabled', False))),
                     notes=mount_data.get('notes', ''),
