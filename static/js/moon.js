@@ -4,6 +4,10 @@
 
 let moonSvgTemplatePromise = null;
 let moonSvgInstanceSeq = 0;
+// Bumped on every loadMoonPhaseCalendar() call; a render that finds its token
+// stale (a newer call started while it was awaiting) drops its result instead
+// of appending a second calendar card.
+let moonPhaseCalendarRenderSeq = 0;
 
 function getAppVersionQuery() {
     const versionMeta = document.querySelector('meta[name="app-version"]');
@@ -28,6 +32,11 @@ function getMoonSvgTemplate() {
                     throw new Error('moon.svg does not contain a root <svg> element');
                 }
                 return svg;
+            })
+            .catch((error) => {
+                // Do not cache the failure - a later call should be able to retry.
+                moonSvgTemplatePromise = null;
+                throw error;
             });
     }
     return moonSvgTemplatePromise;
@@ -37,18 +46,21 @@ async function createMoonPhaseSvg(illumination, waxing, size = 132) {
     const svgTemplate = await getMoonSvgTemplate();
     const moonSvg = svgTemplate.cloneNode(true);
 
-    // moon.svg ships fixed element ids (moon-disc-clip, shadow-mask, lit-region).
-    // With several moons on one page the duplicated ids collide and every
-    // mask/clip-path url(#...) reference resolves to the first instance, so all
-    // moons render an identical phase. Namespace this clone's ids and rewrite
-    // its own references before inserting it into the document.
+    // moon.svg ships fixed element ids (moon-phase, moon-disc-clip, shadow-mask,
+    // lit-region). With several moons on one page the duplicated ids collide and
+    // every mask/clip-path url(#...) reference resolves to the first instance, so
+    // all moons render an identical phase. Namespace this clone's ids (root node
+    // included) and rewrite its own references before inserting it into the page.
     moonSvgInstanceSeq += 1;
     const idSuffix = `-i${moonSvgInstanceSeq}`;
     const idMap = new Map();
-    moonSvg.querySelectorAll('[id]').forEach((node) => {
+    const namespaceId = (node) => {
+        if (!node.id) return;
         idMap.set(node.id, node.id + idSuffix);
         node.id += idSuffix;
-    });
+    };
+    namespaceId(moonSvg);
+    moonSvg.querySelectorAll('[id]').forEach(namespaceId);
     moonSvg.querySelectorAll('*').forEach((node) => {
         ['mask', 'clip-path', 'fill', 'filter'].forEach((attr) => {
             const value = node.getAttribute(attr);
@@ -322,7 +334,7 @@ const MOON_PHASE_ICONS = {
  * @param {Object} day A day entry from /api/moon/phase-calendar.
  * @param {Object} data The full calendar payload (for today / month context).
  * @param {string} locale BCP-47 locale for date and number formatting.
- * @returns {Promise<{day: number, cell: HTMLElement}>}
+ * @returns {Promise<HTMLElement>}
  */
 async function buildMoonPhaseCalendarCell(day, data, locale) {
     const cell = document.createElement('div');
@@ -367,35 +379,34 @@ async function buildMoonPhaseCalendarCell(day, data, locale) {
     cell.title = label;
     cell.setAttribute('aria-label', label);
 
-    return { day: day.day, cell };
+    return cell;
 }
 
 /**
- * Render the monthly Moon-phase calendar shown under the "Moon next days" cards.
- * Navigation is limited server-side to the current month and the following one.
- * @param {number} [year] Target year; omit for the current month.
- * @param {number} [month] Target month 1-12; omit for the current month.
- * @returns {Promise<void>}
+ * Show a transient error notice inside the calendar container, keeping whatever
+ * calendar is already rendered. Used when a month-navigation fetch fails so the
+ * click does not look silently dead.
+ * @param {HTMLElement} container
  */
-async function loadMoonPhaseCalendar(year, month) {
-    const container = document.getElementById('moon-phase-calendar');
-    if (!container) return;
+function showMoonPhaseCalendarError(container) {
+    const existing = container.querySelector('.moon-phase-cal-error');
+    if (existing) existing.remove();
+    const notice = document.createElement('div');
+    notice.className = 'alert alert-warning py-2 mt-2 mb-0 moon-phase-cal-error';
+    notice.setAttribute('role', 'alert');
+    notice.textContent = i18n.t('moon.phase_calendar_load_error');
+    container.appendChild(notice);
+    setTimeout(() => notice.remove(), 5000);
+}
 
-    const query = (Number.isInteger(year) && Number.isInteger(month)) ? `?year=${year}&month=${month}` : '';
-
-    let data;
-    try {
-        data = await fetchJSON(`/api/moon/phase-calendar${query}`);
-    } catch (_) {
-        return;
-    }
-    if (!data || !Array.isArray(data.days) || data.days.length === 0) return;
-
-    DOMUtils.clear(container);
-
-    const startOnMonday = (currentUserPreferences?.first_day_of_week || 'monday') === 'monday';
-    const locale = typeof i18n?.getCurrentLanguage === 'function' ? i18n.getCurrentLanguage() : navigator.language;
-
+/**
+ * Build the detached Moon-phase calendar card for a payload (drawings included).
+ * @param {Object} data A /api/moon/phase-calendar response.
+ * @param {string} locale BCP-47 locale for date/number formatting.
+ * @param {boolean} startOnMonday First column is Monday when true, else Sunday.
+ * @returns {Promise<HTMLElement>}
+ */
+async function buildMoonPhaseCalendarCard(data, locale, startOnMonday) {
     const card = document.createElement('div');
     card.className = 'moon-phase-calendar-card';
 
@@ -462,8 +473,9 @@ async function loadMoonPhaseCalendar(year, month) {
         grid.appendChild(blank);
     }
 
-    const built = await Promise.all(data.days.map((day) => buildMoonPhaseCalendarCell(day, data, locale)));
-    built.sort((a, b) => a.day - b.day).forEach(({ cell }) => grid.appendChild(cell));
+    // Promise.all keeps input order, and the API returns days already ordered.
+    const cells = await Promise.all(data.days.map((day) => buildMoonPhaseCalendarCell(day, data, locale)));
+    cells.forEach((cell) => grid.appendChild(cell));
     body.appendChild(grid);
     card.appendChild(body);
 
@@ -493,6 +505,47 @@ async function loadMoonPhaseCalendar(year, month) {
     footer.appendChild(moonlessItem);
     card.appendChild(footer);
 
+    return card;
+}
+
+/**
+ * Render the monthly Moon-phase calendar shown under the "Moon next days" cards.
+ * Navigation is limited server-side to the current month and the following one.
+ * @param {number} [year] Target year; omit for the current month.
+ * @param {number} [month] Target month 1-12; omit for the current month.
+ * @returns {Promise<void>}
+ */
+async function loadMoonPhaseCalendar(year, month) {
+    const container = document.getElementById('moon-phase-calendar');
+    if (!container) return;
+
+    const renderToken = ++moonPhaseCalendarRenderSeq;
+    const isNavigation = container.childElementCount > 0;
+    const query = (Number.isInteger(year) && Number.isInteger(month)) ? `?year=${year}&month=${month}` : '';
+
+    const startOnMonday = (currentUserPreferences?.first_day_of_week || 'monday') === 'monday';
+    const locale = typeof i18n?.getCurrentLanguage === 'function' ? i18n.getCurrentLanguage() : navigator.language;
+
+    let card;
+    try {
+        const data = await fetchJSON(`/api/moon/phase-calendar${query}`);
+        if (!data || !Array.isArray(data.days) || data.days.length === 0) return;
+        card = await buildMoonPhaseCalendarCard(data, locale, startOnMonday);
+    } catch (error) {
+        console.error('Failed to load the Moon phase calendar', error);
+        // Only surface an error for an explicit month switch; a failed initial
+        // load just leaves the section empty like the other optional widgets.
+        if (isNavigation && renderToken === moonPhaseCalendarRenderSeq) {
+            showMoonPhaseCalendarError(container);
+        }
+        return;
+    }
+
+    // A newer loadMoonPhaseCalendar() call started while we were awaiting - let
+    // it own the container so two cards never stack.
+    if (renderToken !== moonPhaseCalendarRenderSeq) return;
+
+    DOMUtils.clear(container);
     container.appendChild(card);
 }
 

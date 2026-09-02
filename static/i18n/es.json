@@ -221,6 +221,7 @@
     "phase_calendar_current_month": "Mes actual",
     "phase_calendar_key_phases": "Fases clave:",
     "phase_calendar_moonless": "Cielo oscuro (cerca de luna nueva)",
+    "phase_calendar_load_error": "No se pudo cargar el calendario. Inténtalo de nuevo.",
     "illumination": "Iluminación",
     "max_altitude": "Altitud máxima",
     "dark_time": "Tiempo oscuro",

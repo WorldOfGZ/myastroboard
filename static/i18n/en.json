@@ -221,6 +221,7 @@
     "phase_calendar_current_month": "Current month",
     "phase_calendar_key_phases": "Key phases:",
     "phase_calendar_moonless": "Dark sky (near new moon)",
+    "phase_calendar_load_error": "Could not load the calendar. Please try again.",
     "illumination": "Illumination",
     "max_altitude": "Max Altitude",
     "dark_time": "Dark Time",

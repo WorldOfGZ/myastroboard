@@ -22,27 +22,41 @@ let astrodexFilters = {
     sortOrder: 'asc'
 };
 
-function getObjectTypeOptionsHtml(selectedType = '') {
-    const objectTypes = [
-        ['Galaxy', 'type_galaxy'],
-        ['Nebula', 'type_nebula'],
-        ['Planetary Nebula', 'type_planetary_nebula'],
-        ['Star Cluster', 'type_star_cluster'],
-        ['Open Cluster', 'type_open_cluster'],
-        ['Globular Cluster', 'type_globular_cluster'],
-        ['Planet', 'type_planet'],
-        ['Moon', 'type_moon'],
-        ['Sun', 'type_sun'],
-        ['Comet', 'type_comet'],
-        ['Milky Way', 'type_milky_way'],
-        ['Nightscape', 'type_nightscape'],
-        ['Star Trail', 'type_star_trail'],
-        ['Other', 'type_other'],
-    ];
+// Fixed object-type list shared by Astrodex and the Observation Log. [value, i18n key].
+const OBJECT_TYPE_OPTIONS = [
+    ['Galaxy', 'type_galaxy'],
+    ['Nebula', 'type_nebula'],
+    ['Planetary Nebula', 'type_planetary_nebula'],
+    ['Star Cluster', 'type_star_cluster'],
+    ['Open Cluster', 'type_open_cluster'],
+    ['Globular Cluster', 'type_globular_cluster'],
+    ['Planet', 'type_planet'],
+    ['Moon', 'type_moon'],
+    ['Sun', 'type_sun'],
+    ['Comet', 'type_comet'],
+    ['Milky Way', 'type_milky_way'],
+    ['Nightscape', 'type_nightscape'],
+    ['Star Trail', 'type_star_trail'],
+    ['Other', 'type_other'],
+];
 
-    return objectTypes
+function getObjectTypeOptionsHtml(selectedType = '') {
+    return OBJECT_TYPE_OPTIONS
         .map(([value, key]) => `<option value="${value}" ${selectedType === value ? 'selected' : ''}>${tSkyTonightCompat(key)}</option>`)
         .join('');
+}
+
+/** Append the fixed object-type <option> nodes to a <select>, using DOM APIs
+ * (no HTML sink). Mirrors getObjectTypeOptionsHtml() for callers bound by the
+ * frontend XSS rules. */
+function populateObjectTypeSelect(selectEl, selectedType = '') {
+    OBJECT_TYPE_OPTIONS.forEach(([value, key]) => {
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = tSkyTonightCompat(key);
+        if (selectedType === value) opt.selected = true;
+        selectEl.appendChild(opt);
+    });
 }
 
 /** Map a free-text catalogue object_type onto one of getObjectTypeOptionsHtml()'s fixed

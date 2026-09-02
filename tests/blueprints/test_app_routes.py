@@ -908,6 +908,17 @@ class TestMoonExtendedEndpoints:
         resp = client_admin.get('/api/moon/phase-calendar')
         assert resp.status_code == 500
 
+    def test_phase_calendar_cache_is_bounded(self, client_admin, monkeypatch):
+        monkeypatch.setattr(_route_helpers_mod, 'load_config', lambda: _v12_config())
+        monkeypatch.setattr(_weather_mod, '_MOON_PHASE_CALENDAR_CACHE_MAX', 3)
+        stale = {f'Old/Zone{i}:2000-0{i + 1}': {'timestamp': float(i), 'data': {'days': [], 'principal_phases': []}}
+                 for i in range(10)}
+        monkeypatch.setattr(_weather_mod, '_moon_phase_calendar_cache', dict(stale))
+        resp = client_admin.get('/api/moon/phase-calendar')
+        assert resp.status_code == 200
+        # A fresh compute prunes back down to the cap; the just-computed key survives.
+        assert len(_weather_mod._moon_phase_calendar_cache) <= 3
+
 
 # ---------------------------------------------------------------------------
 # Config export

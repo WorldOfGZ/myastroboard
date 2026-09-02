@@ -277,6 +277,7 @@ def get_moon_month_calendar_api():
 
 _moon_phase_calendar_cache: dict = {}  # "<tz>:<yyyy-mm>" -> {"timestamp", "data"}
 _MOON_PHASE_CALENDAR_TTL = 21600  # 6 hours - the per-day phase data is deterministic
+_MOON_PHASE_CALENDAR_CACHE_MAX = 32  # ~2 reachable months x a handful of timezones; evict the oldest beyond this
 
 
 def _clamp_calendar_month(req_year, req_month, cur_year: int, cur_month: int) -> tuple[int, int]:
@@ -318,6 +319,11 @@ def get_moon_phase_calendar_api():
         if not slot["data"] or (clock - slot["timestamp"]) >= _MOON_PHASE_CALENDAR_TTL:
             slot["data"] = moon_calendar.build_phase_calendar(year, month, tz_name)
             slot["timestamp"] = clock
+            # Only current/next month are ever reachable, so stale (old-month or
+            # other-timezone) entries just accumulate - drop the oldest past the cap.
+            while len(_moon_phase_calendar_cache) > _MOON_PHASE_CALENDAR_CACHE_MAX:
+                oldest = min(_moon_phase_calendar_cache, key=lambda k: _moon_phase_calendar_cache[k]["timestamp"])
+                _moon_phase_calendar_cache.pop(oldest, None)
 
         calendar_data = slot["data"]
         current_index = now_local.year * 12 + (now_local.month - 1)
