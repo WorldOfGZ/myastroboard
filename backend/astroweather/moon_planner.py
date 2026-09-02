@@ -39,6 +39,13 @@ from astropy.coordinates import EarthLocation, AltAz, get_sun, get_body
 
 from astroplan.moon import moon_illumination
 
+# Local hour at which a night's Moon illumination is reported. Solidly night-time
+# and deliberately identical to the monthly phase calendar's sample hour
+# (``astroweather.moon_calendar._SAMPLE_HOUR``) so the 7-night forecast, the target
+# visibility calendar and the phase calendar never disagree for the same date. The
+# altitude grid still spans 18:00 -> 06:00; only this illumination readout is pinned.
+_ILLUMINATION_SAMPLE_HOUR = 23
+
 
 def moon_illumination_percent(dt_local: datetime.datetime) -> float:
     """Moon illumination (%) at a given moment - a pure ephemeris computation, so
@@ -77,13 +84,16 @@ def night_body_altitude_grid(
         Dict with:
           - ``time``: Astropy ``Time`` array over the grid.
           - ``sun_alt_deg`` / ``moon_alt_deg``: numpy arrays of altitudes in degrees.
-          - ``moon_illumination_pct``: Moon illumination (%) at the start of the night.
+          - ``moon_illumination_pct``: Moon illumination (%) at ``_ILLUMINATION_SAMPLE_HOUR``
+            (23:00) local on ``night_date`` - the same instant the monthly phase calendar
+            samples, so the two never disagree for a given date.
     """
     tz = ZoneInfo(timezone_name)
     location = EarthLocation(lat=latitude * u.deg, lon=longitude * u.deg)
 
     start = datetime.datetime.combine(night_date, datetime.time(18, 0), tzinfo=tz)
     end = datetime.datetime.combine(night_date + datetime.timedelta(days=1), datetime.time(6, 0), tzinfo=tz)
+    illumination_instant = datetime.datetime.combine(night_date, datetime.time(_ILLUMINATION_SAMPLE_HOUR, 0), tzinfo=tz)
     step = datetime.timedelta(minutes=step_minutes)
 
     utc_times = []
@@ -101,7 +111,7 @@ def night_body_altitude_grid(
         "time": t_arr,
         "sun_alt_deg": sun_alts,
         "moon_alt_deg": moon_alts,
-        "moon_illumination_pct": moon_illumination_percent(start),
+        "moon_illumination_pct": moon_illumination_percent(illumination_instant),
     }
 
 
@@ -168,7 +178,8 @@ class MoonPlanner:
         sun_alts = grid["sun_alt_deg"]
         moon_alts = grid["moon_alt_deg"]
 
-        # Illumination is constant across the night (computed once)
+        # One representative illumination for the night, sampled at 23:00 local (it drifts
+        # only ~0.5%/h, and this matches the monthly phase calendar's sample instant).
         illum_percent = grid["moon_illumination_pct"]
         moon_max_alt = float(np.max(moon_alts))
 
