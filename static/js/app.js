@@ -480,6 +480,7 @@ function switchSubTab(parentTab, subtabName, options = {}) {
         case 'moon':
             loadMoon();
             loadNextMoonPhases();
+            loadMoonPhaseCalendar();
             loadLunarEclipse();
             break; // Astro Forecast tab
         case 'sun':

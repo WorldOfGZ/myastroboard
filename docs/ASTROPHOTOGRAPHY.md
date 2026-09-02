@@ -10,7 +10,7 @@ The **Astrophotography** tab is the central planning dashboard. It consolidates 
 |---------|---------|
 | **Astro weather** | Summary conditions card + best imaging window |
 | **Window** | Detailed best-window breakdown (3 modes) |
-| **Moon** | Lunar phase, position, 7-night planner, month calendar |
+| **Moon** | Lunar phase, position, 7-night planner, monthly phase calendar |
 | **Sun** | Solar times, twilight windows, next eclipse |
 | **Aurora** | Kp index, geomagnetic forecast, visibility assessment |
 | **Calendar** | Upcoming celestial events (planetary, meteor showers, phenomena) |
@@ -101,9 +101,27 @@ The window score (0–100) reflects how good the dark window is:
 
 ### Moon calendar (`astroweather/moon_planner.py`)
 
-Monthly calendar view with phase icons and illumination values for each day.
+Rolling 30-night strip (dark hours + astrophoto score per night) used by the Plan My Night calendar widget.
 
 **API**: `GET /api/moon/month-calendar`
+
+### Lunar phase calendar (`astroweather/moon_calendar.py`)
+
+Full calendar-month grid shown under "Moon next days". For every day it computes the illuminated
+fraction and waxing/waning state from the Moon phase angle (`astronomy.MoonPhase`, the same formula as
+the Moon report, so the drawings match the main Moon visual), flags near-new-moon nights
+(illumination < 15%) as better deep-sky windows, and locates the month's four principal phases with
+`astronomy.SearchMoonQuarter` / `NextMoonQuarter`, bucketed into local calendar days via the active
+location's timezone. Navigation is restricted to a 2-month window: the current month and the next one.
+
+Every day is sampled at the same fixed night hour (23:00 local) - the calendar is a night-observation
+planning aid, so each cell shows the Moon as it is when you would be out under it, and every cell is
+computed the same way. This can differ by a few percent from the live `#moon-display` widget during
+the day (that one is a "right now" readout); the two converge at night.
+
+**API**: `GET /api/moon/phase-calendar?year=<yyyy>&month=<1-12>` - `year` / `month` are clamped to the
+allowed window; missing or malformed values fall back to the current month. The response also carries
+`is_current_month`, `can_go_prev`, `can_go_next`, `today` and `principal_phases`.
 
 ### Lunar eclipse (`astroweather/moon_eclipse.py`)
 

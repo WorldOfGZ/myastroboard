@@ -4,11 +4,14 @@ Covers static-file routes, auth endpoints, config, cache/report endpoints,
 admin endpoints, and various API utility routes.
 """
 
+import calendar
+import datetime
 import os
 import sys
 import tempfile
 import types
 import uuid
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -809,6 +812,101 @@ class TestMoonExtendedEndpoints:
     def test_month_calendar_returns_response(self, client_admin):
         resp = client_admin.get('/api/moon/month-calendar')
         assert resp.status_code in (200, 202, 400)
+
+    @staticmethod
+    def _utc_now():
+        return datetime.datetime.now(ZoneInfo('UTC'))
+
+    def test_phase_calendar_unauthenticated_returns_401(self, client):
+        resp = client.get('/api/moon/phase-calendar')
+        assert resp.status_code == 401
+
+    def test_phase_calendar_defaults_to_current_month(self, client_admin, monkeypatch):
+        monkeypatch.setattr(_route_helpers_mod, 'load_config', lambda: _v12_config())
+        monkeypatch.setattr(_weather_mod, '_moon_phase_calendar_cache', {})
+        resp = client_admin.get('/api/moon/phase-calendar')
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body['is_current_month'] is True
+        assert body['can_go_prev'] is False
+        assert body['can_go_next'] is True
+        assert len(body['days']) == calendar.monthrange(body['year'], body['month'])[1]
+        expected_keys = {'date', 'day', 'illumination_percent', 'waxing', 'moonless', 'phase_event'}
+        assert all(expected_keys <= set(d) for d in body['days'])
+
+    def test_phase_calendar_next_month_navigation(self, client_admin, monkeypatch):
+        monkeypatch.setattr(_route_helpers_mod, 'load_config', lambda: _v12_config())
+        monkeypatch.setattr(_weather_mod, '_moon_phase_calendar_cache', {})
+        now = self._utc_now()
+        nxt = (now.replace(day=1) + datetime.timedelta(days=32)).replace(day=1)
+        resp = client_admin.get(f'/api/moon/phase-calendar?year={nxt.year}&month={nxt.month}')
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert (body['year'], body['month']) == (nxt.year, nxt.month)
+        assert body['is_current_month'] is False
+        assert body['can_go_prev'] is True
+        assert body['can_go_next'] is False
+
+    def test_phase_calendar_clamps_out_of_window_request(self, client_admin, monkeypatch):
+        monkeypatch.setattr(_route_helpers_mod, 'load_config', lambda: _v12_config())
+        monkeypatch.setattr(_weather_mod, '_moon_phase_calendar_cache', {})
+        now = self._utc_now()
+        resp = client_admin.get(f'/api/moon/phase-calendar?year={now.year + 3}&month=7')
+        assert resp.status_code == 200
+        body = resp.get_json()
+        current_index = now.year * 12 + (now.month - 1)
+        assert body['year'] * 12 + (body['month'] - 1) == current_index + 1  # clamped to current + 1
+
+    def test_phase_calendar_past_request_clamps_to_current(self, client_admin, monkeypatch):
+        monkeypatch.setattr(_route_helpers_mod, 'load_config', lambda: _v12_config())
+        monkeypatch.setattr(_weather_mod, '_moon_phase_calendar_cache', {})
+        resp = client_admin.get('/api/moon/phase-calendar?year=2000&month=1')
+        assert resp.status_code == 200
+        assert resp.get_json()['is_current_month'] is True
+
+    def test_phase_calendar_malformed_params_do_not_500(self, client_admin, monkeypatch):
+        monkeypatch.setattr(_route_helpers_mod, 'load_config', lambda: _v12_config())
+        monkeypatch.setattr(_weather_mod, '_moon_phase_calendar_cache', {})
+        resp = client_admin.get('/api/moon/phase-calendar?year=abc&month=xyz')
+        assert resp.status_code == 200
+        assert resp.get_json()['is_current_month'] is True
+
+    def test_phase_calendar_serves_warm_cache(self, client_admin, monkeypatch):
+        monkeypatch.setattr(_route_helpers_mod, 'load_config', lambda: _v12_config())
+        now = self._utc_now()
+        key = f'UTC:{now.year:04d}-{now.month:02d}'
+        days_in_month = calendar.monthrange(now.year, now.month)[1]
+        warm = {
+            'days': [
+                {
+                    'day': d,
+                    'date': f'{now.year}-{now.month:02d}-{d:02d}',
+                    'illumination_percent': 5.0,
+                    'waxing': True,
+                    'moonless': True,
+                    'phase_event': None,
+                }
+                for d in range(1, days_in_month + 1)
+            ],
+            'principal_phases': [],
+        }
+        monkeypatch.setattr(
+            _weather_mod, '_moon_phase_calendar_cache', {key: {'timestamp': _time.time(), 'data': warm}}
+        )
+        resp = client_admin.get('/api/moon/phase-calendar')
+        assert resp.status_code == 200
+        assert resp.get_json()['days'] == warm['days']
+
+    def test_phase_calendar_computation_failure_returns_500(self, client_admin, monkeypatch):
+        monkeypatch.setattr(_route_helpers_mod, 'load_config', lambda: _v12_config())
+        monkeypatch.setattr(_weather_mod, '_moon_phase_calendar_cache', {})
+
+        def _boom(*_a, **_k):
+            raise RuntimeError('ephemeris blew up')
+
+        monkeypatch.setattr(_weather_mod.moon_calendar, 'build_phase_calendar', _boom)
+        resp = client_admin.get('/api/moon/phase-calendar')
+        assert resp.status_code == 500
 
 
 # ---------------------------------------------------------------------------

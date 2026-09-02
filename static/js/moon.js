@@ -3,6 +3,7 @@
 // ======================
 
 let moonSvgTemplatePromise = null;
+let moonSvgInstanceSeq = 0;
 
 function getAppVersionQuery() {
     const versionMeta = document.querySelector('meta[name="app-version"]');
@@ -32,10 +33,35 @@ function getMoonSvgTemplate() {
     return moonSvgTemplatePromise;
 }
 
-async function createMoonPhaseSvg(illumination, waxing) {
+async function createMoonPhaseSvg(illumination, waxing, size = 132) {
     const svgTemplate = await getMoonSvgTemplate();
     const moonSvg = svgTemplate.cloneNode(true);
-    const litRegion = moonSvg.querySelector('#lit-region');
+
+    // moon.svg ships fixed element ids (moon-disc-clip, shadow-mask, lit-region).
+    // With several moons on one page the duplicated ids collide and every
+    // mask/clip-path url(#...) reference resolves to the first instance, so all
+    // moons render an identical phase. Namespace this clone's ids and rewrite
+    // its own references before inserting it into the document.
+    moonSvgInstanceSeq += 1;
+    const idSuffix = `-i${moonSvgInstanceSeq}`;
+    const idMap = new Map();
+    moonSvg.querySelectorAll('[id]').forEach((node) => {
+        idMap.set(node.id, node.id + idSuffix);
+        node.id += idSuffix;
+    });
+    moonSvg.querySelectorAll('*').forEach((node) => {
+        ['mask', 'clip-path', 'fill', 'filter'].forEach((attr) => {
+            const value = node.getAttribute(attr);
+            if (!value || !value.includes('url(#')) return;
+            let rewritten = value;
+            idMap.forEach((newId, oldId) => {
+                rewritten = rewritten.replace(`url(#${oldId})`, `url(#${newId})`);
+            });
+            if (rewritten !== value) node.setAttribute(attr, rewritten);
+        });
+    });
+
+    const litRegion = moonSvg.querySelector(`#lit-region${idSuffix}`);
     if (litRegion) {
         const R = 44;
         const cx = 50;
@@ -67,7 +93,7 @@ async function createMoonPhaseSvg(illumination, waxing) {
 
         litRegion.setAttribute('d', path);
     }
-    moonSvg.setAttribute('width', '132');
+    moonSvg.setAttribute('width', String(size));
     return moonSvg;
 }
 
@@ -275,6 +301,199 @@ async function loadNextMoonPhases() {
         alert.textContent = 'Failed to load moon data';
         container.appendChild(alert);
     }
+}
+
+// i18n key + Bootstrap icon per principal Moon phase, shared by the calendar cells and the footer.
+const MOON_PHASE_LABEL_KEYS = {
+    new: 'moon.new_moon',
+    first_quarter: 'moon.first_quarter',
+    full: 'moon.full_moon',
+    last_quarter: 'moon.last_quarter',
+};
+const MOON_PHASE_ICONS = {
+    new: 'bi bi-circle',
+    first_quarter: 'bi bi-circle-half',
+    full: 'bi bi-circle-fill',
+    last_quarter: 'bi bi-circle-half',
+};
+
+/**
+ * Build one day cell for the Moon-phase calendar, including its phase drawing.
+ * @param {Object} day A day entry from /api/moon/phase-calendar.
+ * @param {Object} data The full calendar payload (for today / month context).
+ * @param {string} locale BCP-47 locale for date and number formatting.
+ * @returns {Promise<{day: number, cell: HTMLElement}>}
+ */
+async function buildMoonPhaseCalendarCell(day, data, locale) {
+    const cell = document.createElement('div');
+    cell.className = 'moon-phase-cal-cell';
+    if (data.is_current_month && day.date === data.today) {
+        cell.classList.add('moon-phase-cal-today');
+    }
+    if (day.phase_event) {
+        cell.classList.add(`moon-phase-cal-cell--${day.phase_event.type.replace('_', '-')}`);
+    } else if (day.moonless) {
+        cell.classList.add('moon-phase-cal-cell--moonless');
+    }
+
+    const dayNum = document.createElement('div');
+    dayNum.className = 'moon-phase-cal-day';
+    dayNum.textContent = String(day.day);
+    cell.appendChild(dayNum);
+
+    const moonWrap = document.createElement('div');
+    moonWrap.className = 'moon-phase-cal-moon';
+    moonWrap.appendChild(await createMoonPhaseSvg(day.illumination_percent / 100, day.waxing, 34));
+    cell.appendChild(moonWrap);
+
+    const illum = document.createElement('div');
+    illum.className = 'moon-phase-cal-illum';
+    illum.textContent = `${Math.round(day.illumination_percent)}${i18n.t('units.percent')}`;
+    cell.appendChild(illum);
+
+    let label = `${day.date} - ${i18n.t('moon.illumination')} ${Math.round(day.illumination_percent)}%`;
+    if (day.phase_event) {
+        const phaseName = i18n.t(MOON_PHASE_LABEL_KEYS[day.phase_event.type]);
+        const tag = document.createElement('div');
+        tag.className = 'moon-phase-cal-tag';
+        tag.appendChild(DOMUtils.createIcon(`${MOON_PHASE_ICONS[day.phase_event.type]} icon-inline`));
+        cell.appendChild(tag);
+        const eventTime = new Date(day.phase_event.time);
+        const eventClock = eventTime.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+        label = `${day.date} - ${phaseName} ${eventClock}`;
+    } else if (day.moonless) {
+        label += ` - ${i18n.t('moon.phase_calendar_moonless')}`;
+    }
+    cell.title = label;
+    cell.setAttribute('aria-label', label);
+
+    return { day: day.day, cell };
+}
+
+/**
+ * Render the monthly Moon-phase calendar shown under the "Moon next days" cards.
+ * Navigation is limited server-side to the current month and the following one.
+ * @param {number} [year] Target year; omit for the current month.
+ * @param {number} [month] Target month 1-12; omit for the current month.
+ * @returns {Promise<void>}
+ */
+async function loadMoonPhaseCalendar(year, month) {
+    const container = document.getElementById('moon-phase-calendar');
+    if (!container) return;
+
+    const query = (Number.isInteger(year) && Number.isInteger(month)) ? `?year=${year}&month=${month}` : '';
+
+    let data;
+    try {
+        data = await fetchJSON(`/api/moon/phase-calendar${query}`);
+    } catch (_) {
+        return;
+    }
+    if (!data || !Array.isArray(data.days) || data.days.length === 0) return;
+
+    DOMUtils.clear(container);
+
+    const startOnMonday = (currentUserPreferences?.first_day_of_week || 'monday') === 'monday';
+    const locale = typeof i18n?.getCurrentLanguage === 'function' ? i18n.getCurrentLanguage() : navigator.language;
+
+    const card = document.createElement('div');
+    card.className = 'moon-phase-calendar-card';
+
+    // ── Header: title + month navigation ────────────────────────────────────
+    const header = document.createElement('div');
+    header.className = 'moon-phase-cal-header';
+    const title = document.createElement('span');
+    title.className = 'moon-phase-cal-title';
+    DOMUtils.append(title, DOMUtils.createIcon('bi bi-moon-stars-fill icon-inline'), i18n.t('moon.phase_calendar_title'));
+
+    const nav = document.createElement('div');
+    nav.className = 'btn-group btn-group-sm moon-phase-cal-nav';
+
+    const currentBtn = document.createElement('button');
+    currentBtn.type = 'button';
+    currentBtn.className = 'btn btn-outline-light moon-phase-cal-nav-btn';
+    DOMUtils.append(currentBtn, DOMUtils.createIcon('bi bi-chevron-left'), i18n.t('moon.phase_calendar_current_month'));
+    currentBtn.disabled = Boolean(data.is_current_month);
+    currentBtn.addEventListener('click', () => { loadMoonPhaseCalendar(); });
+
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.className = 'btn btn-outline-light moon-phase-cal-nav-btn';
+    DOMUtils.append(nextBtn, i18n.t('moon.phase_calendar_next_month'), DOMUtils.createIcon('bi bi-chevron-right'));
+    nextBtn.disabled = !data.can_go_next;
+    nextBtn.addEventListener('click', () => {
+        const nextIndex = data.year * 12 + (data.month - 1) + 1;
+        loadMoonPhaseCalendar(Math.floor(nextIndex / 12), (nextIndex % 12) + 1);
+    });
+
+    nav.appendChild(currentBtn);
+    nav.appendChild(nextBtn);
+    header.appendChild(title);
+    header.appendChild(nav);
+    card.appendChild(header);
+
+    // ── Body: month label + weekday header + day grid ───────────────────────
+    const body = document.createElement('div');
+    body.className = 'moon-phase-cal-body';
+
+    const monthLabel = document.createElement('div');
+    monthLabel.className = 'moon-phase-cal-month fw-semibold';
+    monthLabel.textContent = new Date(data.year, data.month - 1, 1)
+        .toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+    body.appendChild(monthLabel);
+
+    const grid = document.createElement('div');
+    grid.className = 'moon-phase-cal-grid';
+
+    for (let col = 0; col < 7; col++) {
+        const dowIndex = startOnMonday ? (col + 1) % 7 : col; // 0=Sun..6=Sat
+        const refDate = new Date(2025, 0, 5 + dowIndex); // Jan 5 2025 = Sunday
+        const hdr = document.createElement('div');
+        hdr.className = 'moon-phase-cal-weekday';
+        hdr.textContent = refDate.toLocaleDateString(locale, { weekday: 'short' });
+        grid.appendChild(hdr);
+    }
+
+    const firstDow = new Date(data.days[0].date + 'T12:00:00').getDay();
+    const offset = startOnMonday ? (firstDow + 6) % 7 : firstDow;
+    for (let b = 0; b < offset; b++) {
+        const blank = document.createElement('div');
+        blank.className = 'moon-phase-cal-cell moon-phase-cal-blank';
+        grid.appendChild(blank);
+    }
+
+    const built = await Promise.all(data.days.map((day) => buildMoonPhaseCalendarCell(day, data, locale)));
+    built.sort((a, b) => a.day - b.day).forEach(({ cell }) => grid.appendChild(cell));
+    body.appendChild(grid);
+    card.appendChild(body);
+
+    // ── Footer: this month's key phases + moonless legend ───────────────────
+    const footer = document.createElement('div');
+    footer.className = 'moon-phase-cal-footer';
+    if (Array.isArray(data.principal_phases) && data.principal_phases.length > 0) {
+        const keyLabel = document.createElement('span');
+        keyLabel.className = 'fw-semibold me-1';
+        keyLabel.textContent = i18n.t('moon.phase_calendar_key_phases');
+        footer.appendChild(keyLabel);
+        data.principal_phases.forEach((phase) => {
+            const item = document.createElement('span');
+            item.className = 'moon-phase-cal-legend-item';
+            const phaseDate = new Date(phase.date + 'T12:00:00');
+            DOMUtils.append(
+                item,
+                DOMUtils.createIcon(`${MOON_PHASE_ICONS[phase.type]} icon-inline`),
+                `${i18n.t(MOON_PHASE_LABEL_KEYS[phase.type])} ${phaseDate.toLocaleDateString(locale, { day: 'numeric', month: 'short' })}`
+            );
+            footer.appendChild(item);
+        });
+    }
+    const moonlessItem = document.createElement('span');
+    moonlessItem.className = 'moon-phase-cal-legend-item moon-phase-cal-legend-item--moonless';
+    moonlessItem.textContent = i18n.t('moon.phase_calendar_moonless');
+    footer.appendChild(moonlessItem);
+    card.appendChild(footer);
+
+    container.appendChild(card);
 }
 
 // Guard to prevent concurrent calls to loadBestDarkWindow
