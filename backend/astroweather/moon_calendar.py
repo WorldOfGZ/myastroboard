@@ -8,9 +8,12 @@ month's principal phases (new / first quarter / full / last quarter).
 Each day is sampled at a fixed night hour (23:00 local) - a calendar of Moon
 phases is a night-observation planning aid, so every cell shows the Moon as it
 is when you would actually be out under it, and every cell is sampled the same
-way (no "now" special-casing). This differs slightly from the #moon-display
-widget, which is a live "right now" readout; during the day the two naturally
-disagree by a few percent and converge at night.
+way (no "now" special-casing). The 7-night dark-time forecast and the target
+visibility calendar sample the same 23:00 instant (see
+``astroweather.moon_planner._ILLUMINATION_SAMPLE_HOUR``), so those agree with
+this calendar for a given date. This still differs slightly from the
+#moon-display widget, which is a live "right now" readout; during the day the
+two naturally disagree by a few percent and converge at night.
 
 No location coordinates are needed, only the timezone, which is used to place
 each phase instant on the correct local calendar day.
