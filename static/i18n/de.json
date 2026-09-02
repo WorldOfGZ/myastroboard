@@ -221,6 +221,7 @@
     "phase_calendar_current_month": "Aktueller Monat",
     "phase_calendar_key_phases": "Hauptphasen:",
     "phase_calendar_moonless": "Dunkler Himmel (nahe Neumond)",
+    "phase_calendar_load_error": "Kalender konnte nicht geladen werden. Bitte erneut versuchen.",
     "illumination": "Beleuchtung",
     "max_altitude": "Maximale Höhe",
     "dark_time": "Dunkle Zeit",

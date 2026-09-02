@@ -221,6 +221,7 @@
     "phase_calendar_current_month": "Mois actuel",
     "phase_calendar_key_phases": "Phases principales :",
     "phase_calendar_moonless": "Ciel noir (proche nouvelle lune)",
+    "phase_calendar_load_error": "Impossible de charger le calendrier. Réessayez.",
     "illumination": "Illumination",
     "max_altitude": "Altitude Max",
     "dark_time": "Nuit noire",

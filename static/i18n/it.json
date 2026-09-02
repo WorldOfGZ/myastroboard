@@ -221,6 +221,7 @@
     "phase_calendar_current_month": "Mese corrente",
     "phase_calendar_key_phases": "Fasi principali:",
     "phase_calendar_moonless": "Cielo buio (vicino al novilunio)",
+    "phase_calendar_load_error": "Impossibile caricare il calendario. Riprova.",
     "illumination": "Illuminazione",
     "max_altitude": "Altitudine massima",
     "dark_time": "Tempo oscuro",

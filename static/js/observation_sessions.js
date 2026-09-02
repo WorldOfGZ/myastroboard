@@ -1823,7 +1823,7 @@ async function showObservationEntryForm(sessionId, entry) {
     const typeSelect = document.createElement('select');
     typeSelect.className = 'form-select';
     typeSelect.id = 'observation-entry-type';
-    typeSelect.innerHTML = getObjectTypeOptionsHtml(entry?.type || '');
+    populateObjectTypeSelect(typeSelect, entry?.type || '');
     if (entry) typeSelect.disabled = true;
     form.appendChild(_obsField('col-md-6', i18n.t('observation_log.object_type'), typeSelect, typeSelect.id));
 
