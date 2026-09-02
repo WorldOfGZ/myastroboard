@@ -6,6 +6,26 @@ This document describes features that could potentially be integrated into MyAst
 
 ---
 
+## Architecture direction
+
+MyAstroBoard is an **opinionated core, not a plugin platform.** Extensibility is delivered through narrow, documented extension points where a contributor can add value as one reviewable unit - not through a feature-level plugin system that a stranger cannot safely write anyway:
+
+- **Catalogues** - JSON cross-ref / standalone files (already the mechanism for Pensack 500, LBN, GaryImm, Arp, Sharpless, Barnard, vdB, Abell). Adding one is a single-file PR.
+- **Export formatters** - a small registry shipped with v2.1 (Stellarium, SkySafari, NINA, CSV).
+- **Connectors** - the `BaseConnector` contract, promoted to a documented public SDK in v1.6.
+
+A `docs/EXTENDING.md` with the recipe per extension type is built alongside the first of these.
+
+### On the former "Feature Registry" (was v1.5)
+
+A formal feature manifest and registry - every feature declaring its routes, i18n namespace, cache jobs, capabilities and migration hooks - was previously a dedicated release. It has been dissolved:
+
+- **Breaking the internal feature-dependency cycles** (astrodex <-> equipment, equipment <-> observation log, equipment <-> plan my night, events <-> skytonight, skytonight <-> weather) is real and worth doing - but as **ongoing hygiene**: one cycle broken per release as that area is touched, plus a "no new cycles" code-review rule. Not a refactoring-only release with no user-visible surface.
+- **Per-feature i18n namespaces** are adopted incrementally when a feature's files are touched, and `validate_i18n.py` gains namespace-by-namespace parity checks at that point.
+- A **formal registry** (registry-driven navbar, per-feature enable flags, declared capabilities) is reconsidered only in the 2.x line, and only if two or more features concretely need it. Building it now to serve a *possible* v3.0 is retrofit speculation, not retrofit debt.
+
+---
+
 ## Release Plan
 
 ### v0.9 - Web Push E2E Validation
@@ -122,52 +142,11 @@ Applied server-side, before the result-set truncation: the DSO payload is capped
 
 ---
 
-### v1.5 - Feature Registry (plugin foundation)
+### v1.5 - Session Analytics
 
 | | |
 |---|---|
-| **Why** | MyAstroBoard is heading toward a core + integrations model. The manifest and registry work is *identical* whether that ends up as internal structure or as a real distribution mechanism, so it starts here rather than at v3.0: every feature shipped without it is retrofit debt. Nothing becomes separately installable in this release - features still ship in core, they just declare themselves. |
-| **Effort** | High - almost entirely refactoring, with little visible surface. The cost is concentrated in the boundary work below, not the manifest itself. |
-| **Status** | 💡 Idea - subject to change |
-
-#### Feature manifest
-
-Every feature (SkyTonight, Astrodex, Plan My Night, Equipment, Weather, Spaceflight, Observation Log...) declares itself in one place:
-
-- Id, display name, version, author
-- Core version range (min / max)
-- Dependencies on other features, with version ranges
-- Owned API route prefixes
-- Owned i18n namespace
-- Navbar position and sub-tabs
-- Cache jobs with their TTL
-- Notification triggers
-- Location awareness (needs the active location preset / the scheduler locations)
-- Declared capabilities: network egress, filesystem, user data access
-- Data schema version and migration hooks
-- Uninstall behaviour for user data
-
-#### Registry and registration
-
-- Navbar and sub-tab routing driven by the registry instead of the hardcoded switch in `app.js`
-- Per-instance and per-user enable flags, extending the precedent already set by `skytonight.enabled`, `beginner_catalog_enabled`, `recommendations_enabled` and the per-module connector toggles
-- A disabled feature is hidden from the navbar, its routes return 404, and its cache jobs are not scheduled
-
-#### Boundary work
-
-- **Break the five cyclic feature dependencies** (astrodex <-> equipment, equipment <-> observation log, equipment <-> plan my night, events <-> skytonight, skytonight <-> weather). A cycle makes any later separation impossible, so this is the load-bearing task of the release
-- Split the single i18n file per language into per-feature namespaces, and teach `validate_i18n.py` to check parity namespace by namespace
-- Give the route inventory contract a notion of core routes versus feature routes
-
-**Explicitly not in this release:** dynamic loading, installing from a repository, third-party code execution. Those depend on evidence that the boundaries actually hold.
-
----
-
-### v1.6 - Session Analytics
-
-| | |
-|---|---|
-| **Why** | Answers "how am I progressing?" for beginners and "how am I optimizing?" for advanced users. Requires v1.3 (Observation Log) as data source. |
+| **Why** | Answers "how am I progressing?" for beginners and "how am I optimizing?" for advanced users. Requires v1.3 (Observation Log) as data source. Kept as the release right after v1.4 - a user-visible feature that also tests whether any shared feature structure is actually needed, rather than a refactoring-only release that speculates about it. |
 | **Effort** | Medium |
 | **Status** | 💡 Idea - subject to change |
 
@@ -199,22 +178,22 @@ For logged sessions: overlay seeing score, moon phase, and SQM at the time of ca
 
 **i18n in 6 languages.**
 
-First feature built on the v1.5 registry rather than retrofitted into it - it adds a whole new surface (tab, sub-tabs, i18n namespace, aggregations), which makes it the natural validation case for the manifest.
+It adds a whole new surface (tab, sub-tabs, i18n namespace, aggregations). If building it makes a shared registry feel *necessary* rather than merely tidy, that is the signal to scope one; if the existing per-domain conventions absorb it fine, that is the signal not to.
 
 ---
 
-### v1.7 - Connector SDK and mab-plugins
+### v1.6 - Connector SDK and mab-plugins
 
 | | |
 |---|---|
-| **Why** | This is where the Home Assistant analogy actually holds. A connector has a narrow, uniform contract - talk to an external system, return data - so a stranger can write one safely, which is never true of a full vertical feature that owns its own UI, storage and i18n. `BaseConnector` already covers roughly half of it; this turns it into a documented, versioned public API with its own repository. |
+| **Why** | The one place the plugin idea genuinely pays off. A connector has a narrow, uniform contract - talk to an external system, return data - so a stranger can write one safely and it can be reviewed as a single unit; this is the real contributor on-ramp. A full vertical feature that owns its own UI, storage and i18n never can, which is why the extensibility story stops here rather than at feature-level plugins. `BaseConnector` already covers roughly half of it; this turns it into a documented, versioned public API with its own repository. |
 | **Effort** | Medium |
-| **Status** | 💡 Idea - subject to change |
+| **Status** | 💡 Idea - subject to change. Trigger-based: pursue when the first external connector is requested that the core team would rather not carry in-tree. If a wow-feature is the better use of the slot, v2.0 (Interactive Sky Chart) can be pulled ahead of it. |
 
 #### Connector SDK v2
 
 - Public, documented, versioned `BaseConnector` contract with a stability guarantee
-- Connector manifest reusing the v1.5 feature manifest fields (version, author, core version range, capabilities, health check)
+- Self-contained connector manifest (version, author, core version range, declared capabilities, health check) - defined here, not derived from a core-wide feature manifest
 - Declarative settings schema, so the Parameters -> Connectors form is generated instead of hand-written per connector
 - Per-connector i18n namespace
 - Health check and self-test as part of the contract, not per-connector improvisation
@@ -229,6 +208,7 @@ First feature built on the v1.5 registry rather than retrofitted into it - it ad
 #### Migration
 
 - The existing AllSky connector becomes the first SDK v2 connector and the reference implementation
+- `docs/EXTENDING.md` gains the connector recipe (settings schema, i18n namespace, health check, test harness) with the AllSky connector as the worked example
 
 **i18n in 6 languages.**
 
@@ -326,7 +306,7 @@ Export Plan My Night or SkyTonight results as:
 | **Effort** | High |
 | **Status** | 💡 Idea - subject to change |
 
-Everything here that talks to an external system is built as an SDK v2 connector (v1.7) and lives in `mab-plugins`, not as bespoke in-core code. This release is the first real test of whether that contract is expressive enough for connectors that write back into MAB data rather than only reading.
+Everything here that talks to an external system is built as an SDK v2 connector (v1.6) and lives in `mab-plugins`, not as bespoke in-core code. This release is the first real test of whether that contract is expressive enough for connectors that write back into MAB data rather than only reading.
 
 #### Plate solve (upload -> coordinates)
 
@@ -465,7 +445,7 @@ Coordinates:
 - NINA
 - PHD2
 - ASCOM Alpaca
-- Home Assistant *(net-new connector, built on the v1.7 SDK like the others)*
+- Home Assistant *(net-new connector, built on the v1.6 SDK like the others)*
 - Weather
 - Notifications
 
@@ -492,13 +472,14 @@ One-click night:
 | **Effort** | Very high / open-ended |
 | **Status** | 💡 Idea - subject to change |
 
-#### Plugin ecosystem (matured)
+#### Feature-level modularity (probably never)
 
-The public connector API and the curated repository ship in v1.7; the feature registry ships in v1.5. What remains here is the one step neither of them commits to: promoting **core features** (SkyTonight, Astrodex, Plan My Night, Equipment...) from registry-declared to separately installable.
+The public connector API and curated repository ship in v1.6. What this section once committed to - promoting **core features** (SkyTonight, Astrodex, Plan My Night, Equipment...) from internal modules to separately installable units - is now an explicit "probably never":
 
-- Only pursued if the v1.5 boundaries held in practice: no cycles reintroduced, per-feature i18n stable, feature routes cleanly separated from core routes
-- Requires a dependency solver plus graceful degradation for every meaningful feature subset. The supported state space grows as 2^N, and the features are not independent (Plan My Night without SkyTonight is meaningless, Astrodex without Equipment loses picture metadata), so this is a deliberate and permanent cost - not a free consequence of modularity
-- By this point the community integration surface (NINA, PHD2, ASCOM Alpaca, INDI, Seestar, Stellarium, Home Assistant, weather providers, AllSky) already grows through v1.7 without one person maintaining every connector
+- Nobody self-hosting a planning app wants "SkyTonight without Astrodex". The install base that benefits from feature-level modularity is tiny, and the features are deeply interdependent (Plan My Night without SkyTonight is meaningless, Astrodex without Equipment loses picture metadata)
+- It needs a dependency solver plus graceful degradation for every meaningful subset. The state space grows as 2^N and the features are not independent, so this is a deliberate and permanent maintenance cost, not a free consequence of modularity
+- Reconsidered only if MyAstroBoard reaches genuine multi-maintainer scale **and** the incremental boundary work (no cycles, per-feature i18n, core vs feature routes) has actually landed by then - neither is assumed
+- The community integration surface (NINA, PHD2, ASCOM Alpaca, INDI, Seestar, Stellarium, Home Assistant, weather providers, AllSky) already grows through the v1.6 connector SDK without one person maintaining every connector - that is the modularity that matters, and it does not require this step
 
 #### Intelligent journal (observatory memory)
 
@@ -529,9 +510,8 @@ Also:
 | v1.2 | Multi-location profiles | All | Medium | ✅ Implemented |
 | v1.3 | Observation Log | Intermediate+ | High | ✅ Implemented |
 | v1.4 | Planning Intelligence (visibility calendar, meridian flip, advanced filters) | Advanced | High | ✅ Implemented |
-| v1.5 | Feature registry (plugin foundation) | All | High | 💡 Idea |
-| v1.6 | Session Analytics | All | Medium | 💡 Idea |
-| v1.7 | Connector SDK and mab-plugins | All | Medium | 💡 Idea |
+| v1.5 | Session Analytics | All | Medium | 💡 Idea |
+| v1.6 | Connector SDK and mab-plugins | All | Medium | 💡 Idea |
 | v2.0 | Interactive Sky Chart + mosaic planner | All | High | 💡 Idea |
 | v2.1 | Community & Sharing | All | Medium | 💡 Idea |
 | v2.2 | Integrations (plate solve, PHD2, NINA) | Advanced | High | 💡 Idea |
