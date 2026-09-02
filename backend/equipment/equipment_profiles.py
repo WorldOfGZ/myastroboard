@@ -9,7 +9,7 @@ import uuid
 import shutil
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, fields
 from enum import Enum
 from utils.logging_config import get_logger
 from utils.constants import DATA_DIR
@@ -171,6 +171,34 @@ class Mount:
             self.meridian_flip_required = bool(self.meridian_flip_required)
         self.meridian_flip_delay_min = max(0.0, min(120.0, float(self.meridian_flip_delay_min or 0.0)))
         self.meridian_flip_duration_min = max(0.0, min(60.0, float(self.meridian_flip_duration_min or 0.0)))
+
+
+_MOUNT_FLIP_FIELDS = ('meridian_flip_required', 'meridian_flip_delay_min', 'meridian_flip_duration_min')
+
+
+def normalize_mount_flip_fields(mount: Optional[Dict]) -> Optional[Dict]:
+    """Backfill the v1.4 meridian-flip fields on a raw mount dict read from disk.
+
+    Mount profiles written before v1.4 have no ``meridian_flip_required`` /
+    ``meridian_flip_delay_min`` / ``meridian_flip_duration_min`` keys.
+    ``Mount.__post_init__`` derives their defaults, but the read paths (``get_mount``,
+    ``load_user_mounts``, ``index_owned_and_shared_equipment``) hand back the stored
+    dict verbatim without ever reconstructing the dataclass - so a consumer such as
+    the meridian-flip estimator sees ``None`` for ``meridian_flip_required`` and
+    silently does nothing.
+
+    This applies exactly the same defaults on a shallow copy (the input dict is never
+    mutated, so nothing is rewritten to disk). Idempotent: a dict that already carries
+    all three keys is returned unchanged.
+    """
+    if not mount or all(key in mount for key in _MOUNT_FLIP_FIELDS):
+        return mount
+    known = {f.name for f in fields(Mount)}
+    try:
+        rebuilt = asdict(Mount(**{k: v for k, v in mount.items() if k in known}))
+    except (TypeError, ValueError):
+        return mount
+    return {**mount, **{key: rebuilt[key] for key in _MOUNT_FLIP_FIELDS}}
 
 
 @dataclass
@@ -1013,11 +1041,15 @@ def create_mount(user_id: str, mount_data: Dict) -> Optional[Dict]:
 
 
 def get_mount(user_id: str, mount_id: str) -> Optional[Dict]:
-    """Get a specific mount profile"""
+    """Get a specific mount profile.
+
+    The v1.4 meridian-flip fields are backfilled for pre-v1.4 mount files so every
+    caller (meridian-flip estimator, equipment UI) sees the resolved values.
+    """
     data = load_user_mounts(user_id)
     for item in data['items']:
         if item['id'] == mount_id:
-            return item
+            return normalize_mount_flip_fields(item)
     return None
 
 

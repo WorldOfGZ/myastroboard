@@ -2646,6 +2646,73 @@ class TestMeridianFlip:
         result = self._flip(monkeypatch, slot_start, slot_end)  # flip 23:45 < 00:00
         assert result['state'] == 'none'
 
+    def test_precomputed_lst_uses_the_o1_transit_path(self, monkeypatch):
+        """When the caller passes the plan-scoped LST, the per-entry minute-step
+        sidereal scan (_meridian_transit_time) must not be touched."""
+        def _boom(*_a, **_k):
+            raise AssertionError('_meridian_transit_time must not run on the fast path')
+
+        monkeypatch.setattr(plan_my_night, '_meridian_transit_time', _boom)
+        monkeypatch.setattr(plan_my_night, '_meridian_transit_from_lst', lambda *_a, **_k: '23:30')
+        result = plan_my_night._compute_entry_meridian_flip(
+            {'ra': '00h 42m 44s'},
+            datetime(2026, 7, 18, 23, 0, tzinfo=timezone.utc),
+            datetime(2026, 7, 19, 0, 30, tzinfo=timezone.utc),
+            self.EQ_MOUNT,
+            48.0,
+            2.0,
+            self.NIGHT_START,
+            self.NIGHT_END,
+            lst_start_hours=6.0,
+        )
+        assert result['state'] == 'mid'
+
+
+class TestRaToHours:
+    """_ra_to_hours: a bare decimal is decimal hours in [0, 24), decimal degrees above."""
+
+    def test_hms_string(self):
+        assert plan_my_night._ra_to_hours('00h 42m 44s') == pytest.approx(0.7122, abs=1e-3)
+
+    def test_colon_string(self):
+        assert plan_my_night._ra_to_hours('05:34:30') == pytest.approx(5.575, abs=1e-3)
+
+    def test_bare_decimal_is_hours_when_below_24(self):
+        # The combination recommender / SkyTonightCoordinates.ra_hours emit this form.
+        assert plan_my_night._ra_to_hours('0.712') == pytest.approx(0.712, abs=1e-6)
+        assert plan_my_night._ra_to_hours(23.9) == pytest.approx(23.9, abs=1e-6)
+
+    def test_bare_decimal_is_degrees_when_24_or_above(self):
+        assert plan_my_night._ra_to_hours('180') == pytest.approx(12.0, abs=1e-6)
+        assert plan_my_night._ra_to_hours(359.0) == pytest.approx(359.0 / 15.0, abs=1e-6)
+
+    def test_blank_and_none(self):
+        assert plan_my_night._ra_to_hours(None) is None
+        assert plan_my_night._ra_to_hours('') is None
+        assert plan_my_night._ra_to_hours('not-a-number') is None
+
+
+class TestResolvePlanMount:
+    """_resolve_plan_mount backfills the v1.4 flip fields for pre-v1.4 mount files,
+    including the shared-equipment fallback path that returns the stored dict verbatim."""
+
+    def test_legacy_shared_mount_is_normalized(self, monkeypatch):
+        from equipment import equipment_profiles
+
+        legacy_mount = {'id': 'mnt-legacy', 'name': 'Old EQ6', 'mount_type': 'Equatorial'}
+        monkeypatch.setattr(equipment_profiles, 'get_combination', lambda *_a, **_k: {'id': 'combo-1', 'mount_id': 'mnt-legacy'})
+        monkeypatch.setattr(equipment_profiles, 'load_all_shared_combinations', lambda *_a, **_k: [])
+        monkeypatch.setattr(equipment_profiles, 'get_mount', lambda *_a, **_k: None)
+        monkeypatch.setattr(
+            equipment_profiles, 'index_owned_and_shared_equipment',
+            lambda *_a, **_k: ({}, {'mnt-legacy': legacy_mount}),
+        )
+
+        resolved = plan_my_night._resolve_plan_mount('11111111-1111-4111-8111-111111111111', 'combo-1')
+        assert resolved is not None
+        assert resolved['meridian_flip_required'] is True
+        assert resolved['meridian_flip_duration_min'] == 5.0
+
 
 class TestOptimizerFlipAwareOrdering:
     """v1.4: among targets that would start at the same time, the earlier meridian flip goes first."""
@@ -2680,7 +2747,7 @@ class TestOptimizerFlipAwareOrdering:
             lambda *_a, **_k: {'meridian_flip_required': True, 'meridian_flip_delay_min': 0, 'meridian_flip_duration_min': 5},
         )
 
-        def _fake_transit_and_flip(entry, mount, _lat, _lon, night_start, _night_end):
+        def _fake_transit_and_flip(entry, mount, _lat, _lon, night_start, _night_end, _lst_start_hours=None):
             if mount is None:
                 return None, None
             # early_flip's flip lands mid first slot; late_flip's lands mid second slot.
@@ -2694,6 +2761,57 @@ class TestOptimizerFlipAwareOrdering:
         # Both share run_start (never observable) - the earlier flip breaks the tie.
         assert result["order"] == ["early_flip", "late_flip"]
         assert "flip_mid_session" in result["plan_warnings"]
+
+    def test_earlier_flip_wins_when_run_starts_are_close_not_identical(self, temp_plan_dir, monkeypatch):
+        """Real altitude data almost never yields two bit-identical run starts; the
+        tie-break must still fire when the two starts are only minutes apart."""
+        monkeypatch.setattr(
+            "skytonight.skytonight_storage.get_alttime_dir", lambda *_a, **_k: temp_plan_dir, raising=True
+        )
+        night_start = datetime(2026, 7, 18, 6, 0, tzinfo=timezone.utc)
+        night_end = datetime(2026, 7, 18, 10, 0, tzinfo=timezone.utc)
+        monkeypatch.setattr(plan_my_night, "_now", lambda: night_start)
+        times = [(night_start + timedelta(minutes=15 * i)).strftime("%Y-%m-%dT%H:%M:%S") for i in range(17)]
+        # early_riser crosses the 25 deg floor ~06:07; late_riser ~06:17 - within one cluster.
+        _write_alttime(temp_plan_dir, "early_riser", times, [24.0, 26.0] + [40.0] * 15)
+        _write_alttime(temp_plan_dir, "late_riser", times, [20.0, 24.0, 30.0] + [40.0] * 14)
+
+        uid = "eeee3022-0000-4000-8000-000000000000"
+        payload = {
+            "user_id": uid, "username": "user",
+            "plan": {
+                "night_start": night_start.isoformat(),
+                "night_end": night_end.isoformat(),
+                "start_delay_minutes": 0,
+                "location_id": None,
+                "combination_id": "combo-1",
+                "entries": [
+                    {"id": "early_riser_late_flip", "name": "Early riser", "planned_minutes": 60,
+                     "alttime_file": "early_riser", "done": False},
+                    {"id": "late_riser_early_flip", "name": "Late riser", "planned_minutes": 60,
+                     "alttime_file": "late_riser", "done": False},
+                ],
+            },
+        }
+        save_user_plan(uid, payload, username="user")
+
+        monkeypatch.setattr(plan_my_night, "_plan_location_latlon", lambda *_a, **_k: (None, None))
+        monkeypatch.setattr(
+            plan_my_night, "_resolve_plan_mount",
+            lambda *_a, **_k: {'meridian_flip_required': True, 'meridian_flip_delay_min': 0, 'meridian_flip_duration_min': 5},
+        )
+
+        def _fake_transit_and_flip(entry, mount, _lat, _lon, ns, _ne, _lst=None):
+            offset_min = 30 if entry.get('id') == 'late_riser_early_flip' else 120
+            when = ns + timedelta(minutes=offset_min)
+            return when, when
+
+        monkeypatch.setattr(plan_my_night, "_entry_transit_and_flip", _fake_transit_and_flip)
+
+        result = compute_optimized_schedule(uid, "user")
+        # early_riser starts ~10 min sooner, but late_riser must flip ~90 min earlier, so
+        # the tie-break (starts within _FLIP_TIE_BREAK_WINDOW_MINUTES) puts it first.
+        assert result["order"] == ["late_riser_early_flip", "early_riser_late_flip"]
 
     def test_no_mount_keeps_original_order(self, temp_plan_dir, monkeypatch):
         uid = "eeee3021-0000-4000-8000-000000000000"

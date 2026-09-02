@@ -1260,12 +1260,25 @@ class TestDataclassBranchCoverage:
                 {'items': [{'id': 'legacy', 'name': 'Old EQ', 'mount_type': 'Equatorial', 'payload_capacity_kg': 15}]},
                 handle,
             )
+        # get_mount backfills the v1.4 flip fields directly - no round-trip through the
+        # dataclass required by consumers such as the meridian-flip estimator.
         loaded = equipment_profiles.get_mount(test_user_id, 'legacy')
         assert loaded is not None
-        # Round-trip through the dataclass to apply defaults, as update_mount does.
-        rebuilt = equipment_profiles.Mount(**{k: v for k, v in loaded.items() if k in equipment_profiles.Mount.__dataclass_fields__})
-        assert rebuilt.meridian_flip_required is True
-        assert rebuilt.meridian_flip_duration_min == 5.0
+        assert loaded['meridian_flip_required'] is True
+        assert loaded['meridian_flip_delay_min'] == 0.0
+        assert loaded['meridian_flip_duration_min'] == 5.0
+
+    def test_normalize_mount_flip_fields_alt_az_and_idempotent(self):
+        normalize = equipment_profiles.normalize_mount_flip_fields
+        assert normalize(None) is None
+        alt_az = normalize({'id': 'm', 'name': 'AZ', 'mount_type': 'Alt-Azimuth'})
+        assert alt_az['meridian_flip_required'] is False
+        # A dict that already carries all three keys is returned untouched.
+        already = {
+            'id': 'm', 'name': 'EQ', 'mount_type': 'Equatorial',
+            'meridian_flip_required': False, 'meridian_flip_delay_min': 7.0, 'meridian_flip_duration_min': 3.0,
+        }
+        assert normalize(already) is already
 
     def test_equipment_combination_none_lists_set_to_empty(self):
         EquipmentCombination = equipment_profiles.EquipmentCombination

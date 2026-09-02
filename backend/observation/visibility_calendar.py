@@ -26,6 +26,7 @@ Design notes
 
 from __future__ import annotations
 
+import contextlib
 import math
 from collections import OrderedDict
 from datetime import date, timezone
@@ -51,11 +52,12 @@ _SAMPLE_DAYS: Tuple[int, ...] = (1, 15)
 _MONTHS: Tuple[int, ...] = tuple(range(1, 13))
 _STEP_MINUTES = 10
 _MAX_CACHE_ENTRIES = 256
-# How far the year selector may reach. Kept modest: further out is a less useful
-# planning horizon, and beyond ~1 year the IERS Earth-orientation table only
-# extrapolates (handled by distant_epoch_precision_warnings_muted below).
+# How far the year selector may reach (matches docs/API_ENDPOINTS.md and SKYTONIGHT.md).
+# A year past the current one runs beyond the ~1-year horizon of the IERS
+# Earth-orientation table; the extrapolation error is far below what a monthly heatmap
+# shows, and the degraded-accuracy warnings are muted per-year in _compute_visibility_calendar.
 YEAR_OFFSET_MIN = -1
-YEAR_OFFSET_MAX = 2
+YEAR_OFFSET_MAX = 5
 
 # Categories / SIMBAD object-type tokens that move over a year - unsupported.
 _UNSUPPORTED_CATEGORIES = {'bodies', 'comets'}
@@ -303,11 +305,17 @@ def _compute_visibility_calendar(identifier: str, location: Dict[str, Any], year
     timezone_name = str(location.get('timezone') or 'UTC')
 
     samples: List[Dict[str, Any]] = []
-    # A future year runs past the ~1-year horizon of the IERS Earth-orientation table.
-    # For a monthly heatmap the extrapolation error is far below arcminute, so mute the
-    # degraded-accuracy error/warnings the same way the eclipse services do - otherwise
-    # every sample past that horizon raises and the year comes back half-empty.
-    with distant_epoch_precision_warnings_muted():
+    # A year past the current one runs beyond the ~1-year horizon of the IERS
+    # Earth-orientation table, so astropy warns it is assuming UT1-UTC = 0 and ERFA flags
+    # the date as "dubious". For a monthly heatmap the extrapolation error is far below
+    # arcminute, so those warnings are muted the same way the eclipse services do -
+    # otherwise every sample past that horizon raises and the year comes back half-empty.
+    # The mute is process-wide, so it is entered only for the years that actually need it
+    # (never for the current or previous year, the common case) to keep degraded-accuracy
+    # warnings from other concurrent calculations reaching the log.
+    needs_iers_mute = int(year) > date.today().year
+    epoch_guard = distant_epoch_precision_warnings_muted() if needs_iers_mute else contextlib.nullcontext()
+    with epoch_guard:
         for month in _MONTHS:
             for day in _SAMPLE_DAYS:
                 try:

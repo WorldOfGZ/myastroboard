@@ -29,6 +29,8 @@ _meridian_transit_fast = calc._meridian_transit_fast
 _antimeridian_transit_fast = calc._antimeridian_transit_fast
 _meridian_transit_time = calc._meridian_transit_time
 _antimeridian_transit_time = calc._antimeridian_transit_time
+_local_sidereal_time_hours = calc._local_sidereal_time_hours
+_meridian_transit_from_lst = calc._meridian_transit_from_lst
 _save_alttime_json = calc._save_alttime_json
 _clear_alttime_files = calc._clear_alttime_files
 _MoonInfo = calc._MoonInfo
@@ -575,6 +577,51 @@ class TestTransitHelpers:
         out = _meridian_transit_time(5.0, start, end, 45.0, -75.0)
         assert out == "00:15"
 
+    def test_meridian_transit_from_lst_projects_first_future_crossing(self):
+        night_start = datetime(2026, 4, 17, 21, 0, tzinfo=timezone.utc)
+        night_end = night_start + timedelta(hours=10)
+        # LST at night_start = 3.0 h, target RA = 5.0 h -> HA = -2.0 h -> transit in ~2 h
+        # of sidereal time (a touch under 2 h of solar time).
+        out = _meridian_transit_from_lst(5.0, night_start, night_end, 3.0)
+        assert out is not None
+        transit = datetime.strptime(out, "%H:%M")
+        minutes_after_start = (transit.hour * 60 + transit.minute) - (21 * 60)
+        assert 113 <= minutes_after_start <= 120
+
+    def test_meridian_transit_from_lst_none_when_outside_window(self):
+        night_start = datetime(2026, 4, 17, 21, 0, tzinfo=timezone.utc)
+        night_end = night_start + timedelta(hours=4)
+        # Target already 1 h past the meridian at night_start -> next transit ~23 h away.
+        assert _meridian_transit_from_lst(5.0, night_start, night_end, 6.0) is None
+
+    def test_meridian_transit_from_lst_matches_minute_scan(self):
+        night_start = datetime(2026, 4, 17, 21, 0, tzinfo=timezone.utc)
+        night_end = night_start + timedelta(hours=11)
+        lst0 = _local_sidereal_time_hours(night_start, -75.0)
+        assert lst0 is not None
+
+        def _minutes_after_start(hhmm):
+            hour, minute = (int(p) for p in hhmm.split(":"))
+            total = hour * 60 + minute
+            if total < 12 * 60:  # after midnight, still inside the 21:00 -> 08:00 window
+                total += 24 * 60
+            return total - 21 * 60
+
+        matched = 0
+        for ra_hours in [step * 0.5 for step in range(48)]:
+            scan = _meridian_transit_time(ra_hours, night_start, night_end, 45.0, -75.0)
+            fast = _meridian_transit_from_lst(ra_hours, night_start, night_end, lst0)
+            if scan is None:
+                assert fast is None
+                continue
+            assert fast is not None
+            # The minute-step scan reports the step at/after the crossing, so it is 0-16
+            # minutes later than the analytic projection - never earlier, never further.
+            delta = _minutes_after_start(scan) - _minutes_after_start(fast)
+            assert -1 <= delta <= 16
+            matched += 1
+        assert matched >= 10
+
     @patch("skytonight.skytonight_calculator.EarthLocation")
     @patch("skytonight.skytonight_calculator.Time")
     def test_antimeridian_transit_time_crossing(self, mock_time, mock_location):
@@ -697,7 +744,7 @@ class TestTargetAndBodyResultBuilders:
 
     def test_compute_target_result_exposes_surface_brightness_and_hourly_altitude(self):
         """v1.4 advanced-filter fields: mean surface brightness and a compact
-        1-per-local-hour altitude vector (sample nearest :00)."""
+        1-per-local-hour altitude vector (interpolated to the top of each hour)."""
         target = SimpleNamespace(
             target_id="ngc7000",
             preferred_name="NGC 7000",
@@ -750,6 +797,62 @@ class TestTargetAndBodyResultBuilders:
         # magnitude 4.5 over pi*(15)^2 arcmin^2 -> ~11.6 mag/arcmin^2
         assert result["surface_brightness"] == pytest.approx(11.62, abs=0.05)
         assert result["hourly_altitude"] == [{"h": 21, "alt": 25.0}, {"h": 22, "alt": 45.0}]
+
+    def test_hourly_altitude_interpolates_to_top_of_hour_on_irregular_grid(self):
+        """The night grid steps are ~17 min and rarely land on :00, so each whole-hour
+        mark is linearly interpolated between its bracketing samples, and an hour with
+        no samples before it (partial first hour) is omitted rather than mislabelled."""
+        target = SimpleNamespace(
+            target_id="ic1396",
+            preferred_name="IC 1396",
+            catalogue_names={},
+            category="deep_sky",
+            object_type="nebula",
+            constellation="Cep",
+            magnitude=3.5,
+            size_arcmin=170.0,
+            coordinates=SimpleNamespace(ra_hours=21.6, dec_degrees=57.5),
+            source_catalogues=[],
+            metadata={},
+        )
+        moon = SimpleNamespace(phase=0.1, ra_deg=None, dec_deg=None)
+        constraints = {
+            "altitude_constraint_min": 5,
+            "altitude_constraint_max": 85,
+            "fraction_of_time_observable_threshold": 0.0,
+            "airmass_constraint": 0.0,
+        }
+        # Linear altitude ramp so the interpolated values are exact and easy to assert.
+        alt = np.array([10.0, 20.0, 30.0, 40.0, 50.0, 60.0], dtype=np.float32)
+        az = np.array([90.0, 95.0, 100.0, 105.0, 110.0, 115.0], dtype=np.float32)
+        times_local = [
+            datetime(2026, 8, 1, 20, 47),
+            datetime(2026, 8, 1, 21, 4),
+            datetime(2026, 8, 1, 21, 21),
+            datetime(2026, 8, 1, 21, 38),
+            datetime(2026, 8, 1, 21, 55),
+            datetime(2026, 8, 1, 22, 12),
+        ]
+        result = _compute_target_result(
+            target=target,
+            times=None,
+            altaz_values=alt,
+            location=object(),
+            moon=moon,
+            constraints=constraints,
+            night_start=datetime(2026, 8, 1, 20, 47),
+            night_end=datetime(2026, 8, 2, 5, 0),
+            lat=45.0,
+            lon=-75.0,
+            az_values=az,
+            lst_hours=np.array([20.0, 20.3, 20.6, 20.9, 21.2, 21.5]),
+            times_local=times_local,
+        )
+        assert result is not None
+        hourly = {entry["h"]: entry["alt"] for entry in result["hourly_altitude"]}
+        assert 20 not in hourly  # no sample before 20:47 -> hour 20 is not claimed
+        assert hourly[21] == pytest.approx(10.0 + 10.0 * (13 / 17), abs=0.05)
+        assert hourly[22] == pytest.approx(50.0 + 10.0 * (5 / 17), abs=0.05)
 
     def test_compute_target_result_surface_brightness_none_without_size(self):
         target = SimpleNamespace(

@@ -1142,6 +1142,7 @@
     "adv_filter_integration_hint": "Estimación aproximada - requiere una combinación de equipo. Consulta la documentación para el método y sus límites.",
     "adv_filter_reset": "Restablecer filtros avanzados",
     "adv_filter_considered": "{count} objetos tras el filtrado avanzado",
+    "adv_filter_needs_calculation": "Aún no hay cálculo nocturno para esta ubicación - solo se aplicó el filtro de tamaño angular.",
     "surface_brightness": "Brillo superficial",
     "surface_brightness_unit": "mag/arcmin²",
     "value_unknown": "Desconocido",

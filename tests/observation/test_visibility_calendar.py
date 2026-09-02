@@ -148,14 +148,37 @@ def test_unknown_target_falls_back_to_simbad_then_not_found(monkeypatch):
 def test_future_year_computes_all_months_despite_stale_iers(monkeypatch):
     """A year past the ~1-year IERS horizon must still return all 12 months - the
     calendar mutes the degraded-accuracy error the way the eclipse services do."""
+    from datetime import date
     from astropy.utils import iers
 
     monkeypatch.setattr(iers.conf, 'iers_degraded_accuracy', 'error')
     _patch_dataset(monkeypatch, [_target('dso-m31', 0.712, 41.27, name='NGC 224')])
-    result = visibility_calendar.get_visibility_calendar('NGC 224', _PARIS, _YEAR + 2)
+    future_year = date.today().year + 2
+    result = visibility_calendar.get_visibility_calendar('NGC 224', _PARIS, future_year)
     assert result['supported'] is True
     assert len(result['months']) == 12
     assert len(result['samples']) == 24
+
+
+def test_current_year_does_not_mute_iers_process_wide(monkeypatch):
+    """The IERS degraded-accuracy mute is process-wide, so it must not be entered for
+    the common current/previous-year request - only for years past the IERS horizon."""
+    from datetime import date
+    from astropy.utils import iers
+
+    entered = {'muted': False}
+    real_ctx = visibility_calendar.distant_epoch_precision_warnings_muted
+
+    def _tracking_ctx():
+        entered['muted'] = True
+        return real_ctx()
+
+    monkeypatch.setattr(visibility_calendar, 'distant_epoch_precision_warnings_muted', _tracking_ctx)
+    monkeypatch.setattr(iers.conf, 'iers_degraded_accuracy', 'ignore')
+    _patch_dataset(monkeypatch, [_target('dso-m31', 0.712, 41.27, name='NGC 224')])
+
+    visibility_calendar.get_visibility_calendar('NGC 224', _PARIS, date.today().year)
+    assert entered['muted'] is False
 
 
 def test_simbad_fallback_resolves_astrodex_only_target(monkeypatch):

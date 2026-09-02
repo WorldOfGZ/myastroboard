@@ -1142,6 +1142,7 @@
     "adv_filter_integration_hint": "Grobe Schätzung - benötigt eine Ausrüstungskombination. Methode und Grenzen siehe Dokumentation.",
     "adv_filter_reset": "Erweiterte Filter zurücksetzen",
     "adv_filter_considered": "{count} Ziele nach erweiterter Filterung",
+    "adv_filter_needs_calculation": "Noch keine nächtliche Berechnung für diesen Standort - nur der Winkelgrößenfilter wurde angewendet.",
     "surface_brightness": "Flächenhelligkeit",
     "surface_brightness_unit": "mag/arcmin²",
     "value_unknown": "Unbekannt",

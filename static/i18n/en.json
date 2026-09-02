@@ -1142,6 +1142,7 @@
     "adv_filter_integration_hint": "Rough estimate - needs an equipment combination. See the docs for the method and its limits.",
     "adv_filter_reset": "Reset advanced filters",
     "adv_filter_considered": "{count} targets after advanced filtering",
+    "adv_filter_needs_calculation": "No nightly calculation for this location yet - only the angular size filter ran.",
     "surface_brightness": "Surface brightness",
     "surface_brightness_unit": "mag/arcmin²",
     "value_unknown": "Unknown",

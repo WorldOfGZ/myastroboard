@@ -1142,6 +1142,7 @@
     "adv_filter_integration_hint": "Estimativa aproximada - requer uma combinação de equipamento. Consulte a documentação para o método e seus limites.",
     "adv_filter_reset": "Redefinir filtros avançados",
     "adv_filter_considered": "{count} alvos após a filtragem avançada",
+    "adv_filter_needs_calculation": "Ainda sem cálculo noturno para este local - apenas o filtro de tamanho angular foi aplicado.",
     "surface_brightness": "Brilho superficial",
     "surface_brightness_unit": "mag/arcmin²",
     "value_unknown": "Desconhecido",

@@ -70,8 +70,10 @@ Data is stored per-user in `data/equipments/<user_id>_<type>.json`.
 | `meridian_flip_duration_min` | Dead time for the flip plus re-centre and re-guide (0-60, default 5). |
 
 The last three feed the Plan My Night **meridian flip** indicator - see
-[PLAN_MY_NIGHT.md](PLAN_MY_NIGHT.md#meridian-flip). Absent on older mount files, they fall back to
-these defaults on load; nothing is rewritten.
+[PLAN_MY_NIGHT.md](PLAN_MY_NIGHT.md#meridian-flip). Absent on older mount files, they are backfilled
+to these defaults on every read (`equipment_profiles.normalize_mount_flip_fields`, applied by
+`get_mount`, the mounts list endpoint and `plan_my_night._resolve_plan_mount`); the stored file is
+not rewritten.
 
 ---
 

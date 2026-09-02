@@ -1142,6 +1142,7 @@
     "adv_filter_integration_hint": "Stima approssimativa - richiede una combinazione di attrezzatura. Vedi la documentazione per il metodo e i suoi limiti.",
     "adv_filter_reset": "Reimposta filtri avanzati",
     "adv_filter_considered": "{count} oggetti dopo il filtraggio avanzato",
+    "adv_filter_needs_calculation": "Nessun calcolo notturno per questa località - applicato solo il filtro sulle dimensioni angolari.",
     "surface_brightness": "Luminosità superficiale",
     "surface_brightness_unit": "mag/arcmin²",
     "value_unknown": "Sconosciuto",

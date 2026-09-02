@@ -3182,9 +3182,18 @@ function _skytUpdateAdvancedFilterMeta(catalogue, type) {
     const note = document.getElementById(`skyt-adv-note-${catalogue}-${type}`);
     if (note && _skytAdvLastMeta) {
         const considered = _skytSectionCache[type]?.report?.length ?? 0;
-        note.textContent = count > 0 || _skytAdvLastMeta.combination_id
-            ? i18n.t('skytonight.adv_filter_considered', { count: considered })
-            : '';
+        if (_skytAdvLastMeta.degraded_no_calculation) {
+            // No nightly calculation for this location yet: only the size filter ran.
+            note.textContent = i18n.t('skytonight.adv_filter_needs_calculation');
+            note.classList.add('text-warning');
+            note.classList.remove('text-muted');
+        } else {
+            note.classList.remove('text-warning');
+            note.classList.add('text-muted');
+            note.textContent = count > 0 || _skytAdvLastMeta.combination_id
+                ? i18n.t('skytonight.adv_filter_considered', { count: considered })
+                : '';
+        }
     }
 }
 

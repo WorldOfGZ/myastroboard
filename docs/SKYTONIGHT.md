@@ -208,7 +208,7 @@ All paths are relative to `/data/skytonight/`.
 
 | File | Description |
 |---|---|
-| `calculations/dso_results.json` | Deep-sky objects passing all constraints, sorted by AstroScore desc. Each entry also carries `surface_brightness` (mean mag/arcmin^2 from integrated magnitude + catalogue size, or `null`) and `hourly_altitude` (a compact `[{h, alt}]` vector, one sample per local hour) - both feed the v1.4 advanced DSO filters without re-reading per-target alttime files |
+| `calculations/dso_results.json` | Deep-sky objects passing all constraints, sorted by AstroScore desc. Each entry also carries `surface_brightness` (mean mag/arcmin^2 from integrated magnitude + catalogue size, or `null`) and `hourly_altitude` (a compact `[{h, alt}]` vector, altitude linearly interpolated to the top of each local hour spanned by the night grid) - both feed the v1.4 advanced DSO filters without re-reading per-target alttime files |
 | `calculations/bodies_results.json` | Solar-system bodies (planets, Moon, etc.) |
 | `calculations/comets_results.json` | Comets from MPC |
 | `calculations/skymap_data.json` | Sky map trajectory data (az/alt arrays per visible target) |
