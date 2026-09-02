@@ -10,11 +10,11 @@ This document describes features that could potentially be integrated into MyAst
 
 MyAstroBoard is an **opinionated core, not a plugin platform.** Extensibility is delivered through narrow, documented extension points where a contributor can add value as one reviewable unit - not through a feature-level plugin system that a stranger cannot safely write anyway:
 
-- **Catalogues** - JSON cross-ref / standalone files (already the mechanism for Pensack 500, LBN, GaryImm, Arp, Sharpless, Barnard, vdB, Abell). Adding one is a single-file PR.
+- **Catalogues** - JSON cross-ref / standalone files (already the mechanism for Pensack 500, LBN, GaryImm, Arp, Sharpless, Barnard, vdB, Abell). Adding one is a JSON file plus a short registration block.
 - **Export formatters** - a small registry shipped with v2.1 (Stellarium, SkySafari, NINA, CSV).
 - **Connectors** - the `BaseConnector` contract, promoted to a documented public SDK in v1.6.
 
-A `docs/EXTENDING.md` with the recipe per extension type is built alongside the first of these.
+The recipe per extension type lives in [docs/EXTENDING.md](docs/EXTENDING.md); the connector and export-formatter sections are filled in as v1.6 and v2.1 land.
 
 ### On the former "Feature Registry" (was v1.5)
 

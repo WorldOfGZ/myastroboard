@@ -117,6 +117,11 @@ Unsure where to begin? Look for issues labeled:
 - `help wanted` - Extra attention needed
 - `documentation` - Documentation improvements
 
+MyAstroBoard is an opinionated core rather than a plugin platform: the self-contained ways to
+add value - a translation, a target catalogue, a connector, an export formatter - are listed
+with their step-by-step recipes in [docs/EXTENDING.md](docs/EXTENDING.md). Start there if you
+want a bounded first contribution.
+
 ### Pull Requests
 
 1. **Create an Issue First** - For significant changes, create an issue to discuss your approach
@@ -545,6 +550,11 @@ Contributors will be acknowledged in:
 - Follow existing patterns for API endpoints
 - Update relevant tests in `tests/`
 - If you add or modify user-facing text, update the translation files — see [docs/7.TRANSLATIONS.md](docs/7.TRANSLATIONS.md)
+- **No new cross-feature import cycles.** The per-domain packages (`skytonight/`, `observation/`,
+  `equipment/`, `weather/`, `astroweather/`, `space/`, `cache/`) must not gain a new module-level
+  `import` that closes a dependency loop between two of them. A shared helper goes in `utils/`; a
+  genuine request-time call into another feature that would close a loop uses a commented lazy
+  import inside the function. See [docs/EXTENDING.md](docs/EXTENDING.md#the-one-hard-rule-no-new-cross-feature-dependency-cycles).
 
 ### Frontend (`static/js/`, `static/css/`, `templates/`)
 - Maintain vanilla JavaScript (no frameworks)
@@ -567,9 +577,11 @@ Contributors will be acknowledged in:
 - Mock external dependencies
 
 ### Target Catalogues (`backend/catalogues/`)
-- Follow JSON format of existing catalogues
-- Include comprehensive README updates
-- Validate catalogue data
+- Follow the JSON format of the existing catalogues (cross-reference map/list, or standalone
+  object list) - full recipe in [docs/EXTENDING.md#target-catalogue](docs/EXTENDING.md#target-catalogue)
+- Register the catalogue in `skytonight_catalogue_builder.py`, add it to
+  `SKYTONIGHT_PREFERRED_NAME_ORDER`, document it in `docs/SKYTONIGHT.md`, and add a builder test
+- Catalogue data must be verifiable against a published source - cite it
 
 ## Questions?
 

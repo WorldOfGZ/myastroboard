@@ -351,6 +351,23 @@ Full rationale and examples: [CONTRIBUTING.md#inline-style-attribute](../../CONT
 - Keep related functionality together
 - Separate concerns (data loading, business logic, presentation)
 
+#### Module boundaries (MANDATORY)
+
+The backend is split into per-domain packages (`skytonight/`, `observation/`, `equipment/`,
+`weather/`, `astroweather/`, `space/`, `cache/`, `utils/`). A few cross-feature import cycles
+already exist (astrodex <-> equipment, equipment <-> observation log, equipment <-> plan my
+night, events <-> skytonight, skytonight <-> weather) and are being unwound one at a time.
+
+- **Never add a new module-level `import` that closes a dependency loop** between two feature
+  packages. If a shared helper is needed by two features, put it in `utils/` (or a new small
+  shared module), not imported feature-to-feature.
+- A genuine request-time call into another feature that would otherwise close a loop uses a
+  **lazy import inside the function**, with a one-line comment saying why (see
+  `plan_my_night._resolve_plan_mount` reaching `equipment_profiles`).
+- Routes live in `backend/blueprints/*.py`; a blueprint may import several feature packages, but
+  feature packages must not import blueprints.
+- Full contributor-facing version: [docs/EXTENDING.md](../../docs/EXTENDING.md).
+
 ## Key Design Patterns
 
 ### 1. Configuration Management
