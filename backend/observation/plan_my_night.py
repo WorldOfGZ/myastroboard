@@ -17,7 +17,12 @@ import numpy as np
 from skytonight import skytonight_targets
 from utils.constants import DATA_DIR
 from utils.logging_config import get_logger
-from skytonight.skytonight_calculator import _horizon_floor_array, _meridian_transit_time
+from skytonight.skytonight_calculator import (
+    _horizon_floor_array,
+    _local_sidereal_time_hours,
+    _meridian_transit_from_lst,
+    _meridian_transit_time,
+)
 
 logger = get_logger(__name__)
 
@@ -370,9 +375,20 @@ def _compute_entry_visibility(
 
 _MERIDIAN_FLIP_EARLY_MINUTES = 10
 
+# Optimizer flip-aware tie-break: targets whose observable runs start within this many
+# minutes of each other count as "starting together" and are ordered by whichever must
+# flip soonest. Real altitude data almost never produces two bit-identical run starts,
+# so an exact-equality tie-break would essentially never fire.
+_FLIP_TIE_BREAK_WINDOW_MINUTES = 20
+
 
 def _ra_to_hours(value: Any) -> Optional[float]:
-    """Parse a stored RA (``HHh MMm SSs``, ``HH:MM:SS`` or decimal degrees) to hours [0, 24)."""
+    """Parse a stored RA (``HHh MMm SSs``, ``HH:MM:SS`` or a bare decimal) to hours [0, 24).
+
+    A bare decimal is read as decimal hours when it is in ``[0, 24)`` (the form
+    ``SkyTonightCoordinates.ra_hours`` and the combination recommender emit) and as
+    decimal degrees when it is ``>= 24`` (only degrees can reach that range).
+    """
     if value is None:
         return None
     text = str(value).strip()
@@ -384,9 +400,10 @@ def _ra_to_hours(value: Any) -> Optional[float]:
     if match:
         return (int(match.group(1)) + int(match.group(2)) / 60.0 + float(match.group(3)) / 3600.0) % 24.0
     try:
-        return (float(text) / 15.0) % 24.0  # bare decimal is interpreted as degrees
+        number = float(text)
     except (TypeError, ValueError):
         return None
+    return (number if 0.0 <= number < 24.0 else number / 15.0) % 24.0
 
 
 def _transit_datetime_from_hhmm(hhmm: str, night_start: datetime, night_end: datetime) -> Optional[datetime]:
@@ -422,6 +439,22 @@ def _plan_location_latlon(location_id: Optional[str]) -> Tuple[Optional[float], 
         return None, None
 
 
+def _flip_lst_start_hours(
+    mount: Optional[Dict[str, Any]],
+    lon: Optional[float],
+    night_start: Optional[datetime],
+) -> Optional[float]:
+    """Local sidereal time at ``night_start`` for the meridian-flip estimator, or None.
+
+    Resolved once per plan (one Astropy call) and threaded into ``_entry_transit_and_flip``
+    for every entry, so the transit projection is O(1) per entry on the Plan My Night
+    poll path instead of a minute-step sidereal scan of the night.
+    """
+    if mount is None or not mount.get('meridian_flip_required') or lon is None or not night_start:
+        return None
+    return _local_sidereal_time_hours(night_start, lon)
+
+
 def _resolve_plan_mount(user_id: str, combination_id: Optional[str]) -> Optional[Dict[str, Any]]:
     """Resolve a plan's pinned combination (own or shared) to its mount dict, or None.
 
@@ -449,7 +482,9 @@ def _resolve_plan_mount(user_id: str, combination_id: Optional[str]) -> Optional
     if mount is None:
         own_by_id, shared_by_id = equipment_profiles.index_owned_and_shared_equipment(user_id)
         mount = own_by_id.get(mount_id) or shared_by_id.get(mount_id)
-    return mount
+    # get_mount already normalizes; the shared/index fallback returns the stored dict
+    # verbatim, so backfill the v1.4 meridian-flip fields for pre-v1.4 mount files here too.
+    return equipment_profiles.normalize_mount_flip_fields(mount)
 
 
 def _entry_transit_and_flip(
@@ -459,12 +494,18 @@ def _entry_transit_and_flip(
     lon: Optional[float],
     night_start: Optional[datetime],
     night_end: Optional[datetime],
+    lst_start_hours: Optional[float] = None,
 ) -> Tuple[Optional[datetime], Optional[datetime]]:
     """Return (meridian_transit, flip_time) datetimes for an entry, or (None, None).
 
     ``flip_time = transit + mount.meridian_flip_delay_min``. Both are None whenever the
     mount does not flip, the location/RA cannot be resolved, or the target does not
     transit during the night window.
+
+    ``lst_start_hours`` is the local sidereal time at ``night_start`` (see
+    ``_local_sidereal_time_hours``). When the caller precomputes it once for the whole
+    plan, the transit is an O(1) projection instead of a per-entry minute-step scan of
+    the night - the callers here run on the 30-60 s Plan My Night poll path.
     """
     if (
         mount is None
@@ -479,7 +520,10 @@ def _entry_transit_and_flip(
     ra_hours = _ra_to_hours(entry.get('ra'))
     if ra_hours is None:
         return None, None
-    transit_hhmm = _meridian_transit_time(ra_hours, night_start, night_end, lat, lon)
+    if lst_start_hours is not None:
+        transit_hhmm = _meridian_transit_from_lst(ra_hours, night_start, night_end, lst_start_hours)
+    else:
+        transit_hhmm = _meridian_transit_time(ra_hours, night_start, night_end, lat, lon)
     if not transit_hhmm:
         return None, None
     transit_dt = _transit_datetime_from_hhmm(transit_hhmm, night_start, night_end)
@@ -515,6 +559,7 @@ def _compute_entry_meridian_flip(
     lon: Optional[float],
     night_start: Optional[datetime],
     night_end: Optional[datetime],
+    lst_start_hours: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Estimate the meridian-flip state for one plan timeline entry.
 
@@ -532,7 +577,7 @@ def _compute_entry_meridian_flip(
     if mount is None:
         return {'state': 'unknown'}
 
-    transit_dt, flip_time = _entry_transit_and_flip(entry, mount, lat, lon, night_start, night_end)
+    transit_dt, flip_time = _entry_transit_and_flip(entry, mount, lat, lon, night_start, night_end, lst_start_hours)
     if flip_time is None:
         return {'state': 'none'}
 
@@ -1222,6 +1267,7 @@ def get_plan_with_timeline(user_id: str, username: str, combination_id: Optional
         # Meridian-flip estimator inputs, resolved once for the whole plan (v1.4).
         flip_mount = _resolve_plan_mount(user_id, plan_copy.get('combination_id'))
         flip_lat, flip_lon = _plan_location_latlon(location_id)
+        flip_lst0 = _flip_lst_start_hours(flip_mount, flip_lon, night_start)
         for entry in entries:
             planned_minutes = int(entry.get('planned_minutes') or 0)
             start_dt = cursor
@@ -1237,7 +1283,7 @@ def get_plan_with_timeline(user_id: str, username: str, combination_id: Optional
                 entry, location_id, night_start, night_end, start_dt, end_dt, alttime_cache
             )
             entry['meridian_flip'] = _compute_entry_meridian_flip(
-                entry, start_dt, end_dt, flip_mount, flip_lat, flip_lon, night_start, night_end
+                entry, start_dt, end_dt, flip_mount, flip_lat, flip_lon, night_start, night_end, flip_lst0
             )
 
             if is_inside_night and not entry.get('done') and start_dt <= now_dt <= end_dt:
@@ -1296,6 +1342,7 @@ def compute_optimized_schedule(
     # v1.4: flip-aware ordering inputs, resolved once for the whole plan.
     flip_mount = _resolve_plan_mount(user_id, plan.get('combination_id'))
     flip_lat, flip_lon = _plan_location_latlon(location_id)
+    flip_lst0 = _flip_lst_start_hours(flip_mount, flip_lon, night_start)
 
     candidates = []
     for entry in entries:
@@ -1335,7 +1382,7 @@ def compute_optimized_schedule(
             chosen_run = (night_start, night_end)
             warnings.append('never_observable')
 
-        _, flip_time = _entry_transit_and_flip(entry, flip_mount, flip_lat, flip_lon, night_start, night_end)
+        _, flip_time = _entry_transit_and_flip(entry, flip_mount, flip_lat, flip_lon, night_start, night_end, flip_lst0)
         candidates.append(
             {
                 'entry': entry,
@@ -1346,18 +1393,26 @@ def compute_optimized_schedule(
             }
         )
 
-    # Primary key: earliest observable run start (unchanged). Tie-break refinement (v1.4):
-    # among targets that would start at the same time, schedule the one whose meridian flip
-    # comes soonest first, so it can finish before flipping. Targets with no flip / unknown
-    # mount sort last within the tie and keep their existing stable relative order, so a
-    # plan without a mount reorders exactly as it did before.
-    def _flip_sort_key(c: Dict[str, Any]) -> Tuple[datetime, int, datetime]:
-        flip_time = c['flip_time']
-        if flip_time is None:
-            return (c['run_start'], 1, night_start)
-        return (c['run_start'], 0, flip_time)
-
-    candidates.sort(key=_flip_sort_key)
+    # Primary order: earliest observable run start (unchanged). Tie-break refinement
+    # (v1.4): within each cluster of targets whose runs start within
+    # _FLIP_TIE_BREAK_WINDOW_MINUTES of the earliest in that cluster, schedule the one
+    # whose meridian flip comes soonest first, so it can finish before flipping. Targets
+    # with no flip / unknown mount keep their prior relative order at the back of the
+    # cluster, so a plan without a mount reorders exactly as it did before.
+    candidates.sort(key=lambda c: c['run_start'])
+    if flip_mount is not None:
+        tie_window = timedelta(minutes=_FLIP_TIE_BREAK_WINDOW_MINUTES)
+        cluster_start = 0
+        while cluster_start < len(candidates):
+            cluster_end = cluster_start + 1
+            anchor = candidates[cluster_start]['run_start']
+            while cluster_end < len(candidates) and candidates[cluster_end]['run_start'] - anchor <= tie_window:
+                cluster_end += 1
+            candidates[cluster_start:cluster_end] = sorted(
+                candidates[cluster_start:cluster_end],
+                key=lambda c: (0, c['flip_time']) if c['flip_time'] is not None else (1, night_start),
+            )
+            cluster_start = cluster_end
 
     cursor = night_start
     preview = []

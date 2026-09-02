@@ -27,10 +27,10 @@ red: within the first 10 minutes; grey: no mount to estimate from), in the live 
 schedule-optimizer preview and the PDF export. The flip time is derived at read time from the
 target's RA and the plan's pinned location - existing plans and mount files need no migration.
 
-**Flip-aware schedule optimizer.** When the plan's mount flips, the optimizer now breaks ties in
-its ordering by scheduling the target with the sooner meridian flip first, so it can finish before
-flipping. A plan with no mount reorders exactly as before. A `flip_mid_session` warning is shown
-when a target still straddles its flip.
+**Flip-aware schedule optimizer.** When the plan's mount flips, and several targets become
+observable within about 20 minutes of each other, the optimizer now schedules the one whose
+meridian flip comes soonest first, so it can finish before flipping. A plan with no mount reorders
+exactly as before. A `flip_mid_session` warning is shown when a target still straddles its flip.
 
 **Plan My Night cleanup.** The moon-calendar strip and the seeing-forecast week that sat at the top
 of Plan My Night are gone - both are covered more clearly by the Moon tab (Astrophotography -> Moon)

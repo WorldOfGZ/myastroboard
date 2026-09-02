@@ -381,10 +381,13 @@ def get_mounts():
 
         data = equipment_profiles.load_user_mounts(user_id)
         shared = equipment_profiles.load_all_shared_equipment('mounts', user_id)
+        # Backfill v1.4 meridian-flip fields so pre-v1.4 mount files render a flip
+        # summary in the equipment UI (load_user_mounts returns stored dicts verbatim).
+        normalize = equipment_profiles.normalize_mount_flip_fields
         return jsonify(
             {
-                'data': data.get('items', []),
-                'shared_from_others': shared,
+                'data': [normalize(item) for item in data.get('items', [])],
+                'shared_from_others': [normalize(item) for item in shared],
                 'created_at': data.get('created_at'),
                 'updated_at': data.get('updated_at'),
             }

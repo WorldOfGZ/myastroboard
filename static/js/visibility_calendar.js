@@ -10,7 +10,6 @@
 /* global bootstrap, Chart, DOMUtils, i18n, fetchJSON, API_BASE */
 
 const VC_MODAL_ID = 'modal_lg_close';
-let _vcChart = null;
 let _vcState = { identifier: null, year: null };
 
 /**
@@ -39,11 +38,20 @@ function _vcLocale() {
     return typeof i18n?.getCurrentLanguage === 'function' ? i18n.getCurrentLanguage() : navigator.language;
 }
 
-function _vcDestroyChart() {
-    if (_vcChart) {
-        _vcChart.destroy();
-        _vcChart = null;
-    }
+/**
+ * Destroy any trend chart living inside a container. The chart instance is stored on
+ * its own canvas node (not a module global) so the inline Astrodex calendar and the
+ * standalone modal calendar can be open at once without destroying each other's chart.
+ * @param {HTMLElement|null} container
+ */
+function _vcDestroyChartIn(container) {
+    if (!container) return;
+    container.querySelectorAll('canvas').forEach((canvas) => {
+        if (canvas._vcChartInstance) {
+            canvas._vcChartInstance.destroy();
+            canvas._vcChartInstance = null;
+        }
+    });
 }
 
 /**
@@ -101,7 +109,7 @@ async function openVisibilityCalendar(identifier, year) {
         bsModal = new bootstrap.Modal(modalEl, { backdrop: true, focus: true, keyboard: true });
     }
     const onHidden = () => {
-        _vcDestroyChart();
+        _vcDestroyChartIn(bodyEl);
         modalEl.removeEventListener('hidden.bs.modal', onHidden);
     };
     modalEl.addEventListener('hidden.bs.modal', onHidden);
@@ -116,7 +124,7 @@ async function openVisibilityCalendar(identifier, year) {
  * @param {HTMLElement} bodyEl
  */
 function _renderVisibilityCalendar(data, bodyEl) {
-    _vcDestroyChart();
+    _vcDestroyChartIn(bodyEl);
     DOMUtils.clear(bodyEl);
 
     const card = document.createElement('div');
@@ -173,7 +181,6 @@ function _renderVisibilityCalendar(data, bodyEl) {
     const chartWrap = document.createElement('div');
     chartWrap.className = 'vc-chart-wrap';
     const canvas = document.createElement('canvas');
-    canvas.id = 'vc-trend-canvas';
     chartWrap.appendChild(canvas);
     body.appendChild(chartWrap);
 
@@ -371,8 +378,8 @@ function _vcRenderChart(canvas, data) {
     const isDarkLike = theme === 'dark' || theme === 'red';
     const gridColor = isDarkLike ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.10)';
 
-    _vcDestroyChart();
-    _vcChart = new Chart(canvas, {
+    if (canvas._vcChartInstance) canvas._vcChartInstance.destroy();
+    canvas._vcChartInstance = new Chart(canvas, {
         type: 'line',
         data: {
             labels,

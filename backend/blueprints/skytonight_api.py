@@ -752,6 +752,22 @@ def _dso_advanced_filters_active(filters: Optional[Dict[str, Any]]) -> bool:
     )
 
 
+def _dso_advanced_filters_need_calculation(filters: Optional[Dict[str, Any]]) -> bool:
+    """True when an active advanced filter can only run against scheduler-computed data.
+
+    The static-dataset fallback (no nightly calculation yet for the active location)
+    can only honour the angular-size filter; surface brightness, altitude window, FOV
+    fit and integration time all need fields that only the calculated payload carries.
+    Surfaced to the UI so those filters are not silently reported as applied.
+    """
+    if not filters:
+        return False
+    return any(
+        filters.get(key) not in (None, False)
+        for key in ('sb_max', 'alt_window_min_deg', 'fov_fit', 'max_integration_h')
+    )
+
+
 def _resolve_combination_optics(user_id: str, combination_id: str) -> Optional[Dict[str, Any]]:
     """Resolve one combination (own or shared) to the optics the FOV / integration filters need.
 
@@ -801,7 +817,7 @@ def _resolve_combination_optics(user_id: str, combination_id: str) -> Optional[D
         sensor_h = _to_float(camera.get('sensor_height_mm'))
         pixel = _to_float(camera.get('pixel_size_um'))
         optics['pixel_size_um'] = pixel
-        optics['quantum_efficiency'] = _to_float(camera.get('quantum_efficiency'))
+        optics['quantum_efficiency'] = _camera_qe_fraction(camera)
         if sensor_w and sensor_h and pixel:
             try:
                 fov = equipment_profiles.calculate_fov(focal_length, sensor_w, sensor_h, pixel)
@@ -1006,6 +1022,7 @@ def _build_dso_section_payload(
                 'combination_id': filters.get('combination_id'),
                 'combination_name': optics.get('combination_name') if optics else None,
                 'combination_resolved': optics is not None,
+                'degraded_no_calculation': False,
             },
         }
 
@@ -1079,6 +1096,10 @@ def _build_dso_section_payload(
             'combination_id': filters.get('combination_id'),
             'combination_name': None,
             'combination_resolved': False,
+            # No nightly calculation for this location yet: only the angular-size filter
+            # could be applied here. Tell the UI so it does not present a surface
+            # brightness / altitude-window / FOV / integration filter as if it had run.
+            'degraded_no_calculation': _dso_advanced_filters_need_calculation(filters),
         },
     }
 
@@ -1090,6 +1111,23 @@ def _to_float(value: Any) -> Optional[float]:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _camera_qe_fraction(camera: Dict[str, Any]) -> Optional[float]:
+    """Camera quantum efficiency as a 0-1 fraction for ``exposure_math``.
+
+    ``Camera.quantum_efficiency`` is stored as a percentage (0-100), which is also
+    what the Exposure Calculator UI collects and divides by 100 before use. Returns
+    None (so ``estimate_min_integration_hours`` falls back to its default QE) when the
+    value is missing or does not land in a plausible 0-1 range after conversion.
+    """
+    qe_percent = _to_float(camera.get('quantum_efficiency'))
+    if qe_percent is None or qe_percent <= 0:
+        return None
+    fraction = qe_percent / 100.0
+    # Any real sensor sits well above 5%; a sub-0.05 result means the value was already
+    # a fraction (or otherwise malformed), so fall back to the default QE instead.
+    return fraction if 0.05 <= fraction <= 1.0 else None
 
 
 def _score_in_range(value: float, min_value: float, max_value: float) -> float:

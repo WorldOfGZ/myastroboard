@@ -526,6 +526,55 @@ def _antimeridian_transit_fast(
         return None
 
 
+# Sidereal hours elapse per solar hour. Local sidereal time advances at this
+# near-constant rate over a single night, so a meridian transit can be projected
+# from one LST reading instead of stepping minute by minute through the night.
+_SIDEREAL_HOURS_PER_SOLAR_HOUR = 1.0027379093
+
+
+def _local_sidereal_time_hours(moment: datetime, lon_deg: float) -> Optional[float]:
+    """Apparent local sidereal time (hours in [0, 24)) at *moment* for *lon_deg*.
+
+    One Astropy ``sidereal_time`` call. A caller that needs the meridian transit of
+    several targets for the same night and location computes this once and feeds it
+    to :func:`_meridian_transit_from_lst`, instead of re-scanning the night per target.
+    """
+    try:
+        location = EarthLocation(lat=0.0 * u.deg, lon=lon_deg * u.deg)
+        utc_moment = moment.astimezone(timezone.utc)
+        t = Time(utc_moment.strftime('%Y-%m-%dT%H:%M:%S.000'), format='isot', scale='utc')
+        return float(t.sidereal_time('apparent', longitude=location.lon).hour) % 24.0  # type: ignore[attr-defined]
+    except Exception as exc:
+        logger.debug(f'Local sidereal time computation failed: {exc}')
+        return None
+
+
+def _meridian_transit_from_lst(
+    ra_hours: float,
+    night_start: datetime,
+    night_end: datetime,
+    lst_start_hours: float,
+) -> Optional[str]:
+    """Upper-meridian transit (local ``HH:MM``) from a precomputed LST at *night_start*.
+
+    Same minute-level contract as :func:`_meridian_transit_time`, but O(1): the first
+    ``hour angle == 0`` crossing after *night_start* is a direct division by the
+    sidereal rate rather than a minute-step search. Returns None when the target does
+    not transit inside the night window.
+    """
+    try:
+        hour_angle = ((lst_start_hours - ra_hours + 12.0) % 24.0) - 12.0  # [-12, +12]
+        sidereal_hours_to_transit = -hour_angle if hour_angle <= 0.0 else (24.0 - hour_angle)
+        solar_hours_to_transit = sidereal_hours_to_transit / _SIDEREAL_HOURS_PER_SOLAR_HOUR
+        transit_dt = night_start + timedelta(hours=solar_hours_to_transit)
+        if night_start <= transit_dt <= night_end:
+            return transit_dt.strftime('%H:%M')
+        return None
+    except Exception as exc:
+        logger.debug(f'Meridian transit from LST failed: {exc}')
+        return None
+
+
 class _MoonInfo:
     """Cached moon properties for one night session."""
 
@@ -932,19 +981,30 @@ def _compute_target_result(
     # None whenever magnitude or size is missing - consumers keep the row, tagged unknown.
     surface_brightness = _surface_brightness(target.magnitude, target.size_arcmin)
 
-    # Compact hourly altitude vector (local hour -> altitude at the sample nearest :00),
-    # used by the "best altitude window" advanced DSO filter so it never has to re-read
-    # one *_alttime.json file per target. Only available on the batched DSO path.
+    # Compact hourly altitude vector (local hour -> altitude interpolated to the top of
+    # that hour), used by the "best altitude window" advanced DSO filter so it never has
+    # to re-read one *_alttime.json file per target. Only available on the batched DSO
+    # path. The night grid steps are irregular (~17 min) and rarely land on :00, so each
+    # whole-hour mark inside the sampled span is linearly interpolated between its two
+    # bracketing samples rather than snapped to the nearest sample.
     hourly_altitude: List[Dict[str, Any]] = []
-    if times_local is not None and len(times_local) == len(altaz_values):
-        best_offset: Dict[int, int] = {}
+    if times_local is not None and len(times_local) == len(altaz_values) and len(times_local) >= 2:
         by_hour: Dict[int, float] = {}
-        for sample_idx, sample_local in enumerate(times_local):
-            offset = min(sample_local.minute, 60 - sample_local.minute)
-            hour = sample_local.hour
-            if hour not in best_offset or offset < best_offset[hour]:
-                best_offset[hour] = offset
-                by_hour[hour] = round(float(altaz_values[sample_idx]), 1)
+        for sample_idx in range(len(times_local) - 1):
+            t0 = times_local[sample_idx]
+            t1 = times_local[sample_idx + 1]
+            span_seconds = (t1 - t0).total_seconds()
+            if span_seconds <= 0:
+                continue
+            alt0 = float(altaz_values[sample_idx])
+            alt1 = float(altaz_values[sample_idx + 1])
+            mark = t0.replace(minute=0, second=0, microsecond=0)
+            if mark < t0:
+                mark += timedelta(hours=1)
+            while mark <= t1:
+                fraction = (mark - t0).total_seconds() / span_seconds
+                by_hour[mark.hour] = round(alt0 + (alt1 - alt0) * fraction, 1)
+                mark += timedelta(hours=1)
         hourly_altitude = [{'h': hour, 'alt': by_hour[hour]} for hour in sorted(by_hour)]
 
     return {

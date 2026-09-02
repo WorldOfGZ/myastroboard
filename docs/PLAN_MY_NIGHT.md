@@ -50,8 +50,12 @@ A plan is **pinned to the user's active location at creation time** (`location_i
 
 Each timeline entry shows a meridian-flip indicator when the plan is pinned to a location and its
 equipment combination has a mount. The flip time is derived at read time from the entry's stored RA
-plus the plan's pinned location (reusing `skytonight_calculator._meridian_transit_time`), offset by
-the mount's `meridian_flip_delay_min` - old plans need no migration.
+plus the plan's pinned location, offset by the mount's `meridian_flip_delay_min` - old plans need no
+migration. The transit is projected in O(1) from a single local-sidereal-time reading at the start
+of the night (`skytonight_calculator._meridian_transit_from_lst`), computed once per plan rather
+than per entry, since the timeline is polled every 30-60 s. Pre-v1.4 mount files with no
+`meridian_flip_required` key are backfilled on read (`equipment_profiles.normalize_mount_flip_fields`),
+so the indicator works for existing mounts without a re-save.
 
 | State | Meaning | Colour |
 |-------|---------|--------|
@@ -69,10 +73,11 @@ flip). The indicator also appears in the schedule-optimizer preview and the PDF 
 `GET /api/plan-my-night/optimize` previews a target order plus a single pre-first-target delay,
 derived from each target's real altitude-based visibility window; `POST
 /api/plan-my-night/optimize/apply` applies it (rejected if the plan changed since the preview). As of
-v1.4 the ordering is **flip-aware**: among targets whose earliest observable run starts close
-together, the one whose meridian flip comes sooner is scheduled first, so it can finish before
-flipping. Targets with no flip or an unknown mount are neutral in the ordering. A `flip_mid_session`
-plan warning is raised when a target still ends up straddling its flip.
+v1.4 the ordering is **flip-aware**: targets are clustered by observable-run start (those within
+`_FLIP_TIE_BREAK_WINDOW_MINUTES`, ~20 min, of the earliest in the cluster), and inside each cluster
+the one whose meridian flip comes sooner is scheduled first, so it can finish before flipping.
+Targets with no flip or an unknown mount keep their prior order at the back of the cluster. A
+`flip_mid_session` plan warning is raised when a target still ends up straddling its flip.
 
 ## Legacy Plan Purge
 

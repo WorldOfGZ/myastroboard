@@ -2632,6 +2632,60 @@ def test_dso_altitude_window_filter(monkeypatch):
     assert names == {'NGC 1', 'NGC 3'}
 
 
+def test_dso_fallback_flags_filters_that_need_a_calculation(monkeypatch):
+    """Static-dataset fallback: only the size filter can run, so the payload must tell
+    the UI the surface-brightness / altitude / FOV / integration filters were dropped."""
+    monkeypatch.setattr(skytonight_api_module, 'has_dso_results', lambda *_a, **_k: False)
+    monkeypatch.setattr(skytonight_api_module.plan_my_night, 'get_plan_with_timeline', lambda *_a, **_k: {'state': 'none'})
+    monkeypatch.setattr(skytonight_api_module.astrodex, 'load_user_astrodex', lambda *_a, **_k: {'items': []})
+    monkeypatch.setattr(skytonight_api_module, '_preload_all_current_plan_entries', lambda *_a, **_k: [])
+    monkeypatch.setattr(
+        skytonight_api_module.skytonight_targets, 'load_targets_dataset',
+        lambda *_a, **_k: {'targets': [], 'metadata': {}},
+    )
+    monkeypatch.setattr(
+        skytonight_api_module, '_skytonight_request_location',
+        lambda: {'id': 'loc-1', 'name': 'Home', 'bortle': 5, 'sqm': None, 'horizon_profile': []},
+    )
+
+    degraded = skytonight_api_module._build_dso_section_payload(None, 'uid-1', 'U', filters=_filters(sb_max=21.0))
+    assert degraded['advanced_filters']['degraded_no_calculation'] is True
+
+    size_only = skytonight_api_module._build_dso_section_payload(None, 'uid-1', 'U', filters=_filters(size_min=5.0))
+    assert size_only['advanced_filters']['degraded_no_calculation'] is False
+
+
+def test_camera_qe_fraction_converts_percentage():
+    """Camera QE is stored as a percentage (0-100); exposure_math wants a 0-1 fraction."""
+    assert skytonight_api_module._camera_qe_fraction({'quantum_efficiency': 80}) == pytest.approx(0.80)
+    assert skytonight_api_module._camera_qe_fraction({'quantum_efficiency': '65'}) == pytest.approx(0.65)
+    assert skytonight_api_module._camera_qe_fraction({'quantum_efficiency': 100}) == pytest.approx(1.0)
+    # Missing / non-positive / already-a-fraction (implausible after /100) -> None -> default QE.
+    assert skytonight_api_module._camera_qe_fraction({}) is None
+    assert skytonight_api_module._camera_qe_fraction({'quantum_efficiency': 0}) is None
+    assert skytonight_api_module._camera_qe_fraction({'quantum_efficiency': 0.7}) is None
+
+
+def test_resolve_combination_optics_passes_qe_as_fraction(monkeypatch):
+    """Regression: the QE percentage must be divided by 100 before it reaches
+    exposure_math, otherwise the integration-time estimate is ~80x too short."""
+    monkeypatch.setattr(
+        skytonight_api_module.equipment_profiles, 'get_combination',
+        lambda *_a, **_k: {'id': 'combo-1', 'telescope_id': 'tel-1', 'camera_id': 'cam-1'},
+    )
+    monkeypatch.setattr(
+        skytonight_api_module.equipment_profiles, 'index_telescopes_and_cameras',
+        lambda *_a, **_k: (
+            {'tel-1': {'focal_length_mm': 500.0, 'native_focal_ratio': 5.0}},
+            {'cam-1': {'sensor_width_mm': 23.5, 'sensor_height_mm': 15.7, 'pixel_size_um': 3.76,
+                       'quantum_efficiency': 80}},
+        ),
+    )
+    optics = skytonight_api_module._resolve_combination_optics('uid-1', 'combo-1')
+    assert optics is not None
+    assert optics['quantum_efficiency'] == pytest.approx(0.80)
+
+
 def test_dso_fov_fit_and_integration_filters(monkeypatch):
     _patch_dso_calc(monkeypatch)
     monkeypatch.setattr(
