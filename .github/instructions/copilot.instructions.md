@@ -1029,7 +1029,7 @@ function renderMyChart(data) {
 ### Files Requiring This Standard
 
 - `weather_astro.js`: astro-seeing-chart, astro-clouds-chart, astro-conditions-chart
-- `weather.js`: cloudConditionsChart, seeingConditionsChart
+- `weather.js`: nightScoreChart, skyChart, atmosphereChart
 - `solar_eclipse.js`: solar-eclipse-altitude-chart
 - `lunar_eclipse.js`: lunar-eclipse-altitude-chart
 - `skytonight.js`: alttime-chart-canvas (altitude-vs-time popup chart)

@@ -194,16 +194,17 @@ async function loadWeather() {
             const precipitation = formatMetricNumber(forecast.precipitation, 1);
             const dewPoint = formatMetricNumber(forecast.dew_point_2m, 1);
             // `condition` is the app-wide observation score (0-10) x10, served per hour by
-            // /api/weather/forecast from the astro_weather cache. Bands mirror the
-            // "Score de la Nuit" cards (>=8/6/4/2 on the 0-10 scale) so the same hour reads
-            // the same quality label everywhere.
+            // /api/weather/forecast - from the astro_weather cache when warm, otherwise a
+            // local component-weighted fallback. Bands mirror the "Score de la Nuit" cards
+            // (>=8/6/4/2 on the 0-10 scale) so the same hour reads the same quality label
+            // everywhere. A missing score is neutral ("unknown"), not a red "bad".
             const condition = toFiniteNumber(forecast.condition);
 
             let quality = '';
             let qualityClass = '';
             if (condition == null) {
                 quality = i18n.t('common.quality_scale.unknown');
-                qualityClass = 'quality-bad';
+                qualityClass = 'quality-unknown';
             } else if (condition >= 80) {
                 quality = i18n.t('common.quality_scale.excellent');
                 qualityClass = 'quality-excellent';

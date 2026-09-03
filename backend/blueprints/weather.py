@@ -5,6 +5,7 @@ Routes: /api/weather/*, /api/moon/*, /api/aurora/predictions, /api/seeing-foreca
 
 import datetime
 import json
+import math
 import time as _time
 from zoneinfo import ZoneInfo
 
@@ -25,16 +26,41 @@ logger = get_logger(__name__)
 weather_bp = Blueprint('weather', __name__)
 
 
+def _local_condition_score(record):
+    """Self-contained 0-100 fallback score from a weather record's own component series
+    (``cloudless`` / ``seeing`` / ``transparency``), for hours the jet-stream-aware
+    ``astro_weather`` score cannot cover.
+
+    A cold or partial astro cache would otherwise leave every hour with no ``condition``,
+    blanking the Weather tab's quality column. This mirrors the component weighting
+    ``weather_openmeteo`` applied before the app-wide observation score was unified.
+    Returns ``None`` when a component is missing or not a finite number.
+    """
+    try:
+        cloudless = float(record["cloudless"])
+        seeing = float(record["seeing"])
+        transparency = float(record["transparency"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if not all(math.isfinite(v) for v in (cloudless, seeing, transparency)):
+        return None
+    blended = cloudless * 0.5 + seeing * 0.25 + transparency * 0.25
+    return round(min(100.0, max(0.0, blended)), 1)
+
+
 def _forecast_with_observation_score(payload, location_id):
     """Return a copy of a weather-forecast payload with each hourly record's ``condition``
     set to the app-wide observation score for that hour (weather_astro's
     ``observation_score`` x10, 0-100), read from the warm astro_weather cache.
 
     There is a single observation score in the app; ``weather_openmeteo`` no longer derives
-    one. Hours with no astro-cache match get no ``condition`` key - the Weather tab renders
-    that as "unknown", same as any not-ready cache.
+    one. Hours the astro cache cannot answer (cold/partial cache, or no matching hour) fall
+    back to ``_local_condition_score`` so the quality column degrades gracefully instead of
+    going blank. A record with neither an astro score nor usable components gets no
+    ``condition`` key - the Weather tab renders that as "unknown".
     """
     hourly = [dict(record) for record in ((payload or {}).get("hourly") or [])]
+    score_by_hour = {}
     try:
         astro_entry = cache_store.load_location_cache("astro_weather", location_id)
         astro_hourly = (astro_entry.get("data") or {}).get("hourly_data") or []
@@ -43,13 +69,23 @@ def _forecast_with_observation_score(payload, location_id):
             for row in astro_hourly
             if row.get("datetime") is not None and row.get("observation_score") is not None
         }
-        for record in hourly:
-            record.pop("condition", None)
-            score = score_by_hour.get(str(record.get("date"))[:13])
-            if score is not None:
-                record["condition"] = round(float(score) * 10, 1)
     except Exception:
-        logger.exception("Failed to merge observation score into weather forecast")
+        logger.exception("Failed to read observation score cache for weather forecast")
+
+    for record in hourly:
+        record.pop("condition", None)
+        raw = score_by_hour.get(str(record.get("date"))[:13])
+        merged = None
+        if raw is not None:
+            try:
+                merged = round(float(raw) * 10, 1)
+            except (TypeError, ValueError):
+                merged = None
+        if merged is None:
+            merged = _local_condition_score(record)
+        if merged is not None:
+            record["condition"] = merged
+
     return {**(payload or {}), "hourly": hourly}
 
 

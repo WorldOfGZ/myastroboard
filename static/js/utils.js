@@ -728,6 +728,12 @@ function closeModal(elementOrId) {
  * @param {() => void} [options.onHidden] - runs on hidden.bs.modal
  * @param {boolean} [options.history=true] - push a history entry so Back closes the modal
  * @returns {Promise<object|null>} the bootstrap.Modal instance (null when the element is missing)
+ *
+ * Re-opening a modal that is ALREADY on screen (common for the shared #modal_lg_close /
+ * #modal_xl_close shells) only refreshes its content and re-runs `onShown` - Bootstrap
+ * cannot reconfigure a live modal, so `backdrop` / `keyboard` / `onHidden` from the new
+ * call are ignored. `closeModal(el)` first if a re-use needs different behaviour; the
+ * helper logs a dev warning when options would be silently dropped.
  */
 async function openModal(elementOrId, options = {}) {
     const el = _resolveModalElement(elementOrId);
@@ -749,8 +755,20 @@ async function openModal(elementOrId, options = {}) {
 
     if (el.classList.contains('show')) {
         // Same modal reopened with refreshed content - don't flicker it closed/open.
+        // Bootstrap can't reconfigure a live modal, so backdrop/keyboard/onHidden from
+        // this call don't take effect; surface that instead of failing silently.
+        const live = bootstrap.Modal.getInstance(el);
+        const cfg = live && live._config;
+        const optionsDropped = typeof onHidden === 'function'
+            || (!!cfg && (backdrop !== cfg.backdrop || keyboard !== cfg.keyboard));
+        if (optionsDropped) {
+            console.warn(
+                `openModal: "${el.id || '(modal)'}" is already shown - backdrop/keyboard/onHidden `
+                + 'options ignored. closeModal() it first if you need to reconfigure.'
+            );
+        }
         if (typeof onShown === 'function') onShown();
-        return bootstrap.Modal.getInstance(el);
+        return live;
     }
 
     const onScreen = document.querySelector('.modal.show');
@@ -798,11 +816,16 @@ function _modalUsesHistory(target) {
 // After a modal closes: if our synthetic entry is still "ours" (not already
 // consumed by the Back button or dropped by a tab navigation) and nothing is left
 // on screen, pop it so history stays balanced. The setTimeout lets a modal-to-modal
-// swap show the next modal first (then `.modal.show` is truthy and we keep the entry).
+// swap start showing the next modal first so we can detect it and keep the entry.
+// Bootstrap only adds `.modal.show` after the backdrop's fade-in (~150ms), long
+// after this 0ms callback runs, so `.modal.show` alone would miss an in-flight
+// swap - openModal() marks the incoming modal `data-mab-settled="false"`
+// synchronously (before its show transition), which is visible here.
 function _reconcileModalHistoryEntry() {
     window.setTimeout(() => {
         if (!_modalHistoryEntryActive) return;
         if (document.querySelector('.modal.show')) return;
+        if (document.querySelector('.modal[data-mab-settled="false"]')) return;
         _modalHistoryEntryActive = false;
         // Only step back if we are actually sitting on our own synthetic entry -
         // otherwise a stray history.back() could leave the app.
