@@ -524,20 +524,18 @@ def attribute_location_api(location_id):
 
 
 def _cached_location_score(location_id):
-    """Best-effort current observation score (0-10) for a location, from the
-    already-warm weather_forecast cache - never triggers a live Open-Meteo call.
+    """Best-effort current observation score (0-10) for a location, read from the
+    already-warm astro_weather cache - never triggers a live Open-Meteo call.
 
-    Mirrors the 0-10 scale used by the sky widget's own score badge (derived
-    from cloudless/seeing/transparency), just read from the cheaper per-location
-    forecast cache instead of weather_astro's live analysis pipeline.
+    This is the exact same ``observation_score`` the sky widget pill and the
+    "Score de la Nuit" cards show (weather_astro's jet-stream-aware composite),
+    so the switcher never disagrees with the pill for the active location.
     """
     try:
-        entry = cache_store.load_location_cache('weather_forecast', location_id)
-        hourly = (entry.get('data') or {}).get('hourly') or []
-        if not hourly:
-            return None
-        condition = hourly[0].get('condition')
-        return round(float(condition) / 10, 1) if condition is not None else None
+        entry = cache_store.load_location_cache('astro_weather', location_id)
+        current = (entry.get('data') or {}).get('current_conditions') or {}
+        score = current.get('observation_score')
+        return round(float(score), 1) if score is not None else None
     except Exception:
         return None
 

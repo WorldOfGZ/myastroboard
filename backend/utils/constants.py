@@ -77,6 +77,7 @@ CACHE_TTL_SPACEFLIGHT_EVENTS = 7200  # 2 hours - free tier budget; events timeli
 
 # Weather API configuration
 WEATHER_CACHE_TTL = 3600  # seconds (1 hour)
+CACHE_TTL_ASTRO_WEATHER = 1800  # 30 min - jet-stream-aware astro analysis; matches Open-Meteo hourly resolution
 
 # Version update check configuration
 VERSION_UPDATE_CACHE_TTL = 14400  # seconds (4 hours)

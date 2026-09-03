@@ -1391,6 +1391,7 @@ The background cache is **selective-refresh**: the scheduler polls every 25 min 
 | `sidereal_time`       | `CACHE_TTL_SIDEREAL_TIME`       | 1 hour   |
 | `seeing_forecast`     | `CACHE_TTL_SEEING_FORECAST`     | 6 hours  |
 | `weather_forecast`    | `WEATHER_CACHE_TTL`             | 1 hour   |
+| `astro_weather`       | `CACHE_TTL_ASTRO_WEATHER`       | 30 min   |
 
 ### Computation Optimisations (do not regress)
 

@@ -13,9 +13,10 @@ from flask import Blueprint, request, jsonify
 from cache import cache_store
 from astroweather import moon_calendar
 from utils.auth import login_required
-from utils.constants import CACHE_TTL, WEATHER_CACHE_TTL
+from utils.constants import CACHE_TTL, WEATHER_CACHE_TTL, CACHE_TTL_ASTRO_WEATHER
 from utils.i18n_utils import I18nManager
 from utils.logging_config import get_logger
+from utils.repo_config import load_config
 from utils.route_helpers import _active_location_cache, _resolve_active_location
 from weather.weather_openmeteo import get_hourly_forecast
 
@@ -24,16 +25,60 @@ logger = get_logger(__name__)
 weather_bp = Blueprint('weather', __name__)
 
 
+def _forecast_with_observation_score(payload, location_id):
+    """Return a copy of a weather-forecast payload with each hourly record's ``condition``
+    set to the app-wide observation score for that hour (weather_astro's
+    ``observation_score`` x10, 0-100), read from the warm astro_weather cache.
+
+    There is a single observation score in the app; ``weather_openmeteo`` no longer derives
+    one. Hours with no astro-cache match get no ``condition`` key - the Weather tab renders
+    that as "unknown", same as any not-ready cache.
+    """
+    hourly = [dict(record) for record in ((payload or {}).get("hourly") or [])]
+    try:
+        astro_entry = cache_store.load_location_cache("astro_weather", location_id)
+        astro_hourly = (astro_entry.get("data") or {}).get("hourly_data") or []
+        score_by_hour = {
+            str(row.get("datetime"))[:13]: row.get("observation_score")
+            for row in astro_hourly
+            if row.get("datetime") is not None and row.get("observation_score") is not None
+        }
+        for record in hourly:
+            record.pop("condition", None)
+            score = score_by_hour.get(str(record.get("date"))[:13])
+            if score is not None:
+                record["condition"] = round(float(score) * 10, 1)
+    except Exception:
+        logger.exception("Failed to merge observation score into weather forecast")
+    return {**(payload or {}), "hourly": hourly}
+
+
+def _cached_astro_analysis_if_default(hours, language, location_id):
+    """Return the warm ``astro_weather`` cache payload when it can answer this request
+    verbatim - the 24h analysis in the install's configured language, which is what the
+    Astrophotography tab always asks for. Returns ``None`` for any other hours/language so
+    the caller falls back to the live analysis path unchanged. Stale is accepted (the
+    scheduler refreshes it); an empty slot returns ``None``.
+    """
+    if hours != 24 or language != load_config().get("language", "en"):
+        return None
+    entry = cache_store.load_location_cache("astro_weather", location_id)
+    if not cache_store.is_cache_valid(entry, CACHE_TTL_ASTRO_WEATHER):
+        return None  # scheduler slot missing or stale - let the live path recompute/degrade
+    return entry.get("data") or None
+
+
 @weather_bp.route('/api/weather/forecast', methods=['GET'])
 @login_required
 def get_hourly_forecast_api():
     """Get hourly weather forecast for the caller's active location"""
     try:
         active_location, weather_entry = _active_location_cache("weather_forecast")
+        location_id = active_location.get("id")
 
         # Serve from app cache if valid - avoids a live API call on every page load
         if cache_store.is_cache_valid(weather_entry, WEATHER_CACHE_TTL):
-            return jsonify(weather_entry["data"])
+            return jsonify(_forecast_with_observation_score(weather_entry["data"], location_id))
 
         # Cache miss or stale: fetch live (requests_cache SQLite deduplicates across workers)
         forecast = get_hourly_forecast(location=active_location)
@@ -41,7 +86,7 @@ def get_hourly_forecast_api():
             # Serve stale cache rather than returning an error
             if weather_entry.get("data"):
                 logger.warning("[WARNING] Weather API unavailable, serving stale cache")
-                return jsonify(weather_entry["data"])
+                return jsonify(_forecast_with_observation_score(weather_entry["data"], location_id))
             return (
                 jsonify(
                     {"status": "pending", "message": "Weather data is temporarily unavailable. Please retry shortly."}
@@ -60,9 +105,9 @@ def get_hourly_forecast_api():
 
         # Keep cache status/metrics consistent even when this endpoint performs
         # an on-demand refresh outside the scheduler cycle.
-        cache_store.update_location_cache("weather_forecast", active_location.get("id"), response_payload)
+        cache_store.update_location_cache("weather_forecast", location_id, response_payload)
 
-        return jsonify(response_payload)
+        return jsonify(_forecast_with_observation_score(response_payload, location_id))
 
     except Exception as e:
         logger.error(f"Error getting hourly forecast: {e}")
@@ -85,7 +130,16 @@ def get_astro_weather_analysis_api():
         hours = request.args.get('hours', 24, type=int)
         hours = min(max(hours, 1), 72)  # Limit between 1-72 hours
 
-        analysis = get_astro_weather_analysis(hours, language=language, location=_resolve_active_location())
+        location = _resolve_active_location()
+
+        # The Astrophotography tab always asks for the 24h analysis in the configured
+        # language - serve that from the warm scheduler cache so the "Score de la Nuit"
+        # cards match the sky-widget pill and the location switcher exactly.
+        cached = _cached_astro_analysis_if_default(hours, language, location.get("id"))
+        if cached is not None:
+            return jsonify(cached)
+
+        analysis = get_astro_weather_analysis(hours, language=language, location=location)
         if analysis is None:
             return (
                 jsonify(
@@ -113,7 +167,16 @@ def get_current_astro_conditions_api():
     try:
         from weather.weather_astro import get_current_astro_conditions
 
-        conditions = get_current_astro_conditions(location=_resolve_active_location())
+        location = _resolve_active_location()
+
+        # current_conditions is language-independent (pure numbers) - serve it from the
+        # warm astro_weather cache whenever present so it matches the sky-widget pill.
+        entry = cache_store.load_location_cache("astro_weather", location.get("id"))
+        cached_current = (entry.get("data") or {}).get("current_conditions")
+        if cached_current:
+            return jsonify(cached_current)
+
+        conditions = get_current_astro_conditions(location=location)
         if conditions is None:
             return jsonify({"error": "Failed to fetch current astrophotography conditions"}), 500
 
