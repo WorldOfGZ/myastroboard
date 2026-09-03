@@ -997,7 +997,7 @@
                         <p class="text-muted small" data-i18n="equipment.eq_combinations_description">
                             Combine telescope, camera, mount, accessories, and filters to analyze setup compatibility and FOV. This setup will be also selectable on Astrodex.
                         </p>
-                        <button class="btn btn-primary btn-new-combination" data-i18n="equipment.new_combination">New Combination</button>
+                        <button type="button" class="btn btn-primary btn-new-combination" data-i18n="equipment.new_combination">New Combination</button>
                     </div>
                     <div id="equipment-combinations-display">
                         <!-- Combinations will be rendered here -->
@@ -1035,7 +1035,7 @@
                         <p class="text-muted small" data-i18n="equipment.telescopes_description">
                             Manage your telescope profiles with automatic calculation of focal ratios and effective focal lengths.
                         </p>
-                        <button class="btn btn-primary btn-new-telescope" data-i18n="equipment.new_telescope">New Telescope</button>
+                        <button type="button" class="btn btn-primary btn-new-telescope" data-i18n="equipment.new_telescope">New Telescope</button>
                     </div>
                     <div id="equipment-telescopes-display">
                         <!-- Telescopes will be rendered here -->
@@ -1053,7 +1053,7 @@
                         <p class="text-muted small" data-i18n="equipment.cameras_description">
                             Manage your camera profiles with automatic calculation of sensor diagonal and image scale.
                         </p>
-                        <button class="btn btn-primary btn-new-camera" data-i18n="equipment.new_camera">New Camera</button>
+                        <button type="button" class="btn btn-primary btn-new-camera" data-i18n="equipment.new_camera">New Camera</button>
                     </div>
                     <div id="equipment-cameras-display">
                         <!-- Cameras will be rendered here -->
@@ -1071,7 +1071,7 @@
                         <p class="text-muted small" data-i18n="equipment.mounts_description">
                             Manage your mount profiles with automatic calculation of recommended imaging payload.
                         </p>
-                        <button class="btn btn-primary btn-new-mount" data-i18n="equipment.new_mount">New Mount</button>
+                        <button type="button" class="btn btn-primary btn-new-mount" data-i18n="equipment.new_mount">New Mount</button>
                     </div>
                     <div id="equipment-mounts-display">
                         <!-- Mounts will be rendered here -->
@@ -1089,7 +1089,7 @@
                         <p class="text-muted small" data-i18n="equipment.filters_description">
                             Manage your filter profiles for LRGB, narrowband, broadband, and other imaging filters.
                         </p>
-                        <button class="btn btn-primary btn-new-filter" data-i18n="equipment.new_filter">New Filter</button>
+                        <button type="button" class="btn btn-primary btn-new-filter" data-i18n="equipment.new_filter">New Filter</button>
                     </div>
                     <div id="equipment-filters-display">
                         <!-- Filters will be rendered here -->
@@ -1107,7 +1107,7 @@
                         <p class="text-muted small" data-i18n="equipment.accessories_description">
                             Manage your accessory profiles for focusers, field flatteners, filter wheels, and other equipment.
                         </p>
-                        <button class="btn btn-primary btn-new-accessory" data-i18n="equipment.new_accessory">New Accessory</button>
+                        <button type="button" class="btn btn-primary btn-new-accessory" data-i18n="equipment.new_accessory">New Accessory</button>
                     </div>
                     <div id="equipment-accessories-display">
                         <!-- Accessories will be rendered here -->
@@ -1688,7 +1688,7 @@
                     </div>
 
                     <div class="d-flex align-items-center gap-2 mb-3">
-                        <button id="btn-new-location" class="btn btn-primary">
+                        <button type="button" id="btn-new-location" class="btn btn-primary">
                             <i class="bi bi-plus-lg icon-inline" aria-hidden="true"></i>
                             <span data-i18n="settings.location_new">New location</span>
                         </button>
@@ -1729,7 +1729,7 @@
                     </div>
 
                     <div class="button-group mt-2">
-                        <button id="save-astrodex" class="btn btn-primary">
+                        <button type="button" id="save-astrodex" class="btn btn-primary">
                             <i class="bi bi-save icon-inline" aria-hidden="true"></i> <span data-i18n="settings.save_configuration">Save Astrodex Settings</span>
                         </button>
                     </div>
@@ -1869,7 +1869,7 @@
                     </div>
 
                     <div class="button-group">
-                        <button id="save-advanced" class="btn btn-primary">
+                        <button type="button" id="save-advanced" class="btn btn-primary">
                             <i class="bi bi-save icon-inline" aria-hidden="true"></i> <span data-i18n="settings.save_advanced_settings">Save Advanced Settings</span>
                         </button>
                     </div>
@@ -1891,7 +1891,7 @@
                         </div>
                     </div>
                     <div class="button-group mt-2">
-                        <button id="save-app-settings-notifications" class="btn btn-primary">
+                        <button type="button" id="save-app-settings-notifications" class="btn btn-primary">
                             <i class="bi bi-save icon-inline" aria-hidden="true"></i>
                             <span data-i18n="settings.app_settings_save_btn">Save</span>
                         </button>
@@ -1926,14 +1926,14 @@
                     <div id="restart-required-banner" class="alert alert-warning d-flex align-items-center gap-3 mt-2" role="alert" style="display:none;">
                         <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
                         <span data-i18n="settings.app_settings_restart_required">A container restart is required to apply proxy changes.</span>
-                        <button id="btn-restart-app" class="btn btn-sm btn-danger ms-auto">
+                        <button type="button" id="btn-restart-app" class="btn btn-sm btn-danger ms-auto">
                             <i class="bi bi-arrow-clockwise icon-inline" aria-hidden="true"></i>
                             <span data-i18n="settings.restart_now_btn">Restart container</span>
                         </button>
                     </div>
 
                     <div class="button-group mt-2">
-                        <button id="save-app-settings-proxy" class="btn btn-primary">
+                        <button type="button" id="save-app-settings-proxy" class="btn btn-primary">
                             <i class="bi bi-save icon-inline" aria-hidden="true"></i>
                             <span data-i18n="settings.app_settings_save_btn">Save</span>
                         </button>
@@ -1952,7 +1952,7 @@
                     </div>
 
                     <div>
-                        <button id="run-now" class="btn btn-primary mb-2">
+                        <button type="button" id="run-now" class="btn btn-primary mb-2">
                             <i class="bi bi-play-circle icon-inline" aria-hidden="true"></i> <span data-i18n="scheduler.run_now">Run SkyTonight Now</span>
                         </button>
                     </div>
@@ -1991,10 +1991,10 @@
                             </select>
                         </div>
                         <div class="col-12">
-                            <button id="refresh-logs" class="btn btn-secondary"><i class="bi bi-arrow-clockwise icon-inline" aria-hidden="true"></i> <span data-i18n="settings.refresh_logs">Refresh</span></button>
+                            <button type="button" id="refresh-logs" class="btn btn-secondary"><i class="bi bi-arrow-clockwise icon-inline" aria-hidden="true"></i> <span data-i18n="settings.refresh_logs">Refresh</span></button>
                         </div>
                         <div class="col-12">
-                            <button id="clear-logs-display" class="btn btn-secondary"><i class="bi bi-trash icon-inline" aria-hidden="true"></i> <span data-i18n="settings.clear_logs">Delete logs (empty log file)</span></button>
+                            <button type="button" id="clear-logs-display" class="btn btn-secondary"><i class="bi bi-trash icon-inline" aria-hidden="true"></i> <span data-i18n="settings.clear_logs">Delete logs (empty log file)</span></button>
                         </div>
                     </div>
                     <div class="mt-2 d-flex gap-2 align-items-center">
@@ -2596,11 +2596,11 @@
                     </ul>
 
                     <div class="d-flex gap-2 flex-wrap">
-                        <button id="backup-download-btn" class="btn btn-warning">
+                        <button type="button" id="backup-download-btn" class="btn btn-warning">
                             <i class="bi bi-download icon-inline" aria-hidden="true"></i>
                             <span data-i18n="settings.backup_download">Download Backup</span>
                         </button>
-                        <button id="export-config-main" class="btn btn-secondary">
+                        <button type="button" id="export-config-main" class="btn btn-secondary">
                             <i class="bi bi-file-earmark-arrow-down icon-inline" aria-hidden="true"></i>
                             <span data-i18n="settings.export_general_config">Export General Config</span>
                         </button>
@@ -2624,7 +2624,7 @@
                         <input class="form-control" type="file" id="restore-file-input" accept=".zip">
                     </div>
 
-                    <button id="backup-restore-btn" class="btn btn-danger" disabled>
+                    <button type="button" id="backup-restore-btn" class="btn btn-danger" disabled>
                         <i class="bi bi-arrow-counterclockwise icon-inline" aria-hidden="true"></i>
                         <span data-i18n="settings.restore_button">Restore Backup</span>
                     </button>
@@ -2669,7 +2669,7 @@
                         <li><i class="bi bi-file-earmark-text text-muted icon-inline" aria-hidden="true"></i> <code>data/skytonight/runtime/scheduler_status.json</code></li>
                     </ul>
 
-                    <button id="log-export-btn" class="btn btn-danger">
+                    <button type="button" id="log-export-btn" class="btn btn-danger">
                         <i class="bi bi-download icon-inline" aria-hidden="true"></i>
                         <span data-i18n="settings.log_export_download">Download Log Archive</span>
                     </button>
