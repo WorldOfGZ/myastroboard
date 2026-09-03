@@ -253,8 +253,11 @@
 
 /* Observation Conditions (trend) charts: clickable footer legend badges */
 .chart-legend-badge {
-    cursor: pointer;
     user-select: none;
+}
+
+.chart-legend-badge[role="button"] {
+    cursor: pointer;
 }
 
 .chart-legend-badge--off {
