@@ -27,13 +27,14 @@ function createChartShell(iconClass, labelText, canvasId, legendItems = [], foot
     const row = document.createElement('div');
     row.className = 'row';
 
-    legendItems.forEach((item) => {
+    legendItems.forEach((item, idx) => {
         const col = document.createElement('div');
         col.className = 'col-auto';
         const badge = document.createElement('span');
-        badge.className = 'badge';
+        badge.className = 'badge chart-legend-badge';
         badge.style.backgroundColor = item.color;
         badge.textContent = item.label;
+        badge.dataset.legendIndex = String(idx);
         col.appendChild(badge);
         row.appendChild(col);
     });
@@ -54,6 +55,29 @@ function createChartShell(iconClass, labelText, canvasId, legendItems = [], foot
     card.appendChild(body);
     card.appendChild(footer);
     return card;
+}
+
+// Wire the footer legend badges (built by createChartShell) so clicking one toggles its
+// dataset. Keeps the project's footer-badge legend convention while adding click-to-isolate.
+// Requires legendItems order to match chart.data.datasets order 1:1.
+function makeChartLegendInteractive(cardEl, chart) {
+    if (!cardEl || !chart) return;
+    cardEl.querySelectorAll('.chart-legend-badge[data-legend-index]').forEach((badge) => {
+        const idx = Number(badge.dataset.legendIndex);
+        if (!Number.isInteger(idx) || !chart.data.datasets[idx]) return;
+        badge.setAttribute('role', 'button');
+        badge.tabIndex = 0;
+        const toggle = () => {
+            const wasVisible = chart.isDatasetVisible(idx);
+            chart.setDatasetVisibility(idx, !wasVisible);
+            badge.classList.toggle('chart-legend-badge--off', wasVisible);
+            chart.update();
+        };
+        badge.addEventListener('click', toggle);
+        badge.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+        });
+    });
 }
 
 function toFiniteNumber(value) {
@@ -269,11 +293,22 @@ async function loadWeather() {
     }
 }
 
-// Global chart instances
-let cloudConditionsChartInstance = null;
-let seeingConditionsChartInstance = null;
-let astroChartsRequestInFlight = null;
+// ============================================================
+// Observation Conditions  (Weather -> "trend" sub-tab)
+// An astrophotographer's fast go / no-go scan for the coming night:
+//   Block 1  Night score           - the one number (identical to the navbar pill)
+//   Block 2  Sky                    - cloud cover (total + layers), fog, precipitation
+//   Block 3  Atmosphere & tracking  - seeing, transparency, mount stability, lifted index
+// Every series comes from /api/weather/astro-analysis (the jet-stream-aware engine, kept warm
+// in the astro_weather cache), so the numbers match the pill and the Astrophotography tab.
+// ============================================================
 
+const TREND_MIN_HOURS = 6;
+
+let nightScoreChartInstance = null;
+let skyChartInstance = null;
+let atmosphereChartInstance = null;
+let astroChartsRequestInFlight = null;
 
 function updateAstroChartsLoadingMessage(message) {
     const loadingDiv = document.getElementById('astro-charts-loading');
@@ -281,19 +316,187 @@ function updateAstroChartsLoadingMessage(message) {
     loadingDiv.replaceChildren(DOMUtils.createSpinnerWrapper(message));
 }
 
-
 function destroyAstronomicalCharts() {
-    if (cloudConditionsChartInstance) {
-        cloudConditionsChartInstance.destroy();
-        cloudConditionsChartInstance = null;
-    }
-    if (seeingConditionsChartInstance) {
-        seeingConditionsChartInstance.destroy();
-        seeingConditionsChartInstance = null;
-    }
+    [nightScoreChartInstance, skyChartInstance, atmosphereChartInstance].forEach(c => {
+        if (c) c.destroy();
+    });
+    nightScoreChartInstance = null;
+    skyChartInstance = null;
+    atmosphereChartInstance = null;
 }
 
-//Load Astronomical Charts
+// Saturated line colours for the score bands - same green / amber / red language as the
+// "Score de la Nuit" cards (text-success / text-warning / text-danger).
+const TREND_SCORE_COLORS = { good: '#22c55e', fair: '#f59e0b', poor: '#ef4444' };
+function _scoreBandColor(score0to100) {
+    if (score0to100 >= 60) return TREND_SCORE_COLORS.good;
+    if (score0to100 >= 40) return TREND_SCORE_COLORS.fair;
+    return TREND_SCORE_COLORS.poor;
+}
+
+// Fog probability (%) from relative humidity - mirrors
+// backend/weather/weather_openmeteo.py::_enrich_hourly_dataframe so this view keeps the same
+// fog series it had before, now derived client-side from the astro-analysis payload.
+function _fogPercent(rh) {
+    const h = toFiniteNumber(rh);
+    if (h == null) return null;
+    if (h > 90) return Math.min(100, (h - 90) * 10);
+    if (h > 80) return Math.min(100, (h - 80) * 5);
+    return 0;
+}
+
+// Slice the hourly series to the coming night: from now to ~2 h past dawn, never fewer than
+// TREND_MIN_HOURS, capped at what the forecast covers. Derived from the is_day flags.
+function _trendWindow(hourly) {
+    const cutoff = Date.now() - 30 * 60 * 1000;
+    const future = hourly.filter(h => new Date(h.datetime).getTime() >= cutoff);
+    if (future.length === 0) return [];
+
+    const firstNight = future.findIndex(h => h.is_day === 0);
+    let endIdx;
+    if (firstNight === -1) {
+        endIdx = future.length - 1; // no night in range (polar day) - show all we have
+    } else {
+        endIdx = firstNight;
+        while (endIdx + 1 < future.length && future[endIdx + 1].is_day === 0) endIdx += 1;
+        endIdx += 2; // keep ~2 h past dawn for the pack-up window
+    }
+    endIdx = Math.min(future.length - 1, Math.max(endIdx, TREND_MIN_HOURS - 1));
+    return future.slice(0, endIdx + 1);
+}
+
+// Longest run of observation_score >= 6 among the dark hours -> { start, end } labels, or null.
+function _bestTrendWindow(rows, tz) {
+    let best = null;
+    let run = null;
+    const flush = () => {
+        if (run && (!best || (run.end - run.start) > (best.end - best.start))) best = run;
+        run = null;
+    };
+    rows.forEach((h, i) => {
+        if (h.is_day === 0 && (toFiniteNumber(h.observation_score) ?? 0) >= 6) {
+            run = run || { start: i, end: i };
+            run.end = i;
+        } else {
+            flush();
+        }
+    });
+    flush();
+    if (!best) return null;
+    const endRow = rows[Math.min(best.end + 1, rows.length - 1)];
+    return {
+        start: formatTimeOnlyInTimezone(rows[best.start].datetime, tz),
+        end: formatTimeOnlyInTimezone(endRow.datetime, tz),
+    };
+}
+
+// Chart.js inline plugin: shade the daytime (is_day === 1) spans so the dark hours stand out.
+function _dayNightShading(isDay) {
+    return {
+        id: 'dayNightShading',
+        beforeDatasetsDraw(chart) {
+            const area = chart.chartArea;
+            const xScale = chart.scales.x;
+            if (!area || !xScale || !isDay || isDay.length === 0) return;
+            const half = (area.right - area.left) / isDay.length / 2;
+            const ctx = chart.ctx;
+            ctx.save();
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.16)'; // slate - subtle in light and dark
+            let spanStart = null;
+            for (let i = 0; i <= isDay.length; i++) {
+                const daytime = i < isDay.length && isDay[i] === 1;
+                if (daytime && spanStart === null) spanStart = i;
+                if (!daytime && spanStart !== null) {
+                    const left = Math.max(area.left, xScale.getPixelForValue(spanStart) - half);
+                    const right = Math.min(area.right, xScale.getPixelForValue(i - 1) + half);
+                    if (right > left) ctx.fillRect(left, area.top, right - left, area.bottom - area.top);
+                    spanStart = null;
+                }
+            }
+            ctx.restore();
+        },
+    };
+}
+
+// Shared 0-105 % axis with quality-scale ticks, matching the app's other observation charts.
+function _percentAxis(titleText) {
+    return {
+        type: 'linear',
+        position: 'left',
+        title: { display: true, text: titleText },
+        min: 0,
+        max: 105,
+        ticks: {
+            callback: (value) => (value === 105 ? '' : value + i18n.t('units.percent')),
+        },
+        afterBuildTicks: (axis) => {
+            axis.ticks = [0, 20, 40, 60, 80, 100, 105].map(value => ({ value }));
+        },
+    };
+}
+
+// Build one trend chart: shell + Chart.js line chart + interactive footer legend + day/night
+// shading. legendItems order must match datasets order 1:1.
+function _buildTrendChart({ containerId, canvasId, icon, title, axisLabel, labels, isDay, datasets, legendItems, scales }) {
+    const container = document.getElementById(containerId);
+    if (!container) return null;
+    DOMUtils.clear(container);
+    const card = createChartShell(icon, title, canvasId, legendItems, axisLabel);
+    container.appendChild(card);
+
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas && typeof canvas.getContext === 'function' ? canvas.getContext('2d') : null;
+    if (!ctx) return null;
+
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: false } },
+            scales: scales || {
+                y: _percentAxis(axisLabel),
+                x: { title: { display: true, text: i18n.t('common.time_label') } },
+            },
+        },
+        plugins: [_dayNightShading(isDay)],
+    });
+    makeChartLegendInteractive(card, chart);
+    return chart;
+}
+
+// Caption under the hero chart: current score + the best window tonight.
+function _renderTrendCaption(rows, tz, scoreSeries) {
+    const host = document.getElementById('nightScoreChartContainer');
+    if (!host) return;
+    const existing = host.querySelector('.trend-score-caption');
+    if (existing) existing.remove();
+
+    const caption = document.createElement('p');
+    caption.className = 'trend-score-caption text-muted small mt-2 mb-0';
+
+    const nowScore = scoreSeries.find(s => s != null);
+    if (nowScore != null) {
+        const strong = document.createElement('strong');
+        strong.textContent = `${i18n.t('weather.chart_score_now')} ${(nowScore / 10).toFixed(1)}/10`;
+        caption.appendChild(strong);
+    }
+
+    const win = _bestTrendWindow(rows, tz);
+    DOMUtils.append(
+        caption,
+        nowScore != null ? '  -  ' : '',
+        win
+            ? i18n.t('weather.chart_best_window', { start: win.start, end: win.end })
+            : i18n.t('weather.chart_no_good_window')
+    );
+
+    host.appendChild(caption);
+}
+
+//Load Astronomical Charts (Weather -> Observation Conditions)
 async function loadAstronomicalCharts() {
     if (astroChartsRequestInFlight) {
         return astroChartsRequestInFlight;
@@ -304,411 +507,197 @@ async function loadAstronomicalCharts() {
         const containerDiv = document.getElementById('astro-charts-container');
         const errorDiv = document.getElementById('astro-charts-error');
 
-        // Show loading, hide others
         loadingDiv.style.display = 'block';
+        containerDiv.style.display = '';
         updateAstroChartsLoadingMessage(i18n.t('weather.loading_astro_chart'));
         errorDiv.style.display = 'none';
 
         try {
-            //Fake error
-            //throw('Fake');
-
-            const data = await fetchJSONWithRetry('/api/weather/forecast', {}, {
-                maxAttempts: 6,
+            const currentLang = (typeof i18n !== 'undefined' && typeof i18n.getCurrentLanguage === 'function')
+                ? i18n.getCurrentLanguage()
+                : 'en';
+            const data = await fetchJSONWithRetry(`/api/weather/astro-analysis?hours=24&lang=${encodeURIComponent(currentLang)}`, {}, {
+                maxAttempts: 8,
                 baseDelayMs: 1000,
-                maxDelayMs: 12000,
-                timeoutMs: 15000,
+                maxDelayMs: 15000,
+                timeoutMs: 20000,
                 shouldRetryData: (payload) => payload && payload.status === 'pending',
-                onRetry: ({ reason, attempt, maxAttempts, waitMs }) => {
+                onRetry: ({ attempt, maxAttempts, waitMs }) => {
                     const seconds = Math.max(1, Math.round(waitMs / 1000));
-                    const message = i18n.t('weather.loading_astro_chart');
-                    updateAstroChartsLoadingMessage(`${message} ${i18n.t('common.retrying_in', { seconds, attempt, maxAttempts })}`);
+                    updateAstroChartsLoadingMessage(`${i18n.t('weather.loading_astro_chart')} ${i18n.t('common.retrying_in', { seconds, attempt, maxAttempts })}`);
                 }
             });
 
             if (data.status === 'pending') {
                 throw new Error(i18n.t('weather.loading_astro_failed'));
             }
-
-            //console.log(data);
-
             if (data.error) {
                 throw new Error(data.error);
             }
 
-            // Hide loading, show charts
+            const tz = data.location?.timezone || 'UTC';
+            const rows = _trendWindow(data.hourly_data || []);
+            if (rows.length === 0) {
+                throw new Error(i18n.t('weather.loading_astro_failed'));
+            }
+
             loadingDiv.style.display = 'none';
 
-            // Extract data for charts - skip entries already in the past
-            const now = Date.now();
-            const configuredTimezone = data?.location?.timezone || 'UTC';
-            const futureHourly = data.hourly.filter(item => new Date(item.date).getTime() >= now);
+            const labels = rows.map(h => formatTimeOnlyInTimezone(h.datetime, tz));
+            const isDay = rows.map(h => (h.is_day === 1 ? 1 : 0));
+            const score = rows.map(h => {
+                const s = toFiniteNumber(h.observation_score);
+                return s == null ? null : Math.round(s * 100) / 10; // 0-10 -> 0-100
+            });
+            const cloudlessOf = (v) => { const n = toFiniteNumber(v); return n == null ? null : 100 - n; };
 
-            // Extract all chart data arrays in a single pass over futureHourly
-            const labels = [], condition = [], cloudless = [], cloudHigh = [], cloudMid = [],
-                cloudLow = [], calm = [], fog = [], seeing = [], transparency = [],
-                liftedIndex = [], precipitation = [];
-            for (const item of futureHourly) {
-                labels.push(formatTimeOnlyInTimezone(item.date, configuredTimezone));
-                condition.push(item.condition);
-                cloudless.push(item.cloudless);
-                cloudHigh.push(item.cloudless_high);
-                cloudMid.push(item.cloudless_mid);
-                cloudLow.push(item.cloudless_low);
-                calm.push(item.calm);
-                fog.push(item.fog);
-                seeing.push(item.seeing);
-                transparency.push(item.transparency);
-                liftedIndex.push(item.lifted_index);
-                precipitation.push(item.precipitation);
-            }
-
-            // Destroy existing charts if they exist
             destroyAstronomicalCharts();
 
-            // Chart 1: Cloud Conditions & Wind
-            const container1 = document.getElementById('cloudConditionsChartContainer');
-            if (container1) {
-                DOMUtils.clear(container1);
-                container1.appendChild(createChartShell('bi bi-clouds icon-inline', i18n.t('weather.chart_cloud_title'), 'cloudConditionsChart', [
-                    { label: i18n.t('weather.chart_cloudless'), color: '#22c55e' },
-                    { label: i18n.t('weather.chart_condition'), color: '#ef4444' },
-                    { label: i18n.t('weather.chart_fog'), color: '#808080' }
-                ], i18n.t('weather.chart_percentage')));
-            }
-
-            const ctx1 = document.getElementById('cloudConditionsChart');
-            if (!ctx1) return;
-            const ctx1_2d = ctx1.getContext('2d');
-            if (!ctx1_2d) return;
-            cloudConditionsChartInstance = new Chart(ctx1_2d, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: i18n.t('weather.chart_fog'),
-                            data: fog,
-                            type: 'bar',
-                            backgroundColor: 'rgba(128, 128, 128, 0.3)',
-                            borderColor: 'rgba(128, 128, 128, 0.5)',
-                            borderWidth: 1,
-                            order: 10,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: i18n.t('weather.chart_condition'),
-                            data: condition,
-                            borderColor: 'rgb(239, 68, 68)',
-                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                            borderWidth: 2,
-                            borderDash: [5, 5],
-                            fill: false,
-                            tension: 0.4,
-                            order: 1,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: i18n.t('weather.chart_cloudless'),
-                            data: cloudless,
-                            borderColor: 'rgb(34, 197, 94)',
-                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                            borderWidth: 2,
-                            fill: false,
-                            tension: 0.4,
-                            order: 2,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: i18n.t('weather.chart_cloudless_high'),
-                            data: cloudHigh,
-                            borderColor: 'rgb(74, 222, 128)',
-                            backgroundColor: 'rgba(74, 222, 128, 0.1)',
-                            borderWidth: 2,
-                            borderDash: [2, 2],
-                            fill: false,
-                            tension: 0.4,
-                            order: 3,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: i18n.t('weather.chart_cloudless_mid'),
-                            data: cloudMid,
-                            borderColor: 'rgb(134, 239, 172)',
-                            backgroundColor: 'rgba(134, 239, 172, 0.1)',
-                            borderWidth: 2,
-                            borderDash: [2, 2],
-                            fill: false,
-                            tension: 0.4,
-                            order: 4,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: i18n.t('weather.chart_cloudless_low'),
-                            data: cloudLow,
-                            borderColor: 'rgb(187, 247, 208)',
-                            backgroundColor: 'rgba(187, 247, 208, 0.1)',
-                            borderWidth: 2,
-                            borderDash: [2, 2],
-                            fill: false,
-                            tension: 0.4,
-                            order: 5,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: i18n.t('weather.chart_calm'),
-                            data: calm,
-                            borderColor: 'rgb(220, 38, 38)',
-                            backgroundColor: 'rgba(220, 38, 38, 0.1)',
-                            borderWidth: 2,
-                            fill: false,
-                            tension: 0.4,
-                            order: 6,
-                            yAxisID: 'y'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            enabled: true,
-                            callbacks: {
-                                label: function (context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    label += Math.round(context.parsed.y * 10) / 10 + '%';
-                                    return label;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: {
-                                display: true,
-                                text: i18n.t('weather.chart_percentage'),
-                            },
-                            min: 0,
-                            max: 105,
-                            ticks: {
-                                stepSize: 20,
-                                callback: function (value) {
-                                    if (value === 105) {
-                                        return '';
-                                    }
-                                    return value + i18n.t('units.percent');
-                                }
-                            },
-                            afterBuildTicks: function (axis) {
-                                axis.ticks = [0, 20, 40, 60, 80, 100, 105].map(value => ({ value }));
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: i18n.t('common.time_label'),
-                            }
-                        }
+            // -- Block 1: Night score (hero) --
+            nightScoreChartInstance = _buildTrendChart({
+                containerId: 'nightScoreChartContainer',
+                canvasId: 'nightScoreChart',
+                icon: 'bi bi-moon-stars icon-inline',
+                title: i18n.t('weather.chart_nightscore_title'),
+                axisLabel: i18n.t('weather.chart_nightscore_axis'),
+                labels,
+                isDay,
+                datasets: [{
+                    label: i18n.t('weather.chart_nightscore_title'),
+                    data: score,
+                    borderColor: _scoreBandColor(score[0] ?? 0),
+                    backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 2,
+                    segment: {
+                        borderColor: (seg) => _scoreBandColor(Math.min(
+                            seg.p0.parsed.y ?? 0, seg.p1.parsed.y ?? 0)),
                     }
+                }],
+                legendItems: [
+                    { label: i18n.t('weather.chart_nightscore_title'), color: TREND_SCORE_COLORS.good },
+                    { label: i18n.t('weather.chart_daytime'), color: 'rgba(148, 163, 184, 0.55)' }
+                ]
+            });
+            _renderTrendCaption(rows, tz, score);
+
+            // -- Block 2: Sky --
+            skyChartInstance = _buildTrendChart({
+                containerId: 'skyChartContainer',
+                canvasId: 'skyChart',
+                icon: 'bi bi-clouds icon-inline',
+                title: i18n.t('weather.chart_sky_title'),
+                axisLabel: i18n.t('weather.chart_percentage'),
+                labels,
+                isDay,
+                datasets: [
+                    {
+                        label: i18n.t('weather.chart_fog'),
+                        data: rows.map(h => _fogPercent(h.relative_humidity_2m)),
+                        type: 'bar', backgroundColor: 'rgba(148, 163, 184, 0.35)',
+                        borderColor: 'rgba(148, 163, 184, 0.6)', borderWidth: 1, order: 20, yAxisID: 'y'
+                    },
+                    {
+                        label: i18n.t('weather.chart_precipitation'),
+                        data: rows.map(h => toFiniteNumber(h.precipitation) ?? 0),
+                        type: 'bar', backgroundColor: 'rgba(37, 99, 235, 0.5)',
+                        borderColor: 'rgb(37, 99, 235)', borderWidth: 1, order: 19, yAxisID: 'y2'
+                    },
+                    {
+                        label: i18n.t('weather.chart_cloudless'),
+                        data: rows.map(h => cloudlessOf(h.cloud_cover)),
+                        borderColor: 'rgb(34, 197, 94)', backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        borderWidth: 2.5, fill: false, tension: 0.35, order: 1, yAxisID: 'y'
+                    },
+                    {
+                        label: i18n.t('weather.chart_cloudless_high'),
+                        data: rows.map(h => cloudlessOf(h.cloud_cover_high)),
+                        borderColor: 'rgba(71, 85, 105, 0.85)', borderWidth: 1, borderDash: [2, 2],
+                        fill: false, tension: 0.35, pointRadius: 0, order: 5, yAxisID: 'y'
+                    },
+                    {
+                        label: i18n.t('weather.chart_cloudless_mid'),
+                        data: rows.map(h => cloudlessOf(h.cloud_cover_mid)),
+                        borderColor: 'rgba(100, 116, 139, 0.7)', borderWidth: 1, borderDash: [4, 3],
+                        fill: false, tension: 0.35, pointRadius: 0, order: 6, yAxisID: 'y'
+                    },
+                    {
+                        label: i18n.t('weather.chart_cloudless_low'),
+                        data: rows.map(h => cloudlessOf(h.cloud_cover_low)),
+                        borderColor: 'rgba(148, 163, 184, 0.6)', borderWidth: 1, borderDash: [6, 3],
+                        fill: false, tension: 0.35, pointRadius: 0, order: 7, yAxisID: 'y'
+                    }
+                ],
+                legendItems: [
+                    { label: i18n.t('weather.chart_fog'), color: '#94a3b8' },
+                    { label: i18n.t('weather.chart_precipitation'), color: '#2563eb' },
+                    { label: i18n.t('weather.chart_cloudless'), color: '#22c55e' },
+                    { label: i18n.t('weather.chart_cloudless_high'), color: '#475569' },
+                    { label: i18n.t('weather.chart_cloudless_mid'), color: '#64748b' },
+                    { label: i18n.t('weather.chart_cloudless_low'), color: '#94a3b8' }
+                ],
+                scales: {
+                    y: _percentAxis(i18n.t('weather.chart_percentage')),
+                    y2: {
+                        type: 'linear', position: 'right', min: 0,
+                        title: { display: true, text: `${i18n.t('weather.chart_precipitation')} (${i18n.t('units.precipitation_mm')})` },
+                        grid: { drawOnChartArea: false }
+                    },
+                    x: { title: { display: true, text: i18n.t('common.time_label') } }
                 }
             });
 
-            // Chart 2: Seeing & Atmospheric Conditions
-            const container2 = document.getElementById('seeingConditionsChartContainer');
-            if (container2) {
-                DOMUtils.clear(container2);
-                container2.appendChild(createChartShell('bi bi-eye icon-inline', i18n.t('weather.chart_seeing_title'), 'seeingConditionsChart', [
-                    { label: i18n.t('weather.chart_fog'), color: '#808080' },
-                    { label: i18n.t('weather.chart_condition'), color: '#ef4444' },
-                    { label: i18n.t('weather.chart_seeing'), color: '#f97316' },
-                    { label: i18n.t('weather.chart_transparency'), color: '#1e3a8a' },
-                    { label: i18n.t('weather.chart_lifted_index'), color: '#06b6d4' },
-                    { label: i18n.t('weather.chart_precipitation'), color: '#2563eb' }
-                ], ''));
-            }
-
-            const ctx2 = document.getElementById('seeingConditionsChart');
-            if (!ctx2) return;
-            const ctx2_2d = ctx2.getContext('2d');
-            if (!ctx2_2d) return;
-            seeingConditionsChartInstance = new Chart(ctx2_2d, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: i18n.t('weather.chart_fog'),
-                            data: fog,
-                            type: 'bar',
-                            backgroundColor: 'rgba(128, 128, 128, 0.3)',
-                            borderColor: 'rgba(128, 128, 128, 0.5)',
-                            borderWidth: 1,
-                            order: 10,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: i18n.t('weather.chart_condition'),
-                            data: condition,
-                            borderColor: 'rgb(239, 68, 68)',
-                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                            borderWidth: 2,
-                            borderDash: [5, 5],
-                            fill: false,
-                            tension: 0.4,
-                            order: 1,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: i18n.t('weather.chart_seeing'),
-                            data: seeing,
-                            borderColor: 'rgb(249, 115, 22)',
-                            backgroundColor: 'rgba(249, 115, 22, 0.1)',
-                            borderWidth: 2,
-                            fill: false,
-                            tension: 0.4,
-                            order: 2,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: i18n.t('weather.chart_transparency'),
-                            data: transparency,
-                            borderColor: 'rgb(30, 58, 138)',
-                            backgroundColor: 'rgba(30, 58, 138, 0.1)',
-                            borderWidth: 2,
-                            fill: false,
-                            tension: 0.4,
-                            order: 3,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: i18n.t('weather.chart_lifted_index'),
-                            data: liftedIndex,
-                            borderColor: 'rgb(6, 182, 212)',
-                            backgroundColor: 'rgba(6, 182, 212, 0.1)',
-                            borderWidth: 2,
-                            fill: false,
-                            tension: 0.4,
-                            order: 4,
-                            yAxisID: 'y1'
-                        },
-                        {
-                            label: i18n.t('weather.chart_precipitation'),
-                            data: precipitation,
-                            borderColor: 'rgb(37, 99, 235)',
-                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                            borderWidth: 2,
-                            borderDash: [5, 5],
-                            fill: false,
-                            tension: 0.4,
-                            order: 5,
-                            yAxisID: 'y2'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
+            // -- Block 3: Atmosphere & tracking --
+            atmosphereChartInstance = _buildTrendChart({
+                containerId: 'atmosphereChartContainer',
+                canvasId: 'atmosphereChart',
+                icon: 'bi bi-eye icon-inline',
+                title: i18n.t('weather.chart_atmosphere_title'),
+                axisLabel: i18n.t('weather.chart_percentage'),
+                labels,
+                isDay,
+                datasets: [
+                    {
+                        label: i18n.t('astro_weather.seeing'),
+                        data: rows.map(h => { const n = toFiniteNumber(h.seeing_pickering); return n == null ? null : n * 10; }),
+                        borderColor: 'rgb(249, 115, 22)', backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                        borderWidth: 2, fill: false, tension: 0.35, order: 1, yAxisID: 'y'
                     },
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            enabled: true,
-                            callbacks: {
-                                label: function (context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.dataset.yAxisID === 'y') {
-                                        label += Math.round(context.parsed.y * 10) / 10 + '%';
-                                    } else if (context.dataset.yAxisID === 'y2') {
-                                        label += Math.round(context.parsed.y * 100) / 100 + i18n.t('units.precipitation_mm');
-                                    } else if (context.dataset.yAxisID === 'y1') {
-                                        label += Math.round(context.parsed.y * 10) / 10 + i18n.t('units.temperature_celsius');
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
+                    {
+                        label: i18n.t('astro_weather.transparency'),
+                        data: rows.map(h => toFiniteNumber(h.transparency_score)),
+                        borderColor: 'rgb(168, 85, 247)', backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                        borderWidth: 2, fill: false, tension: 0.35, order: 2, yAxisID: 'y'
                     },
-                    scales: {
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: {
-                                display: true,
-                                text: i18n.t('weather.chart_percentage')
-                            },
-                            min: 0,
-                            max: 105,
-                            ticks: {
-                                stepSize: 20,
-                                callback: function (value) {
-                                    if (value === 105) {
-                                        return '';
-                                    }
-                                    return value + i18n.t('units.percent');
-                                }
-                            },
-                            afterBuildTicks: function (axis) {
-                                axis.ticks = [0, 20, 40, 60, 80, 100, 105].map(value => ({ value }));
-                            }
-                        },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            title: {
-                                display: true,
-                                text: `${i18n.t('weather.chart_lifted_index')} (${i18n.t('units.temperature_celsius')})`
-                            },
-                            grid: {
-                                drawOnChartArea: false,
-                            }
-                        },
-                        // Precipitation (mm) gets its own axis - sharing y1 with lifted_index
-                        // (which ranges roughly -8..+8) drowned out small mm values, making
-                        // real rain look flat at zero on the chart.
-                        y2: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            min: 0,
-                            title: {
-                                display: true,
-                                text: `${i18n.t('weather.chart_precipitation')} (${i18n.t('units.precipitation_mm')})`
-                            },
-                            grid: {
-                                drawOnChartArea: false,
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: i18n.t('common.time_label'),
-                            }
-                        }
+                    {
+                        label: i18n.t('astro_weather.tracking'),
+                        data: rows.map(h => toFiniteNumber(h.tracking_stability_score)),
+                        borderColor: 'rgb(14, 165, 233)', backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                        borderWidth: 2, fill: false, tension: 0.35, order: 3, yAxisID: 'y'
+                    },
+                    {
+                        label: i18n.t('weather.chart_lifted_index'),
+                        data: rows.map(h => toFiniteNumber(h.lifted_index)),
+                        borderColor: 'rgb(6, 182, 212)', borderWidth: 2, borderDash: [5, 4],
+                        fill: false, tension: 0.35, pointRadius: 0, order: 4, yAxisID: 'y1'
                     }
+                ],
+                legendItems: [
+                    { label: i18n.t('astro_weather.seeing'), color: '#f97316' },
+                    { label: i18n.t('astro_weather.transparency'), color: '#a855f7' },
+                    { label: i18n.t('astro_weather.tracking'), color: '#0ea5e9' },
+                    { label: i18n.t('weather.chart_lifted_index'), color: '#06b6d4' }
+                ],
+                scales: {
+                    y: _percentAxis(i18n.t('weather.chart_percentage')),
+                    y1: {
+                        type: 'linear', position: 'right',
+                        title: { display: true, text: `${i18n.t('weather.chart_lifted_index')} (${i18n.t('units.temperature_celsius')})` },
+                        grid: { drawOnChartArea: false }
+                    },
+                    x: { title: { display: true, text: i18n.t('common.time_label') } }
                 }
             });
 

@@ -538,9 +538,9 @@
                 <!-- Astronomical Observation Charts -->
                 <div class="shadow p-2 mb-3 rounded bg-sub-container">
                     <h2>
-                        <i class="bi bi-stopwatch text-info icon-inline" aria-hidden="true"></i> <span data-i18n="weather.observation_next_hours">Observation Conditions - Next 12 Hours</span>
+                        <i class="bi bi-stopwatch text-info icon-inline" aria-hidden="true"></i> <span data-i18n="weather.observation_next_hours">Observation Conditions - Coming Night</span>
                     </h2>
-                    <p class="text-muted small mb-2" data-i18n="weather.observation_next_hours_description">Hour-by-hour forecast translated into observation-friendly terms.</p>
+                    <p class="text-muted small mb-2" data-i18n="weather.observation_next_hours_description">A fast go / no-go scan of the coming night, hour by hour.</p>
                     <button class="btn btn-sm btn-outline-secondary mb-2" type="button"
                             data-bs-toggle="collapse" data-bs-target="#observation-next-hours-help"
                             aria-expanded="false" aria-controls="observation-next-hours-help">
@@ -549,18 +549,19 @@
                     </button>
                     <div class="collapse mb-2" id="observation-next-hours-help">
                         <div class="alert alert-info mb-0" role="alert">
-                            <p class="mb-2" data-i18n="weather.observation_next_hours_help_intro">Most series on these two charts are 0-100% scores where higher means more favorable conditions: cloudless sky, calm wind, condition, seeing and transparency.</p>
-                            <p class="mb-2" data-i18n="weather.observation_next_hours_help_fog">Fog is the exception on both charts - a higher fog percentage means more risk of fog, which is worse for imaging.</p>
-                            <p class="mb-0" data-i18n="weather.observation_next_hours_help_lifted_index">The Lifted Index is a separate atmospheric stability value in &deg;C, not a percentage: negative values mean unstable air with more turbulence and cloud risk, while positive values mean calmer, more stable air - better for imaging.</p>
+                            <p class="mb-2" data-i18n="weather.observation_next_hours_help_intro">The top chart is the night score - the same 0-10 value (shown here x10) as the navbar badge and the "Score de la Nuit" cards. The two charts below break down why: cloud cover, fog and rain in "Sky", and seeing, transparency and mount stability in "Atmosphere &amp; tracking". Daytime hours are shaded grey.</p>
+                            <p class="mb-2" data-i18n="weather.observation_next_hours_help_fog">On "Sky", higher is better for cloudless sky; fog and precipitation are drawn as bars where higher means more hazard.</p>
+                            <p class="mb-0" data-i18n="weather.observation_next_hours_help_lifted_index">The Lifted Index on "Atmosphere &amp; tracking" is a stability value in &deg;C on its own axis, not a percentage: negative means unstable air with more turbulence and cloud risk, positive means calmer, more stable air. Click a legend badge to hide or isolate a series.</p>
                         </div>
                     </div>
                     <div id="astro-charts-loading" class="alert alert-info" role="alert" data-i18n="weather.loading_astro">
                         Loading astronomical data...
                     </div>
 
-                    <div class="row row-cols-1 row-cols-sm-1 row-cols-lg-1 row-cols-xl-2 mb-3" id="astro-charts-container">
-                        <div id="cloudConditionsChartContainer" class="col mb-3"></div>
-                        <div id="seeingConditionsChartContainer" class="col mb-3"></div>
+                    <div id="astro-charts-container">
+                        <div id="nightScoreChartContainer" class="mb-3"></div>
+                        <div id="skyChartContainer" class="mb-3"></div>
+                        <div id="atmosphereChartContainer" class="mb-3"></div>
                     </div>
 
                     <div id="astro-charts-error" class="alert alert-danger" role="alert" style="display: none" data-i18n="weather.loading_astro_failed">

@@ -94,5 +94,17 @@ The per-location astro weather analysis is now kept warm by the cache scheduler 
 `astro_weather` cache) so the pill and switcher read it without firing a live Open-Meteo
 request on every page load.
 
+#### Observation Conditions page redesign
+
+The Weather tab's "Observation Conditions" sub-tab is rebuilt around a fast go / no-go read for
+the coming night. Instead of two charts with seven overlapping series each, there are now three:
+a hero "Night score" chart (the same score as the navbar badge, colour-banded green/amber/red,
+with a "best window tonight" caption), a "Sky" chart (cloud cover total and by layer, fog,
+precipitation) and an "Atmosphere & tracking" chart (seeing, transparency, mount stability,
+lifted index). Every plotted series is now in the legend, and clicking a legend badge hides or
+isolates that curve. Daytime hours are shaded. The window follows the actual night - now to
+about two hours past sunrise, and never less than six hours - and the numbers are the same
+jet-stream-aware values as the rest of the app.
+
 #### Various
 - Enhance sorting functionality in Astrodex with numeric-aware comparison

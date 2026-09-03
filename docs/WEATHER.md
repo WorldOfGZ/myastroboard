@@ -8,8 +8,9 @@ The Weather tab provides atmospheric conditions specifically analysed for astron
 
 | Location | Content |
 |----------|---------|
-| **Weather tab -> Weather** | Hourly weather forecast (temperature, humidity, wind, clouds, precipitation) plus an "Observation Conditions - Next 12 Hours" section: hourly quality label per card (from `observation_score`) and time-series charts of the component conditions |
+| **Weather tab -> Weather** | Hourly weather forecast cards (temperature, humidity, wind, clouds, precipitation), each with a quality label from `observation_score` |
 | **Weather tab -> Seeing** | 7Timer astronomical seeing and transparency forecast |
+| **Weather tab -> Observation Conditions** | A fast go / no-go scan of the coming night: a hero "Night score" chart (the `observation_score` line, colour-banded, best-window caption), then a "Sky" chart (cloud cover total + layers, fog, precipitation) and an "Atmosphere & tracking" chart (seeing, transparency, mount stability, lifted index). Window = now to ~2 h past dawn, minimum 6 h. Reads `/api/weather/astro-analysis`. |
 | **Astrophotography tab -> Astrophotography** | Current conditions, the "Score de la Nuit" hourly timeline, horizon graph, best observation periods, weather alerts and the advanced hour-by-hour analysis charts |
 
 ---
