@@ -2191,6 +2191,7 @@
     "step_best_window_illumination": "Best window (illumination)",
     "step_seeing_forecast": "Seeing forecast",
     "step_weather_forecast": "Weather forecast",
+    "step_astro_weather": "Astro weather analysis",
     "step_spaceflight_launches": "Spaceflight launches",
     "step_spaceflight_astronauts": "Astronauts in space",
     "step_spaceflight_events": "Space events",

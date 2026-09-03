@@ -581,6 +581,114 @@ class TestGetDiskSpaceDetailsCache:
 
         mock_thread.assert_not_called()
 
+    def test_cold_cache_non_blocking_returns_pending_and_scans_in_background(self):
+        """The /api/metrics path (block_if_cold=False) never scans synchronously
+        on a cold cache: it gets a 'pending' placeholder and the scan runs in a
+        background thread."""
+        fresh_value = {'root': {}, 'folders': {'fresh': True}, 'total_tracked': 1}
+        started = []
+
+        class _RecordingThread:
+            def __init__(self, target, daemon=None):
+                self._target = target
+
+            def start(self):
+                started.append(True)
+                self._target()
+
+        with patch('utils.metrics_collector._compute_disk_space_details', return_value=fresh_value) as mock_compute, \
+             patch('utils.metrics_collector.threading.Thread', _RecordingThread):
+            result = mc.get_disk_space_details(block_if_cold=False)
+
+        assert result['pending'] is True
+        assert result['folders'] == {}
+        assert started == [True]
+        mock_compute.assert_called_once()
+        assert mc._disk_details_cache['data'] == fresh_value
+
+    def test_cold_cache_blocking_still_scans_synchronously(self):
+        """Direct callers (default block_if_cold=True) keep the synchronous
+        first-scan behavior."""
+        fresh_value = {'root': {}, 'folders': {'sync': True}, 'total_tracked': 2}
+
+        with patch('utils.metrics_collector._compute_disk_space_details', return_value=fresh_value) as mock_compute, \
+             patch('utils.metrics_collector.threading.Thread') as mock_thread:
+            result = mc.get_disk_space_details()
+
+        assert result == fresh_value
+        mock_compute.assert_called_once()
+        mock_thread.assert_not_called()
+
+    def test_prime_disk_space_details_cache_kicks_background_scan(self):
+        fresh_value = {'root': {}, 'folders': {'primed': True}, 'total_tracked': 3}
+
+        class _ImmediateThread:
+            def __init__(self, target, daemon=None):
+                self._target = target
+
+            def start(self):
+                self._target()
+
+        with patch('utils.metrics_collector._compute_disk_space_details', return_value=fresh_value), \
+             patch('utils.metrics_collector.threading.Thread', _ImmediateThread):
+            mc.prime_disk_space_details_cache()
+
+        assert mc._disk_details_cache['data'] == fresh_value
+        assert mc._disk_details_cache['refreshing'] is False
+
+    def test_prime_disk_space_details_cache_noop_when_already_warm(self):
+        mc._disk_details_cache['data'] = {'root': {}, 'folders': {}, 'total_tracked': 0}
+        mc._disk_details_cache['ts'] = time.monotonic()
+
+        with patch('utils.metrics_collector.threading.Thread') as mock_thread:
+            mc.prime_disk_space_details_cache()
+
+        mock_thread.assert_not_called()
+
+
+class TestCollectMetricsColdDiskCache:
+    """collect_metrics() must stay fast and must not pin its 30s result cache
+    to a disk-details value that is still being computed."""
+
+    def _mock_fast_psutil(self, monkeypatch):
+        for name, value in (
+            ('cpu_percent', lambda interval=None: 5.0),
+            ('cpu_count', lambda logical=True: 2),
+            ('cpu_freq', lambda: None),
+            ('virtual_memory', lambda: MagicMock(total=8, available=4, used=4, percent=50.0, free=4)),
+            ('swap_memory', lambda: MagicMock(total=0, used=0, free=0, percent=0.0)),
+            ('disk_usage', lambda path: MagicMock(total=100, used=50, free=50, percent=50.0)),
+            ('pids', lambda: [1, 2]),
+            ('boot_time', lambda: 1700000000.0),
+            ('net_io_counters', lambda: MagicMock(bytes_sent=1, bytes_recv=2, packets_sent=1, packets_recv=2)),
+        ):
+            monkeypatch.setattr(mc.psutil, name, value, raising=False)
+        monkeypatch.setattr(mc, 'get_environment_processes', lambda: [])
+
+    def test_pending_disk_details_result_is_not_cached(self, monkeypatch):
+        self._mock_fast_psutil(monkeypatch)
+        mc._metrics_cache['data'] = None
+        mc._metrics_cache['ts'] = 0.0
+
+        # Cold disk cache + non-blocking path -> pending placeholder, no real scan.
+        with patch('utils.metrics_collector.threading.Thread'):
+            result = mc.collect_metrics()
+
+        assert result['disk']['details'].get('pending') is True
+        assert mc._metrics_cache['data'] is None
+
+    def test_ready_disk_details_result_is_cached(self, monkeypatch):
+        self._mock_fast_psutil(monkeypatch)
+        mc._metrics_cache['data'] = None
+        mc._metrics_cache['ts'] = 0.0
+        mc._disk_details_cache['data'] = {'root': {}, 'folders': {}, 'total_tracked': 0}
+        mc._disk_details_cache['ts'] = time.monotonic()
+
+        result = mc.collect_metrics()
+
+        assert 'pending' not in result['disk']['details']
+        assert mc._metrics_cache['data'] is result
+
 
 class TestGetEnvironmentProcessesBranchCoverage:
     """Cover ."""

@@ -179,22 +179,53 @@ _disk_details_cache: _DiskDetailsCache = {'data': None, 'ts': 0.0, 'refreshing':
 _DISK_DETAILS_CACHE_TTL = 300.0
 
 
-def get_disk_space_details():
+def _pending_disk_space_details():
+    """Placeholder returned while the first background scan is still running.
+
+    Keeps /api/metrics fast on a cold cache; a later poll picks up the real
+    folder sizes once the background scan finishes. The ``pending`` flag lets
+    callers skip caching this transient value.
+    """
+    return {'root': None, 'folders': {}, 'total_tracked': None, 'pending': True}
+
+
+def prime_disk_space_details_cache():
+    """Start the first disk-usage scan in a background thread.
+
+    Called on application startup so an early Parameters -> Metrics page load
+    is served from the warm cache instead of waiting on a cold recursive scan
+    (slow on Docker-Desktop-on-Windows bind mounts). No-op once the cache is
+    populated or a scan is already running.
+    """
+    with _disk_details_cache_lock:
+        if _disk_details_cache['data'] is not None or _disk_details_cache['refreshing']:
+            return
+        _disk_details_cache['refreshing'] = True
+    threading.Thread(target=_refresh_disk_details_cache, daemon=True).start()
+
+
+def get_disk_space_details(block_if_cold: bool = True):
     """
     Disk space details, served from a background-refreshed cache so a slow
     recursive scan never blocks the /api/metrics request. Returns the last
     computed value immediately and kicks off a background refresh once it
-    goes stale - except on the very first call, which has no cached value to
-    fall back on and must compute synchronously once.
+    goes stale.
+
+    ``block_if_cold`` (default ``True``, for direct callers and tests) computes
+    the first value synchronously. The /api/metrics request path passes
+    ``block_if_cold=False`` so even the very first call stays fast: it gets a
+    ``pending`` placeholder while a background thread runs the initial scan.
     """
     with _disk_details_cache_lock:
         cached = _disk_details_cache['data']
         is_stale = (time.monotonic() - _disk_details_cache['ts']) >= _DISK_DETAILS_CACHE_TTL
-        start_refresh = cached is not None and is_stale and not _disk_details_cache['refreshing']
+        start_refresh = (
+            (cached is not None and is_stale) or (cached is None and not block_if_cold)
+        ) and not _disk_details_cache['refreshing']
         if start_refresh:
             _disk_details_cache['refreshing'] = True
 
-    if cached is None:
+    if cached is None and block_if_cold:
         result = _compute_disk_space_details()
         with _disk_details_cache_lock:
             _disk_details_cache['data'] = result
@@ -204,7 +235,7 @@ def get_disk_space_details():
     if start_refresh:
         threading.Thread(target=_refresh_disk_details_cache, daemon=True).start()
 
-    return cached
+    return cached if cached is not None else _pending_disk_space_details()
 
 
 def _refresh_disk_details_cache():
@@ -347,8 +378,8 @@ def collect_metrics():
             'python_version': platform.python_version(),
         }
 
-        # Disk space details
-        disk_details = get_disk_space_details()
+        # Disk space details - never block the request on a cold recursive scan.
+        disk_details = get_disk_space_details(block_if_cold=False)
 
         result = {
             'environment': {'is_container': is_container, 'container_type': container_type},
@@ -393,9 +424,13 @@ def collect_metrics():
             },
             'platform': platform_info,
         }
-        with _metrics_cache_lock:
-            _metrics_cache['data'] = result
-            _metrics_cache['ts'] = time.monotonic()
+        # Don't pin the 30s cache to a result whose disk details aren't ready
+        # yet - let the next poll re-run so folder sizes appear as soon as the
+        # background scan finishes rather than up to 30s later.
+        if not disk_details.get('pending'):
+            with _metrics_cache_lock:
+                _metrics_cache['data'] = result
+                _metrics_cache['ts'] = time.monotonic()
         return result
     except Exception as e:
         logger.error(f"Error collecting metrics: {e}", exc_info=True)

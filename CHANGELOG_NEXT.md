@@ -108,3 +108,9 @@ jet-stream-aware values as the rest of the app.
 
 #### Various
 - Enhance sorting functionality in Astrodex with numeric-aware comparison
+- Parameters -> Metrics: the first page load no longer stalls for up to 20s (and no
+  longer logs intermittent `/api/metrics` "Fetch request failed"). The recursive
+  per-folder disk-usage scan - slow on Docker-Desktop-on-Windows bind mounts - now
+  always runs in the background: `/api/metrics` returns immediately with a pending
+  placeholder for the folder gauges, which fill in a few seconds later, and the scan
+  is also pre-warmed on startup.
