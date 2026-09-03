@@ -418,6 +418,19 @@ function _dayNightShading(isDay) {
     };
 }
 
+// Tooltip that appends the right unit per axis (e.g. % on the left axis, mm / degC on the right).
+function _trendTooltip(unitByAxis) {
+    return {
+        callbacks: {
+            label: (c) => {
+                if (c.parsed.y == null) return null;
+                const unit = unitByAxis[c.dataset.yAxisID] || '';
+                return `${c.dataset.label}: ${Math.round(c.parsed.y * 10) / 10}${unit}`;
+            },
+        },
+    };
+}
+
 // Shared 0-105 % axis with quality-scale ticks, matching the app's other observation charts.
 function _percentAxis(titleText) {
     return {
@@ -436,12 +449,14 @@ function _percentAxis(titleText) {
 }
 
 // Build one trend chart: shell + Chart.js line chart + interactive footer legend + day/night
-// shading. legendItems order must match datasets order 1:1.
-function _buildTrendChart({ containerId, canvasId, icon, title, axisLabel, labels, isDay, datasets, legendItems, scales }) {
+// shading. legendItems order must match datasets order 1:1, unless `legendKey` is set - then
+// the footer badges are just a colour key (e.g. the score bands) and are not click-to-toggle.
+function _buildTrendChart({ containerId, canvasId, icon, title, axisLabel, labels, isDay, datasets, legendItems, scales, legendKey, tooltip }) {
     const container = document.getElementById(containerId);
     if (!container) return null;
     DOMUtils.clear(container);
-    const card = createChartShell(icon, title, canvasId, legendItems, axisLabel);
+    // Footer text is left empty: the y-axis title + the legend badges already name the scale.
+    const card = createChartShell(icon, title, canvasId, legendItems, '');
     container.appendChild(card);
 
     const canvas = document.getElementById(canvasId);
@@ -455,7 +470,7 @@ function _buildTrendChart({ containerId, canvasId, icon, title, axisLabel, label
             responsive: true,
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
-            plugins: { legend: { display: false } },
+            plugins: { legend: { display: false }, tooltip: tooltip || {} },
             scales: scales || {
                 y: _percentAxis(axisLabel),
                 x: { title: { display: true, text: i18n.t('common.time_label') } },
@@ -463,7 +478,7 @@ function _buildTrendChart({ containerId, canvasId, icon, title, axisLabel, label
         },
         plugins: [_dayNightShading(isDay)],
     });
-    makeChartLegendInteractive(card, chart);
+    if (!legendKey) makeChartLegendInteractive(card, chart);
     return chart;
 }
 
@@ -562,24 +577,39 @@ async function loadAstronomicalCharts() {
                 axisLabel: i18n.t('weather.chart_nightscore_axis'),
                 labels,
                 isDay,
+                legendKey: true,
                 datasets: [{
                     label: i18n.t('weather.chart_nightscore_title'),
                     data: score,
-                    borderColor: _scoreBandColor(score[0] ?? 0),
-                    backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                    borderColor: TREND_SCORE_COLORS.good,
+                    backgroundColor: 'rgba(100, 116, 139, 0.10)',
                     borderWidth: 3,
                     fill: true,
                     tension: 0.35,
-                    pointRadius: 2,
+                    pointRadius: 2.5,
+                    pointHoverRadius: 4,
+                    pointBackgroundColor: (c) => _scoreBandColor(toFiniteNumber(c.raw) ?? 0),
+                    pointBorderColor: (c) => _scoreBandColor(toFiniteNumber(c.raw) ?? 0),
                     segment: {
                         borderColor: (seg) => _scoreBandColor(Math.min(
                             seg.p0.parsed.y ?? 0, seg.p1.parsed.y ?? 0)),
                     }
                 }],
                 legendItems: [
-                    { label: i18n.t('weather.chart_nightscore_title'), color: TREND_SCORE_COLORS.good },
+                    { label: i18n.t('common.quality_scale.good'), color: TREND_SCORE_COLORS.good },
+                    { label: i18n.t('common.quality_scale.fair'), color: TREND_SCORE_COLORS.fair },
+                    { label: i18n.t('common.quality_scale.poor'), color: TREND_SCORE_COLORS.poor },
                     { label: i18n.t('weather.chart_daytime'), color: 'rgba(148, 163, 184, 0.55)' }
-                ]
+                ],
+                tooltip: {
+                    callbacks: {
+                        labelColor: (c) => {
+                            const col = _scoreBandColor(toFiniteNumber(c.raw) ?? 0);
+                            return { borderColor: col, backgroundColor: col };
+                        },
+                        label: (c) => `${i18n.t('weather.chart_nightscore_title')}: ${(c.parsed.y / 10).toFixed(1)}/10`
+                    }
+                }
             });
             _renderTrendCaption(rows, tz, score);
 
@@ -646,7 +676,8 @@ async function loadAstronomicalCharts() {
                         grid: { drawOnChartArea: false }
                     },
                     x: { title: { display: true, text: i18n.t('common.time_label') } }
-                }
+                },
+                tooltip: _trendTooltip({ y: i18n.t('units.percent'), y2: ` ${i18n.t('units.precipitation_mm')}` })
             });
 
             // -- Block 3: Atmosphere & tracking --
@@ -698,7 +729,8 @@ async function loadAstronomicalCharts() {
                         grid: { drawOnChartArea: false }
                     },
                     x: { title: { display: true, text: i18n.t('common.time_label') } }
-                }
+                },
+                tooltip: _trendTooltip({ y: i18n.t('units.percent'), y1: ` ${i18n.t('units.temperature_celsius')}` })
             });
 
             const trendSection = containerDiv ? containerDiv.closest('.bg-sub-container') : null;
