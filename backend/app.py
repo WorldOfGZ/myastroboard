@@ -342,6 +342,16 @@ try:
 except Exception as e:  # pragma: no cover
     logger.error(f'Failed to initialize push scheduler on startup: {e}', exc_info=True)
 
+try:
+    # Warm the system-metrics disk-usage cache in the background so the first
+    # Parameters -> Metrics page load isn't blocked on a cold recursive scan
+    # (slow on Docker-Desktop-on-Windows bind mounts).
+    from utils.metrics_collector import prime_disk_space_details_cache as _prime_metrics_cache
+
+    _prime_metrics_cache()
+except Exception as e:  # pragma: no cover
+    logger.error(f'Failed to prime metrics disk-usage cache on startup: {e}', exc_info=True)
+
 
 # Ensure schedulers are stopped when the worker exits
 # (covers gunicorn workers that never reach the __main__ finally block)

@@ -1,12 +1,12 @@
 // System Metrics Functions
 
 const METRICS_REFRESH_INTERVAL_MS = 5000;
-// Generous margin for the one-time cold-start cost: disk usage is served from
-// a background-refreshed cache (see metrics_collector.py) so steady-state
-// calls are fast, but the very first call after a restart has no cached
-// value yet and must scan synchronously once - slow on some Docker/Windows
-// bind-mount setups.
-const METRICS_FETCH_TIMEOUT_MS = 20000;
+// /api/metrics never blocks on the recursive disk scan any more (it is served
+// from a background-refreshed cache and returns a pending placeholder while the
+// first scan runs - see metrics_collector.py), so the request is consistently
+// fast. The timeout stays generous only as a safety net for a heavily loaded
+// small host.
+const METRICS_FETCH_TIMEOUT_MS = 12000;
 let metricsUpdateInterval = null;
 let metricsLoading = false;
 let processSortState = { key: 'cpu_percent', direction: 'desc' };
@@ -199,6 +199,7 @@ const CACHE_JOB_LABELS = {
     sidereal_time:        'Sidereal Time',
     seeing_forecast:      'Seeing Forecast',
     weather_forecast:     'Weather Forecast',
+    astro_weather:        'Astro Weather Analysis',
     allsky_sensor:        'AllSky Sensor Data',
     allsky_health:        'AllSky Health Check',
 };
