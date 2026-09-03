@@ -18,14 +18,13 @@ function createChartShell(iconClass, labelText, canvasId, legendItems = [], foot
     body.className = 'card-body';
     const canvas = document.createElement('canvas');
     canvas.id = canvasId;
-    canvas.style.width = '100%';
-    canvas.style.height = '300px';
+    canvas.className = 'trend-chart-canvas';
     body.appendChild(canvas);
 
     const footer = document.createElement('div');
     footer.className = 'card-footer text-muted small';
     const row = document.createElement('div');
-    row.className = 'row';
+    row.className = 'row chart-legend-row';
 
     legendItems.forEach((item, idx) => {
         const col = document.createElement('div');
@@ -431,12 +430,27 @@ function _trendTooltip(unitByAxis) {
     };
 }
 
+// On a phone the axis titles (especially the rotated right-hand one) eat most of the plot
+// width, so drop them there - the card header and the legend key already name the scale.
+function _isNarrowViewport() {
+    try {
+        return window.matchMedia('(max-width: 575.98px)').matches;
+    } catch (_) {
+        return false;
+    }
+}
+
+// Shared time (x) axis: horizontal labels, thinned automatically to fit the width.
+function _timeAxis() {
+    return { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 13 } };
+}
+
 // Shared 0-105 % axis with quality-scale ticks, matching the app's other observation charts.
 function _percentAxis(titleText) {
     return {
         type: 'linear',
         position: 'left',
-        title: { display: true, text: titleText },
+        title: { display: !_isNarrowViewport(), text: titleText },
         min: 0,
         max: 105,
         ticks: {
@@ -470,10 +484,16 @@ function _buildTrendChart({ containerId, canvasId, icon, title, axisLabel, label
             responsive: true,
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
+            // monotone keeps the curves smooth without the wild over/undershoot a plain
+            // tension gives when the data spikes (very visible on a narrow screen).
+            elements: {
+                line: { cubicInterpolationMode: 'monotone', tension: 0.3 },
+                point: { radius: 0, hoverRadius: 4, hitRadius: 12 },
+            },
             plugins: { legend: { display: false }, tooltip: tooltip || {} },
             scales: scales || {
                 y: _percentAxis(axisLabel),
-                x: { title: { display: true, text: i18n.t('common.time_label') } },
+                x: _timeAxis(),
             },
         },
         plugins: [_dayNightShading(isDay)],
@@ -672,10 +692,10 @@ async function loadAstronomicalCharts() {
                     y: _percentAxis(i18n.t('weather.chart_percentage')),
                     y2: {
                         type: 'linear', position: 'right', min: 0,
-                        title: { display: true, text: `${i18n.t('weather.chart_precipitation')} (${i18n.t('units.precipitation_mm')})` },
+                        title: { display: !_isNarrowViewport(), text: `${i18n.t('weather.chart_precipitation')} (${i18n.t('units.precipitation_mm')})` },
                         grid: { drawOnChartArea: false }
                     },
-                    x: { title: { display: true, text: i18n.t('common.time_label') } }
+                    x: _timeAxis()
                 },
                 tooltip: _trendTooltip({ y: i18n.t('units.percent'), y2: ` ${i18n.t('units.precipitation_mm')}` })
             });
@@ -725,10 +745,10 @@ async function loadAstronomicalCharts() {
                     y: _percentAxis(i18n.t('weather.chart_percentage')),
                     y1: {
                         type: 'linear', position: 'right',
-                        title: { display: true, text: `${i18n.t('weather.chart_lifted_index')} (${i18n.t('units.temperature_celsius')})` },
+                        title: { display: !_isNarrowViewport(), text: `${i18n.t('weather.chart_lifted_index')} (${i18n.t('units.temperature_celsius')})` },
                         grid: { drawOnChartArea: false }
                     },
-                    x: { title: { display: true, text: i18n.t('common.time_label') } }
+                    x: _timeAxis()
                 },
                 tooltip: _trendTooltip({ y: i18n.t('units.percent'), y1: ` ${i18n.t('units.temperature_celsius')}` })
             });

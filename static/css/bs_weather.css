@@ -251,7 +251,12 @@
     }
 }
 
-/* Observation Conditions (trend) charts: clickable footer legend badges */
+/* Observation Conditions (trend) charts */
+.trend-chart-canvas {
+    width: 100%;
+    height: 300px;
+}
+
 .chart-legend-badge {
     user-select: none;
 }
@@ -267,6 +272,27 @@
 
 .trend-score-caption {
     padding: 0 0.25rem;
+}
+
+@media (max-width: 575.98px) {
+    /* Taller plot area so the line has room to breathe on a narrow screen. */
+    .trend-chart-canvas {
+        height: 340px;
+    }
+
+    /* Six legend badges wrap on a phone; tighten them so it stays two compact rows. */
+    .chart-legend-row {
+        row-gap: 0.25rem;
+    }
+
+    .chart-legend-row > .col-auto {
+        padding-inline: 0.15rem;
+    }
+
+    .chart-legend-badge {
+        font-size: 0.68rem;
+        padding: 0.22em 0.45em;
+    }
 }
 
 /* Astro weather */
