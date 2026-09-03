@@ -684,15 +684,19 @@ async function loadAstronomicalCharts() {
                     { label: i18n.t('weather.chart_fog'), color: '#94a3b8' },
                     { label: i18n.t('weather.chart_precipitation'), color: '#2563eb' },
                     { label: i18n.t('weather.chart_cloudless'), color: '#22c55e' },
-                    { label: i18n.t('weather.chart_cloudless_high'), color: '#475569' },
-                    { label: i18n.t('weather.chart_cloudless_mid'), color: '#64748b' },
-                    { label: i18n.t('weather.chart_cloudless_low'), color: '#94a3b8' }
+                    // short altitude labels here (the tooltip keeps the full "Cloudless - high" text)
+                    { label: i18n.t('weather.high'), color: '#475569' },
+                    { label: i18n.t('weather.mid'), color: '#64748b' },
+                    { label: i18n.t('weather.low'), color: '#94a3b8' }
                 ],
                 scales: {
                     y: _percentAxis(i18n.t('weather.chart_percentage')),
                     y2: {
+                        // Hidden on a phone (reclaims plot width); the bars still render and
+                        // the tooltip carries the mm value.
+                        display: !_isNarrowViewport(),
                         type: 'linear', position: 'right', min: 0,
-                        title: { display: !_isNarrowViewport(), text: `${i18n.t('weather.chart_precipitation')} (${i18n.t('units.precipitation_mm')})` },
+                        title: { display: true, text: `${i18n.t('weather.chart_precipitation')} (${i18n.t('units.precipitation_mm')})` },
                         grid: { drawOnChartArea: false }
                     },
                     x: _timeAxis()
@@ -744,8 +748,11 @@ async function loadAstronomicalCharts() {
                 scales: {
                     y: _percentAxis(i18n.t('weather.chart_percentage')),
                     y1: {
+                        // Hidden on a phone (reclaims plot width); the line still renders and
+                        // the tooltip carries the degC value.
+                        display: !_isNarrowViewport(),
                         type: 'linear', position: 'right',
-                        title: { display: !_isNarrowViewport(), text: `${i18n.t('weather.chart_lifted_index')} (${i18n.t('units.temperature_celsius')})` },
+                        title: { display: true, text: `${i18n.t('weather.chart_lifted_index')} (${i18n.t('units.temperature_celsius')})` },
                         grid: { drawOnChartArea: false }
                     },
                     x: _timeAxis()
