@@ -39,9 +39,6 @@ function _ensurePlotlyLoaded() {
  * Returns a Promise that resolves with {combination_id, combination_name} or null if cancelled.
  */
 async function showPlanCombinationPickerModal(combinationItems, row, activeLocationId) {
-    const existingModal = document.getElementById('plan-combination-picker-modal');
-    if (existingModal) existingModal.remove();
-
     // Fetch ratings for the target row (non-blocking - render immediately, fill in ratings after)
     let ratingsById = {};
     if (row) {
@@ -56,38 +53,17 @@ async function showPlanCombinationPickerModal(combinationItems, row, activeLocat
     }
 
     return new Promise((resolve) => {
-        const overlay = document.createElement('div');
-        overlay.id = 'plan-combination-picker-modal';
-        overlay.className = 'modal fade show d-block';
-        overlay.setAttribute('tabindex', '-1');
-        overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        const modalEl = document.getElementById('plan-combination-picker-modal');
+        const bodyContent = document.getElementById('plan-combination-picker-list');
+        if (!modalEl || !bodyContent) {
+            resolve(null);
+            return;
+        }
+        DOMUtils.clear(bodyContent);
 
-        const dialog = document.createElement('div');
-        dialog.className = 'modal-dialog modal-dialog-centered';
-
-        const content = document.createElement('div');
-        content.className = 'modal-content';
-
-        const header = document.createElement('div');
-        header.className = 'modal-header';
-        const headerTitle = document.createElement('h5');
-        headerTitle.className = 'modal-title';
-        headerTitle.textContent = i18n.t('plan_my_night.select_combination_for_plan');
-        const closeBtn = document.createElement('button');
-        closeBtn.type = 'button';
-        closeBtn.className = 'btn-close';
-        closeBtn.setAttribute('aria-label', i18n.t('common.close') || 'Close');
-        closeBtn.addEventListener('click', () => { overlay.remove(); resolve(null); });
-        header.appendChild(headerTitle);
-        header.appendChild(closeBtn);
-
-        const body = document.createElement('div');
-        body.className = 'modal-body';
-
-        // Solid background wrapper (fixes gradient-on-text readability), same treatment as the setup wizard
-        const bodyContent = document.createElement('div');
-        bodyContent.className = 'bg-sub-container rounded p-3';
-        body.appendChild(bodyContent);
+        // Resolved on hidden.bs.modal: a combination click sets `picked` then closes
+        // the modal; the X / Cancel / backdrop / Back button all leave it null.
+        let picked = null;
 
         const hasRatings = Object.keys(ratingsById).length > 0;
 
@@ -113,8 +89,7 @@ async function showPlanCombinationPickerModal(combinationItems, row, activeLocat
             nameSpan.appendChild(document.createTextNode(c.combination_name || c.combination_id));
             if (c.owner_username) {
                 const _sharedEl = document.createElement('span');
-                _sharedEl.className = 'badge bg-info text-dark';
-                _sharedEl.style.fontSize = '0.75em';
+                _sharedEl.className = 'badge bg-info text-dark plan-combination-owner-badge';
                 _sharedEl.textContent = i18n.t('equipment.shared_fov_suffix', { username: c.owner_username });
                 nameSpan.append(' ');
                 nameSpan.appendChild(_sharedEl);
@@ -160,8 +135,8 @@ async function showPlanCombinationPickerModal(combinationItems, row, activeLocat
                 btn.title = i18n.t('plan_my_night.combination_location_in_use', { location: c.location_name || '?' });
             } else {
                 btn.addEventListener('click', () => {
-                    overlay.remove();
-                    resolve({ combination_id: c.combination_id, combination_name: c.combination_name });
+                    picked = { combination_id: c.combination_id, combination_name: c.combination_name };
+                    closeModal(modalEl);
                 });
             }
             bodyContent.appendChild(btn);
@@ -180,25 +155,9 @@ async function showPlanCombinationPickerModal(combinationItems, row, activeLocat
             sharedItems.forEach(appendCombinationBtn);
         }
 
-        const footer = document.createElement('div');
-        footer.className = 'modal-footer';
-        const cancelBtn = document.createElement('button');
-        cancelBtn.type = 'button';
-        cancelBtn.className = 'btn btn-secondary btn-sm';
-        cancelBtn.textContent = i18n.t('common.cancel') || 'Cancel';
-        cancelBtn.addEventListener('click', () => { overlay.remove(); resolve(null); });
-        footer.appendChild(cancelBtn);
-
-        content.appendChild(header);
-        content.appendChild(body);
-        content.appendChild(footer);
-        dialog.appendChild(content);
-        overlay.appendChild(dialog);
-        document.body.appendChild(overlay);
-
-        // Close on backdrop click
-        overlay.addEventListener('click', (ev) => {
-            if (ev.target === overlay) { overlay.remove(); resolve(null); }
+        openModal(modalEl, {
+            backdrop: true,
+            onHidden: () => resolve(picked),
         });
     });
 }
@@ -2927,12 +2886,7 @@ async function showMorePopupFromRowData(moreData) {
     tableDiv.appendChild(table);
     contentEl.appendChild(tableDiv);
 
-    const _modalEl1 = document.getElementById('modal_lg_close');
-    let bs_modal = bootstrap.Modal.getInstance(_modalEl1);
-    if (!bs_modal) {
-        bs_modal = new bootstrap.Modal(_modalEl1, { backdrop: true, focus: true, keyboard: true });
-    }
-    bs_modal.show();
+    openModal('#modal_lg_close', { backdrop: true });
 
     const hasCombinations = await _skytUserHasCombinations();
     if (!hasCombinations) {
@@ -4306,16 +4260,8 @@ async function showAlttimePopup(title, targetId, locationId) {
         bodyElement.appendChild(loadingDiv);
     }
 
-    const modal = new bootstrap.Modal(modalElement);
-
-    // Destroy chart when modal is fully hidden to free canvas resources
-    const onHidden = () => {
-        _destroyAlttimeChart();
-        modalElement.removeEventListener('hidden.bs.modal', onHidden);
-    };
-    modalElement.addEventListener('hidden.bs.modal', onHidden);
-
-    modal.show();
+    // Destroy the chart when the modal is fully hidden to free canvas resources.
+    openModal(modalElement, { onHidden: () => _destroyAlttimeChart() });
 
     let data;
     try {

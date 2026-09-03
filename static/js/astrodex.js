@@ -986,7 +986,6 @@ async function addToAstrodex(itemData) {
         if (resp.status === 409 && data.error === 'duplicate' && data.existing_item) {
             showMessage('warning', i18n.t('astrodex.item_already_exists'));
             await loadAstrodex();
-            closeModal();
             showAstrodexItemDetail(data.existing_item.id);
             return false;
         }
@@ -1077,8 +1076,6 @@ async function addFromCatalogue(catalogueItem) {
 
 async function showAddAstrodexItemModal() {
     //console.log("Opening Add to Astrodex modal");
-
-    closeModal(); // Close any existing modal to avoid stacking
 
     // Get list of constellations for select options
     const constellations = await getConstellationsList();
@@ -1251,28 +1248,17 @@ async function showAddAstrodexItemModal() {
 
         const success = await addToAstrodex(itemData);
         if (success) {
-            closeModal();
+            closeModal('#modal_lg_close');
         }
     };
     document.getElementById('add-astrodex-form').addEventListener('submit', submitHandler);
 
-    // Show the modal
-    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
+    openModal('#modal_lg_close', {
         backdrop: 'static',
-        focus: true,
-        keyboard: true
+        onHidden: () => {
+            document.getElementById('add-astrodex-form')?.removeEventListener('submit', submitHandler);
+        },
     });
-    bs_modal.show();
-
-    // Clean up event listeners when modal is closed to prevent duplicates on reopen
-    const modalCloseHandler = () => {
-        const form = document.getElementById('add-astrodex-form');
-        if (form) {
-            form.removeEventListener('submit', submitHandler);
-        }
-        document.getElementById('modal_lg_close').removeEventListener('hidden.bs.modal', modalCloseHandler);
-    };
-    document.getElementById('modal_lg_close').addEventListener('hidden.bs.modal', modalCloseHandler);
 }
 
 // ============================================
@@ -1374,19 +1360,10 @@ async function showAstrodexItemDetail(itemId) {
 
     `, 'xl');
 
-    const modalEl = document.getElementById('modal_xl_close');
-    if (modalEl && modalEl.classList.contains('show')) {
-        return;
-    }
-
-    // Show the modal
-    const bs_modal = new bootstrap.Modal('#modal_xl_close', {
-        backdrop: 'static',
-        focus: true,
-        keyboard: true
-    });
-    bs_modal.show();
-
+    // openModal() no-ops the show when this shell is already on screen (e.g. opening
+    // a second item straight from the first): createModal() above already refreshed
+    // the body, so nothing else to do.
+    openModal('#modal_xl_close', { backdrop: 'static' });
 }
 
 function renderCatalogueAliasesSection(item) {
@@ -1791,8 +1768,6 @@ function _collectPictureEquipmentFields(prefix, existingCombinationId) {
 }
 
 async function showAddPictureModal(itemId) {
-    closeModal(); // Close current modal to avoid stacking
-
     // Get current date in YYYY-MM-DD format
     const today = new Date().toISOString().split('T')[0];
 
@@ -1857,42 +1832,21 @@ async function showAddPictureModal(itemId) {
         </form>
     `, 'lg');
 
-    // Open the modal
-    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
+    openModal('#modal_lg_close', {
         backdrop: 'static',
-        focus: true,
-        keyboard: true
+        // Leaflet must measure a fully laid-out, visible container - initializing
+        // while the modal is still mid fade-in gives it the wrong size and only the
+        // top-left tile renders. Wait for shown.bs.modal.
+        onShown: () => _updatePictureLocationMap('picture'),
     });
-    bs_modal.show();
 
     document.getElementById('picture-rating-container')?.appendChild(_buildRatingWidget('picture', null));
     _wirePictureEquipmentSection('picture', null, null);
     _wireCaptureTriadInputs('picture');
 
-    // Leaflet must measure a fully laid-out, visible container - initializing
-    // while the modal is still mid fade-in transition gives it the wrong
-    // size and only the top-left tile renders. Wait for shown.bs.modal.
-    document.getElementById('modal_lg_close').addEventListener(
-        'shown.bs.modal', () => _updatePictureLocationMap('picture'), { once: true }
-    );
-
     document.getElementById('add-picture-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         await uploadPicture(itemId);
-    });
-
-    // Event listener when modal is closed
-    document.getElementById('modal_lg_close').addEventListener('hidden.bs.modal', () => {
-        //Remove event listener
-        const pictureForm = document.getElementById('add-picture-form');
-        if (pictureForm) {
-            pictureForm.removeEventListener('submit', async (e) => {
-                e.preventDefault();
-            });
-        }
-
-        //Remove self listener to prevent duplicates if modal is opened again
-        document.getElementById('modal_lg_close').removeEventListener('hidden.bs.modal', () => { });
     });
 }
 
@@ -1958,7 +1912,8 @@ async function uploadPicture(itemId) {
         if (response.status === 'success') {
             // No alert on success
             await loadAstrodex();
-            closeModal();
+            // showAstrodexItemDetail() -> openModal() closes the upload modal, waits
+            // for it to finish, then swaps in the detail view (no stacked-modal race).
             showAstrodexItemDetail(itemId);
             // Modal closes, so no need to re-enable button
         }
@@ -2085,8 +2040,6 @@ async function updateItemField(itemId, field, value) {
 }
 
 async function showEditPictureModal(itemId, pictureId) {
-    closeModal(); // Close current modal to avoid stacking
-
     const item = astrodexData.items.find(i => i.id === itemId);
     if (!item) return;
 
@@ -2164,13 +2117,11 @@ async function showEditPictureModal(itemId, pictureId) {
         </form>
     `, 'lg');
 
-    // Open the modal
-    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
+    openModal('#modal_lg_close', {
         backdrop: 'static',
-        focus: true,
-        keyboard: true
+        // See showAddPictureModal - Leaflet must measure a laid-out container.
+        onShown: () => _updatePictureLocationMap('edit-picture'),
     });
-    bs_modal.show();
 
     document.getElementById('edit-picture-rating-container')?.appendChild(
         _buildRatingWidget('edit-picture', picture.rating)
@@ -2178,31 +2129,9 @@ async function showEditPictureModal(itemId, pictureId) {
     _wirePictureEquipmentSection('edit-picture', picture.combination_id || null, picture.combination_used_components);
     _wireCaptureTriadInputs('edit-picture');
 
-    // See showAddPictureModal - wait for the modal to finish its show
-    // transition before Leaflet measures the container, or the map only
-    // renders its top-left tile.
-    document.getElementById('modal_lg_close').addEventListener(
-        'shown.bs.modal', () => _updatePictureLocationMap('edit-picture'), { once: true }
-    );
-
     document.getElementById('edit-picture-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         await updatePicture(itemId, pictureId);
-    });
-
-
-    // Event listener when modal is closed
-    document.getElementById('modal_lg_close').addEventListener('hidden.bs.modal', () => {
-        //Remove event listener
-        const pictureForm = document.getElementById('edit-picture-form');
-        if (pictureForm) {
-            pictureForm.removeEventListener('submit', async (e) => {
-                e.preventDefault();
-            });
-        }
-
-        //Remove self listener to prevent duplicates if modal is opened again
-        document.getElementById('modal_lg_close').removeEventListener('hidden.bs.modal', () => { });
     });
 }
 
@@ -2233,7 +2162,6 @@ async function updatePicture(itemId, pictureId) {
 
         // No alert on success
         await loadAstrodex();
-        closeModal();
         showAstrodexItemDetail(itemId);
     } catch (error) {
         console.error('Error updating picture:', error);
@@ -2296,7 +2224,6 @@ function _mountPictureSlideshow(slideshowPictures, opts) {
 
     let currentIndex = 0;
     let keyHandler = null; // Store the handler reference for cleanup
-    let bs_modal = null; // Store bootstrap modal reference
 
     function updateModalContent() {
         const picture = slideshowPictures[currentIndex];
@@ -2561,9 +2488,7 @@ function _mountPictureSlideshow(slideshowPictures, opts) {
                 updateModalContent();
             } else if (e.key === 'Escape') {
                 e.preventDefault();
-                if (bs_modal) {
-                    bs_modal.hide();
-                }
+                closeModal('#modal_full_close');
             }
         };
 
@@ -2586,29 +2511,18 @@ function _mountPictureSlideshow(slideshowPictures, opts) {
         modalBodyInit.appendChild(infoDiv);
     }
 
-    // Show the modal
-    bs_modal = new bootstrap.Modal('#modal_full_close', {
-        backdrop: 'static',
-        focus: true,
-        keyboard: true
-    });
-
-    // Setup cleanup when modal is hidden
-    document.getElementById('modal_full_close').addEventListener('hidden.bs.modal', function cleanup() {
-        // Remove keyboard handler
-        if (keyHandler) {
-            document.removeEventListener('keydown', keyHandler);
-            keyHandler = null;
-        }
-
-        // Remove this event listener to prevent duplicates
-        document.getElementById('modal_full_close').removeEventListener('hidden.bs.modal', cleanup);
-    });
-
     // Initialize content and show modal
     updateModalContent();
     setupKeyboardNavigation();
-    bs_modal.show();
+    openModal('#modal_full_close', {
+        backdrop: 'static',
+        onHidden: () => {
+            if (keyHandler) {
+                document.removeEventListener('keydown', keyHandler);
+                keyHandler = null;
+            }
+        },
+    });
 
     // Async: inject object-info card into the stable info container (single-item flow only)
     if (typeof injectObjectInfoIntoContainer === 'function' && opts.objectInfoName) {
@@ -2703,33 +2617,8 @@ function createModal(title, content, size = 'lg') {
     contentElement.appendChild(fragment);
 }
 
-function closeModal() {
-    //Close all bs modals to prevent stacking
-    const modals = document.querySelectorAll('.modal.show');
-    modals.forEach(modal => {
-        const bs_modal = bootstrap.Modal.getInstance(modal);
-        if (bs_modal) {
-            bs_modal.hide();
-        }
-    });
-
-    // Remove any lingering backdrops to avoid stacked blur layers
-    const backdrops = document.querySelectorAll('.modal-backdrop');
-    backdrops.forEach(backdrop => backdrop.remove());
-
-    //Remove any existing close modal event listeners to prevent duplicates
-    const closeButtons = document.querySelectorAll('[data-action="close-modal"], [data-action="cleanup-close-modal"]');
-    closeButtons.forEach(button => {
-        button.removeEventListener('click', handleModalClick);
-    });
-}
-
-function handleModalClick(event) {
-
-    if (event.target.classList.contains('modal-overlay')) {
-        closeModal();
-    }
-}
+// openModal() / closeModal() live in utils.js - a single Bootstrap-instance lifecycle
+// shared by every feature that reuses the generic modal shells.
 
 // ============================================
 // Event Listeners Initialization
@@ -2775,14 +2664,6 @@ async function initializeAstrodexEventListeners() {
             const sessionId = button.getAttribute('data-session-id');
 
             switch (action) {
-                case 'close-modal':
-                    e.preventDefault();
-                    closeModal();
-                    break;
-                case 'cleanup-close-modal':
-                    e.preventDefault();
-                    cleanupAndCloseModal();
-                    break;
                 case 'add-picture':
                     e.preventDefault();
                     if (isAllowedAstrodex) {
@@ -2828,11 +2709,6 @@ async function initializeAstrodexEventListeners() {
                     }
                     break;
             }
-        }
-
-        // Handle modal overlay clicks
-        if (target.classList.contains('modal-overlay')) {
-            handleModalClick(e);
         }
     });
 

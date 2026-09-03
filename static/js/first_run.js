@@ -52,9 +52,10 @@ async function checkFirstRun() {
     const wizardLangSelect = document.getElementById('wizard-language-select');
     if (wizardLangSelect) wizardLangSelect.value = i18n.getCurrentLanguage();
 
-    _wizard.modal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
     _renderWizardStep();
-    _wizard.modal.show();
+    // history: false - the wizard is dismissed only via Skip / Skip all, never by
+    // the hardware Back button (which would leave `skipped` unpersisted).
+    _wizard.modal = await openModal(modalEl, { backdrop: 'static', keyboard: false, history: false });
 }
 
 function initFirstRun() {

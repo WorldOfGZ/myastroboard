@@ -3185,9 +3185,9 @@
 
     <!-- Guided Setup Wizard modal (multi-step, content built dynamically by first_run.js) -->
     <div class="modal fade" id="wizard-modal" tabindex="-1"
-         data-bs-backdrop="static" data-bs-keyboard="false"
+         data-bs-backdrop="static" data-bs-keyboard="false" data-mab-no-history="true"
          aria-labelledby="wizard-modal-title" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
             <div class="modal-content">
                 <div class="modal-header border-0 pb-0 d-flex justify-content-between align-items-start flex-wrap gap-2">
                     <h5 class="modal-title" id="wizard-modal-title">
@@ -3250,20 +3250,21 @@
         </div>
     </div>
 
-    <!-- Generic Modal Close Small -->
-    <div class="modal fade" id="modal_sm_close" tabindex="-1" role="dialog" aria-labelledby="modalSmall">
-        <div class="modal-dialog modal-dialog-scrollable modal-sm modal-dialog-centered" role="document">
+    <!-- Equipment combination picker (Add to Plan My Night) - list built by skytonight.js -->
+    <div class="modal fade" id="plan-combination-picker-modal" tabindex="-1"
+         aria-labelledby="plan-combination-picker-modal-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modal_sm_close_title">Modal title</h5>
+                    <h5 class="modal-title" id="plan-combination-picker-modal-title"
+                        data-i18n="plan_my_night.select_combination_for_plan">Select equipment for plan</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Solid background wrapper (fixes gradient-on-text readability), same treatment as the setup wizard -->
-                    <div class="bg-sub-container rounded p-3" id="modal_sm_close_body">...</div>
+                    <div class="bg-sub-container rounded p-3" id="plan-combination-picker-list"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal" data-i18n="common.close">Close</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
                 </div>
             </div>
         </div>
@@ -3316,6 +3317,9 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="modal_full_close_body">...</div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal" data-i18n="common.close">Close</button>
+                </div>
             </div>
         </div>
     </div>

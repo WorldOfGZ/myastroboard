@@ -634,3 +634,241 @@ function ensureVendorScriptLoaded(isLoaded, scriptUrl, cssUrl, state, libraryNam
     });
     return state.promise;
 }
+
+// =======================
+// Bootstrap modal helpers
+// =======================
+//
+// Bootstrap 5.3 does not support stacked modals: _hideModal() unconditionally
+// clears `modal-open` from <body> and resets the scrollbar padding, so hiding one
+// modal while another is still open unlocks page scroll behind it and can strand a
+// `.modal-backdrop`. Several features also share the generic #modal_lg_close /
+// #modal_xl_close / #modal_full_close shells and open one straight after another.
+// Every modal show/hide goes through these helpers so exactly one modal is ever on
+// screen, each instance is disposed on hide (no orphaned focus-traps piling up on a
+// shared shell), and the hardware Back button closes the modal instead of switching
+// tabs underneath it.
+
+/**
+ * Resolve a modal argument (element, id, or "#id") to its `.modal` element.
+ * @param {HTMLElement|string} elementOrId
+ * @returns {HTMLElement|null}
+ */
+function _resolveModalElement(elementOrId) {
+    if (elementOrId instanceof HTMLElement) return elementOrId;
+    if (typeof elementOrId === 'string') {
+        return document.getElementById(elementOrId.replace(/^#/, ''));
+    }
+    return null;
+}
+
+/**
+ * Hide one modal through its Bootstrap instance - never by tearing `.modal-backdrop`
+ * nodes out of the DOM by hand. Bootstrap's `hide()` is a silent no-op while the
+ * show transition is still running (`_isTransitioning`), which is how a quick
+ * open-then-close leaves a modal stuck open; defer the hide until it settles.
+ * @param {HTMLElement} el
+ */
+function _hideModalInstance(el) {
+    const instance = bootstrap.Modal.getInstance(el);
+    if (!instance) {
+        el.classList.remove('show');
+        return;
+    }
+    if (instance._isTransitioning || el.dataset.mabSettled === 'false') {
+        el.addEventListener('shown.bs.modal', () => instance.hide(), { once: true });
+    } else {
+        instance.hide();
+    }
+}
+
+/**
+ * Hide a modal and resolve once it has fully finished its close transition.
+ * Resolves immediately when the modal is not currently shown.
+ * @param {HTMLElement|string} elementOrId
+ * @returns {Promise<void>}
+ */
+function closeModalAndWait(elementOrId) {
+    const el = _resolveModalElement(elementOrId);
+    if (!el || !el.classList.contains('show')) return Promise.resolve();
+    if (!bootstrap.Modal.getInstance(el)) {
+        el.classList.remove('show');
+        return Promise.resolve();
+    }
+    return new Promise(resolve => {
+        el.addEventListener('hidden.bs.modal', () => resolve(), { once: true });
+        _hideModalInstance(el);
+    });
+}
+
+/**
+ * Hide a modal (or every shown modal when called with no argument).
+ * @param {HTMLElement|string} [elementOrId]
+ */
+function closeModal(elementOrId) {
+    if (elementOrId !== undefined) {
+        const el = _resolveModalElement(elementOrId);
+        if (el) _hideModalInstance(el);
+        return;
+    }
+    document.querySelectorAll('.modal.show').forEach(_hideModalInstance);
+}
+
+/**
+ * Show a Bootstrap modal, first fully closing any modal already on screen (Bootstrap
+ * 5.3 cannot safely stack them). The instance is disposed on hide so the next open
+ * starts clean. The modal's content must already be in place before calling.
+ *
+ * @param {HTMLElement|string} elementOrId
+ * @param {object} [options]
+ * @param {'static'|boolean} [options.backdrop=true]
+ * @param {boolean} [options.keyboard=true]
+ * @param {boolean} [options.focus=true]
+ * @param {() => void} [options.onShown] - runs on shown.bs.modal
+ * @param {() => void} [options.onHidden] - runs on hidden.bs.modal
+ * @param {boolean} [options.history=true] - push a history entry so Back closes the modal
+ * @returns {Promise<object|null>} the bootstrap.Modal instance (null when the element is missing)
+ */
+async function openModal(elementOrId, options = {}) {
+    const el = _resolveModalElement(elementOrId);
+    if (!el) {
+        console.warn('openModal: no element for', elementOrId);
+        return null;
+    }
+
+    const {
+        backdrop = true,
+        keyboard = true,
+        focus = true,
+        onShown = null,
+        onHidden = null,
+        history: useHistory = true,
+    } = options;
+
+    el.dataset.mabNoHistory = String(useHistory === false);
+
+    if (el.classList.contains('show')) {
+        // Same modal reopened with refreshed content - don't flicker it closed/open.
+        if (typeof onShown === 'function') onShown();
+        return bootstrap.Modal.getInstance(el);
+    }
+
+    const onScreen = document.querySelector('.modal.show');
+    if (onScreen && onScreen !== el) {
+        await closeModalAndWait(onScreen);
+    }
+
+    bootstrap.Modal.getInstance(el)?.dispose();
+    const instance = new bootstrap.Modal(el, { backdrop, keyboard, focus });
+
+    // `mabSettled` tracks whether the show transition has finished - a hide fired
+    // before then is deferred (see _hideModalInstance).
+    el.dataset.mabSettled = 'false';
+    el.addEventListener('shown.bs.modal', () => {
+        el.dataset.mabSettled = 'true';
+        if (typeof onShown === 'function') onShown();
+    }, { once: true });
+    el.addEventListener('hidden.bs.modal', function _cleanup() {
+        el.removeEventListener('hidden.bs.modal', _cleanup);
+        delete el.dataset.mabSettled;
+        if (typeof onHidden === 'function') {
+            try { onHidden(); } catch (err) { console.error('openModal onHidden failed', err); }
+        }
+        bootstrap.Modal.getInstance(el)?.dispose();
+    });
+
+    instance.show();
+    return instance;
+}
+
+// --- Back button / swipe-back closes an open modal --------------------------------
+// The first modal to open pushes ONE same-URL history entry (same URL => no
+// `hashchange`, so no tab switch); a second modal opened straight after the first
+// reuses it. `popstate` with a modal open closes every open modal instead of
+// navigating. A user-driven close (X / footer button / backdrop), once nothing is
+// left on screen, pops that synthetic entry so history stays balanced. The Guided
+// Setup Wizard opts out via data-mab-no-history / { history: false }.
+let _modalHistoryEntryActive = false;
+let _suppressNextPopstate = false;
+
+function _modalUsesHistory(target) {
+    return target instanceof HTMLElement && target.dataset.mabNoHistory !== 'true';
+}
+
+// After a modal closes: if our synthetic entry is still "ours" (not already
+// consumed by the Back button or dropped by a tab navigation) and nothing is left
+// on screen, pop it so history stays balanced. The setTimeout lets a modal-to-modal
+// swap show the next modal first (then `.modal.show` is truthy and we keep the entry).
+function _reconcileModalHistoryEntry() {
+    window.setTimeout(() => {
+        if (!_modalHistoryEntryActive) return;
+        if (document.querySelector('.modal.show')) return;
+        _modalHistoryEntryActive = false;
+        // Only step back if we are actually sitting on our own synthetic entry -
+        // otherwise a stray history.back() could leave the app.
+        if (window.history.state && window.history.state.mabModal) {
+            _suppressNextPopstate = true;
+            window.history.back();
+        }
+    }, 0);
+}
+
+/**
+ * Close every shown modal. Used before tab navigation (which changes history
+ * itself) and as a stuck-state safety net - clears any stranded backdrop / scroll lock.
+ */
+function forceCleanupModals() {
+    const openModals = document.querySelectorAll('.modal.show');
+    if (!openModals.length && !document.querySelector('.modal-backdrop')) return;
+    // The caller is about to push its own history entry - abandon our synthetic one
+    // in place (it carries the current URL, so it stays transparent to Back/Forward).
+    _modalHistoryEntryActive = false;
+    openModals.forEach(_hideModalInstance);
+    window.setTimeout(() => {
+        if (document.querySelector('.modal.show')) return;
+        document.querySelectorAll('.modal-backdrop').forEach(node => node.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+    }, 400);
+}
+
+/** Wire the modal bridges (history + close-vector robustness). Called once from
+ * app.js initializeApp(). */
+function _initModalHistory() {
+    // Bootstrap's own hide() is a silent no-op while the show transition is still
+    // running, so a dismiss button (header X / footer Close) hit right after the
+    // modal appears does nothing. Intercept it in the capture phase and route
+    // through _hideModalInstance(), which defers the hide until the modal settles.
+    document.addEventListener('click', event => {
+        const dismiss = event.target.closest?.('[data-bs-dismiss="modal"]');
+        if (!dismiss) return;
+        const modalEl = dismiss.closest('.modal');
+        if (modalEl && modalEl.classList.contains('show')) _hideModalInstance(modalEl);
+    }, true);
+
+    document.addEventListener('show.bs.modal', event => {
+        if (!_modalUsesHistory(event.target)) return;
+        if (_modalHistoryEntryActive) return; // reuse the one entry for a modal-to-modal swap
+        _modalHistoryEntryActive = true;
+        window.history.pushState({ ...window.history.state, mabModal: true }, '');
+    });
+
+    document.addEventListener('hidden.bs.modal', event => {
+        if (!_modalUsesHistory(event.target)) return;
+        _reconcileModalHistoryEntry();
+    });
+
+    window.addEventListener('popstate', () => {
+        if (_suppressNextPopstate) {
+            _suppressNextPopstate = false;
+            return;
+        }
+        const shown = document.querySelectorAll('.modal.show');
+        if (!shown.length) return;
+        // The browser already stepped past our synthetic entry - close every modal
+        // instead of letting the navigation through.
+        _modalHistoryEntryActive = false;
+        shown.forEach(_hideModalInstance);
+    });
+}

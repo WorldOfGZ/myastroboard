@@ -190,6 +190,11 @@
     outline: none;
 }
 
+/* "shared by <user>" tag on a combination-picker row */
+.plan-combination-owner-badge {
+    font-size: 0.75em;
+}
+
 /* ── Meridian flip indicator (v1.4) ─────────────────────────────────────── */
 .pmn-flip {
     font-weight: 600;

@@ -335,7 +335,7 @@ function _openAllSkyStaticModal(title, url) {
     wrapper.appendChild(img);
     bodyEl.appendChild(wrapper);
 
-    new bootstrap.Modal(document.getElementById('modal_full_close'), { backdrop: true, keyboard: true }).show();
+    openModal('#modal_full_close', { backdrop: true });
 }
 
 function _openAllSkyZoomModal(urls) {
@@ -358,23 +358,20 @@ function _openAllSkyZoomModal(urls) {
     wrapper.appendChild(modalImg);
     bodyEl.appendChild(wrapper);
 
-    const modalEl = document.getElementById('modal_full_close');
-    const bsModal = new bootstrap.Modal(modalEl, { backdrop: true, keyboard: true });
-
     _allskyModalRefreshInterval = setInterval(() => {
         const img = document.getElementById('allsky-modal-img');
         if (img) img.src = `${urls.live_image}&_ts=${Date.now()}`;
     }, _ALLSKY_IMAGE_REFRESH_MS);
 
-    modalEl.addEventListener('hidden.bs.modal', function cleanup() {
-        if (_allskyModalRefreshInterval) {
-            clearInterval(_allskyModalRefreshInterval);
-            _allskyModalRefreshInterval = null;
-        }
-        modalEl.removeEventListener('hidden.bs.modal', cleanup);
+    openModal('#modal_full_close', {
+        backdrop: true,
+        onHidden: () => {
+            if (_allskyModalRefreshInterval) {
+                clearInterval(_allskyModalRefreshInterval);
+                _allskyModalRefreshInterval = null;
+            }
+        },
     });
-
-    bsModal.show();
 }
 
 // ── Sensor data ───────────────────────────────────────────────────────────────

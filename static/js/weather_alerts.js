@@ -179,12 +179,7 @@ class WeatherAlertsSystem {
             });
         }
 
-        const bs_modal = new bootstrap.Modal('#weather-alerts-modal', {
-            focus: true,
-            keyboard: true
-        });
-
-        bs_modal.show();
+        openModal('#weather-alerts-modal', { backdrop: true });
     }
 
     /** Build a single alert card for the modal (icon + severity badge + relative time + message). */

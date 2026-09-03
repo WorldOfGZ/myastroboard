@@ -1425,7 +1425,6 @@ function _obsBuildCombinationOptions(session) {
  * equipment, notes; a night's own conditions are edited through
  * showObservationNightForm() instead, from the detail view's Nights section. */
 function showObservationSessionForm(session) {
-    closeModal();
 
     const form = document.createElement('form');
     form.className = 'form row g-3';
@@ -1503,13 +1502,14 @@ function showObservationSessionForm(session) {
         'lg'
     );
 
-    const modalElement = document.getElementById('modal_lg_close');
-    new bootstrap.Modal(modalElement, { backdrop: 'static', focus: true, keyboard: true }).show();
-
-    // Leaflet must measure a fully laid-out, visible container - initializing while the
-    // modal is still mid fade-in gives it the wrong size and only the top-left tile renders.
-    modalElement.addEventListener('shown.bs.modal', () => _obsUpdateLocationMap(), { once: true });
-    modalElement.addEventListener('hidden.bs.modal', () => _obsDestroyLocationMap(), { once: true });
+    openModal('#modal_lg_close', {
+        backdrop: 'static',
+        // Leaflet must measure a fully laid-out, visible container - initializing
+        // while the modal is still mid fade-in gives it the wrong size and only the
+        // top-left tile renders.
+        onShown: () => _obsUpdateLocationMap(),
+        onHidden: () => _obsDestroyLocationMap(),
+    });
 
     if (!session) {
         _obsPrefillSqmFromPreset();
@@ -1611,7 +1611,6 @@ async function deleteObservationSession(sessionId) {
 
 /** night omitted -> add a new night to sessionId; night passed -> edit it in place. */
 function showObservationNightForm(sessionId, night) {
-    closeModal();
 
     const form = document.createElement('form');
     form.className = 'form row g-3';
@@ -1668,9 +1667,7 @@ function showObservationNightForm(sessionId, night) {
     form.appendChild(actions);
 
     createModal(night ? i18n.t('observation_log.edit_night') : i18n.t('observation_log.add_night'), form, 'lg');
-
-    const modalElement = document.getElementById('modal_lg_close');
-    new bootstrap.Modal(modalElement, { backdrop: 'static', focus: true, keyboard: true }).show();
+    openModal('#modal_lg_close', { backdrop: 'static' });
 
     if (!night) {
         _obsPrefillSkyConditionsIfToday(
@@ -1747,7 +1744,6 @@ async function deleteObservationNight(sessionId, nightId) {
 // ============================================
 
 async function showObservationEntryForm(sessionId, entry) {
-    closeModal();
 
     const form = document.createElement('form');
     form.className = 'form row g-3';
@@ -1926,7 +1922,7 @@ async function showObservationEntryForm(sessionId, entry) {
         form,
         'lg'
     );
-    new bootstrap.Modal('#modal_lg_close', { backdrop: 'static', focus: true, keyboard: true }).show();
+    openModal('#modal_lg_close', { backdrop: 'static' });
 
     _obsWireEntryEquipmentSection(entry);
 
@@ -2145,7 +2141,6 @@ async function deleteObservationEntry(sessionId, entryId) {
 // ============================================
 
 function showObservationAttachPictureModal(sessionId, entryId) {
-    closeModal();
 
     const form = document.createElement('form');
     form.className = 'form row g-3';
@@ -2175,7 +2170,7 @@ function showObservationAttachPictureModal(sessionId, entryId) {
     form.appendChild(actions);
 
     createModal(i18n.t('observation_log.attach_picture'), form, 'lg');
-    new bootstrap.Modal('#modal_lg_close', { backdrop: 'static', focus: true, keyboard: true }).show();
+    openModal('#modal_lg_close', { backdrop: 'static' });
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -2362,7 +2357,6 @@ function _obsBuildAttachmentRow(session, attachment) {
 }
 
 function showObservationAttachmentUploadModal(sessionId) {
-    closeModal();
 
     const form = document.createElement('form');
     form.className = 'form row g-3';
@@ -2389,7 +2383,7 @@ function showObservationAttachmentUploadModal(sessionId) {
     form.appendChild(actions);
 
     createModal(i18n.t('observation_log.add_attachment'), form, 'lg');
-    new bootstrap.Modal('#modal_lg_close', { backdrop: 'static', focus: true, keyboard: true }).show();
+    openModal('#modal_lg_close', { backdrop: 'static' });
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -2446,7 +2440,6 @@ async function deleteObservationSessionAttachment(sessionId, attachmentId) {
  * the original filename) so editing starts from what the user sees, not a blank field.
  * Saving a blank name clears the custom name and falls back to the original filename. */
 function showObservationAttachmentRenameModal(sessionId, attachment) {
-    closeModal();
 
     const form = document.createElement('form');
     form.className = 'form row g-3';
@@ -2466,7 +2459,7 @@ function showObservationAttachmentRenameModal(sessionId, attachment) {
     form.appendChild(actions);
 
     createModal(i18n.t('observation_log.rename_attachment'), form, 'lg');
-    new bootstrap.Modal('#modal_lg_close', { backdrop: 'static', focus: true, keyboard: true }).show();
+    openModal('#modal_lg_close', { backdrop: 'static' });
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -2533,7 +2526,6 @@ function _obsSessionDateBounds() {
 }
 
 function showObservationExportRangeModal() {
-    closeModal();
 
     const bounds = _obsSessionDateBounds();
 
@@ -2568,7 +2560,7 @@ function showObservationExportRangeModal() {
     form.appendChild(actions);
 
     createModal(i18n.t('observation_log.export_pdf_modal_title'), form, 'lg');
-    new bootstrap.Modal('#modal_lg_close', { backdrop: 'static', focus: true, keyboard: true }).show();
+    openModal('#modal_lg_close', { backdrop: 'static' });
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -2593,7 +2585,6 @@ function _obsNormalizePlanScope(value) {
 }
 
 function showObservationImportFromPlanModal() {
-    closeModal();
 
     const form = document.createElement('form');
     form.className = 'form row g-3';
@@ -2627,7 +2618,7 @@ function showObservationImportFromPlanModal() {
     form.appendChild(actions);
 
     createModal(i18n.t('observation_log.import_from_plan'), form, 'lg');
-    new bootstrap.Modal('#modal_lg_close', { backdrop: 'static', focus: true, keyboard: true }).show();
+    openModal('#modal_lg_close', { backdrop: 'static' });
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();

@@ -333,7 +333,7 @@ async function deleteLocationWithConfirm(loc) {
                 console.error('Error deleting location:', error);
                 showMessage('error', i18n.t('settings.location_delete_failed'));
             } finally {
-                bootstrap.Modal.getInstance(modalEl)?.hide();
+                closeModal(modalEl);
             }
         };
 
@@ -343,7 +343,7 @@ async function deleteLocationWithConfirm(loc) {
         if (cascadeBtn) cascadeBtn.onclick = () => runDelete('cascade');
         if (plainBtn) plainBtn.onclick = () => runDelete('cascade'); // no plans referenced - mode is moot
 
-        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        openModal(modalEl, { backdrop: true });
     } catch (error) {
         console.error('Error loading location references:', error);
         showMessage('error', i18n.t('settings.location_delete_failed'));
@@ -380,8 +380,7 @@ async function openLocationModal(locationId = null) {
 
     await _renderAttributionList(loc);
 
-    const modalEl = document.getElementById('location-edit-modal');
-    if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    openModal('location-edit-modal', { backdrop: true });
 }
 
 async function _renderAttributionList(loc) {
@@ -481,8 +480,7 @@ async function saveLocationFromModal() {
         }
 
         showMessage('success', i18n.t('settings.location_saved'));
-        const modalEl = document.getElementById('location-edit-modal');
-        if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        closeModal('location-edit-modal');
         invalidateMyLocationsCache();
         await loadLocationsAdmin();
         if (typeof SkyWidget !== 'undefined') SkyWidget.refresh();

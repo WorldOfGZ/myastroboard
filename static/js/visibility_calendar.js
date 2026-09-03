@@ -104,16 +104,10 @@ async function openVisibilityCalendar(identifier, year) {
 
     titleEl.textContent = `${id} - ${_vcT('visibility_calendar.title', 'Visibility calendar')}`;
 
-    let bsModal = bootstrap.Modal.getInstance(modalEl);
-    if (!bsModal) {
-        bsModal = new bootstrap.Modal(modalEl, { backdrop: true, focus: true, keyboard: true });
-    }
-    const onHidden = () => {
-        _vcDestroyChartIn(bodyEl);
-        modalEl.removeEventListener('hidden.bs.modal', onHidden);
-    };
-    modalEl.addEventListener('hidden.bs.modal', onHidden);
-    bsModal.show();
+    openModal(modalEl, {
+        backdrop: true,
+        onHidden: () => _vcDestroyChartIn(bodyEl),
+    });
 
     await renderVisibilityCalendarInto(id, year || null, bodyEl);
 }

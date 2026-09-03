@@ -273,6 +273,15 @@ async function fetchCatalogueData(catalogueName, options = {}) {
 }
 ```
 
+#### Modals
+
+Open and close every Bootstrap modal with `openModal()` / `closeModal()` from
+`static/js/utils.js` — never `new bootstrap.Modal(...)` or `instance.hide()` directly, and
+never strip `.modal-backdrop` / `body.modal-open` by hand. The helper handles the
+close-before-open rule (Bootstrap 5.3 can't stack modals), instance disposal on the shared
+shells, the mid-transition `hide()` no-op, and Back-button dismissal. See
+`.github/instructions/copilot.instructions.md` (Frontend → Modals).
+
 ### CSS Style Guide
 
 - Use **BEM** naming convention where applicable

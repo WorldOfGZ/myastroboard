@@ -345,6 +345,29 @@ Full rationale and examples: [CONTRIBUTING.md#inline-style-attribute](../../CONT
 - Allowed exceptions: JS-driven show/hide (`style.display`), and genuinely per-instance dynamic values that can't be a static class (Bootstrap's documented `progress-bar` width pattern, a computed color/offset from data).
 - A `<div>` carrying both a `class` and a hardcoded static `style` is the smell — move the static part into the class.
 
+#### Modals (MANDATORY)
+
+All Bootstrap modal show/hide goes through the helpers in `static/js/utils.js`:
+`openModal(elementOrId, { backdrop, keyboard, focus, onShown, onHidden, history })`
+and `closeModal(elementOrId?)` (one id, or every shown modal when called bare).
+
+- **NEVER** call `new bootstrap.Modal(...)` / `bootstrap.Modal.getOrCreateInstance(...)` /
+  `instance.show()` / `instance.hide()` directly. `openModal` closes whatever is already on
+  screen first (Bootstrap 5.3 cannot safely stack modals - hiding one while another is open
+  unlocks page scroll behind it and strands a `.modal-backdrop`), disposes the instance on hide
+  (so a shared shell like `#modal_lg_close` doesn't accumulate orphaned focus-traps), defers a
+  hide fired mid show-transition (Bootstrap's `hide()` is otherwise a silent no-op there), and
+  pushes a same-URL history entry so the hardware Back button closes the modal instead of
+  switching tabs. Pass `history: false` only for a modal that must not be Back-dismissable (the
+  wizard).
+- **NEVER** remove `.modal-backdrop` nodes or `body.modal-open` by hand. `forceCleanupModals()`
+  (called from `switchMainTab`/`switchSubTab`) is the only safety net and it does this correctly.
+- Content goes into the modal **before** `openModal`; use `onShown` for work that needs a
+  laid-out container (Leaflet/Chart.js sizing) and `onHidden` for teardown.
+- Dedicated modals live in `templates/index.html`; reuse a generic shell
+  (`#modal_lg_close` / `#modal_xl_close` / `#modal_full_close`) via `createModal(title, content, size)`
+  for one-off forms.
+
 ### File Organization
 
 - One class per file when possible
