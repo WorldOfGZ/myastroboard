@@ -935,13 +935,8 @@ function editUsername(userId, currentUsername) {
     contentElement.appendChild(errorAlert);
     contentElement.appendChild(form);
     
-    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
-        backdrop: 'static',
-        focus: true,
-        keyboard: true
-    });
-    bs_modal.show();
-    
+    openModal('#modal_lg_close', { backdrop: 'static' });
+
     const formElement = document.getElementById('username-edit-form');
     const errorDiv = document.getElementById('username-modal-error');
     
@@ -981,7 +976,7 @@ function editUsername(userId, currentUsername) {
             if (response.ok) {
                 showMessage('success', i18n.t('users.username_updated'));
                 loadUsers();
-                bs_modal.hide();
+                closeModal('#modal_lg_close');
             } else {
                 errorDiv.textContent = localizeApiError(data, 'users.error_update_username');
                 errorDiv.style.display = 'block';
@@ -1067,13 +1062,8 @@ function editRole(userId, username, currentRole) {
     contentElement.appendChild(errorAlert);
     contentElement.appendChild(form);
     
-    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
-        backdrop: 'static',
-        focus: true,
-        keyboard: true
-    });
-    bs_modal.show();
-    
+    openModal('#modal_lg_close', { backdrop: 'static' });
+
     const formElement = document.getElementById('role-edit-form');
     const errorDiv = document.getElementById('role-modal-error');
     
@@ -1107,7 +1097,7 @@ function editRole(userId, username, currentRole) {
             if (response.ok) {
                 showMessage('success', i18n.t('users.role_updated'));
                 loadUsers();
-                bs_modal.hide();
+                closeModal('#modal_lg_close');
             } else {
                 errorDiv.textContent = localizeApiError(data, 'users.error_update_role');
                 errorDiv.style.display = 'block';
@@ -1237,18 +1227,13 @@ function changePassword(userId, username) {
     
     
     // Display the modal modal_lg_close
-    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
-        backdrop: 'static',
-        focus: true,
-        keyboard: true
-    });
-    bs_modal.show();
-    
-    setupPasswordChangeModal(bs_modal, userId);
+    openModal('#modal_lg_close', { backdrop: 'static' });
+
+    setupPasswordChangeModal(userId);
 }
 
 // Setup password change modal
-function setupPasswordChangeModal(bs_modal, userId) {
+function setupPasswordChangeModal(userId) {
     const form = document.getElementById('password-change-form');
     const errorDiv = document.getElementById('password-modal-error');
     
@@ -1296,7 +1281,7 @@ function setupPasswordChangeModal(bs_modal, userId) {
                     loadUsers();
 
                     // Close bootstrap modal
-                    bs_modal.hide();
+                    closeModal('#modal_lg_close');
 
                 } else {
                     errorDiv.textContent = localizeApiError(data, 'users.error_update_password');

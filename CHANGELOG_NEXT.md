@@ -60,5 +60,21 @@ Some improvements have been made to minimize this effect, while continuing to re
 - Added more logging to see exactly what is received when Celestrak struggles, including the HTTP status code and a confirmation when the block is manually cleared.
 - ISS & CSS fallback never fell back to the mirror TLE sources when Celestrak was down; this is now corrected.
 
+#### Mobile modal fixes
+
+Every popup (equipment forms, Astrodex add/edit, observation log, object info, launch details,
+the setup wizard...) now shares one open/close path:
+
+- The hardware **Back button / swipe-back closes the open popup** instead of switching tabs
+  underneath it.
+- Popups that used to stay stuck open, freeze page scrolling, or leave a grey blur layer behind
+  after closing - especially on phones and especially when opened one right after another - now
+  close cleanly every time.
+- The header X and the footer close button stay reachable on small screens (scrollable dialog,
+  wizard footer buttons stack), and tapping close right as the popup appears now works on the
+  first tap.
+- The "choose an equipment set" picker is a proper dialog now (locks the background, traps focus,
+  scrolls when the list is long).
+
 #### Various
 - Enhance sorting functionality in Astrodex with numeric-aware comparison

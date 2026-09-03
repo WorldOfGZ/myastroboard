@@ -1119,6 +1119,13 @@ textarea.form-control:focus {
         margin: 0.45rem;
     }
 
+    /* Keep a scrollable dialog within the visual viewport so the header X and the
+       footer close button stay on screen (iOS Safari's retracting toolbar makes a
+       plain height:100% overshoot - dvh tracks the real viewport). */
+    .modal-dialog-scrollable {
+        max-height: calc(100dvh - 0.9rem);
+    }
+
     .modal .modal-header,
     .modal .modal-footer {
         padding: 0.65rem 0.8rem;
@@ -1131,6 +1138,19 @@ textarea.form-control:focus {
     .modal .modal-body .card {
         margin-left: 0 !important;
         margin-right: 0 !important;
+    }
+
+    /* The wizard footer carries two button groups (Skip / Skip all | Back / Next);
+       on a narrow phone they stack instead of squeezing onto one line. */
+    #wizard-modal .modal-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    #wizard-modal .modal-footer > div {
+        width: 100%;
+        justify-content: space-between;
     }
 
     .table tbody td,

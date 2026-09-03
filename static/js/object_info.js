@@ -257,12 +257,7 @@ async function showObjectInfoModal(identifier) {
     _loadDiv.appendChild(document.createTextNode(t('object_info.loading', 'Loading object data…')));
     bodyEl.appendChild(_loadDiv);
 
-    const _modalEl = document.getElementById('modal_lg_close');
-    let bs_modal = bootstrap.Modal.getInstance(_modalEl);
-    if (!bs_modal) {
-        bs_modal = new bootstrap.Modal(_modalEl, { backdrop: true, focus: true, keyboard: true });
-    }
-    bs_modal.show();
+    openModal('#modal_lg_close', { backdrop: true });
 
     const data = await fetchObjectInfo(identifier);
 

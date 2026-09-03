@@ -1192,7 +1192,7 @@ async function openPlanOptimizeModal() {
                     start_delay_minutes: result.start_delay_minutes,
                 }),
             });
-            bootstrap.Modal.getInstance(modalEl)?.hide();
+            closeModal(modalEl);
             showMessage('success', i18n.t('plan_my_night.optimize_applied'));
             await loadPlanMyNight();
         } catch (err) {
@@ -1203,15 +1203,12 @@ async function openPlanOptimizeModal() {
     });
     footer.insertBefore(applyBtn, footer.firstChild);
 
-    const cleanupOnHide = () => {
-        applyBtn.remove();
-        modalEl.removeEventListener('hidden.bs.modal', cleanupOnHide);
-    };
-    modalEl.addEventListener('hidden.bs.modal', cleanupOnHide);
-
-    let bsModal = bootstrap.Modal.getInstance(modalEl);
-    if (!bsModal) bsModal = new bootstrap.Modal(modalEl, { backdrop: true, focus: true, keyboard: true });
-    bsModal.show();
+    // The injected Apply button must not leak into the other features that reuse
+    // this shell - drop it when the modal closes.
+    openModal(modalEl, {
+        backdrop: true,
+        onHidden: () => applyBtn.remove(),
+    });
 }
 
 // ────────────────────────────────────────────────────────────────────────────

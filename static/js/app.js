@@ -227,6 +227,9 @@ function handleHashNavigation() {
 async function initializeApp() {
     // Ensure translations are fully loaded before any component calls i18n.t()
     await i18n.ready;
+    // Wire the modal <-> history bridge so the hardware Back button closes an open
+    // modal instead of switching tabs underneath it (see utils.js).
+    _initModalHistory();
     setupNavLinkHrefs();
     setupMainTabs();
     setupSubTabs();
@@ -320,6 +323,10 @@ function setupMainTabs() {
 function switchMainTab(tabName, options = {}) {
     const { syncHistory = true } = options;
     //console.log(`Switching to main tab: ${tabName}`);
+
+    // A modal left open across a tab change would float over the wrong tab (or its
+    // backdrop would strand). Close it before the navigation touches history.
+    forceCleanupModals();
 
     if (tabName === 'about') {
         window.scrollTo({ top: 0, behavior: 'instant' });
@@ -428,6 +435,9 @@ function setupNavbarAutoCollapse() {
 
 function switchSubTab(parentTab, subtabName, options = {}) {
     const { syncHistory = true } = options;
+    // Close any open modal before the sub-tab change touches history (no-op when
+    // reached via switchMainTab, which already did this).
+    forceCleanupModals();
     cleanupTransientCharts();
 
     activateSubTab(parentTab, subtabName);
@@ -577,28 +587,8 @@ function cleanupTransientCharts() {
     }
 }
 
-function setupModalAccessibility() {
-    const modalIds = ['modal_sm_close', 'modal_lg_close', 'modal_xl_close', 'modal_full_close'];
-    
-    modalIds.forEach(modalId => {
-        const modalElement = document.getElementById(modalId);
-        if (!modalElement) return;
-        
-        // When modal is shown, set aria-hidden to false
-        modalElement.addEventListener('show.bs.modal', () => {
-            modalElement.setAttribute('aria-hidden', 'false');
-        });
-        
-        // When modal is hidden, set aria-hidden to true
-        modalElement.addEventListener('hide.bs.modal', () => {
-            modalElement.setAttribute('aria-hidden', 'true');
-        });
-    });
-}
-
 function setupEventListeners() {
     setupNavbarAutoCollapse();
-    setupModalAccessibility();
 
     // Configuration save
     document.getElementById('save-astrodex')?.addEventListener('click', saveConfiguration);
@@ -669,42 +659,12 @@ function setupEventListeners() {
 
     // Multi-location profiles UI (admin grid + modal + my-settings, v1.2)
     if (typeof initLocationsUI === 'function') initLocationsUI();
-    
+
     // Logs
     document.getElementById('refresh-logs')?.addEventListener('click', loadLogs);
     document.getElementById('clear-logs-display')?.addEventListener('click', clearLogsDisplay);
     document.getElementById('log-level')?.addEventListener('change', loadLogs);
     document.getElementById('log-limit')?.addEventListener('change', loadLogs);
-    
-    // Config modal
-    const modal = document.getElementById('config-modal');
-    const closeBtn = document.querySelector('.close');
-    
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-    }
-    
-    // Image modal
-    const imageModal = document.getElementById('image-modal');
-    const closeImageBtn = document.querySelector('.close-image');
-    
-    if (closeImageBtn) {
-        closeImageBtn.addEventListener('click', () => {
-            imageModal.style.display = 'none';
-        });
-    }
-    
-    // Close modals when clicking outside
-    window.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            modal.style.display = 'none';
-        }
-        if (event.target === imageModal) {
-            imageModal.style.display = 'none';
-        }
-    });
 }
 
 // ======================

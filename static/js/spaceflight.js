@@ -414,8 +414,7 @@ function _sfShowLaunchModal(launch) {
     }
 
     bodyEl.appendChild(contentCard);
-    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('sf-launch-modal'));
-    modal.show();
+    openModal('#sf-launch-modal', { backdrop: true });
 }
 
 // Launch status → Bootstrap badge classes

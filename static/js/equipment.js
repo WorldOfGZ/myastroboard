@@ -1225,17 +1225,8 @@ async function showTelescopeModal(id = null) {
         </form>
     `;
 
-    if (typeof closeModal === 'function') {
-        closeModal();
-    }
     createModal(title, modalContent, 'lg');
-
-    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
-        backdrop: 'static',
-        focus: true,
-        keyboard: true
-    });
-    bs_modal.show();
+    openModal('#modal_lg_close', { backdrop: 'static' });
 
     _wirePresetSelect('telescope', presets, _applyTelescopePreset);
 
@@ -1262,11 +1253,8 @@ async function saveTelescope(id) {
             body: JSON.stringify(data)
         });
 
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modal_lg_close'));
-        if (modal) {
-            document.activeElement?.blur();
-            modal.hide();
-        }
+        document.activeElement?.blur();
+        closeModal('#modal_lg_close');
         await loadEquipmentType('telescopes');
         await loadEquipmentType('combinations');
         renderTelescopesTab();
@@ -1361,17 +1349,8 @@ async function showCameraModal(id = null) {
         </form>
     `;
 
-    if (typeof closeModal === 'function') {
-        closeModal();
-    }
     createModal(title, modalContent, 'lg');
-
-    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
-        backdrop: 'static',
-        focus: true,
-        keyboard: true
-    });
-    bs_modal.show();
+    openModal('#modal_lg_close', { backdrop: 'static' });
 
     _wirePresetSelect('camera', presets, _applyCameraPreset);
 
@@ -1399,11 +1378,8 @@ async function saveCamera(id) {
             body: JSON.stringify(data)
         });
 
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modal_lg_close'));
-        if (modal) {
-            document.activeElement?.blur();
-            modal.hide();
-        }
+        document.activeElement?.blur();
+        closeModal('#modal_lg_close');
         await loadEquipmentType('cameras');
         await loadEquipmentType('combinations');
         renderCamerasTab();
@@ -1498,17 +1474,8 @@ async function showMountModal(id = null) {
         </form>
     `;
 
-    if (typeof closeModal === 'function') {
-        closeModal();
-    }
     createModal(title, modalContent, 'lg');
-
-    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
-        backdrop: 'static',
-        focus: true,
-        keyboard: true
-    });
-    bs_modal.show();
+    openModal('#modal_lg_close', { backdrop: 'static' });
 
     _wirePresetSelect('mount', presets, _applyMountPreset);
 
@@ -1538,11 +1505,8 @@ async function saveMount(id) {
             body: JSON.stringify(data)
         });
 
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modal_lg_close'));
-        if (modal) {
-            document.activeElement?.blur();
-            modal.hide();
-        }
+        document.activeElement?.blur();
+        closeModal('#modal_lg_close');
         await loadEquipmentType('mounts');
         await loadEquipmentType('combinations');
         renderMountsTab();
@@ -1621,17 +1585,8 @@ async function showFilterModal(id = null) {
         </form>
     `;
 
-    if (typeof closeModal === 'function') {
-        closeModal();
-    }
     createModal(title, modalContent, 'lg');
-
-    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
-        backdrop: 'static',
-        focus: true,
-        keyboard: true
-    });
-    bs_modal.show();
+    openModal('#modal_lg_close', { backdrop: 'static' });
 
     _wirePresetSelect('filter', presets, _applyFilterPreset);
 
@@ -1658,11 +1613,8 @@ async function saveFilter(id) {
             body: JSON.stringify(data)
         });
 
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modal_lg_close'));
-        if (modal) {
-            document.activeElement?.blur();
-            modal.hide();
-        }
+        document.activeElement?.blur();
+        closeModal('#modal_lg_close');
         await loadEquipmentType('filters');
         await loadEquipmentType('combinations');
         renderFiltersTab();
@@ -1724,17 +1676,8 @@ async function showAccessoryModal(id = null) {
         </form>
     `;
 
-    if (typeof closeModal === 'function') {
-        closeModal();
-    }
     createModal(title, modalContent, 'lg');
-
-    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
-        backdrop: 'static',
-        focus: true,
-        keyboard: true
-    });
-    bs_modal.show();
+    openModal('#modal_lg_close', { backdrop: 'static' });
 
     _wirePresetSelect('accessory', presets, _applyAccessoryPreset);
 
@@ -1761,11 +1704,8 @@ async function saveAccessory(id) {
             body: JSON.stringify(data)
         });
 
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modal_lg_close'));
-        if (modal) {
-            document.activeElement?.blur();
-            modal.hide();
-        }
+        document.activeElement?.blur();
+        closeModal('#modal_lg_close');
         await loadEquipmentType('accessories');
         await loadEquipmentType('combinations');
         renderAccessoriesTab();
@@ -1897,17 +1837,8 @@ async function showCombinationModal(id = null) {
         </form>
     `;
 
-    if (typeof closeModal === 'function') {
-        closeModal();
-    }
     createModal(title, modalContent, 'lg');
-
-    const bs_modal = new bootstrap.Modal('#modal_lg_close', {
-        backdrop: 'static',
-        focus: true,
-        keyboard: true
-    });
-    bs_modal.show();
+    openModal('#modal_lg_close', { backdrop: 'static' });
 
     document.getElementById('combinationForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -1939,11 +1870,8 @@ async function saveCombination(id) {
             body: JSON.stringify(data)
         });
 
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modal_lg_close'));
-        if (modal) {
-            document.activeElement?.blur();
-            modal.hide();
-        }
+        document.activeElement?.blur();
+        closeModal('#modal_lg_close');
         await loadEquipmentType('combinations');
         renderCombinationsTab();
         showMessage('success', id ? i18n.t('equipment.combination_updated') : i18n.t('equipment.combination_created'));
