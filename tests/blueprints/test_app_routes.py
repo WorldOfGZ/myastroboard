@@ -9908,29 +9908,37 @@ class TestLocationsApiErrorArcs:
 
 
 class TestCachedLocationScore:
-    """_cached_location_score: best-effort sky-widget switcher score, never a live fetch."""
+    """_cached_location_score: best-effort sky-widget switcher score, never a live fetch.
 
-    def test_returns_none_when_no_forecast_cached(self, monkeypatch):
+    Reads the same observation_score the pill and "Score de la Nuit" show, from the
+    per-location astro_weather cache.
+    """
+
+    def test_returns_none_when_no_astro_cache(self, monkeypatch):
         monkeypatch.setattr(_cache_store, 'load_location_cache', lambda name, loc_id: {'data': None})
         assert _locations_mod._cached_location_score('loc-cold') is None
 
-    def test_returns_none_when_hourly_list_empty(self, monkeypatch):
-        monkeypatch.setattr(_cache_store, 'load_location_cache', lambda name, loc_id: {'data': {'hourly': []}})
+    def test_returns_none_when_current_conditions_missing(self, monkeypatch):
+        monkeypatch.setattr(_cache_store, 'load_location_cache', lambda name, loc_id: {'data': {'hourly_data': []}})
         assert _locations_mod._cached_location_score('loc-empty') is None
 
-    def test_returns_none_when_condition_missing(self, monkeypatch):
+    def test_returns_none_when_score_missing(self, monkeypatch):
         monkeypatch.setattr(
             _cache_store, 'load_location_cache',
-            lambda name, loc_id: {'data': {'hourly': [{'temperature_2m': 12.0}]}},
+            lambda name, loc_id: {'data': {'current_conditions': {'seeing_pickering': 7.0}}},
         )
         assert _locations_mod._cached_location_score('loc-nocond') is None
 
-    def test_converts_condition_to_0_10_scale(self, monkeypatch):
-        monkeypatch.setattr(
-            _cache_store, 'load_location_cache',
-            lambda name, loc_id: {'data': {'hourly': [{'condition': 87.3}]}},
-        )
-        assert _locations_mod._cached_location_score('loc-warm') == pytest.approx(8.7)
+    def test_returns_observation_score_verbatim(self, monkeypatch):
+        seen = {}
+
+        def _load(name, loc_id):
+            seen['name'] = name
+            return {'data': {'current_conditions': {'observation_score': 6.8}}}
+
+        monkeypatch.setattr(_cache_store, 'load_location_cache', _load)
+        assert _locations_mod._cached_location_score('loc-warm') == pytest.approx(6.8)
+        assert seen['name'] == 'astro_weather'
 
     def test_returns_none_on_unexpected_exception(self, monkeypatch):
         def _raise(name, loc_id):
@@ -9938,3 +9946,54 @@ class TestCachedLocationScore:
 
         monkeypatch.setattr(_cache_store, 'load_location_cache', _raise)
         assert _locations_mod._cached_location_score('loc-boom') is None
+
+
+class TestForecastObservationScoreMerge:
+    """_forecast_with_observation_score: the Weather tab's hourly 'condition' is the
+    single app-wide observation_score x10, merged per hour from the astro_weather cache."""
+
+    @staticmethod
+    def _astro(*rows):
+        return {'data': {'hourly_data': list(rows)}}
+
+    def test_condition_set_from_matching_hour(self, monkeypatch):
+        monkeypatch.setattr(
+            _weather_mod.cache_store, 'load_location_cache',
+            lambda name, loc: self._astro(
+                {'datetime': '2026-09-03T21:00:00+02:00', 'observation_score': 6.3},
+                {'datetime': '2026-09-03T22:00:00+02:00', 'observation_score': 5.9},
+            ),
+        )
+        payload = {'location': {'name': 'X'}, 'hourly': [
+            {'date': '2026-09-03T21:00:00+02:00', 'temperature_2m': 12.0},
+            {'date': '2026-09-03T22:00:00+02:00', 'temperature_2m': 11.0},
+        ]}
+        out = _weather_mod._forecast_with_observation_score(payload, 'loc-1')
+        assert out['hourly'][0]['condition'] == pytest.approx(63.0)
+        assert out['hourly'][1]['condition'] == pytest.approx(59.0)
+        assert 'condition' not in payload['hourly'][0]  # input not mutated
+
+    def test_unmatched_hour_has_no_condition(self, monkeypatch):
+        monkeypatch.setattr(
+            _weather_mod.cache_store, 'load_location_cache',
+            lambda name, loc: self._astro({'datetime': '2026-09-03T21:00:00+02:00', 'observation_score': 6.3}),
+        )
+        out = _weather_mod._forecast_with_observation_score({'hourly': [{'date': '2026-09-03T23:00:00+02:00'}]}, 'l')
+        assert 'condition' not in out['hourly'][0]
+
+    def test_stale_condition_is_replaced(self, monkeypatch):
+        monkeypatch.setattr(
+            _weather_mod.cache_store, 'load_location_cache',
+            lambda name, loc: self._astro({'datetime': '2026-09-03T21:00:00+02:00', 'observation_score': 6.3}),
+        )
+        out = _weather_mod._forecast_with_observation_score(
+            {'hourly': [{'date': '2026-09-03T21:00:00+02:00', 'condition': 88.0}]}, 'l'
+        )
+        assert out['hourly'][0]['condition'] == pytest.approx(63.0)
+
+    def test_missing_astro_cache_drops_stale_condition(self, monkeypatch):
+        monkeypatch.setattr(_weather_mod.cache_store, 'load_location_cache', lambda name, loc: {'data': None})
+        out = _weather_mod._forecast_with_observation_score(
+            {'hourly': [{'date': '2026-09-03T21:00:00+02:00', 'condition': 88.0}]}, 'l'
+        )
+        assert 'condition' not in out['hourly'][0]

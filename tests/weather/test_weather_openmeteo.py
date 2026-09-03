@@ -407,8 +407,16 @@ class TestParseHourly:
     def test_has_derived_metrics(self):
         response = _make_parse_hourly_response()
         result = wom.parse_hourly(response, _FULL_HOURLY_VARS)
-        for col in ("condition", "seeing", "transparency", "calm", "fog"):
+        for col in ("seeing", "transparency", "calm", "fog"):
             assert col in result.columns
+
+    def test_no_overall_condition_score(self):
+        """The single app-wide observation score is weather_astro's observation_score,
+        merged into /api/weather/forecast from the astro_weather cache - the Open-Meteo
+        adapter no longer derives its own overall 'condition' score."""
+        response = _make_parse_hourly_response()
+        result = wom.parse_hourly(response, _FULL_HOURLY_VARS)
+        assert "condition" not in result.columns
 
     def test_cloudless_is_complement_of_cloud_cover(self):
         import numpy as np
@@ -457,10 +465,11 @@ class TestParseHourly:
         result = wom.parse_hourly(response, _FULL_HOURLY_VARS)
         assert len(result) == 6
 
-    def test_condition_values_are_0_to_100(self):
+    def test_derived_metric_values_are_0_to_100(self):
         response = _make_parse_hourly_response()
         result = wom.parse_hourly(response, _FULL_HOURLY_VARS)
-        assert result["condition"].between(0, 100).all()
+        for col in ("seeing", "transparency", "calm", "fog"):
+            assert result[col].between(0, 100).all()
 
     def test_variable_decode_error_is_non_fatal(self):
         response = _make_parse_hourly_response(n_hours=3)
@@ -472,7 +481,7 @@ class TestParseHourly:
         result = wom.parse_hourly(response, _FULL_HOURLY_VARS)
 
         assert len(result) == 3
-        assert "condition" in result.columns
+        assert "seeing" in result.columns
 
     def test_nested_hourly_array_is_coerced(self):
         import numpy as np
@@ -711,8 +720,9 @@ class TestParseHourlyJson:
     def test_returns_dataframe_with_derived_metrics(self):
         payload = self._payload(n_hours=2)
         result = wom.parse_hourly_json(payload, self._CORE_VARS)
-        for col in ("condition", "seeing", "transparency", "cloudless"):
+        for col in ("seeing", "transparency", "cloudless"):
             assert col in result.columns
+        assert "condition" not in result.columns
 
     def test_unknown_timezone_falls_back_to_utc(self):
         payload = self._payload(n_hours=2)

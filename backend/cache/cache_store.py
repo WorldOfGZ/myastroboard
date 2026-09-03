@@ -47,6 +47,7 @@ from utils.constants import (
     CACHE_TTL_SOLAR_SYSTEM_EVENTS,
     CACHE_TTL_SIDEREAL_TIME,
     CACHE_TTL_SEEING_FORECAST,
+    CACHE_TTL_ASTRO_WEATHER,
     CACHE_TTL_SPACEFLIGHT_LAUNCHES,
     CACHE_TTL_SPACEFLIGHT_ASTRONAUTS,
     CACHE_TTL_SPACEFLIGHT_EVENTS,
@@ -104,11 +105,13 @@ LOCATION_SCOPED_CACHE_TTLS = {
     "sidereal_time": CACHE_TTL_SIDEREAL_TIME,
     "seeing_forecast": CACHE_TTL_SEEING_FORECAST,
     "weather_forecast": WEATHER_CACHE_TTL,
+    "astro_weather": CACHE_TTL_ASTRO_WEATHER,
 }
 
-# Names checked by is_astronomical_cache_ready() - weather is intentionally
-# excluded (it has a live-fetch fallback path and must not gate readiness).
-_READINESS_LOCATION_CACHES = tuple(n for n in LOCATION_SCOPED_CACHE_TTLS if n != "weather_forecast")
+# Names checked by is_astronomical_cache_ready() - the Open-Meteo-backed caches are
+# intentionally excluded (they have a live-fetch fallback path and must not gate readiness).
+_LIVE_FETCH_LOCATION_CACHES = frozenset({"weather_forecast", "astro_weather"})
+_READINESS_LOCATION_CACHES = tuple(n for n in LOCATION_SCOPED_CACHE_TTLS if n not in _LIVE_FETCH_LOCATION_CACHES)
 
 # name -> {location_id -> {"timestamp": float, "data": Any}}
 _location_caches = {name: {} for name in LOCATION_SCOPED_CACHE_TTLS}

@@ -260,6 +260,41 @@ class TestCacheUpdateFunctionsBasic:
         decoded_records = _loc_payload(mock_cache_store, "weather_forecast")["hourly"]
         assert decoded_records[0]["raw"] == "encoded_bytes"
 
+    @patch("cache.cache_updater.cache_store")
+    @patch("cache.cache_updater.get_astro_weather_analysis")
+    def test_update_astro_weather_cache_success(self, mock_get_analysis, mock_cache_store, mock_config):
+        """The astro_weather cache stores the analysis, JSON-sanitised, under the preset id."""
+        import numpy as np
+        from cache.cache_updater import update_astro_weather_cache
+
+        mock_get_analysis.return_value = {
+            "current_conditions": {"observation_score": np.float64(7.4)},
+            "hourly_data": [{"datetime": "2026-04-17T21:00:00+00:00", "observation_score": np.float64(7.1)}],
+        }
+
+        update_astro_weather_cache(config=mock_config)
+
+        assert mock_get_analysis.call_args.kwargs["location"]["id"] == LOC_ID
+        payload = _loc_payload(mock_cache_store, "astro_weather")
+        score = payload["current_conditions"]["observation_score"]
+        assert score == 7.4
+        assert type(score) is float  # numpy scalar was normalised
+
+    @patch("cache.cache_updater.cache_store")
+    @patch("cache.cache_updater.get_astro_weather_analysis")
+    def test_update_astro_weather_cache_none_keeps_stale(self, mock_get_analysis, mock_cache_store, mock_config):
+        """A failed live fetch must not overwrite a previously-cached analysis."""
+        from cache.cache_updater import update_astro_weather_cache
+
+        mock_get_analysis.return_value = None
+        mock_cache_store.load_location_cache.return_value = {
+            "data": {"current_conditions": {"observation_score": 5.0}}
+        }
+
+        update_astro_weather_cache(config=mock_config)
+
+        mock_cache_store.update_location_cache.assert_not_called()
+
 
 class TestCacheUpdateErrorHandling:
     """Tests for error handling in cache updates."""
@@ -1725,7 +1760,7 @@ class TestMissingLocationAndExceptionPaths:
             "update_iss_passes_cache", "update_css_passes_cache", "update_planetary_events_cache",
             "update_special_phenomena_cache", "update_solar_system_events_cache",
             "update_sidereal_time_cache", "update_seeing_forecast_cache", "update_best_window_cache",
-            "update_weather_cache",
+            "update_weather_cache", "update_astro_weather_cache",
         ]
         from contextlib import ExitStack
 

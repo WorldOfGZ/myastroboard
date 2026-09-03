@@ -108,15 +108,15 @@ def get_sky_widget_api():
         # Get sun report from cache (accept stale)
         sun_data = sun_entry.get("data")
 
+        # Read the single app-wide observation score from the warm astro_weather cache
+        # (accept stale) - same value the location switcher and "Score de la Nuit" show.
         observation_score = None
         try:
-            from weather.weather_astro import get_current_astro_conditions
-
-            conditions = get_current_astro_conditions(location=location)
-            if conditions:
-                observation_score = conditions.get("observation_score")
+            astro_entry = cache_store.load_location_cache("astro_weather", location.get("id"))
+            current = (astro_entry.get("data") or {}).get("current_conditions") or {}
+            observation_score = current.get("observation_score")
         except Exception:
-            pass  # score stays None if weather data unavailable
+            pass  # score stays None if the cache is not ready yet
 
         period, next_period, seconds_until_next = _determine_sky_period(sun_data, timezone_str)
 

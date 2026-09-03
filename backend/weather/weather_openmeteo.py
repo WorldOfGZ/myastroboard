@@ -242,14 +242,13 @@ def _enrich_hourly_dataframe(df: pd.DataFrame, timezone_str: Optional[str] = "UT
     fog_percent.loc[mask2] = ((df["relative_humidity_2m"] - 80) * 5).clip(0, 100)
 
     # -----------------------------
-    # Overall astro condition score
-    # -----------------------------
-    condition_percent = (df["cloudless"] * 0.5 + seeing_percent * 0.25 + transparency_percent * 0.25).clip(0, 100)
-
-    # -----------------------------
     # Store final metrics
     # -----------------------------
-    df["condition"] = condition_percent.round(1)
+    # NOTE: the overall "condition" score is no longer derived here. There is a single
+    # observation score for the whole app - weather_astro's jet-stream-aware
+    # observation_score - and /api/weather/forecast merges it into each hourly record as
+    # `condition` from the astro_weather cache. The columns below stay as the component
+    # series the Weather-tab charts plot.
     df["seeing"] = seeing_percent.round(1)
     df["calm"] = calm_percent.round(1)
     df["fog"] = fog_percent.round(1)

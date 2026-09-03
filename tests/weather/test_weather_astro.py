@@ -194,6 +194,55 @@ class TestWeatherAnalysisMetrics:
         assert (result["transparency_score"] >= 0).all()
         assert (result["transparency_score"] <= 100).all()
 
+        # transparency_score must live on the same 0-100 scale as cloud_discrimination /
+        # tracking_stability_score, not the 0-1 scale of its input factors - otherwise it
+        # contributes ~nothing to the composite observation score and pins the limiting
+        # magnitude at its floor. Dry + clear + far visibility -> high; humid + cloudy -> low.
+        assert result["transparency_score"].iloc[0] > 70
+        assert result["transparency_score"].iloc[2] < 40
+
+        # limiting_magnitude tracks transparency across its full 4.0-8.0 range.
+        assert result["limiting_magnitude"].iloc[0] > 7.0
+        assert result["limiting_magnitude"].iloc[0] > result["limiting_magnitude"].iloc[2]
+
+    def test_observation_score_is_high_for_a_clear_calm_dry_night(self):
+        """Regression: a clear, calm, dry, stable hour scores ~8-9. Before the
+        transparency-scale fix the transparency term was ~0 and dragged this to ~5-6."""
+        analyzer = _build_analyzer()
+        df = pd.DataFrame(
+            {
+                "datetime": pd.date_range("2026-04-17T22:00:00", periods=1, freq="h"),
+                "relative_humidity_2m": [35.0],
+                "visibility": [50000.0],
+                "cloud_cover": [3.0],
+                "cloud_cover_high": [3.0],
+                "cloud_cover_mid": [0.0],
+                "cloud_cover_low": [0.0],
+                "wind_speed_10m": [3.0],
+                "wind_speed_80m": [5.0],
+                "lifted_index": [4.0],
+                "wind_speed_500hPa": [20.0],
+                "temperature_2m": [10.0],
+                "dew_point_2m": [-2.0],
+                "precipitation": [0.0],
+                "is_day": [0],
+            }
+        )
+        df = analyzer.analyze_cloud_layers(df)
+        df = analyzer.calculate_seeing_forecast(df)
+        df = analyzer.calculate_transparency_forecast(df)
+        df = analyzer.analyze_wind_tracking_impact(df)
+        df = analyzer.analyze_precipitation_impact(df)
+
+        score = analyzer._observation_score(
+            float(df["seeing_pickering"].iloc[0]),
+            float(df["transparency_score"].iloc[0]),
+            float(df["cloud_discrimination"].iloc[0]),
+            float(df["tracking_stability_score"].iloc[0]),
+            float(df["precipitation_factor"].iloc[0]),
+        )
+        assert score >= 8.0
+
     def test_dew_point_analysis(self):
         analyzer = _build_analyzer()
         df = pd.DataFrame(

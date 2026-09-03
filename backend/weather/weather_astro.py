@@ -414,8 +414,12 @@ class AstroWeatherAnalyzer:
 
         clarity_factor = (100 - cloud_total) / 100
 
-        # Combined transparency score (0-100%)
-        transparency_score = (humidity_factor * 0.4 + visibility_factor * 0.4 + clarity_factor * 0.2).clip(0, 100)
+        # Combined transparency score. humidity_factor, visibility_factor and clarity_factor are
+        # each 0-1, so the weighted average is 0-1 too - scale it to the 0-100 range that the
+        # composite observation score and _transparency_to_magnitude_limit both expect.
+        transparency_score = ((humidity_factor * 0.4 + visibility_factor * 0.4 + clarity_factor * 0.2) * 100).clip(
+            0, 100
+        )
 
         # Convert to limiting magnitude
         magnitude_limit = self._transparency_to_magnitude_limit(transparency_score)

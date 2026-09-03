@@ -170,24 +170,27 @@ async function loadWeather() {
             const windSpeed = formatMetricInteger(forecast.wind_speed_10m);
             const precipitation = formatMetricNumber(forecast.precipitation, 1);
             const dewPoint = formatMetricNumber(forecast.dew_point_2m, 1);
+            // `condition` is the app-wide observation score (0-10) x10, served per hour by
+            // /api/weather/forecast from the astro_weather cache. Bands mirror the
+            // "Score de la Nuit" cards (>=8/6/4/2 on the 0-10 scale) so the same hour reads
+            // the same quality label everywhere.
             const condition = toFiniteNumber(forecast.condition);
 
-            // Determine observation quality based on condition
             let quality = '';
             let qualityClass = '';
             if (condition == null) {
                 quality = i18n.t('common.quality_scale.unknown');
                 qualityClass = 'quality-bad';
-            } else if (condition >= 90) {
+            } else if (condition >= 80) {
                 quality = i18n.t('common.quality_scale.excellent');
                 qualityClass = 'quality-excellent';
-            } else if (condition >= 70) {
+            } else if (condition >= 60) {
                 quality = i18n.t('common.quality_scale.good');
                 qualityClass = 'quality-good';
-            } else if (condition >= 50) {
+            } else if (condition >= 40) {
                 quality = i18n.t('common.quality_scale.fair');
                 qualityClass = 'quality-fair';
-            } else if (condition > 30) {
+            } else if (condition >= 20) {
                 quality = i18n.t('common.quality_scale.poor');
                 qualityClass = 'quality-poor';
             } else {

@@ -6,12 +6,11 @@ The Weather tab provides atmospheric conditions specifically analysed for astron
 
 ## Tab layout
 
-| Sub-tab | Content |
-|---------|---------|
-| **Weather** | Hourly weather forecast (temperature, humidity, wind, clouds, precipitation) |
-| **Seeing** | 7Timer astronomical seeing and transparency forecast |
-| **Trend** | Multi-hour time-series charts of astrophotography-specific conditions |
-| **Alerts** | Active weather alerts and dew-point warnings |
+| Location | Content |
+|----------|---------|
+| **Weather tab -> Weather** | Hourly weather forecast (temperature, humidity, wind, clouds, precipitation) plus an "Observation Conditions - Next 12 Hours" section: hourly quality label per card (from `observation_score`) and time-series charts of the component conditions |
+| **Weather tab -> Seeing** | 7Timer astronomical seeing and transparency forecast |
+| **Astrophotography tab -> Astrophotography** | Current conditions, the "Score de la Nuit" hourly timeline, horizon graph, best observation periods, weather alerts and the advanced hour-by-hour analysis charts |
 
 ---
 
@@ -69,7 +68,20 @@ When rate-limited, the API returns the **last successful response** (stale-while
 
 **Class**: `AstroWeatherAnalyzer`
 
-This module transforms raw Open-Meteo variables into astrophotography-specific metrics. It calculates conditions for up to 48 hours and caches results for 30 minutes.
+This module transforms raw Open-Meteo variables into astrophotography-specific metrics. It calculates conditions for up to 48 hours and caches results for 30 minutes (in-process), and the cache scheduler additionally keeps a 24 h analysis warm per location in the `astro_weather` shared cache (see `docs/CACHE_SYSTEM.md`).
+
+### The observation score (single source of truth)
+
+`observation_score` (0-10) is the one overall astrophotography-quality number in the app:
+
+```
+observation_score = (seeing_pickering*10 + transparency_score + cloud_discrimination + tracking_stability_score) / 4 / 10 * precipitation_factor
+```
+
+- `seeing_pickering` is 1-10; the other three components are **0-100** (so `transparency_score`, `cloud_discrimination` and `tracking_stability_score` must all stay on that scale - a component accidentally left on a 0-1 scale silently contributes almost nothing).
+- `precipitation_factor` (0-1) is a multiplicative veto, not an averaged component.
+
+It is shown, unchanged, by the navbar sky widget pill, the location switcher, the Weather tab's hourly cards (served on `/api/weather/forecast` as `condition`, x10 to a 0-100 range) and the "Score de la Nuit" hourly cards. `weather/weather_openmeteo.py` no longer derives its own overall score.
 
 ### Seeing estimate (Pickering scale)
 
@@ -87,7 +99,7 @@ The seeing estimate is derived from wind speed at multiple altitudes and atmosph
 
 ### Transparency (limiting magnitude)
 
-Transparency is estimated from cloud cover, humidity, and visibility:
+`transparency_score` (0-100) is estimated from cloud cover, humidity, and visibility, and is then mapped linearly onto a limiting magnitude between `MAGNITUDE_LIMIT_ZENITH_MIN` (4.0) and `MAGNITUDE_LIMIT_ZENITH_MAX` (8.0):
 
 $$m_\text{lim} = m_{\text{lim,zenith}} - \Delta(\text{cloud},\, \text{humidity},\, \text{visibility})$$
 
@@ -114,7 +126,7 @@ Wind speed at 80 m and 120 m altitude is used as a proxy for jet-stream influenc
 - Wind is calm
 - Dew margin is safe
 
-This "best period" badge is displayed in the Trend sub-tab.
+These "best period" cards are displayed in the Astrophotography tab.
 
 ---
 
@@ -191,10 +203,10 @@ than an averaged component, the same convention used by `weather_astro.py`'s
 `lifted_index` is decoded and exposed but not scored, since 7Timer's `seeing` value already
 folds atmospheric stability into its own model.
 
-The Seeing sub-tab renders this as an hourly timeline in the same visual style as the Trend
-sub-tab's "Tonight's Score" (`night-score-timeline`): one card per timeslot with the combined
-score, a quality badge, and an icon row for every underlying metric (seeing, transparency,
-cloud cover, wind, humidity, precipitation).
+The Seeing sub-tab renders this as an hourly timeline in the same visual style as the
+Astrophotography tab's "Score de la Nuit" (`night-score-timeline`): one card per timeslot with
+the combined score, a quality badge, and an icon row for every underlying metric (seeing,
+transparency, cloud cover, wind, humidity, precipitation).
 
 ### Best windows
 
@@ -230,9 +242,9 @@ Alerts are translated using the i18n system and displayed in the **Alerts** sub-
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/weather/forecast` | Full hourly weather forecast from Open-Meteo |
-| `GET` | `/api/weather/astro-analysis` | Astrophotography metrics (seeing, transparency, best period) |
-| `GET` | `/api/weather/astro-current` | Current-hour astrophotography conditions snapshot |
+| `GET` | `/api/weather/forecast` | Full hourly weather forecast from Open-Meteo; each hour's `condition` is the unified `observation_score` x10, merged from the `astro_weather` cache |
+| `GET` | `/api/weather/astro-analysis` | Astrophotography metrics (seeing, transparency, best period); the 24 h / default-language request is served from the `astro_weather` cache |
+| `GET` | `/api/weather/astro-current` | Current-hour astrophotography conditions snapshot (served from the `astro_weather` cache when warm) |
 | `GET` | `/api/weather/alerts` | Active weather alerts list |
 | `GET` | `/api/seeing-forecast` | 7Timer seeing and transparency time-series |
 

@@ -27,7 +27,8 @@ from astroweather.aurora_predictions import get_aurora_report
 from space.iss_passes import get_iss_passes_report
 from space.css_passes import get_css_passes_report
 from weather.weather_openmeteo import get_hourly_forecast
-from utils import slugify_location_name
+from weather.weather_astro import get_astro_weather_analysis
+from utils import slugify_location_name, _sanitize_for_json
 from cache import cache_store
 from utils.constants import (
     WEATHER_CACHE_TTL,
@@ -46,6 +47,7 @@ from utils.constants import (
     CACHE_TTL_SOLAR_SYSTEM_EVENTS,
     CACHE_TTL_SIDEREAL_TIME,
     CACHE_TTL_SEEING_FORECAST,
+    CACHE_TTL_ASTRO_WEATHER,
     CACHE_TTL_SPACEFLIGHT_LAUNCHES,
     CACHE_TTL_SPACEFLIGHT_ASTRONAUTS,
     CACHE_TTL_SPACEFLIGHT_EVENTS,
@@ -372,6 +374,44 @@ def update_weather_cache(config=None, location=None):
 
     except Exception as e:
         logger.error(f"Failed to update Weather forecast cache: {e}")
+
+
+def update_astro_weather_cache(config=None, location=None):
+    """Update the jet-stream-aware astrophotography weather analysis cache for one location.
+
+    This is the single source of truth for the app-wide observation score: the sky widget
+    pill, the location switcher, the Weather-tab hourly "condition" and the "Score de la
+    Nuit" cards all read the ``observation_score`` computed here. Persisting it per location
+    lets those consumers read a warm shared-file cache instead of each firing its own live
+    Open-Meteo request.
+    """
+    try:
+        logger.debug("Updating Astro weather analysis cache...")
+        if config is None:
+            config = load_config()
+        location = _resolve_job_location(config, location)
+
+        logger.debug(_masked_location_log(location))
+
+        analysis = get_astro_weather_analysis(24, language=config.get("language", "en"), location=location)
+
+        if analysis is None:
+            stale_entry = cache_store.load_location_cache("astro_weather", location["id"])
+            if stale_entry.get("data"):
+                logger.warning(
+                    "Live astro weather fetch failed for location %s; keeping existing cached analysis",
+                    location.get("id"),
+                )
+            else:
+                logger.warning("Failed to fetch astro weather analysis - no stale cache available")
+            return
+
+        cache_store.update_location_cache("astro_weather", location["id"], _sanitize_for_json(analysis))
+
+        logger.info(f"Astro weather analysis cache updated at {datetime.now().isoformat()}")
+
+    except Exception as e:
+        logger.error(f"Failed to update Astro weather analysis cache: {e}")
 
 
 def update_solar_eclipse_cache(config=None, location=None):
@@ -1138,6 +1178,7 @@ _LOCATION_JOBS = (
     ("seeing_forecast", "seeing_forecast", "update_seeing_forecast_cache", CACHE_TTL_SEEING_FORECAST, False),
     ("best_window", "best_window_strict", "update_best_window_cache", CACHE_TTL_BEST_WINDOW, True),
     ("weather_forecast", "weather_forecast", "update_weather_cache", WEATHER_CACHE_TTL, False),
+    ("astro_weather", "astro_weather", "update_astro_weather_cache", CACHE_TTL_ASTRO_WEATHER, False),
 )
 
 # Network-bound jobs that can run concurrently (pure API calls, no shared state).

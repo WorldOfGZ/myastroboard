@@ -19,7 +19,8 @@ Caches are split into two buckets (full details: [docs/LOCATIONS.md](LOCATIONS.m
   `best_window_strict/practical/illumination`, `solar_eclipse`, `lunar_eclipse`,
   `horizon_graph`, `aurora`, `iss_passes`, `css_passes`, `planetary_events`,
   `special_phenomena`, `solar_system_events`, `sidereal_time`, `seeing_forecast`,
-  `weather_forecast` (single source of truth: `cache_store.LOCATION_SCOPED_CACHE_TTLS`).
+  `weather_forecast`, `astro_weather` (single source of truth:
+  `cache_store.LOCATION_SCOPED_CACHE_TTLS`).
 - **Global caches** keep the single-slot module-level shape: `spaceflight_launches`,
   `spaceflight_astronauts`, `spaceflight_events`, `iers`, AllSky connector caches, and
   the version-check cache. The ISS/CSS **TLE fetch** is also global (its own on-disk
@@ -61,6 +62,7 @@ Each cache job has an individual TTL defined in `backend/utils/constants.py`:
 | `sidereal_time` | 1 hour | Hourly precision is sufficient |
 | `seeing_forecast` | 6 hours | 7Timer API update frequency |
 | `weather_forecast` | 1 hour | Suitable for UI display |
+| `astro_weather` | 30 min | Jet-stream-aware astro analysis; source of the app-wide `observation_score` |
 | `spaceflight_launches` | 2 hours | Launch Library API budget and cadence |
 | `spaceflight_astronauts` | 6 hours | Crew roster changes are less frequent |
 | `spaceflight_events` | 2 hours | Event feed changes but does not require minute-level polling |
@@ -116,7 +118,9 @@ Signatures are tracked per preset id in `data/cache/location_cache.json`
 - **New**: `get_cache_metrics()` - returns per-job execution metrics from shared cache
 - Key functions:
   - `is_cache_valid(cache_entry, ttl_seconds)` - check if cache is still fresh
-  - `is_astronomical_cache_ready()` - check if all caches are valid (uses per-job TTLs)
+  - `is_astronomical_cache_ready()` - check if all caches are valid (uses per-job TTLs);
+    the Open-Meteo-backed slots (`weather_forecast`, `astro_weather`) are excluded - they have
+    a live-fetch fallback and must not gate readiness (`_READINESS_LOCATION_CACHES`)
   - `has_location_changed(location_config)` - detect location parameter changes
   - `reset_all_caches()` - immediately reset all astronomical caches
   - `get_cache_init_status()` - detailed cache status including `ttls` and `execution_metrics`
@@ -208,6 +212,7 @@ When location is updated via `/api/config` POST endpoint:
     "sidereal_time": true,
     "seeing_forecast": true,
     "weather_forecast": true,
+    "astro_weather": true,
     "all_ready": true,
     "ttls": {
       "moon_report": 7200,
@@ -227,6 +232,7 @@ When location is updated via `/api/config` POST endpoint:
       "sidereal_time": 3600,
       "seeing_forecast": 21600,
       "weather_forecast": 3600,
+      "astro_weather": 1800,
       "spaceflight_launches": 7200,
       "spaceflight_astronauts": 21600,
       "spaceflight_events": 7200,

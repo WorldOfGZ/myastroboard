@@ -254,13 +254,10 @@ class TestDetermineSkySeriod:
 class TestSkyWidgetApi:
     """Integration tests for GET /api/sky-widget."""
 
-    # Patch target: get_current_astro_conditions is imported locally inside the
-    # route function via `from weather.weather_astro import ...`, so we patch it at the
-    # source module level.
-    _PATCH_TARGET = "weather.weather_astro.get_current_astro_conditions"
-
     # v1.2: the widget resolves the caller's active location preset and reads
-    # the per-location sun_report cache slot.
+    # the per-location sun_report cache slot. The observation score comes from the
+    # per-location astro_weather cache - the same value the location switcher and the
+    # "Score de la Nuit" cards show (no live fetch in the request path).
     _LOC_ID = "sky-widget-test-loc"
     _FAKE_CONFIG = {
         "locations": [
@@ -294,6 +291,14 @@ class TestSkyWidgetApi:
         # never overrides the in-memory payload we just planted.
         entry["timestamp"] = _time.time() + 60
 
+    def _setup_astro_cache(self, current_conditions):
+        from cache import cache_store as cs
+        import time as _time
+
+        entry = cs.get_location_cache_entry("astro_weather", self._LOC_ID)
+        entry["data"] = {"current_conditions": current_conditions} if current_conditions is not None else None
+        entry["timestamp"] = _time.time() + 60
+
     def test_happy_path_returns_json(self, client_admin, monkeypatch):
         """Valid cache + valid conditions → 200 with all expected keys."""
         now = datetime.now(timezone.utc)
@@ -302,20 +307,20 @@ class TestSkyWidgetApi:
             astronomical_dawn=_fmt(now + timedelta(hours=2)),
         )
         self._setup_sun_cache(monkeypatch, sd)
-        with patch("utils.route_helpers.load_config", return_value=self._FAKE_CONFIG), \
-             patch(self._PATCH_TARGET, return_value=self._GOOD_CONDITIONS):
+        self._setup_astro_cache(self._GOOD_CONDITIONS)
+        with patch("utils.route_helpers.load_config", return_value=self._FAKE_CONFIG):
             resp = client_admin.get("/api/sky-widget")
         assert resp.status_code == 200
         data = resp.get_json()
         assert "period" in data
         assert "observation_score" in data
         assert data["period"] == "astronomical_night"
-        assert data["observation_score"] is not None
+        assert data["observation_score"] == 8.2
         assert data["location"] == "Test City"
         assert data["location_id"] == self._LOC_ID
 
-    def test_score_formula_matches_night_timeline(self, client_admin, monkeypatch):
-        """observation_score is read directly from current_conditions (computed by backend)."""
+    def test_score_read_from_astro_weather_cache(self, client_admin, monkeypatch):
+        """observation_score is read verbatim from the astro_weather cache current_conditions."""
         conditions = {
             "seeing_pickering": 6.0,
             "transparency_score": 60.0,
@@ -324,8 +329,8 @@ class TestSkyWidgetApi:
             "observation_score": 6.0,
         }
         self._setup_sun_cache(monkeypatch, _make_sun_data())
-        with patch("utils.route_helpers.load_config", return_value=self._FAKE_CONFIG), \
-             patch(self._PATCH_TARGET, return_value=conditions):
+        self._setup_astro_cache(conditions)
+        with patch("utils.route_helpers.load_config", return_value=self._FAKE_CONFIG):
             resp = client_admin.get("/api/sky-widget")
         data = resp.get_json()
         assert data["observation_score"] == 6.0
@@ -349,37 +354,41 @@ class TestSkyWidgetApi:
             return shared_payload if key == f"sun_report:{self._LOC_ID}" else None
 
         monkeypatch.setattr(cs, "load_shared_cache_entry", mock_load_shared)
-        with patch("utils.route_helpers.load_config", return_value=self._FAKE_CONFIG), \
-             patch(self._PATCH_TARGET, return_value=None):
+        with patch("utils.route_helpers.load_config", return_value=self._FAKE_CONFIG):
             resp = client_admin.get("/api/sky-widget")
         assert resp.status_code == 200
         assert f"sun_report:{self._LOC_ID}" in calls
         # The shared payload actually drove the response (day fallback period)
         assert resp.get_json()["period"] == "day"
 
-    def test_score_is_none_when_conditions_unavailable(self, client_admin, monkeypatch):
-        """get_current_astro_conditions returns None → score is None."""
+    def test_score_is_none_when_astro_cache_empty(self, client_admin, monkeypatch):
+        """No astro_weather cache entry → score is None (widget still renders)."""
         self._setup_sun_cache(monkeypatch, _make_sun_data())
-        with patch("utils.route_helpers.load_config", return_value=self._FAKE_CONFIG), \
-             patch(self._PATCH_TARGET, return_value=None):
+        self._setup_astro_cache(None)
+        with patch("utils.route_helpers.load_config", return_value=self._FAKE_CONFIG):
             resp = client_admin.get("/api/sky-widget")
         assert resp.status_code == 200
         assert resp.get_json()["observation_score"] is None
 
-    def test_score_is_none_when_conditions_missing_seeing(self, client_admin, monkeypatch):
-        """Conditions without 'observation_score' → score stays None."""
+    def test_score_is_none_when_conditions_missing_score(self, client_admin, monkeypatch):
+        """current_conditions without 'observation_score' → score stays None."""
         self._setup_sun_cache(monkeypatch, _make_sun_data())
-        with patch("utils.route_helpers.load_config", return_value=self._FAKE_CONFIG), \
-             patch(self._PATCH_TARGET, return_value={"other": 1}):
+        self._setup_astro_cache({"other": 1})
+        with patch("utils.route_helpers.load_config", return_value=self._FAKE_CONFIG):
             resp = client_admin.get("/api/sky-widget")
         assert resp.status_code == 200
         assert resp.get_json()["observation_score"] is None
 
-    def test_score_is_none_when_conditions_raises(self, client_admin, monkeypatch):
-        """Exception in get_current_astro_conditions is swallowed, score is None."""
+    def test_score_is_none_when_astro_cache_malformed(self, client_admin, monkeypatch):
+        """A malformed astro_weather payload is swallowed, score is None."""
+        from cache import cache_store as cs
+        import time as _time
+
         self._setup_sun_cache(monkeypatch, _make_sun_data())
-        with patch("utils.route_helpers.load_config", return_value=self._FAKE_CONFIG), \
-             patch(self._PATCH_TARGET, side_effect=RuntimeError("boom")):
+        entry = cs.get_location_cache_entry("astro_weather", self._LOC_ID)
+        entry["data"] = 12345  # not a dict
+        entry["timestamp"] = _time.time() + 60
+        with patch("utils.route_helpers.load_config", return_value=self._FAKE_CONFIG):
             resp = client_admin.get("/api/sky-widget")
         assert resp.status_code == 200
         assert resp.get_json()["observation_score"] is None

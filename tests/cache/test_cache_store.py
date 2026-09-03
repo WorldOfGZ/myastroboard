@@ -64,6 +64,7 @@ class TestLocationScopedRegistry:
             'sidereal_time',
             'seeing_forecast',
             'weather_forecast',
+            'astro_weather',
         ):
             assert name in cache_store.LOCATION_SCOPED_CACHE_TTLS
 

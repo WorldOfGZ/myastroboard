@@ -76,5 +76,23 @@ the setup wizard...) now shares one open/close path:
 - The "choose an equipment set" picker is a proper dialog now (locks the background, traps focus,
   scrolls when the list is long).
 
+#### Unified night score
+
+The observation score shown in the navbar sky widget, the location switcher, the Weather tab's
+hourly cards and the "Score de la Nuit" cards is now a single value everywhere - the
+jet-stream-aware `observation_score` from the astro weather analysis. Previously the switcher
+and the Weather tab derived their own simpler cloud-weighted score, which could disagree with
+the pill by several points for the same place and hour.
+
+A scale bug in the transparency component of that analysis is also fixed: it was computed on a
+0-1 scale while every consumer expected 0-100, so the transparency factor contributed almost
+nothing to the score and the predicted limiting magnitude was stuck near its 4.0 floor. Night
+scores are now a couple of points higher on genuinely clear, dry nights, and the
+limiting-magnitude estimate tracks transparency across its full range.
+
+The per-location astro weather analysis is now kept warm by the cache scheduler (new
+`astro_weather` cache) so the pill and switcher read it without firing a live Open-Meteo
+request on every page load.
+
 #### Various
 - Enhance sorting functionality in Astrodex with numeric-aware comparison
