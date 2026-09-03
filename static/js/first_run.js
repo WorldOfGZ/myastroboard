@@ -176,7 +176,7 @@ function _wizardBack() {
 
 async function _wizardFinish() {
     await _wizardPersist({ completed: true, skipped: false });
-    _wizard.modal?.hide();
+    closeModal('#wizard-modal');
     if (typeof SkyWidget !== 'undefined') SkyWidget.refresh();
 }
 
@@ -194,14 +194,14 @@ async function _wizardSkip(all) {
 
     if (all) {
         await _wizardPersist({ completed: false, skipped: true });
-        _wizard.modal?.hide();
+        closeModal('#wizard-modal');
         return;
     }
 
     _wizard.stepIndex += 1;
     if (_wizard.stepIndex >= _wizard.steps.length) {
         await _wizardPersist({ completed: false, skipped: true });
-        _wizard.modal?.hide();
+        closeModal('#wizard-modal');
         return;
     }
     _renderWizardStep();

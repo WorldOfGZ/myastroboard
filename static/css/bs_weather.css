@@ -165,6 +165,16 @@
     --quality-shadow-hover: var(--quality-bad-shadow-hover);
 }
 
+/* No score yet (cold cache, no usable components) - neutral, not an alarm. */
+.quality-unknown {
+    --quality-bg: var(--dew-unknown-bg);
+    --quality-overlay: var(--dew-unknown-overlay);
+    --quality-text: var(--dew-unknown-text);
+    --quality-border: var(--dew-unknown-border);
+    --quality-shadow: var(--dew-unknown-shadow);
+    --quality-shadow-hover: var(--dew-unknown-shadow-hover);
+}
+
 /* Night Score Timeline */
 .night-score-timeline-scroll {
     overflow-x: auto;

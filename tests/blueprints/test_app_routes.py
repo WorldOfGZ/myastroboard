@@ -9950,11 +9950,18 @@ class TestCachedLocationScore:
 
 class TestForecastObservationScoreMerge:
     """_forecast_with_observation_score: the Weather tab's hourly 'condition' is the
-    single app-wide observation_score x10, merged per hour from the astro_weather cache."""
+    single app-wide observation_score x10, merged per hour from the astro_weather cache.
+    Hours the cache cannot answer fall back to a local component-weighted score so the
+    quality column degrades gracefully instead of blanking."""
 
     @staticmethod
     def _astro(*rows):
         return {'data': {'hourly_data': list(rows)}}
+
+    @staticmethod
+    def _components(cloudless=80.0, seeing=60.0, transparency=40.0):
+        # Local fallback: cloudless * 0.5 + seeing * 0.25 + transparency * 0.25.
+        return {'cloudless': cloudless, 'seeing': seeing, 'transparency': transparency}
 
     def test_condition_set_from_matching_hour(self, monkeypatch):
         monkeypatch.setattr(
@@ -9973,13 +9980,31 @@ class TestForecastObservationScoreMerge:
         assert out['hourly'][1]['condition'] == pytest.approx(59.0)
         assert 'condition' not in payload['hourly'][0]  # input not mutated
 
-    def test_unmatched_hour_has_no_condition(self, monkeypatch):
+    def test_astro_score_wins_over_local_components(self, monkeypatch):
+        monkeypatch.setattr(
+            _weather_mod.cache_store, 'load_location_cache',
+            lambda name, loc: self._astro({'datetime': '2026-09-03T21:00:00+02:00', 'observation_score': 6.3}),
+        )
+        record = {'date': '2026-09-03T21:00:00+02:00', **self._components()}
+        out = _weather_mod._forecast_with_observation_score({'hourly': [record]}, 'l')
+        assert out['hourly'][0]['condition'] == pytest.approx(63.0)  # not the 65.0 local blend
+
+    def test_unmatched_hour_without_components_has_no_condition(self, monkeypatch):
         monkeypatch.setattr(
             _weather_mod.cache_store, 'load_location_cache',
             lambda name, loc: self._astro({'datetime': '2026-09-03T21:00:00+02:00', 'observation_score': 6.3}),
         )
         out = _weather_mod._forecast_with_observation_score({'hourly': [{'date': '2026-09-03T23:00:00+02:00'}]}, 'l')
         assert 'condition' not in out['hourly'][0]
+
+    def test_unmatched_hour_falls_back_to_local_component_score(self, monkeypatch):
+        monkeypatch.setattr(
+            _weather_mod.cache_store, 'load_location_cache',
+            lambda name, loc: self._astro({'datetime': '2026-09-03T21:00:00+02:00', 'observation_score': 6.3}),
+        )
+        record = {'date': '2026-09-03T23:00:00+02:00', **self._components()}
+        out = _weather_mod._forecast_with_observation_score({'hourly': [record]}, 'l')
+        assert out['hourly'][0]['condition'] == pytest.approx(65.0)
 
     def test_stale_condition_is_replaced(self, monkeypatch):
         monkeypatch.setattr(
@@ -9991,9 +10016,21 @@ class TestForecastObservationScoreMerge:
         )
         assert out['hourly'][0]['condition'] == pytest.approx(63.0)
 
-    def test_missing_astro_cache_drops_stale_condition(self, monkeypatch):
+    def test_cold_astro_cache_uses_local_component_score(self, monkeypatch):
+        monkeypatch.setattr(_weather_mod.cache_store, 'load_location_cache', lambda name, loc: {'data': None})
+        record = {'date': '2026-09-03T21:00:00+02:00', 'condition': 88.0, **self._components()}
+        out = _weather_mod._forecast_with_observation_score({'hourly': [record]}, 'l')
+        assert out['hourly'][0]['condition'] == pytest.approx(65.0)  # stale 88.0 replaced by local blend
+
+    def test_cold_astro_cache_without_components_drops_condition(self, monkeypatch):
         monkeypatch.setattr(_weather_mod.cache_store, 'load_location_cache', lambda name, loc: {'data': None})
         out = _weather_mod._forecast_with_observation_score(
             {'hourly': [{'date': '2026-09-03T21:00:00+02:00', 'condition': 88.0}]}, 'l'
         )
+        assert 'condition' not in out['hourly'][0]
+
+    def test_non_finite_components_do_not_produce_condition(self, monkeypatch):
+        monkeypatch.setattr(_weather_mod.cache_store, 'load_location_cache', lambda name, loc: {'data': None})
+        record = {'date': '2026-09-03T21:00:00+02:00', 'cloudless': float('nan'), 'seeing': 60.0, 'transparency': 40.0}
+        out = _weather_mod._forecast_with_observation_score({'hourly': [record]}, 'l')
         assert 'condition' not in out['hourly'][0]
