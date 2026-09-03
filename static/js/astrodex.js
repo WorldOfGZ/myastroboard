@@ -926,34 +926,40 @@ function filterAndSortAstrodexItems() {
         items = items.filter(item => !item.pictures || item.pictures.length === 0);
     }
 
-    // Apply sorting
+    // Apply sorting. Names and types are compared with a numeric-aware collator so
+    // catalogue identifiers order the way they read ("M 3" < "M 31" < "M 100")
+    // instead of as plain strings ("M 1", "M 10", "M 100", "M 3", "M 31", "M 4").
+    const naturalCompare = (x, y) =>
+        String(x || '').localeCompare(String(y || ''), undefined, { numeric: true, sensitivity: 'base' });
+    const direction = astrodexFilters.sortOrder === 'asc' ? 1 : -1;
+
     items.sort((a, b) => {
-        let compareA, compareB;
+        let comparison;
 
         switch (astrodexFilters.sortBy) {
             case 'name':
-                compareA = a.name.toLowerCase();
-                compareB = b.name.toLowerCase();
+                comparison = naturalCompare(a.name, b.name);
                 break;
             case 'type':
-                compareA = (a.type || '').toLowerCase();
-                compareB = (b.type || '').toLowerCase();
+                comparison = naturalCompare(a.type, b.type);
                 break;
             case 'date':
-                compareA = new Date(a.created_at || 0);
-                compareB = new Date(b.created_at || 0);
+                comparison = new Date(a.created_at || 0) - new Date(b.created_at || 0);
                 break;
             case 'photos':
-                compareA = a.pictures ? a.pictures.length : 0;
-                compareB = b.pictures ? b.pictures.length : 0;
+                comparison = (a.pictures ? a.pictures.length : 0) - (b.pictures ? b.pictures.length : 0);
                 break;
             default:
                 return 0;
         }
 
-        if (compareA < compareB) return astrodexFilters.sortOrder === 'asc' ? -1 : 1;
-        if (compareA > compareB) return astrodexFilters.sortOrder === 'asc' ? 1 : -1;
-        return 0;
+        // Objects level on the chosen field fall back to natural name order, so the
+        // grid stays readable instead of dropping back to insertion order.
+        if (comparison === 0 && astrodexFilters.sortBy !== 'name') {
+            comparison = naturalCompare(a.name, b.name);
+        }
+
+        return direction * comparison;
     });
 
     return items;

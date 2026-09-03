@@ -90,7 +90,7 @@ shared) plus an **"Other equipment"** option.
 
 ### Browsing
 
-The Astrodex grid shows all your objects with cover picture thumbnails. Items without pictures use a default placeholder image. Objects are sorted alphabetically by normalised name.
+The Astrodex grid shows all your objects with cover picture thumbnails. Items without pictures use a default placeholder image. Sort by name, type, date added or photo count, ascending or descending. Name and type sorts are numeric-aware, so catalogue identifiers order the way they read (`M 3` before `M 31` before `M 100`, not as plain strings).
 
 **Constellation filter**: Objects are grouped by constellation using `backend/constellation.py`. You can filter to show only objects in a specific constellation.
 

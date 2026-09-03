@@ -59,3 +59,6 @@ Some improvements have been made to minimize this effect, while continuing to re
 - Added a lock so that in a multi-location setup, the ISS & CSS TLE are downloaded only once instead of once per location.
 - Added more logging to see exactly what is received when Celestrak struggles, including the HTTP status code and a confirmation when the block is manually cleared.
 - ISS & CSS fallback never fell back to the mirror TLE sources when Celestrak was down; this is now corrected.
+
+#### Various
+- Enhance sorting functionality in Astrodex with numeric-aware comparison
