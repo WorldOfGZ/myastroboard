@@ -28,6 +28,9 @@ replaced.
   full feature doc at `docs/MYASTROSHINE.md`. It is **not** a `BaseConnector` - a bidirectional
   Astrodex feature that only stores its config alongside the connectors so it rides along in the
   backup ZIP.
+- Hardening: `get_user_astrodex_file()` now confines the per-user data-file path with a realpath
+  barrier (the same pattern the image endpoints already use), and the identifiers carried by a
+  handoff are re-validated to a strict uuid shape at every entry point.
 - The Parameters -> Connectors intro text no longer implies every connector feeds the
   Observatory tab.
 

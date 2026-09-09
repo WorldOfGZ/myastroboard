@@ -146,7 +146,9 @@ These are **not** editable - they are absent from `update_picture()`'s allowed f
   constant time; rate-limited; upload size capped at `MYASTROSHINE_MAX_IMAGE_BYTES` (50 MB).
 - `callback_base` is board-set and re-verified against MyAstroShine's allowlist.
 - The handoff pins `user_id` + `item_id` + `picture_id`, so a return can only ever write into that
-  user's Astrodex, on that item.
+  user's Astrodex, on that item. All three are re-checked to a strict uuid shape at every entry
+  point (defence in depth on top of the signature), and `get_user_astrodex_file()` confines the
+  resulting path to `data/astrodex/` with a realpath barrier.
 - Enhanced image is confined to `data/astrodex/images/` with the same realpath barrier as the
   normal upload path.
 - `token` / `signing_secret` live in `config.json` (backup ZIP), are masked in API responses, and

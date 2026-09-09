@@ -497,10 +497,27 @@ def ensure_astrodex_directories():
     os.makedirs(ASTRODEX_IMAGES_DIR, exist_ok=True)
 
 
+_REJECTED_ASTRODEX_FILE = '__rejected___astrodex.json'
+
+
 def get_user_astrodex_file(user_id: str) -> str:
-    """Get the path to a user's astrodex data file using user UUID"""
+    """Get the path to a user's astrodex data file using user UUID.
+
+    ``user_id`` is a server-issued uuid in normal use, but every caller ends up
+    here, so the containment check lives in one place: realpath + startswith
+    (the pattern CodeQL's py/path-injection query recognises as a sanitizer
+    barrier, same as upload_astrodex_image / _resolve_image_file_path). A value
+    that would escape ASTRODEX_DIR is swapped for a fixed, guaranteed-missing
+    name inside the directory, so callers just see "no such astrodex" and bulk
+    iteration over many users is never interrupted.
+    """
     ensure_astrodex_directories()
-    return os.path.join(ASTRODEX_DIR, f'{user_id}_astrodex.json')
+    base_dir = os.path.realpath(ASTRODEX_DIR)
+    file_path = os.path.realpath(os.path.join(base_dir, f'{user_id}_astrodex.json'))
+    if not file_path.startswith(base_dir + os.sep):
+        logger.warning("Rejected out-of-tree astrodex user id: %r", user_id)
+        return os.path.join(base_dir, _REJECTED_ASTRODEX_FILE)
+    return file_path
 
 
 def load_user_astrodex(user_id: str, username: Optional[str] = None) -> Dict:

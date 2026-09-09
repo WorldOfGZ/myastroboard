@@ -230,8 +230,10 @@ def mint_handoff_api():
         data = request.get_json(silent=True) or {}
         item_id = str(data.get('item_id') or '').strip()
         picture_id = str(data.get('picture_id') or '').strip()
-        if not item_id or not picture_id:
-            return jsonify({'error': 'item_id and picture_id are required'}), 400
+        # Strict uuid shape: these end up in the handoff token and, on the return
+        # trip, in per-user Astrodex file paths (see _HANDOFF_ID_RE).
+        if not (integration._is_handoff_id(item_id) and integration._is_handoff_id(picture_id)):
+            return jsonify({'error': 'item_id and picture_id must be valid ids'}), 400
 
         cfg = integration.get_integration_config()
         if not integration.integration_enabled(cfg):

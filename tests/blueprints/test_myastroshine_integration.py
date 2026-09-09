@@ -240,8 +240,17 @@ def test_handoff_forbidden_when_disabled(client_admin, env, admin_id, monkeypatc
 
 def test_handoff_404_for_unknown_picture(client_admin, env, admin_id):
     item, _ = _seed(admin_id)
-    resp = client_admin.post("/api/astrodex/integration/handoff", json={"item_id": item["id"], "picture_id": "ghost"})
+    resp = client_admin.post(
+        "/api/astrodex/integration/handoff",
+        json={"item_id": item["id"], "picture_id": "00000000-0000-4000-8000-000000000000"},
+    )
     assert resp.status_code == 404
+
+
+def test_handoff_400_for_malformed_ids(client_admin, env, admin_id):
+    _seed(admin_id)
+    resp = client_admin.post("/api/astrodex/integration/handoff", json={"item_id": "../../x", "picture_id": "ghost"})
+    assert resp.status_code == 400
 
 
 def test_handoff_returns_open_url(client_admin, env, admin_id):
