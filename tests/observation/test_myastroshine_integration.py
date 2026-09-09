@@ -106,6 +106,11 @@ def test_integration_enabled_requires_all_fields():
     assert integration.integration_enabled(_cfg(signing_secret="")) is False
 
 
+def test_integration_enabled_reads_config_when_cfg_omitted(monkeypatch):
+    monkeypatch.setattr(integration, "get_integration_config", lambda config=None: _cfg())
+    assert integration.integration_enabled() is True
+
+
 # ---------------------------------------------------------------------------
 # Handoff token
 # ---------------------------------------------------------------------------
@@ -318,3 +323,181 @@ def test_consumed_jti_persists_to_disk(temp_data_dir):
     integration._consumed.clear()
     integration._load_consumed_from_disk()
     assert integration.is_handoff_consumed("jti-persist") is True
+
+
+# ---------------------------------------------------------------------------
+# get_integration_config (the real one - other tests monkeypatch it away)
+# ---------------------------------------------------------------------------
+
+
+def test_get_integration_config_from_explicit_config():
+    cfg = integration.get_integration_config({"connectors": {"myastroshine": {"url": "http://x:1"}}})
+    assert cfg == {"url": "http://x:1"}
+
+
+def test_get_integration_config_handles_missing_and_none_block():
+    assert integration.get_integration_config({"connectors": {"myastroshine": None}}) == {}
+    assert integration.get_integration_config({}) == {}
+
+
+def test_get_integration_config_loads_config_when_omitted(monkeypatch):
+    monkeypatch.setattr(
+        integration, "load_config", lambda: {"connectors": {"myastroshine": {"enabled": True}}}
+    )
+    assert integration.get_integration_config() == {"enabled": True}
+
+
+# ---------------------------------------------------------------------------
+# verify_handoff - forged-but-signed payloads exercise the decode / shape guards
+# ---------------------------------------------------------------------------
+
+
+def _sign_body(cfg, body: str) -> str:
+    sig = integration._b64url_encode(
+        hmac.new(cfg["signing_secret"].encode("utf-8"), body.encode("ascii"), hashlib.sha256).digest()
+    )
+    return f"{body}.{sig}"
+
+
+def test_verify_handoff_rejects_undecodable_json_payload():
+    cfg = _cfg()
+    token = _sign_body(cfg, integration._b64url_encode(b"this is not json{"))
+    assert integration.verify_handoff(cfg, token) is None
+
+
+def test_verify_handoff_rejects_non_dict_claims():
+    cfg = _cfg()
+    token = _sign_body(cfg, integration._b64url_encode(b"123"))
+    assert integration.verify_handoff(cfg, token) is None
+
+
+def test_verify_handoff_rejects_non_numeric_exp():
+    cfg = _cfg()
+    body = integration._b64url_encode(
+        integration.canonical_json({"kid": _TOKEN[:12], "exp": "not-a-number"}).encode("utf-8")
+    )
+    assert integration.verify_handoff(cfg, _sign_body(cfg, body)) is None
+
+
+# ---------------------------------------------------------------------------
+# consumed-jti store: disk load resilience + expiry pruning
+# ---------------------------------------------------------------------------
+
+
+def test_load_consumed_from_disk_ignores_non_dict_file(temp_data_dir):
+    astrodex.ensure_astrodex_directories()
+    with open(integration._consumed_file_path(), "w", encoding="utf-8") as handle:
+        json.dump(["not", "a", "dict"], handle)
+    integration._consumed.clear()
+    integration._load_consumed_from_disk()
+    assert integration._consumed == {}
+
+
+def test_load_consumed_from_disk_skips_bad_and_expired_entries(temp_data_dir):
+    astrodex.ensure_astrodex_directories()
+    with open(integration._consumed_file_path(), "w", encoding="utf-8") as handle:
+        json.dump(
+            {"good": time.time() + 300, "unparseable": "xxx", "expired": 1.0}, handle
+        )
+    integration._consumed.clear()
+    integration._load_consumed_from_disk()
+    assert list(integration._consumed) == ["good"]
+
+
+def test_is_handoff_consumed_drops_expired_entry(temp_data_dir):
+    integration._consumed["stale"] = time.time() - 5
+    assert integration.is_handoff_consumed("stale") is False
+    assert "stale" not in integration._consumed
+
+
+def test_mark_handoff_consumed_default_expiry_and_prunes_expired(temp_data_dir):
+    integration._consumed["already-expired"] = time.time() - 10
+    integration.mark_handoff_consumed("fresh")  # no explicit expiry -> TTL default
+    assert integration._consumed["fresh"] > time.time()
+    assert "already-expired" not in integration._consumed
+
+
+# ---------------------------------------------------------------------------
+# _find_item_and_picture / build_source_payload / resolve_source_image_path
+# ---------------------------------------------------------------------------
+
+
+def test_find_item_and_picture_scans_past_non_matching_pictures(temp_data_dir):
+    item, _ = _seed_item_with_picture()
+    second = astrodex.add_picture_to_item(_UID, item["id"], {"filename": "b.jpg"})
+    found_item, found_picture = integration._find_item_and_picture(_UID, item["id"], second["id"])
+    assert found_item["id"] == item["id"]
+    assert found_picture["id"] == second["id"]
+
+
+def test_find_item_and_picture_known_item_unknown_picture(temp_data_dir):
+    item, _ = _seed_item_with_picture()
+    found_item, found_picture = integration._find_item_and_picture(_UID, item["id"], str(uuid.uuid4()))
+    assert found_item["id"] == item["id"]
+    assert found_picture is None
+
+
+def test_resolve_source_image_path_missing_picture(temp_data_dir):
+    _seed_item_with_picture()
+    claims = {"user_id": _UID, "item_id": str(uuid.uuid4()), "picture_id": str(uuid.uuid4())}
+    assert integration.resolve_source_image_path(claims) is None
+
+
+def test_resolve_source_image_path_picture_without_filename(temp_data_dir):
+    item = astrodex.create_astrodex_item(_UID, {"name": "M42", "type": "Nebula"})
+    picture = astrodex.add_picture_to_item(_UID, item["id"], {"filename": ""})
+    claims = {"user_id": _UID, "item_id": item["id"], "picture_id": picture["id"]}
+    assert integration.resolve_source_image_path(claims) is None
+
+
+def test_resolve_source_image_path_file_absent_on_disk(temp_data_dir):
+    item = astrodex.create_astrodex_item(_UID, {"name": "M42", "type": "Nebula"})
+    picture = astrodex.add_picture_to_item(_UID, item["id"], {"filename": "ghost.jpg"})
+    claims = {"user_id": _UID, "item_id": item["id"], "picture_id": picture["id"]}
+    assert integration.resolve_source_image_path(claims) is None
+
+
+# ---------------------------------------------------------------------------
+# _save_enhanced_image guard + create_enhanced_duplicate secondary failures
+# ---------------------------------------------------------------------------
+
+
+def test_save_enhanced_image_rejects_bad_user_id(temp_data_dir):
+    assert integration._save_enhanced_image("../../etc/passwd", b"jpeg") is None
+
+
+def test_create_enhanced_duplicate_appends_note(temp_data_dir):
+    item, source = _seed_item_with_picture()  # source already has notes="first light"
+    integration.create_enhanced_duplicate(
+        _claims_for(item, source), b"jpeg", {"parameters": {}, "note": "  denoised x3  "}
+    )
+    dup = astrodex.get_astrodex_item(_UID, item["id"])["pictures"][1]
+    assert dup["notes"] == "first light\ndenoised x3"
+
+
+def test_create_enhanced_duplicate_note_without_base_notes(temp_data_dir):
+    item = astrodex.create_astrodex_item(_UID, {"name": "M13", "type": "Cluster"})
+    source = astrodex.add_picture_to_item(_UID, item["id"], {"filename": "s.jpg"})
+    with open(os.path.join(astrodex.ASTRODEX_IMAGES_DIR, "s.jpg"), "wb") as handle:
+        handle.write(b"\xff\xd8\xff")
+    integration.create_enhanced_duplicate(
+        _claims_for(item, source), b"jpeg", {"parameters": {}, "note": "stand-alone note"}
+    )
+    dup = astrodex.get_astrodex_item(_UID, item["id"])["pictures"][1]
+    assert dup["notes"] == "stand-alone note"
+
+
+def test_create_enhanced_duplicate_image_store_failure_is_500(temp_data_dir, monkeypatch):
+    item, source = _seed_item_with_picture()
+    monkeypatch.setattr(integration, "_save_enhanced_image", lambda *a, **k: None)
+    with pytest.raises(integration.EnhancedDuplicateError) as excinfo:
+        integration.create_enhanced_duplicate(_claims_for(item, source), b"jpeg", {"parameters": {}})
+    assert excinfo.value.status == 500
+
+
+def test_create_enhanced_duplicate_item_vanishes_on_save_is_404(temp_data_dir, monkeypatch):
+    item, source = _seed_item_with_picture()
+    monkeypatch.setattr(integration.astrodex, "add_picture_to_item", lambda *a, **k: None)
+    with pytest.raises(integration.EnhancedDuplicateError) as excinfo:
+        integration.create_enhanced_duplicate(_claims_for(item, source), b"jpeg", {"parameters": {}})
+    assert excinfo.value.status == 404

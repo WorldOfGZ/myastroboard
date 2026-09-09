@@ -196,3 +196,34 @@ class TestNextAstronomicalDarkWindow:
 
         assert isinstance(result, tuple)
         assert len(result) == 2
+
+    def test_returns_not_found_when_scan_has_no_dark_window(self):
+        """The coarse grid never reaches astronomical night, so the loop runs to
+        completion without a start and the sentinel ('Not found', 'Not found')
+        is returned."""
+        import numpy as np
+        from unittest.mock import MagicMock, patch
+
+        n_coarse = int((10 * 24 * 60) / 15)
+        sun_alts = np.full(n_coarse, 5.0)  # sun always up -> never dark
+        moon_alts = np.full(n_coarse, 40.0)
+
+        def _make_alt_mock(alts_array):
+            alt_mock = MagicMock()
+            alt_mock.to_value.return_value = alts_array
+            transformed = MagicMock()
+            transformed.alt = alt_mock
+            coord = MagicMock()
+            coord.transform_to.return_value = transformed
+            return coord
+
+        svc = MoonService(48.85, 2.35, 'Europe/Paris')
+        start = datetime.datetime(2026, 6, 21, 22, 0, 0, tzinfo=ZoneInfo('Europe/Paris'))
+
+        with patch('astroweather.moon_phases.AstroTime', return_value=MagicMock()), \
+             patch('astroweather.moon_phases.AltAz', return_value=MagicMock()), \
+             patch('astroweather.moon_phases.get_sun', return_value=_make_alt_mock(sun_alts)), \
+             patch('astroweather.moon_phases.get_body', return_value=_make_alt_mock(moon_alts)):
+            result = svc._next_astronomical_dark_window(start)
+
+        assert result == ("Not found", "Not found")

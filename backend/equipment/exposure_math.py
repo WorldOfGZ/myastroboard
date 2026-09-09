@@ -113,9 +113,10 @@ def estimate_min_integration_hours(
     if sb_arcsec2 is None or not focal_length_mm or not focal_ratio or not pixel_size_um:
         return None
 
+    # focal length & pixel size are validated non-falsy above, so plate scale is always a positive float.
     plate_scale = plate_scale_arcsec_per_px(pixel_size_um, focal_length_mm)
     if not plate_scale:
-        return None
+        return None  # pragma: no cover - defensive; unreachable with validated inputs
 
     aperture_mm = float(focal_length_mm) / float(focal_ratio)
     if aperture_mm <= 0:

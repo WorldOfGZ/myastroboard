@@ -2751,3 +2751,190 @@ def test_dso_route_ignores_malformed_filter_values(client_admin, monkeypatch):
     resp = client_admin.get('/api/skytonight/data/dso?sb_max=abc&size_min=&alt_window_start=99')
     assert resp.status_code == 200
     assert 'advanced_filters' in resp.get_json()
+
+
+# ---------------------------------------------------------------------------
+# v1.4 advanced-filter helpers - branch coverage
+# ---------------------------------------------------------------------------
+
+
+def test_clamp_optional_hour_parsing():
+    clamp = skytonight_api_module._clamp_optional_hour
+    assert clamp(None) is None
+    assert clamp('') is None
+    assert clamp('26') == 2  # wraps mod 24
+    assert clamp('not-a-number') is None  # ValueError -> None
+    assert clamp(object()) is None  # TypeError -> None
+
+
+def test_resolve_combination_optics_empty_id_returns_none():
+    assert skytonight_api_module._resolve_combination_optics('uid-1', '') is None
+
+
+def test_resolve_combination_optics_falls_back_to_shared(monkeypatch):
+    monkeypatch.setattr(skytonight_api_module.equipment_profiles, 'get_combination', lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        skytonight_api_module.equipment_profiles,
+        'load_all_shared_combinations',
+        lambda *_a, **_k: [{'id': 'combo-shared', 'telescope_id': 'tel-1', 'camera_id': None}],
+    )
+    monkeypatch.setattr(
+        skytonight_api_module.equipment_profiles,
+        'index_telescopes_and_cameras',
+        lambda *_a, **_k: ({'tel-1': {'focal_length_mm': 600.0, 'native_focal_ratio': 6.0}}, {}),
+    )
+    optics = skytonight_api_module._resolve_combination_optics('uid-1', 'combo-shared')
+    assert optics is not None and optics['focal_length_mm'] == 600.0
+    assert optics['pixel_size_um'] is None  # no camera -> camera block skipped
+
+
+def test_resolve_combination_optics_unknown_combination_returns_none(monkeypatch):
+    monkeypatch.setattr(skytonight_api_module.equipment_profiles, 'get_combination', lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        skytonight_api_module.equipment_profiles, 'load_all_shared_combinations', lambda *_a, **_k: []
+    )
+    assert skytonight_api_module._resolve_combination_optics('uid-1', 'ghost') is None
+
+
+def test_resolve_combination_optics_camera_only_uses_lens_fields(monkeypatch):
+    monkeypatch.setattr(
+        skytonight_api_module.equipment_profiles,
+        'get_combination',
+        lambda *_a, **_k: {
+            'id': 'combo-lens',
+            'telescope_id': None,
+            'camera_id': 'cam-1',
+            'lens_focal_length_mm': 135.0,
+            'lens_focal_ratio': 2.0,
+        },
+    )
+    monkeypatch.setattr(
+        skytonight_api_module.equipment_profiles,
+        'index_telescopes_and_cameras',
+        lambda *_a, **_k: ({}, {'cam-1': {'pixel_size_um': 4.0}}),  # sensor dims missing
+    )
+    optics = skytonight_api_module._resolve_combination_optics('uid-1', 'combo-lens')
+    assert optics['focal_length_mm'] == 135.0 and optics['focal_ratio'] == 2.0
+    assert optics['fov_h_arcmin'] is None  # sensor_w/h absent -> FOV block skipped
+
+
+def test_resolve_combination_optics_missing_focal_data_returns_none(monkeypatch):
+    monkeypatch.setattr(
+        skytonight_api_module.equipment_profiles,
+        'get_combination',
+        lambda *_a, **_k: {'id': 'combo-bare', 'telescope_id': None, 'camera_id': None},
+    )
+    monkeypatch.setattr(
+        skytonight_api_module.equipment_profiles, 'index_telescopes_and_cameras', lambda *_a, **_k: ({}, {})
+    )
+    assert skytonight_api_module._resolve_combination_optics('uid-1', 'combo-bare') is None
+
+
+def test_resolve_combination_optics_swallows_fov_calc_error(monkeypatch):
+    monkeypatch.setattr(
+        skytonight_api_module.equipment_profiles,
+        'get_combination',
+        lambda *_a, **_k: {'id': 'combo-1', 'telescope_id': 'tel-1', 'camera_id': 'cam-1'},
+    )
+    monkeypatch.setattr(
+        skytonight_api_module.equipment_profiles,
+        'index_telescopes_and_cameras',
+        lambda *_a, **_k: (
+            {'tel-1': {'focal_length_mm': 500.0, 'native_focal_ratio': 5.0}},
+            {'cam-1': {'sensor_width_mm': 23.5, 'sensor_height_mm': 15.7, 'pixel_size_um': 3.76}},
+        ),
+    )
+
+    def _boom(*_a, **_k):
+        raise ZeroDivisionError('bad optics numbers')
+
+    monkeypatch.setattr(skytonight_api_module.equipment_profiles, 'calculate_fov', _boom)
+    optics = skytonight_api_module._resolve_combination_optics('uid-1', 'combo-1')
+    assert optics is not None and optics['fov_h_arcmin'] is None
+
+
+def test_dso_row_passes_advanced_filters_branches():
+    check = skytonight_api_module._dso_row_passes_advanced_filters
+
+    # size_min excludes a small row
+    small = {'size_arcmin': 5.0, 'surface_brightness': 12.0}
+    assert check({}, small, _filters(size_min=10.0), None, None, None) is False
+
+    # alt_window_min_deg set but no start/end -> the window sub-check is skipped, row kept
+    kept = check(
+        {},
+        {'size_arcmin': 5.0, 'hourly_altitude': [{'h': 22, 'alt': 40.0}]},
+        _filters(alt_window_min_deg=30.0),
+        None,
+        None,
+        None,
+    )
+    assert kept is True
+
+    # optics present but carrying no FOV -> fov sub-check skipped, integration cap still applies
+    optics = {
+        'focal_length_mm': 500.0,
+        'focal_ratio': 5.0,
+        'pixel_size_um': 3.76,
+        'quantum_efficiency': 0.8,
+        'fov_h_arcmin': None,
+        'fov_v_arcmin': None,
+    }
+    excluded = check(
+        {},
+        {'size_arcmin': 5.0, 'surface_brightness': 22.0},
+        _filters(max_integration_h=0.001),
+        optics,
+        5,
+        None,
+    )
+    assert excluded is False
+
+
+def test_dso_static_fallback_applies_size_band(monkeypatch):
+    monkeypatch.setattr(skytonight_api_module, 'has_dso_results', lambda *_a, **_k: False)
+    monkeypatch.setattr(
+        skytonight_api_module.plan_my_night, 'get_plan_with_timeline', lambda *_a, **_k: {'state': 'none'}
+    )
+    monkeypatch.setattr(skytonight_api_module.astrodex, 'load_user_astrodex', lambda *_a, **_k: {'items': []})
+    monkeypatch.setattr(skytonight_api_module, '_preload_all_current_plan_entries', lambda *_a, **_k: [])
+    monkeypatch.setattr(skytonight_api_module, '_annotate_skytonight_item', lambda *a, **k: None)
+    monkeypatch.setattr(
+        skytonight_api_module, '_skytonight_request_location',
+        lambda: {'id': 'loc-1', 'name': 'Home', 'bortle': 5, 'sqm': None, 'horizon_profile': []},
+    )
+    targets = [
+        {'category': 'deep_sky', 'preferred_name': 'NGC 10', 'catalogue_names': {'OpenNGC': 'NGC 10'},
+         'object_type': 'Galaxy', 'constellation': 'And', 'size_arcmin': 3.0},
+        {'category': 'deep_sky', 'preferred_name': 'NGC 20', 'catalogue_names': {'OpenNGC': 'NGC 20'},
+         'object_type': 'Galaxy', 'constellation': 'And', 'size_arcmin': 60.0},
+        {'category': 'deep_sky', 'preferred_name': 'NGC 30', 'catalogue_names': {'OpenNGC': 'NGC 30'},
+         'object_type': 'Galaxy', 'constellation': 'And', 'size_arcmin': 500.0},
+    ]
+    monkeypatch.setattr(
+        skytonight_api_module.skytonight_targets, 'load_targets_dataset',
+        lambda *_a, **_k: {'targets': targets, 'metadata': {}},
+    )
+    payload = skytonight_api_module._build_dso_section_payload(
+        None, 'uid-1', 'U', filters=_filters(size_min=5.0, size_max=100.0)
+    )
+    names = {row['target name'] for row in payload['report']}
+    assert names == {'NGC 20'}  # NGC 10 below the band, NGC 30 above it
+
+
+def test_visibility_calendar_route_tolerates_bad_location_timezone(client_admin, monkeypatch):
+    captured = {}
+
+    def _fake(identifier, location, year):
+        captured['year'] = year
+        return {'supported': True, 'months': [], 'samples': []}
+
+    monkeypatch.setattr(skytonight_api_module.visibility_calendar, 'get_visibility_calendar', _fake)
+    monkeypatch.setattr(
+        skytonight_api_module,
+        '_skytonight_request_location',
+        lambda: {'id': 'loc-1', 'name': 'Home', 'timezone': 'Not/AZone'},
+    )
+    resp = client_admin.get('/api/skytonight/visibility-calendar?target=M31')
+    assert resp.status_code == 200
+    assert isinstance(captured['year'], int)  # fell back to UTC's current year

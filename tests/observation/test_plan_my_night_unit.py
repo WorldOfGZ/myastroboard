@@ -814,6 +814,46 @@ class TestGeneratePlanPdf:
         # Multiple pages should produce a reasonably large buffer.
         assert len(result.getvalue()) > 5000
 
+    def test_generate_plan_pdf_draws_meridian_flip_markers(self, tmp_path, monkeypatch):
+        import matplotlib
+
+        matplotlib.use("Agg", force=True)
+        monkeypatch.setattr(
+            "skytonight.skytonight_storage.get_alttime_dir", lambda *_a, **_k: str(tmp_path), raising=True
+        )
+
+        entries = [
+            {
+                "id": "e-early", "name": "Early Flip", "target_name": "Early Flip", "catalogue": "Messier",
+                "type": "Galaxy", "constellation": "Andromeda", "done": False, "planned_duration": "01:00",
+                "timeline_start": "2026-08-12T21:05:00Z", "timeline_end": "2026-08-12T22:05:00Z",
+                "meridian_flip": {"state": "early", "flip_time": "2026-08-12T21:10:00Z"},
+            },
+            {
+                "id": "e-mid", "name": "Mid Flip", "target_name": "Mid Flip", "catalogue": "Messier",
+                "type": "Nebula", "constellation": "Cygnus", "done": False, "planned_duration": "01:00",
+                "timeline_start": "2026-08-12T22:05:00Z", "timeline_end": "2026-08-12T23:05:00Z",
+                "meridian_flip": {"state": "mid", "flip_time": "2026-08-12T22:40:00Z"},
+            },
+            {
+                "id": "e-after", "name": "After Flip", "target_name": "After Flip", "catalogue": "Messier",
+                "type": "Cluster", "constellation": "Lyra", "done": False, "planned_duration": "00:30",
+                "timeline_start": "2026-08-12T23:05:00Z", "timeline_end": "2026-08-12T23:35:00Z",
+                "meridian_flip": {"state": "after", "flip_time": "2026-08-13T00:10:00Z"},
+            },
+        ]
+        payload = {
+            "plan": {
+                "night_start": "2026-08-12T21:00:00Z",
+                "night_end": "2026-08-13T03:00:00Z",
+                "entries": entries,
+            }
+        }
+        metrics = {"fill_percent": 40.0, "planned_minutes": 150, "night_minutes": 360, "overflow_minutes": 0}
+
+        result = generate_plan_pdf(payload, metrics, _DummyI18n())
+        assert result.getvalue().startswith(b"%PDF")
+
 
 # ============================================================
 # Additional branch coverage tests
@@ -2690,6 +2730,90 @@ class TestRaToHours:
         assert plan_my_night._ra_to_hours(None) is None
         assert plan_my_night._ra_to_hours('') is None
         assert plan_my_night._ra_to_hours('not-a-number') is None
+
+
+class TestTransitDatetimeFromHhmm:
+    """_transit_datetime_from_hhmm: resolve an HH:MM wall-clock time inside the night."""
+
+    NIGHT_START = datetime(2026, 7, 18, 21, 0, tzinfo=timezone.utc)
+    NIGHT_END = datetime(2026, 7, 19, 5, 0, tzinfo=timezone.utc)
+
+    def test_malformed_string_returns_none(self):
+        assert plan_my_night._transit_datetime_from_hhmm('aa:bb', self.NIGHT_START, self.NIGHT_END) is None
+
+    def test_early_morning_time_rolls_to_next_day(self):
+        out = plan_my_night._transit_datetime_from_hhmm('02:00', self.NIGHT_START, self.NIGHT_END)
+        assert out == datetime(2026, 7, 19, 2, 0, tzinfo=timezone.utc)
+
+    def test_time_outside_window_returns_none(self):
+        assert plan_my_night._transit_datetime_from_hhmm('12:00', self.NIGHT_START, self.NIGHT_END) is None
+
+
+class TestPlanLocationLatLon:
+    """_plan_location_latlon: resolve a pinned plan location id to (lat, lon)."""
+
+    def test_unknown_preset_returns_none_pair(self, monkeypatch):
+        from utils import repo_config
+
+        monkeypatch.setattr(repo_config, 'get_location_by_id', lambda cfg, lid: None)
+        assert plan_my_night._plan_location_latlon('ghost-id') == (None, None)
+
+    def test_preset_without_coordinates_returns_none_pair(self, monkeypatch):
+        from utils import repo_config
+
+        monkeypatch.setattr(repo_config, 'get_location_by_id', lambda cfg, lid: {'latitude': None, 'longitude': None})
+        assert plan_my_night._plan_location_latlon('loc-1') == (None, None)
+
+    def test_non_numeric_coordinates_return_none_pair(self, monkeypatch):
+        from utils import repo_config
+
+        monkeypatch.setattr(
+            repo_config, 'get_location_by_id', lambda cfg, lid: {'latitude': 'north', 'longitude': 'west'}
+        )
+        assert plan_my_night._plan_location_latlon('loc-1') == (None, None)
+
+
+class TestResolvePlanMountSharedFallback:
+    """_resolve_plan_mount: when the combination is not owned, look it up among shared."""
+
+    def test_shared_combination_resolves_mount(self, monkeypatch):
+        from equipment import equipment_profiles
+
+        monkeypatch.setattr(equipment_profiles, 'get_combination', lambda *_a, **_k: None)
+        monkeypatch.setattr(
+            equipment_profiles,
+            'load_all_shared_combinations',
+            lambda *_a, **_k: [{'id': 'combo-shared', 'mount_id': 'mnt-1'}],
+        )
+        monkeypatch.setattr(
+            equipment_profiles,
+            'get_mount',
+            lambda *_a, **_k: {'id': 'mnt-1', 'name': 'EQ', 'meridian_flip_required': True,
+                               'meridian_flip_delay_min': 10.0, 'meridian_flip_duration_min': 5.0},
+        )
+        resolved = plan_my_night._resolve_plan_mount('11111111-1111-4111-8111-111111111111', 'combo-shared')
+        assert resolved is not None and resolved['meridian_flip_required'] is True
+
+
+class TestEntryTransitAndFlipGuards:
+    """_entry_transit_and_flip: the RA / transit-resolution guard clauses."""
+
+    EQ_MOUNT = {'meridian_flip_required': True, 'meridian_flip_delay_min': 15.0}
+    NIGHT_START = datetime(2026, 7, 18, 21, 0, tzinfo=timezone.utc)
+    NIGHT_END = datetime(2026, 7, 19, 5, 0, tzinfo=timezone.utc)
+
+    def test_unparseable_ra_returns_none_pair(self):
+        out = plan_my_night._entry_transit_and_flip(
+            {'ra': 'not-an-ra'}, self.EQ_MOUNT, 48.0, 2.0, self.NIGHT_START, self.NIGHT_END, lst_start_hours=6.0
+        )
+        assert out == (None, None)
+
+    def test_transit_outside_night_window_returns_none_pair(self, monkeypatch):
+        monkeypatch.setattr(plan_my_night, '_meridian_transit_time', lambda *_a, **_k: '12:00')
+        out = plan_my_night._entry_transit_and_flip(
+            {'ra': '05h 00m 00s'}, self.EQ_MOUNT, 48.0, 2.0, self.NIGHT_START, self.NIGHT_END
+        )
+        assert out == (None, None)
 
 
 class TestResolvePlanMount:

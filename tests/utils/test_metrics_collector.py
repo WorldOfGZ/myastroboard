@@ -291,6 +291,13 @@ class TestCollectMetrics:
         if "error" not in result:
             assert "process" in result
 
+    def test_collect_metrics_returns_cached_data_within_ttl(self, monkeypatch):
+        import time as _time
+
+        sentinel = {"cpu": {"percent": 0.0}, "cached": True}
+        monkeypatch.setattr(mc, "_metrics_cache", {"data": sentinel, "ts": _time.monotonic()})
+        assert collect_metrics() is sentinel
+
 
 class TestGetDiskSpaceDetails:
     """Tests for get_disk_space_details."""

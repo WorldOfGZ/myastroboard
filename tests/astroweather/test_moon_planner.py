@@ -52,6 +52,17 @@ class TestMoonPlannerInit:
         assert p.latitude == 48.85
         assert p.longitude == 2.35
 
+
+class TestMoonIllumination:
+    """The thin wrapper delegating to the shared astroplan illumination helper."""
+
+    def test_moon_illumination_delegates_and_returns_percent(self):
+        import datetime
+
+        planner = MoonPlanner(48.85, 2.35, "Europe/Paris")
+        value = planner._moon_illumination(datetime.datetime(2026, 9, 11, 22, 0))
+        assert 0.0 <= value <= 100.0
+
     def test_location_is_set(self):
         p = MoonPlanner(0.0, 0.0, "UTC")
         assert p.location is not None
