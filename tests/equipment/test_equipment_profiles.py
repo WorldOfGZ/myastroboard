@@ -1280,6 +1280,21 @@ class TestDataclassBranchCoverage:
         }
         assert normalize(already) is already
 
+    def test_normalize_mount_flip_fields_returns_input_when_rebuild_fails(self):
+        # A dict with no reconstructable identity: Mount(**{}) raises TypeError
+        # (missing id/name), so the original dict is handed back unchanged.
+        normalize = equipment_profiles.normalize_mount_flip_fields
+        garbage = {'unrelated_key': 'value'}
+        assert normalize(garbage) is garbage
+
+    def test_parse_optional_bool_string_forms(self):
+        parse = equipment_profiles._parse_optional_bool
+        assert parse(None) is None
+        assert parse('') is None
+        assert parse(True) is True
+        assert parse('yes') is True
+        assert parse('off') is False
+
     def test_equipment_combination_none_lists_set_to_empty(self):
         EquipmentCombination = equipment_profiles.EquipmentCombination
         combo = EquipmentCombination(id='c1', name='Test')

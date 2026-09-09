@@ -36,6 +36,22 @@ def test_estimate_returns_none_on_missing_inputs():
     assert em.estimate_min_integration_hours(13.0, 1050, 7.0, None) is None
 
 
+def test_plate_scale_returns_none_when_a_dimension_is_zero():
+    assert em.plate_scale_arcsec_per_px(0.0, 1050.0) is None
+    assert em.plate_scale_arcsec_per_px(4.63, 0.0) is None
+
+
+def test_estimate_returns_none_for_non_physical_aperture():
+    # A negative focal ratio makes focal_length / focal_ratio non-physical (<= 0).
+    assert em.estimate_min_integration_hours(13.0, 900.0, -7.0, 4.0) is None
+
+
+def test_estimate_returns_none_when_target_signal_underflows_to_zero():
+    # An absurdly faint surface brightness drives 10**(-SB/2.5) to 0.0, so the
+    # per-pixel target rate underflows and the guard trips before the 1/S^2 step.
+    assert em.estimate_min_integration_hours(900.0, 900.0, 7.0, 4.0, bortle=5) is None
+
+
 def test_estimate_is_finite_and_positive_for_typical_target():
     hours = em.estimate_min_integration_hours(13.0, 1050, 7.0, 4.63, bortle=5, quantum_efficiency=0.75)
     assert hours is not None and 0.0 < hours < 100.0

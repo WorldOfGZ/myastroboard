@@ -639,6 +639,16 @@ class TestTransitHelpers:
         out = _antimeridian_transit_time(5.0, start, end, 45.0, -75.0)
         assert out == "00:15"
 
+    def test_local_sidereal_time_hours_returns_none_on_bad_moment(self):
+        # A non-datetime moment makes the astropy call raise; the helper swallows
+        # it and returns None rather than propagating.
+        assert _local_sidereal_time_hours(None, 0.0) is None
+
+    def test_meridian_transit_from_lst_returns_none_on_bad_window(self):
+        # night_start is not a datetime -> the timedelta arithmetic raises and the
+        # helper returns None.
+        assert _meridian_transit_from_lst(5.0, None, None, 3.0) is None
+
 
 class TestAlttimeAndMoonInfo:
     def test_save_and_clear_alttime_files(self):
@@ -853,6 +863,56 @@ class TestTargetAndBodyResultBuilders:
         assert 20 not in hourly  # no sample before 20:47 -> hour 20 is not claimed
         assert hourly[21] == pytest.approx(10.0 + 10.0 * (13 / 17), abs=0.05)
         assert hourly[22] == pytest.approx(50.0 + 10.0 * (5 / 17), abs=0.05)
+
+    def test_hourly_altitude_skips_non_increasing_grid_samples(self):
+        """A degenerate grid pair (t1 == t0) is skipped rather than dividing by a
+        non-positive span."""
+        target = SimpleNamespace(
+            target_id="ic1396",
+            preferred_name="IC 1396",
+            catalogue_names={},
+            category="deep_sky",
+            object_type="nebula",
+            constellation="Cep",
+            magnitude=3.5,
+            size_arcmin=170.0,
+            coordinates=SimpleNamespace(ra_hours=21.6, dec_degrees=57.5),
+            source_catalogues=[],
+            metadata={},
+        )
+        moon = SimpleNamespace(phase=0.1, ra_deg=None, dec_deg=None)
+        constraints = {
+            "altitude_constraint_min": 5,
+            "altitude_constraint_max": 85,
+            "fraction_of_time_observable_threshold": 0.0,
+            "airmass_constraint": 0.0,
+        }
+        alt = np.array([10.0, 20.0, 30.0, 40.0], dtype=np.float32)
+        az = np.array([90.0, 95.0, 100.0, 105.0], dtype=np.float32)
+        times_local = [
+            datetime(2026, 8, 1, 21, 0),
+            datetime(2026, 8, 1, 21, 0),  # duplicate timestamp -> span 0, skipped
+            datetime(2026, 8, 1, 21, 30),
+            datetime(2026, 8, 1, 22, 30),
+        ]
+        result = _compute_target_result(
+            target=target,
+            times=None,
+            altaz_values=alt,
+            location=object(),
+            moon=moon,
+            constraints=constraints,
+            night_start=datetime(2026, 8, 1, 21, 0),
+            night_end=datetime(2026, 8, 2, 5, 0),
+            lat=45.0,
+            lon=-75.0,
+            az_values=az,
+            lst_hours=np.array([20.0, 20.0, 20.5, 21.5]),
+            times_local=times_local,
+        )
+        assert result is not None
+        hours = {entry["h"] for entry in result["hourly_altitude"]}
+        assert 22 in hours  # the later, well-ordered pair is still interpolated
 
     def test_compute_target_result_surface_brightness_none_without_size(self):
         target = SimpleNamespace(
@@ -1465,6 +1525,16 @@ class TestComputeCometAlttimeOnDemand:
     def test_returns_none_when_target_not_found(self, mock_load_dataset):
         mock_load_dataset.return_value = {'targets': []}
         result = compute_comet_alttime_on_demand('comet-missing', {'latitude': 45.0, 'longitude': 0.0})
+        assert result is None
+
+    @patch('skytonight.skytonight_calculator.load_targets_dataset')
+    def test_returns_none_when_ref_stripped_id_also_missing(self, mock_load_dataset):
+        # An id carrying an MPC ref token retries the lookup with the token stripped;
+        # when that also misses, the result is still None.
+        mock_load_dataset.return_value = {'targets': []}
+        result = compute_comet_alttime_on_demand(
+            'comet-1phalleympc191592', {'latitude': 45.0, 'longitude': 0.0}
+        )
         assert result is None
 
     @patch('skytonight.skytonight_calculator.load_targets_dataset')

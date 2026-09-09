@@ -137,3 +137,13 @@ class TestTimezoneBucketing:
         for phase in result["principal_phases"]:
             parsed = datetime.date.fromisoformat(phase["date"])
             assert parsed.year == 2026 and parsed.month == 12
+
+    def test_quarter_in_two_day_lookback_window_is_stepped_over(self):
+        # The 2025 new moon is on Feb 28 (UTC); querying March starts the quarter
+        # search two days earlier, so the first hit is that out-of-month phase and
+        # must be skipped rather than recorded against March.
+        result = build_phase_calendar(2025, 3, "UTC")
+        assert result["principal_phases"]
+        for phase in result["principal_phases"]:
+            assert datetime.date.fromisoformat(phase["date"]).month == 3
+        assert "2025-02-28" not in [p["time"][:10] for p in result["principal_phases"]]

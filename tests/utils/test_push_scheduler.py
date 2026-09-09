@@ -707,6 +707,37 @@ def test_n9_days_until_falls_back_to_utc_on_unknown_timezone():
     assert push_scheduler._n9_days_until(now + timedelta(days=2), now, None) == 2
 
 
+def test_n9_event_title_rebuilds_meteor_shower_title_from_raw_data():
+    from utils import push_scheduler
+
+    user = MagicMock()
+    user.preferences = {'language': 'en'}
+    event = {'event_type': 'Meteor Shower', 'raw_data': {'shower': 'Perseids'}, 'title': 'English cached title'}
+    assert 'Perseids' in push_scheduler._n9_event_title(user, event)
+
+
+def test_n9_event_title_rebuilds_comet_title_from_raw_data():
+    from utils import push_scheduler
+
+    user = MagicMock()
+    user.preferences = {'language': 'en'}
+    event = {'event_type': 'Comet Appearance', 'raw_data': {'comet': 'C/2026 A1'}, 'title': 'cached'}
+    assert 'C/2026 A1' in push_scheduler._n9_event_title(user, event)
+
+
+def test_n9_event_title_falls_back_to_cached_title_on_translation_error(monkeypatch):
+    from utils import push_scheduler
+
+    def _boom(*_a, **_k):
+        raise RuntimeError('i18n unavailable')
+
+    monkeypatch.setattr('utils.i18n_utils.get_translated_message', _boom)
+    user = MagicMock()
+    user.preferences = {}
+    event = {'event_type': 'Meteor Shower', 'raw_data': {'shower': 'Leonids'}, 'title': 'Leonids (cached)'}
+    assert push_scheduler._n9_event_title(user, event) == 'Leonids (cached)'
+
+
 def test_n9_body_says_today_instead_of_zero_days(monkeypatch):
     """'in 0 days' is not a sentence in any supported language - a same-day peak reads 'today'."""
     from utils import push_scheduler

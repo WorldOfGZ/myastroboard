@@ -271,13 +271,14 @@ def test_secret_key_read_exception_regenerates(tmp_path, monkeypatch):
     monkeypatch.setattr(app_settings, '_SECRET_KEY_FILE', str(key_file))
 
     real_open = builtins.open
-    call_count = [0]
 
-    def mock_open(path, *args, **kw):
-        call_count[0] += 1
-        if call_count[0] == 1:
+    def mock_open(path, mode='r', *args, **kw):
+        # Deny only the read of the secret-key file itself. A call-count-based
+        # gate is order-dependent: in a full-suite run an unrelated open() (e.g.
+        # a log-handler write) can absorb the failure before the read happens.
+        if str(path) == str(key_file) and 'r' in mode and 'w' not in mode:
             raise PermissionError("denied by test")
-        return real_open(path, *args, **kw)
+        return real_open(path, mode, *args, **kw)
 
     monkeypatch.setattr(builtins, 'open', mock_open)
     key = app_settings.load_or_generate_secret_key()

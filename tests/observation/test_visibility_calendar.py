@@ -193,6 +193,119 @@ def test_simbad_fallback_resolves_astrodex_only_target(monkeypatch):
     assert len(result['months']) == 12
 
 
+def test_blank_identifier_is_not_found(monkeypatch):
+    _patch_dataset(monkeypatch, [])
+    result = visibility_calendar.get_visibility_calendar('   ', _PARIS, _YEAR)
+    assert result['supported'] is False
+    assert result['reason'] == 'not_found'
+
+
+def test_resolve_by_exact_target_id(monkeypatch):
+    _patch_dataset(monkeypatch, [_target('dso-m31', 0.712, 41.27, name='NGC 224')])
+    result = visibility_calendar.get_visibility_calendar('dso-m31', _PARIS, _YEAR)
+    assert result['supported'] is True
+    assert result['target']['id'] == 'dso-m31'
+
+
+def test_resolve_scans_past_non_matching_target_without_preferred_name(monkeypatch):
+    no_name = SkyTonightTarget(
+        target_id='dso-noname',
+        category='deep_sky',
+        object_type='Nebula',
+        preferred_name='',
+        catalogue_names={'OpenNGC': 'NGC 7000'},
+        coordinates=SkyTonightCoordinates(ra_hours=20.98, dec_degrees=44.5),
+    )
+    _patch_dataset(monkeypatch, [_target('dso-other', 5.0, 10.0, name='NGC 111'), no_name])
+    result = visibility_calendar.get_visibility_calendar('NGC 7000', _PARIS, _YEAR)
+    assert result['supported'] is True
+    assert result['target']['id'] == 'dso-noname'
+
+
+def test_dataset_target_without_coordinates_is_not_found(monkeypatch):
+    no_coords = SkyTonightTarget(
+        target_id='dso-nocoord',
+        category='deep_sky',
+        object_type='Nebula',
+        preferred_name='Ghost',
+        catalogue_names={'OpenNGC': 'NGC 0001'},
+        coordinates=None,
+    )
+    _patch_dataset(monkeypatch, [no_coords])
+    result = visibility_calendar.get_visibility_calendar('NGC 0001', _PARIS, _YEAR)
+    assert result['supported'] is False
+    assert result['reason'] == 'not_found'
+
+
+def test_simbad_fallback_moving_target_is_unsupported(monkeypatch):
+    _patch_dataset(monkeypatch, [])
+    monkeypatch.setattr(
+        visibility_calendar.object_info,
+        '_resolve_via_simbad',
+        lambda *_a, **_k: {'id': 'mars', 'name': 'Mars', 'type': 'Planet', 'ra': 1.0, 'dec': 1.0},
+    )
+    result = visibility_calendar.get_visibility_calendar('Mars', _PARIS, _YEAR)
+    assert result['supported'] is False
+    assert result['reason'] == 'moving_target'
+
+
+def test_airmass_constraint_tightens_altitude_floor(monkeypatch):
+    monkeypatch.setattr(
+        visibility_calendar,
+        'load_config',
+        lambda: {
+            'skytonight': {
+                'constraints': {
+                    'altitude_constraint_min': 10,
+                    'altitude_constraint_max': 90,
+                    'airmass_constraint': 2.0,
+                }
+            }
+        },
+    )
+    _patch_dataset(monkeypatch, [_target('dso-m31', 0.712, 41.27, name='NGC 224')])
+    result = visibility_calendar.get_visibility_calendar('NGC 224', _PARIS, _YEAR)
+    # asin(1/2) = 30 deg, which beats the configured 10 deg floor.
+    assert result['constraints']['altitude_min'] == pytest.approx(30.0, abs=0.1)
+
+
+def test_sample_failure_is_swallowed_and_logged(monkeypatch):
+    _patch_dataset(monkeypatch, [_target('dso-m31', 0.712, 41.27, name='NGC 224')])
+
+    def _boom(*_a, **_k):
+        raise RuntimeError("ephemeris blew up")
+
+    monkeypatch.setattr(visibility_calendar, '_sample_night', _boom)
+    result = visibility_calendar.get_visibility_calendar('NGC 224', _PARIS, _YEAR)
+    assert result['supported'] is True
+    assert result['samples'] == []
+    assert result['months'] == []
+
+
+def test_aggregate_months_skips_months_without_samples():
+    samples = [
+        {
+            'date': '2026-03-01',
+            'dark_hours': 8.0,
+            'observable_hours': 4.0,
+            'moonless_observable_hours': 2.0,
+            'max_altitude': 60.0,
+            'moon_illumination_pct': 20.0,
+        },
+        {
+            'date': '2026-03-15',
+            'dark_hours': 7.0,
+            'observable_hours': 3.0,
+            'moonless_observable_hours': 0.0,
+            'max_altitude': None,
+            'moon_illumination_pct': 80.0,
+        },
+    ]
+    months = visibility_calendar._aggregate_months(samples)
+    assert [m['month'] for m in months] == [3]
+    assert months[0]['score'] == 1.0
+
+
 def test_result_is_cached_and_lru_evicts(monkeypatch):
     _patch_dataset(monkeypatch, [_target('dso-m31', 0.712, 41.27, name='NGC 224')])
 

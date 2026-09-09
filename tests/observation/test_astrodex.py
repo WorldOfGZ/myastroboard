@@ -1672,6 +1672,15 @@ class TestAstrodexyRemainingBranches:
         key = astrodex._get_item_merge_key(item)
         assert key.startswith('name:')
 
+    def test_get_user_astrodex_file_rejects_out_of_tree_id(self, temp_data_dir):
+        """A user id that would escape ASTRODEX_DIR is swapped for a fixed missing name."""
+        path = astrodex.get_user_astrodex_file(os.path.join('..', '..', 'etc', 'passwd'))
+        base = os.path.realpath(astrodex.ASTRODEX_DIR)
+        assert path == os.path.join(base, astrodex._REJECTED_ASTRODEX_FILE)
+        assert not os.path.exists(path)
+        # Callers just see an empty collection rather than a raised error.
+        assert astrodex.load_user_astrodex(os.path.join('..', '..', 'etc', 'passwd'))['items'] == []
+
     def test_save_failure_cleanup_no_backup_no_temp(self, temp_data_dir, monkeypatch):
         """save fails before temp file created (no backup)."""
         def bad_sanitize(data):

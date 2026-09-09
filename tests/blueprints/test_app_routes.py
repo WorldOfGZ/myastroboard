@@ -1084,6 +1084,24 @@ class TestWeatherAstroAnalysis:
         resp = client_admin.get('/api/weather/astro-current')
         assert resp.status_code in (200, 202, 400, 500)
 
+    def test_astro_analysis_served_from_warm_cache(self, client_admin, monkeypatch):
+        monkeypatch.setattr(
+            _weather_mod, '_cached_astro_analysis_if_default', lambda *a, **k: {'served': 'from-cache'}
+        )
+        resp = client_admin.get('/api/weather/astro-analysis')
+        assert resp.status_code == 200
+        assert resp.get_json() == {'served': 'from-cache'}
+
+    def test_astro_current_served_from_warm_cache(self, client_admin, monkeypatch):
+        monkeypatch.setattr(
+            _weather_mod.cache_store,
+            'load_location_cache',
+            lambda n, loc: {'data': {'current_conditions': {'seeing': 'good'}}},
+        )
+        resp = client_admin.get('/api/weather/astro-current')
+        assert resp.status_code == 200
+        assert resp.get_json() == {'seeing': 'good'}
+
 
 # ---------------------------------------------------------------------------
 # Admin restart
@@ -10034,3 +10052,41 @@ class TestForecastObservationScoreMerge:
         record = {'date': '2026-09-03T21:00:00+02:00', 'cloudless': float('nan'), 'seeing': 60.0, 'transparency': 40.0}
         out = _weather_mod._forecast_with_observation_score({'hourly': [record]}, 'l')
         assert 'condition' not in out['hourly'][0]
+
+    def test_astro_cache_read_error_is_swallowed_and_falls_back_local(self, monkeypatch):
+        def _boom(name, loc):
+            raise RuntimeError('astro cache file corrupt')
+
+        monkeypatch.setattr(_weather_mod.cache_store, 'load_location_cache', _boom)
+        record = {'date': '2026-09-03T21:00:00+02:00', **self._components()}
+        out = _weather_mod._forecast_with_observation_score({'hourly': [record]}, 'l')
+        assert out['hourly'][0]['condition'] == pytest.approx(65.0)
+
+    def test_non_numeric_astro_score_falls_back_to_local_blend(self, monkeypatch):
+        monkeypatch.setattr(
+            _weather_mod.cache_store, 'load_location_cache',
+            lambda name, loc: self._astro(
+                {'datetime': '2026-09-03T21:00:00+02:00', 'observation_score': 'not-a-number'}
+            ),
+        )
+        record = {'date': '2026-09-03T21:00:00+02:00', **self._components()}
+        out = _weather_mod._forecast_with_observation_score({'hourly': [record]}, 'l')
+        assert out['hourly'][0]['condition'] == pytest.approx(65.0)
+
+
+class TestCachedAstroAnalysisIfDefault:
+    """_cached_astro_analysis_if_default: serve the warm 24h analysis cache verbatim only
+    for the exact request the Astrophotography tab makes (24h, configured language)."""
+
+    def test_returns_none_for_non_default_request(self, monkeypatch):
+        monkeypatch.setattr(_weather_mod, 'load_config', lambda: {'language': 'en'})
+        assert _weather_mod._cached_astro_analysis_if_default(48, 'en', 'loc-1') is None
+        assert _weather_mod._cached_astro_analysis_if_default(24, 'fr', 'loc-1') is None
+
+    def test_returns_cached_data_when_slot_is_valid(self, monkeypatch):
+        monkeypatch.setattr(_weather_mod, 'load_config', lambda: {'language': 'en'})
+        monkeypatch.setattr(
+            _weather_mod.cache_store, 'load_location_cache', lambda n, l: {'data': {'analysis': 'warm'}}
+        )
+        monkeypatch.setattr(_weather_mod.cache_store, 'is_cache_valid', lambda entry, ttl: True)
+        assert _weather_mod._cached_astro_analysis_if_default(24, 'en', 'loc-1') == {'analysis': 'warm'}
