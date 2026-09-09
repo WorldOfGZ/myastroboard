@@ -152,39 +152,46 @@
 }
 
 /* Rotary dots. The visible dot stays small, but each one sits inside a
-   button with a generously padded hit area so it's actually tappable on
-   mobile (WCAG recommends ~44px touch targets, tiny 6px dots are not). */
+   button with a generously padded 44px hit area so it's actually tappable
+   on mobile (WCAG recommends ~44px touch targets, tiny dots are not). The
+   negative margins keep that hit area from inflating the strip's visual
+   height. The strip sits on the dark page gradient, not on the light
+   banner card, so the dots are tinted from white rather than from the
+   theme's (dark) border color. */
 .event-banner-dots {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 0.125rem;
-    margin-top: 0.25rem;
+    gap: 0.25rem;
+    margin-top: 0.875rem;
 }
 .event-banner-dot-hit {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-top: -0.75rem;
+    margin-bottom: -0.75rem;
     padding: 0;
     border: none;
     background: transparent;
     cursor: pointer;
+    flex-shrink: 0;
     -webkit-tap-highlight-color: transparent;
 }
 .event-banner-dot {
     display: block;
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
-    background: var(--surface-border-strong);
+    background: rgba(255, 255, 255, 0.45);
     transition: background var(--transition-normal), transform var(--transition-normal);
     pointer-events: none;
 }
 .event-banner-dot.active {
-    background: var(--accent-1);
-    transform: scale(1.35);
+    background: #fff;
+    transform: scale(1.5);
 }
 
 /* Collapse the button to an icon-only control on small screens so it

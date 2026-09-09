@@ -10,9 +10,13 @@
         :root {
             color-scheme: light dark;
         }
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
         body {
             margin: 0;
             min-height: 100vh;
+            min-height: 100dvh;
             display: grid;
             place-items: center;
             font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -20,14 +24,23 @@
             color: #eef3ff;
             padding: 1.5rem;
         }
+        /* Mobile-first: the message sits directly on the gradient. A card
+           frame that hugs the screen edges just reads as an awkward border,
+           so the border/background/shadow only come in once the viewport is
+           wide enough to leave real margin around the card. */
         .card {
-            max-width: 34rem;
+            max-width: 32rem;
             width: 100%;
-            background: rgba(16, 23, 41, 0.84);
-            border: 1px solid rgba(150, 170, 220, 0.35);
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32);
+            padding: 0.5rem;
+        }
+        @media (min-width: 44rem) {
+            .card {
+                padding: 2rem;
+                background: rgba(16, 23, 41, 0.84);
+                border: 1px solid rgba(150, 170, 220, 0.35);
+                border-radius: 16px;
+                box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32);
+            }
         }
         h1 {
             margin: 0 0 0.75rem;
