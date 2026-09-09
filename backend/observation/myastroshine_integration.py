@@ -23,6 +23,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import threading
 import time
 import uuid
@@ -109,6 +110,19 @@ def integration_enabled(cfg: Optional[Dict] = None) -> bool:
 def _token_kid(token: str) -> str:
     """The key id shared with MyAstroShine: the first 12 chars of the token."""
     return (token or '')[:12]
+
+
+# The user/item/picture ids carried by a handoff are all server-minted uuid4
+# strings. They flow into per-user Astrodex file paths, so every entry point
+# re-checks their shape before any disk access - defence in depth on top of the
+# already-verified HMAC signature, and a CodeQL py/path-injection sanitizer
+# barrier. Same lenient uuid-shape pattern the rest of the codebase uses
+# (e.g. blueprints/tracking.py for launch ids).
+_HANDOFF_ID_RE = re.compile(r'^[0-9a-f-]{36}$')
+
+
+def _is_handoff_id(value: Any) -> bool:
+    return isinstance(value, str) and _HANDOFF_ID_RE.match(value) is not None
 
 
 # ---------------------------------------------------------------------------
@@ -228,6 +242,10 @@ def verify_handoff(cfg: Dict, token: str) -> Optional[Dict[str, Any]]:
     if time.time() >= expires:
         logger.info("MyAstroShine handoff rejected: expired")
         return None
+
+    if not all(_is_handoff_id(claims.get(key)) for key in ('user_id', 'item_id', 'picture_id')):
+        logger.warning("MyAstroShine handoff rejected: malformed identifiers")
+        return None
     return claims
 
 
@@ -293,6 +311,10 @@ _load_consumed_from_disk()
 
 
 def _find_item_and_picture(user_id: str, item_id: str, picture_id: str) -> Tuple[Optional[Dict], Optional[Dict]]:
+    # user_id builds a per-user file path inside load_user_astrodex(); re-check
+    # its shape here, right before that call, regardless of upstream validation.
+    if not _is_handoff_id(user_id):
+        return None, None
     data = astrodex.load_user_astrodex(user_id)
     for item in data.get('items', []):
         if item.get('id') != item_id:
@@ -403,6 +425,8 @@ def _save_enhanced_image(user_id: str, image_bytes: bytes) -> Optional[str]:
     Mirrors upload_astrodex_image()'s ``<user_id>_<uuid>.<ext>`` naming and
     realpath containment barrier. MyAstroShine renders JPEG.
     """
+    if not _is_handoff_id(user_id):
+        return None
     astrodex.ensure_astrodex_directories()
     filename = f"{user_id}_{uuid.uuid4()}.jpg"
     base_dir = os.path.realpath(astrodex.ASTRODEX_IMAGES_DIR)
@@ -441,6 +465,12 @@ def create_enhanced_duplicate(claims: Dict[str, Any], image_bytes: bytes, payloa
     user_id = claims.get('user_id', '')
     item_id = claims.get('item_id', '')
     source_picture_id = claims.get('picture_id', '')
+
+    # Re-validate the ids that build Astrodex file paths (user_id / item_id),
+    # right before they are handed to observation.astrodex, independent of
+    # verify_handoff() - see _HANDOFF_ID_RE.
+    if not (_is_handoff_id(user_id) and _is_handoff_id(item_id) and _is_handoff_id(source_picture_id)):
+        raise EnhancedDuplicateError(401, 'malformed handoff identifiers')
 
     item, source = _find_item_and_picture(user_id, item_id, source_picture_id)
     if not item or not source:

@@ -1,9 +1,9 @@
 """Tests for the MyAstroShine integration module (observation/myastroshine_integration.py).
 
-Covers the handoff token (mint / verify / tamper / expiry / kid rotation), the
-webhook return signature, the source-picture payload, and the enhanced-duplicate
-creation (metadata copy, enhanced_* stamps, is_main, copy_rating, replay 409,
-missing item 404).
+Covers the handoff token (mint / verify / tamper / expiry / kid rotation /
+malformed ids), the webhook return signature, the source-picture payload, and the
+enhanced-duplicate creation (metadata copy, enhanced_* stamps, is_main,
+copy_rating, replay 409, missing item 404).
 """
 
 import hashlib
@@ -12,6 +12,7 @@ import json
 import os
 import tempfile
 import time
+import uuid
 
 import pytest
 
@@ -20,6 +21,11 @@ from observation import myastroshine_integration as integration
 
 _TOKEN = "mas_abcdef123456extrachars"
 _SECRET = "s" * 64
+
+# Handoff identifiers are validated to a strict uuid shape - use real ones.
+_UID = str(uuid.uuid4())
+_IID = str(uuid.uuid4())
+_PID = str(uuid.uuid4())
 
 
 def _cfg(**overrides):
@@ -48,7 +54,7 @@ def temp_data_dir(monkeypatch):
         integration._consumed.clear()
 
 
-def _seed_item_with_picture(user_id="user-1"):
+def _seed_item_with_picture(user_id=_UID):
     astrodex.ensure_astrodex_directories()
     item = astrodex.create_astrodex_item(
         user_id,
@@ -81,6 +87,12 @@ def _seed_item_with_picture(user_id="user-1"):
     return item, picture
 
 
+def _mint(cfg=None, user_id=_UID, item_id=_IID, picture_id=_PID, callback_base="https://astro.example.com"):
+    return integration.mint_handoff(
+        cfg or _cfg(), user_id=user_id, item_id=item_id, picture_id=picture_id, callback_base=callback_base
+    )["handoff"]
+
+
 # ---------------------------------------------------------------------------
 # integration_enabled
 # ---------------------------------------------------------------------------
@@ -102,50 +114,51 @@ def test_integration_enabled_requires_all_fields():
 def test_mint_and_verify_handoff_roundtrip():
     cfg = _cfg()
     result = integration.mint_handoff(
-        cfg, user_id="u", item_id="i", picture_id="p", callback_base="https://astro.example.com/"
+        cfg, user_id=_UID, item_id=_IID, picture_id=_PID, callback_base="https://astro.example.com/"
     )
     assert result["myastroshine_url"] == "http://192.168.1.42:8002"
     assert result["open_url"] == f"http://192.168.1.42:8002/#/?handoff={result['handoff']}"
 
     claims = integration.verify_handoff(cfg, result["handoff"])
     assert claims is not None
-    assert claims["item_id"] == "i"
-    assert claims["picture_id"] == "p"
-    assert claims["user_id"] == "u"
+    assert claims["item_id"] == _IID
+    assert claims["picture_id"] == _PID
+    assert claims["user_id"] == _UID
     assert claims["callback_base"] == "https://astro.example.com"
     assert claims["kid"] == _TOKEN[:12]
     assert claims["exp"] - claims["iat"] == integration.MYASTROSHINE_HANDOFF_TTL_SECONDS
 
 
 def test_verify_handoff_rejects_tampered_signature():
-    cfg = _cfg()
-    token = integration.mint_handoff(cfg, user_id="u", item_id="i", picture_id="p", callback_base="x")["handoff"]
+    token = _mint()
     body, _, sig = token.partition(".")
-    tampered = f"{body}.{sig[:-2]}xx"
-    assert integration.verify_handoff(cfg, tampered) is None
+    assert integration.verify_handoff(_cfg(), f"{body}.{sig[:-2]}xx") is None
 
 
 def test_verify_handoff_rejects_tampered_payload():
-    cfg = _cfg()
-    token = integration.mint_handoff(cfg, user_id="u", item_id="i", picture_id="p", callback_base="x")["handoff"]
-    body, _, sig = token.partition(".")
+    token = _mint()
+    _, _, sig = token.partition(".")
     forged_payload = integration._b64url_encode(json.dumps({"user_id": "attacker"}).encode())
-    assert integration.verify_handoff(cfg, f"{forged_payload}.{sig}") is None
+    assert integration.verify_handoff(_cfg(), f"{forged_payload}.{sig}") is None
+
+
+def test_verify_handoff_rejects_malformed_identifiers():
+    # Valid signature, but an id that would escape the per-user Astrodex path.
+    token = _mint(user_id="../../etc/passwd")
+    assert integration.verify_handoff(_cfg(), token) is None
 
 
 def test_verify_handoff_rejects_expired(monkeypatch):
-    cfg = _cfg()
-    token = integration.mint_handoff(cfg, user_id="u", item_id="i", picture_id="p", callback_base="x")["handoff"]
+    token = _mint()
     real_time = time.time
     far_future = real_time() + integration.MYASTROSHINE_HANDOFF_TTL_SECONDS + 10
     monkeypatch.setattr(integration.time, "time", lambda: far_future)
-    assert integration.verify_handoff(cfg, token) is None
+    assert integration.verify_handoff(_cfg(), token) is None
 
 
 def test_verify_handoff_rejects_kid_mismatch_after_token_rotation():
-    minted = integration.mint_handoff(_cfg(), user_id="u", item_id="i", picture_id="p", callback_base="x")["handoff"]
-    rotated = _cfg(token="mas_zzzzzzzzzzzznew")
-    assert integration.verify_handoff(rotated, minted) is None
+    minted = _mint()
+    assert integration.verify_handoff(_cfg(token="mas_zzzzzzzzzzzznew"), minted) is None
 
 
 def test_verify_handoff_rejects_when_not_configured():
@@ -183,7 +196,7 @@ def test_verify_return_signature_ok_and_tampered():
 
 def test_build_source_payload_shape(temp_data_dir):
     item, picture = _seed_item_with_picture()
-    claims = {"user_id": "user-1", "item_id": item["id"], "picture_id": picture["id"]}
+    claims = {"user_id": _UID, "item_id": item["id"], "picture_id": picture["id"]}
     payload = integration.build_source_payload(claims, token="TOK")
 
     assert payload["object"] == {
@@ -203,12 +216,19 @@ def test_build_source_payload_shape(temp_data_dir):
 
 def test_build_source_payload_missing_returns_none(temp_data_dir):
     _seed_item_with_picture()
-    assert integration.build_source_payload({"user_id": "user-1", "item_id": "nope", "picture_id": "nope"}) is None
+    claims = {"user_id": _UID, "item_id": str(uuid.uuid4()), "picture_id": str(uuid.uuid4())}
+    assert integration.build_source_payload(claims) is None
+
+
+def test_build_source_payload_rejects_bad_user_id(temp_data_dir):
+    _seed_item_with_picture()
+    claims = {"user_id": "../../etc", "item_id": str(uuid.uuid4()), "picture_id": str(uuid.uuid4())}
+    assert integration.build_source_payload(claims) is None
 
 
 def test_resolve_source_image_path(temp_data_dir):
     item, picture = _seed_item_with_picture()
-    claims = {"user_id": "user-1", "item_id": item["id"], "picture_id": picture["id"]}
+    claims = {"user_id": _UID, "item_id": item["id"], "picture_id": picture["id"]}
     path = integration.resolve_source_image_path(claims)
     assert path and os.path.isfile(path)
 
@@ -218,12 +238,12 @@ def test_resolve_source_image_path(temp_data_dir):
 # ---------------------------------------------------------------------------
 
 
-def _claims_for(item, picture, user_id="user-1", jti="jti-1"):
+def _claims_for(item, picture, user_id=_UID, jti=None):
     return {
         "user_id": user_id,
         "item_id": item["id"],
         "picture_id": picture["id"],
-        "jti": jti,
+        "jti": jti or str(uuid.uuid4()),
         "exp": time.time() + 600,
     }
 
@@ -235,7 +255,7 @@ def test_create_enhanced_duplicate_copies_metadata_and_stamps(temp_data_dir):
     result = integration.create_enhanced_duplicate(_claims_for(item, source), b"enhanced-jpeg", payload)
     assert result["status"] == "created"
 
-    stored = astrodex.get_astrodex_item("user-1", item["id"])
+    stored = astrodex.get_astrodex_item(_UID, item["id"])
     assert len(stored["pictures"]) == 2
     dup = stored["pictures"][1]
     assert dup["is_main"] is False
@@ -255,7 +275,7 @@ def test_create_enhanced_duplicate_copy_rating(temp_data_dir, monkeypatch):
     monkeypatch.setattr(integration, "get_integration_config", lambda config=None: _cfg(copy_rating=True))
     item, source = _seed_item_with_picture()
     integration.create_enhanced_duplicate(_claims_for(item, source), b"jpeg", {"parameters": {}})
-    dup = astrodex.get_astrodex_item("user-1", item["id"])["pictures"][1]
+    dup = astrodex.get_astrodex_item(_UID, item["id"])["pictures"][1]
     assert dup["rating"] == 3.5
 
 
@@ -270,10 +290,24 @@ def test_create_enhanced_duplicate_replay_is_409(temp_data_dir):
 
 def test_create_enhanced_duplicate_unknown_item_is_404(temp_data_dir):
     _seed_item_with_picture()
-    bad = {"user_id": "user-1", "item_id": "nope", "picture_id": "nope", "jti": "j", "exp": time.time() + 60}
+    bad = {
+        "user_id": _UID,
+        "item_id": str(uuid.uuid4()),
+        "picture_id": str(uuid.uuid4()),
+        "jti": str(uuid.uuid4()),
+        "exp": time.time() + 60,
+    }
     with pytest.raises(integration.EnhancedDuplicateError) as excinfo:
         integration.create_enhanced_duplicate(bad, b"jpeg", {"parameters": {}})
     assert excinfo.value.status == 404
+
+
+def test_create_enhanced_duplicate_rejects_bad_ids(temp_data_dir):
+    item, source = _seed_item_with_picture()
+    bad = _claims_for(item, source, user_id="../../etc/passwd")
+    with pytest.raises(integration.EnhancedDuplicateError) as excinfo:
+        integration.create_enhanced_duplicate(bad, b"jpeg", {"parameters": {}})
+    assert excinfo.value.status == 401
 
 
 def test_consumed_jti_persists_to_disk(temp_data_dir):
