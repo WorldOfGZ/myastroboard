@@ -1030,6 +1030,12 @@ def add_picture_to_item(user_id: str, item_id: str, picture_data: Dict) -> Optio
               later.
             - rating: 0.0-5.0 in 0.5 steps, or None if not yet rated (validated
               server-side).
+            - enhanced_by / enhanced_at / enhanced_from_picture_id /
+              enhanced_parameters / enhanced_source_version: provenance stamps
+              for a picture produced by re-processing an existing one through
+              MyAstroShine (observation/myastroshine_integration.py). Only added
+              to the stored picture when present. Immutable once set - they are
+              deliberately absent from update_picture()'s allowed_fields.
 
     Returns:
         Created picture with ID, or None on error
@@ -1064,6 +1070,18 @@ def add_picture_to_item(user_id: str, item_id: str, picture_data: Dict) -> Optio
                 'is_main': False,  # New pictures are not main by default
                 'created_at': datetime.now(timezone.utc).isoformat(),
             }
+
+            # MyAstroShine re-processing provenance - only stored when supplied,
+            # and immutable afterwards (not in update_picture's allowed_fields).
+            for enhanced_field in (
+                'enhanced_by',
+                'enhanced_at',
+                'enhanced_from_picture_id',
+                'enhanced_parameters',
+                'enhanced_source_version',
+            ):
+                if picture_data.get(enhanced_field) is not None:
+                    new_picture[enhanced_field] = picture_data[enhanced_field]
 
             # If this is the first picture, make it main
             if not item['pictures']:

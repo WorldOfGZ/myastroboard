@@ -95,8 +95,24 @@ DEFAULT_ALLSKY_CONNECTOR = {
     },
 }
 
+# MyAstroShine integration (AstroDex <-> MyAstroShine image round-trip).
+# NOT a BaseConnector: it is bidirectional, lives in the AstroDex tab, and has
+# its own routes (blueprints/myastroshine_integration.py) - it is only stored
+# under config["connectors"] so it rides along in the backup ZIP and stays
+# consistent with the rest of the connector config. See docs/MYASTROSHINE.md.
+DEFAULT_MYASTROSHINE_INTEGRATION = {
+    "enabled": False,
+    "label": "",  # optional display name for the connector card (defaults to "MyAstroShine")
+    "url": "",  # base URL of MyAstroShine, browser-facing (e.g. http://192.168.1.42:8002)
+    "token": "",  # "mas_..." token created in MyAstroShine > Settings > Tokens
+    "signing_secret": "",  # hex secret shown next to the token (HMAC-SHA256 key, both directions)
+    "callback_url_override": "",  # optional: board URL the MyAstroShine container calls back
+    "copy_rating": False,  # copy the source picture's rating onto the enhanced duplicate
+}
+
 DEFAULT_CONNECTORS = {
     "allsky": deepcopy(DEFAULT_ALLSKY_CONNECTOR),
+    "myastroshine": deepcopy(DEFAULT_MYASTROSHINE_INTEGRATION),
 }
 
 # Default complete configuration

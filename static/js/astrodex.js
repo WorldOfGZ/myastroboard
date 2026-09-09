@@ -475,6 +475,10 @@ function _getRatingWidgetValue(prefix) {
 async function loadAstrodex() {
     try {
 
+        // Re-check the MyAstroShine integration state on each tab entry so enabling
+        // it in Parameters shows the "Send to MyAstroShine" button without a reload.
+        _myAstroShineStatusChecked = false;
+
         // Get role user
         const roleUser = await getUserRole();
         // Display Astrodex if roleUser is user or admin
@@ -1276,6 +1280,10 @@ async function showAstrodexItemDetail(itemId) {
 
     currentAstrodexItem = item;
 
+    // Resolve the MyAstroShine integration state before building the modal -
+    // renderPicturesGrid() reads _myAstroShineEnabled synchronously.
+    await _ensureMyAstroShineStatus();
+
     // Get list of constellations for select options
     const constellations = await getConstellationsList();
 
@@ -1407,6 +1415,61 @@ function renderCatalogueAliasesSection(item) {
     `;
 }
 
+// Whether the MyAstroShine integration is configured and enabled - drives the
+// per-photo "Send to MyAstroShine" button. Fetched once per Astrodex session
+// (renderPicturesGrid is synchronous, so this must already be resolved by the
+// time an item detail modal is built).
+let _myAstroShineEnabled = false;
+let _myAstroShineStatusChecked = false;
+
+async function _ensureMyAstroShineStatus() {
+    if (_myAstroShineStatusChecked) return _myAstroShineEnabled;
+    const status = await fetchJSONOnce('/api/astrodex/integration/status').catch(() => null);
+    _myAstroShineEnabled = !!(status && status.enabled);
+    _myAstroShineStatusChecked = true;
+    return _myAstroShineEnabled;
+}
+
+// After "Send to MyAstroShine", MyAstroShine calls the board back server-to-server
+// to add the enhanced duplicate - the browser gets no push. So when the board tab
+// regains focus (the user coming back from MyAstroShine), re-fetch and, if the
+// item detail modal is still open, re-render it. Cleared once the new picture is
+// seen, or after 30 min.
+let _myAstroShineReturn = { itemId: null, expires: 0, lastCheck: 0 };
+
+async function _checkMyAstroShineReturn() {
+    const pending = _myAstroShineReturn;
+    if (!pending.itemId || Date.now() > pending.expires) return;
+    if (document.visibilityState === 'hidden') return;
+    if (Date.now() - pending.lastCheck < 8000) return;
+    pending.lastCheck = Date.now();
+
+    const itemId = pending.itemId;
+    const countPictures = (it) => it
+        ? Number(it.total_pictures ?? (Array.isArray(it.own_pictures) ? it.own_pictures : (it.pictures || [])).length)
+        : 0;
+    const beforeCount = countPictures(astrodexData.items.find(i => i.id === itemId));
+
+    await loadAstrodex();
+
+    const after = astrodexData.items.find(i => i.id === itemId);
+    const modalEl = document.getElementById('modal_xl_close');
+    if (after && modalEl && modalEl.classList.contains('show')) {
+        showAstrodexItemDetail(itemId);
+    }
+    if (countPictures(after) > beforeCount) {
+        if (_myAstroShineReturn.itemId === itemId) {
+            _myAstroShineReturn = { itemId: null, expires: 0, lastCheck: 0 };
+        }
+        showMessage('success', i18n.t('astrodex.enhanced_photo_received'));
+    }
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') _checkMyAstroShineReturn();
+});
+window.addEventListener('focus', _checkMyAstroShineReturn);
+
 function renderPicturesGrid(item) {
     const editablePictures = Array.isArray(item.own_pictures) ? item.own_pictures : (item.pictures || []);
 
@@ -1427,6 +1490,13 @@ function renderPicturesGrid(item) {
         const imageUrl = `/api/astrodex/images/${picture.filename}`;
         const escapedImageUrl = escapeHtml(imageUrl);
 
+        // Equipment line: a linked combination wins over the free-text device
+        // field (they are mutually exclusive in the model, but legacy/seed
+        // pictures can still carry a stale device string alongside a combination).
+        const equipmentLabel = picture.combination_id
+            ? (_findAstrodexEquipmentName('combinations', picture.combination_id) || i18n.t('astrodex.combination_unavailable'))
+            : (picture.device || '');
+
         return `
             <div class="col">
                 <div class="card h-100">
@@ -1438,13 +1508,14 @@ function renderPicturesGrid(item) {
                         <p class="card-text">
                             ${picture.date ? `<div><i class="bi bi-calendar-event text-danger icon-inline" aria-hidden="true"></i>${escapeHtml(formatStringToDate(picture.date))}</div>` : ''}
                             ${picture.exposition_time ? `<div><i class="bi bi-stopwatch icon-inline" aria-hidden="true"></i>${escapeHtml(formatPictureExpositionTime(picture.exposition_time))}</div>` : ''}
-                            ${picture.device ? `<div><i class="bi bi-binoculars icon-inline" aria-hidden="true"></i>${escapeHtml(picture.device)}</div>` : ''}
+                            ${equipmentLabel ? `<div><i class="bi bi-binoculars icon-inline" aria-hidden="true"></i>${escapeHtml(equipmentLabel)}</div>` : ''}
                             ${picture.location_name ? `<div><i class="bi bi-pin-map icon-inline" aria-hidden="true"></i>${escapeHtml(picture.location_name)}</div>` : ''}
                         </p>
                     </div>
-                    <div class="card-footer text-center">
+                    <div class="card-footer astrodex-picture-actions">
                         ${picture.observation_session ? `<button class="btn btn-outline-secondary" data-action="view-observation-session" data-session-id="${escapeForJs(picture.observation_session.session_id)}" title="${i18n.t('astrodex.observation_log_picture_tooltip', { date: escapeHtml(picture.observation_session.session_date || '') })}"><i class="bi bi-journal-text" aria-hidden="true"></i></button>` : ''}
-                        ${!picture.is_main ? `<button class="btn btn-outline-secondary" data-action="set-main-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="${i18n.t('astrodex.set_as_main')}"><i class="bi bi-star text-warning" aria-hidden="true"></i></button>` : '<span class="btn-icon-placeholder"></span>'}
+                        ${!picture.is_main ? `<button class="btn btn-outline-secondary" data-action="set-main-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="${i18n.t('astrodex.set_as_main')}"><i class="bi bi-star text-warning" aria-hidden="true"></i></button>` : ''}
+                        ${_myAstroShineEnabled ? `<button class="btn btn-outline-secondary" data-action="send-to-myastroshine" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="${i18n.t('astrodex.send_to_myastroshine')}"><i class="bi bi-stars text-info" aria-hidden="true"></i></button>` : ''}
                         <button class="btn btn-outline-secondary" data-action="edit-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="${i18n.t('astrodex.edit')}"><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
                         <button class="btn btn-danger" data-action="delete-picture" data-item-id="${escapeForJs(item.id)}" data-picture-id="${escapeForJs(picture.id)}" title="${i18n.t('astrodex.delete')}"><i class="bi bi-trash" aria-hidden="true"></i></button>
                     </div>
@@ -1942,6 +2013,26 @@ async function setMainPicture(itemId, pictureId) {
     }
 }
 
+async function sendPictureToMyAstroShine(itemId, pictureId) {
+    try {
+        const result = await fetchJSONOnce('/api/astrodex/integration/handoff', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ item_id: itemId, picture_id: pictureId }),
+        });
+        if (result && result.open_url) {
+            window.open(result.open_url, '_blank', 'noopener');
+            // Arm the "refresh when the user comes back" check (see _checkMyAstroShineReturn).
+            _myAstroShineReturn = { itemId, expires: Date.now() + 30 * 60 * 1000, lastCheck: Date.now() };
+        } else {
+            showMessage('error', i18n.t('astrodex.send_to_myastroshine_error'));
+        }
+    } catch (error) {
+        console.error('Error opening MyAstroShine:', error);
+        showMessage('error', i18n.t('astrodex.send_to_myastroshine_error'));
+    }
+}
+
 async function deletePicture(itemId, pictureId) {
     if (window.confirm(i18n.t('astrodex.confirm_delete_photo'))) {
         try {
@@ -2067,6 +2158,19 @@ async function showEditPictureModal(itemId, pictureId) {
 
     createModal(i18n.t('astrodex.edit_photo'), `
         <form id="edit-picture-form" class="form row g-3 align-items-end">
+            ${picture.enhanced_by === 'myastroshine' ? `
+                <div class="col-12">
+                    <div class="small text-muted mb-0">
+                        <i class="bi bi-stars text-info me-1" aria-hidden="true"></i>${i18n.t('astrodex.enhanced_with_myastroshine', { date: escapeHtml(formatDateFull(picture.enhanced_at) || '') })}
+                        ${picture.enhanced_parameters && Object.keys(picture.enhanced_parameters).length ? `<a class="ms-1" data-bs-toggle="collapse" href="#enhanced-params-view">${i18n.t('astrodex.enhanced_view_settings')}</a>` : ''}
+                    </div>
+                    ${picture.enhanced_parameters && Object.keys(picture.enhanced_parameters).length ? `
+                        <div class="collapse" id="enhanced-params-view">
+                            <pre class="small bg-body-tertiary p-2 rounded mt-2 mb-0">${escapeHtml(JSON.stringify(picture.enhanced_parameters, null, 2))}</pre>
+                        </div>
+                    ` : ''}
+                </div>
+            ` : ''}
             ${_buildPictureSectionHeaderHtml(i18n.t('astrodex.section_date_location'))}
             <div class="col-md-6">
                 <label for="edit-picture-date" class="form-label">${i18n.t('astrodex.observation_date')}</label>
@@ -2279,7 +2383,7 @@ function _mountPictureSlideshow(slideshowPictures, opts) {
                         </div>
                     </div>
                 ` : ''}
-                ${picture.device ? `
+                ${picture.device && !picture.combination_id ? `
                     <div class="col-md-6 col-lg-4">
                         <div class="d-flex align-items-center p-2 rounded shadow-sm astrodex-slideshow-tile">
                             <div class="me-3 fs-4"><i class="bi bi-binoculars" aria-hidden="true"></i></div>
@@ -2692,6 +2796,12 @@ async function initializeAstrodexEventListeners() {
                     e.preventDefault();
                     if (isAllowedAstrodex) {
                         deletePicture(itemId, pictureId);
+                    }
+                    break;
+                case 'send-to-myastroshine':
+                    e.preventDefault();
+                    if (isAllowedAstrodex) {
+                        sendPictureToMyAstroShine(itemId, pictureId);
                     }
                     break;
                 case 'switch-catalogue-name':

@@ -67,6 +67,14 @@ Each picture attached to an item:
 | `exposition_time` | integer (seconds) or `null` | Sub-exposure length. v1.3+: a validated whole number of seconds, entered through a dedicated number input - a picture created before v1.3 may still carry a free-text legacy value (e.g. `"1h (10sec)"`), shown as-is but never reinterpreted or accepted back from the edit form. |
 | `frames` | integer or `null` | Number of sub-exposures. Validated server-side (v1.3+). |
 | `integration_minutes` | number or `null` | Total integration time in minutes (v1.3+). Any two of `frames`/`exposition_time`/`integration_minutes` determine the third - the Add/Edit Picture modal computes the one you leave blank, mirroring the Observation Log entry model's own frame_count/sub_exposure_seconds/integration_minutes trio. |
+| `enhanced_by` | string or absent | `"myastroshine"` when this picture was produced by re-processing another one through [MyAstroShine](MYASTROSHINE.md). Absent otherwise. |
+| `enhanced_at` | ISO 8601 or absent | When the MyAstroShine round-trip completed. |
+| `enhanced_from_picture_id` | UUID or absent | The source picture this one was derived from. |
+| `enhanced_parameters` | object or absent | The MyAstroShine parameter dict, verbatim. Shown (pretty-printed) behind a disclosure in the Edit Photo modal. |
+| `enhanced_source_version` | string or absent | MyAstroShine version that produced it. |
+
+The five `enhanced_*` fields are **immutable** - set once when the duplicate is created and absent
+from `update_picture()`'s allowed fields.
 
 Images are stored in `data/astrodex/images/` and served by `GET /api/astrodex/images/<filename>`.
 
@@ -121,6 +129,16 @@ The object editor allows updating:
   produces your best results (average rating shown on the combination's card in the Equipment tab).
 - Add/edit picture modal is organized into four sections: File, Date & Location, Equipment, and
   Photo information.
+
+### Re-processing with MyAstroShine
+
+When the [MyAstroShine integration](MYASTROSHINE.md) is configured and enabled, each of your own
+photos gets a <i class="bi bi-stars"></i> **Send to MyAstroShine** action. It opens MyAstroShine in
+a new tab with an edit session pre-loaded from the photo and its metadata; when you send the result
+back, a **new picture is added to the same object** (never a replacement), carrying the source
+photo's metadata snapshot plus the immutable `enhanced_*` provenance fields. The Edit Photo modal
+of an enhanced picture shows a discreet "Re-processed with MyAstroShine" note with a *view settings*
+disclosure.
 
 ### Catalogue lookup
 

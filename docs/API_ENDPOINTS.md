@@ -185,6 +185,19 @@ This page lists the HTTP routes currently declared across `backend/blueprints/*.
 - `GET /api/astrodex/collection/catalogues`
 - `GET /api/astrodex/collection`
 
+## MyAstroShine integration (see docs/MYASTROSHINE.md)
+
+AstroDex <-> MyAstroShine image round-trip. Not a `BaseConnector` - config lives under `config.connectors.myastroshine` but the routes and UI are AstroDex-side.
+
+- `GET /api/astrodex/integration/status` - `{ enabled: bool }` - drives the per-photo "Send to MyAstroShine" button
+- `GET /api/astrodex/integration/config` - Connector-card config; `token`/`signing_secret` are masked (`****` + last 4)
+- `POST /api/astrodex/integration/config` (admin) - Save the card; a blank or masked secret field means "keep current"
+- `POST /api/astrodex/integration/test` (admin) - Best-effort server-side reachability probe of `<url>/api/health` (loopback / link-local / unspecified / multicast refused)
+- `POST /api/astrodex/integration/handoff` - Mint a signed, single-use handoff token for one of the caller's own pictures; returns `{ handoff, myastroshine_url, open_url }`
+- `GET /api/astrodex/integration/source?handoff=<token>` - **No session cookie** (MyAstroShine container calls it). Source picture metadata for a valid handoff
+- `GET /api/astrodex/integration/source/image?handoff=<token>` - **No session cookie.** Source image bytes
+- `POST /api/astrodex/integration/enhanced` - **No session cookie.** `multipart/form-data` (`handoff`, `payload`, `image`) + `X-Webhook-Signature: sha256=<hex>`. Creates a duplicated picture on the same item; `201` / `401` bad signature or handoff / `409` handoff already consumed / `404` item or picture gone / `413` image too large
+
 ## Plan My Night
 
 - `GET /api/plan-my-night/list`

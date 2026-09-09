@@ -155,6 +155,15 @@ EXPECTED_ROUTES = {
     ('/api/astrodex/items/<item_id>/pictures/<picture_id>/main', ('POST',)),
     ('/api/astrodex/map', ('GET',)),
     ('/api/astrodex/upload', ('POST',)),
+    # --- myastroshine integration (AstroDex <-> MyAstroShine) ---
+    ('/api/astrodex/integration/status', ('GET',)),
+    ('/api/astrodex/integration/config', ('GET',)),
+    ('/api/astrodex/integration/config', ('POST',)),
+    ('/api/astrodex/integration/test', ('POST',)),
+    ('/api/astrodex/integration/handoff', ('POST',)),
+    ('/api/astrodex/integration/source', ('GET',)),
+    ('/api/astrodex/integration/source/image', ('GET',)),
+    ('/api/astrodex/integration/enhanced', ('POST',)),
     # --- observation log (v1.3) ---
     ('/api/observation-sessions', ('GET',)),
     ('/api/observation-sessions', ('POST',)),
