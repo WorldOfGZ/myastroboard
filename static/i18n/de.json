@@ -876,7 +876,7 @@
     "pref_first_dow_sunday": "Sonntag",
     "connectors": "Verbindungen",
     "connectors_title": "Externe Verbindungen",
-    "connectors_info": "Verbinde externe Tools, um deren Daten im Observatory-Tab anzuzeigen.",
+    "connectors_info": "Externe Konnektoren erweitern MyAstroBoard um zusätzliche Funktionen. Jeder Konnektor hat einzeln aktivierbare Module.",
     "experience_level": "Erfahrungsniveau",
     "experience_level_beginner": "Anfänger",
     "experience_level_intermediate": "Mittelstufe",
@@ -1088,7 +1088,12 @@
     "collection_cat_abellpne": "Abell (Planetarische Nebel)",
     "collection_cat_abellclusters": "Abell (Galaxienhaufen)",
     "collection_filter_difficulty_all": "Alle Schwierigkeitsgrade",
-    "collection_sort_difficulty": "Nach Schwierigkeit sortieren"
+    "collection_sort_difficulty": "Nach Schwierigkeit sortieren",
+    "send_to_myastroshine": "An MyAstroShine senden",
+    "send_to_myastroshine_error": "MyAstroShine konnte nicht geöffnet werden",
+    "enhanced_with_myastroshine": "Am {date} mit MyAstroShine nachbearbeitet",
+    "enhanced_view_settings": "Einstellungen anzeigen",
+    "enhanced_photo_received": "Nachbearbeitetes Foto von MyAstroShine erhalten"
   },
   "skytonight": {
     "info_1": "SkyTonight berechnet die besten Beobachtungsziele der Nacht basierend auf Standort, Wetter und internen Datensatzen.",
@@ -2504,7 +2509,20 @@
     "module_startrails_desc": "Gestapeltes Sternspur-Bild (am Ende der Nacht erstellt)",
     "module_daily_timelapse_label": "Täglicher Zeitraffer",
     "module_daily_timelapse_desc": "Zeitraffer-Video der ganzen Nacht (am Ende der Nacht erstellt)",
-    "local_hostname_warning": ".local-Hostnamen verwenden mDNS, das in Docker nicht verfügbar ist. Verwende stattdessen die statische IP-Adresse (z.B. http://192.168.1.x/)."
+    "local_hostname_warning": ".local-Hostnamen verwenden mDNS, das in Docker nicht verfügbar ist. Verwende stattdessen die statische IP-Adresse (z.B. http://192.168.1.x/).",
+    "myastroshine_label": "MyAstroShine",
+    "myastroshine_desc": "Sende ein Astrodex-Foto zur Nachbearbeitung an MyAstroShine und hole das Ergebnis als neues Bild desselben Objekts zurück.",
+    "myastroshine_url_field": "MyAstroShine-Basis-URL",
+    "myastroshine_token_field": "Token",
+    "myastroshine_secret_field": "Signaturschlüssel",
+    "myastroshine_token_help": "Erstelle in MyAstroShine unter Einstellungen > Tokens ein Token und füge hier das Token und seinen Signaturschlüssel ein.",
+    "myastroshine_secret_unchanged": "unverändert",
+    "myastroshine_callback_override_field": "Callback-URL (überschreiben)",
+    "myastroshine_callback_override_hint": "Nur nötig, wenn der MyAstroShine-Container die öffentliche URL dieses Dashboards nicht selbst erreichen kann.",
+    "myastroshine_copy_rating_field": "Bewertung des Originalfotos auf die bearbeitete Kopie übernehmen",
+    "myastroshine_test_offline_hint": "Nicht erreichbar - normal, wenn du nicht im selben Netzwerk wie MyAstroShine bist.",
+    "myastroshine_saved": "MyAstroShine-Einstellungen gespeichert",
+    "myastroshine_save_error": "MyAstroShine-Einstellungen konnten nicht gespeichert werden"
   },
   "sky_widget": {
     "loading": "Laden...",

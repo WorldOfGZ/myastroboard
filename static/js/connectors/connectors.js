@@ -29,8 +29,16 @@ async function loadConnectorsStore() {
 
     DOMUtils.clear(container);
     connectors.forEach(c => container.appendChild(_connectorCard(c)));
+
+    // MyAstroShine is not a BaseConnector (bidirectional, lives in the AstroDex
+    // tab) so it is not in /api/connectors - render its card here, next to the
+    // BaseConnector cards, backed by its own /api/astrodex/integration/* routes.
+    const masCard = await _myAstroShineCard();
+    if (masCard) container.appendChild(masCard);
+
     container.appendChild(_suggestCard());
     connectors.forEach(c => _bindConnectorEvents(c));
+    if (masCard) _bindMyAstroShineEvents();
 }
 
 function _connectorCard(c) {
@@ -303,6 +311,289 @@ function _allskyAdvancedFields(cfg) {
         frag.appendChild(input);
     });
     return frag;
+}
+
+// ── MyAstroShine integration card ─────────────────────────────────────────────
+
+function _masField(labelText, inputId, type, value, placeholder) {
+    const wrap = document.createElement('div');
+    wrap.className = 'mb-3';
+    const lbl = document.createElement('label');
+    lbl.className = 'form-label fw-semibold small';
+    lbl.setAttribute('for', inputId);
+    lbl.textContent = labelText;
+    const input = document.createElement('input');
+    input.type = type;
+    input.className = 'form-control form-control-sm';
+    input.id = inputId;
+    if (value) input.value = value;
+    if (placeholder) input.placeholder = placeholder;
+    if (type === 'password') input.autocomplete = 'new-password';
+    wrap.appendChild(lbl);
+    wrap.appendChild(input);
+    return wrap;
+}
+
+async function _myAstroShineCard() {
+    const cfg = await fetchJSONOnce('/api/astrodex/integration/config').catch(() => null);
+    if (!cfg) return null;
+
+    const col = document.createElement('div');
+    col.className = 'col-12 col-md-6 col-xl-4';
+
+    const card = document.createElement('div');
+    card.className = 'card h-100';
+    card.id = 'connector-card-myastroshine';
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'card-header d-flex justify-content-between align-items-center';
+    const headerLeft = document.createElement('span');
+    headerLeft.appendChild(DOMUtils.createIcon('bi bi-stars me-2 text-info'));
+    headerLeft.appendChild(document.createTextNode(cfg.label || i18n.t('connectors.myastroshine_label')));
+
+    const badge = document.createElement('span');
+    if (cfg.effective_enabled) {
+        badge.className = 'badge bg-success';
+        badge.textContent = i18n.t('connectors.enabled');
+    } else if (cfg.url) {
+        badge.className = 'badge bg-secondary';
+        badge.textContent = i18n.t('connectors.installed');
+    } else {
+        badge.className = 'badge bg-light text-dark border';
+        badge.textContent = i18n.t('connectors.not_installed');
+    }
+    header.appendChild(headerLeft);
+    header.appendChild(badge);
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'card-body';
+    const desc = document.createElement('p');
+    desc.className = 'text-muted small mb-2';
+    desc.textContent = i18n.t('connectors.myastroshine_desc');
+    body.appendChild(desc);
+
+    const configBtn = document.createElement('button');
+    configBtn.className = 'btn btn-sm btn-outline-primary w-100';
+    configBtn.id = 'connector-configure-myastroshine';
+    configBtn.appendChild(DOMUtils.createIcon('bi bi-gear me-1'));
+    configBtn.appendChild(document.createTextNode(i18n.t('connectors.configure')));
+    body.appendChild(configBtn);
+
+    // Config panel
+    const panel = document.createElement('div');
+    panel.className = 'connector-config-panel card-body border-top pt-3';
+    panel.id = 'connector-panel-myastroshine';
+    panel.style.display = 'none';
+    panel.appendChild(_myAstroShineConfigForm(cfg));
+
+    card.appendChild(header);
+    card.appendChild(body);
+    card.appendChild(panel);
+    col.appendChild(card);
+    return col;
+}
+
+function _myAstroShineConfigForm(cfg) {
+    const frag = document.createDocumentFragment();
+    const unchanged = i18n.t('connectors.myastroshine_secret_unchanged');
+
+    frag.appendChild(_masField(
+        i18n.t('connectors.label_field'), 'mas-label', 'text', cfg.label || '', i18n.t('connectors.myastroshine_label')));
+
+    // URL + server-side reachability test button
+    const urlDiv = document.createElement('div');
+    urlDiv.className = 'mb-3';
+    const urlLbl = document.createElement('label');
+    urlLbl.className = 'form-label fw-semibold small';
+    urlLbl.setAttribute('for', 'mas-url');
+    urlLbl.textContent = i18n.t('connectors.myastroshine_url_field');
+    urlDiv.appendChild(urlLbl);
+    const inputGroup = document.createElement('div');
+    inputGroup.className = 'input-group input-group-sm';
+    const urlInput = document.createElement('input');
+    urlInput.type = 'url';
+    urlInput.className = 'form-control';
+    urlInput.id = 'mas-url';
+    urlInput.value = cfg.url || '';
+    urlInput.placeholder = 'http://192.168.1.42:8002';
+    const testBtn = document.createElement('button');
+    testBtn.className = 'btn btn-outline-secondary';
+    testBtn.type = 'button';
+    testBtn.id = 'mas-test-btn';
+    testBtn.appendChild(DOMUtils.createIcon('bi bi-wifi'));
+    inputGroup.appendChild(urlInput);
+    inputGroup.appendChild(testBtn);
+    urlDiv.appendChild(inputGroup);
+    const testResult = document.createElement('div');
+    testResult.className = 'form-text connector-test-result';
+    testResult.id = 'mas-test-result';
+    urlDiv.appendChild(testResult);
+    frag.appendChild(urlDiv);
+
+    // Token + signing secret (secrets: blank means "keep current")
+    frag.appendChild(_masField(
+        i18n.t('connectors.myastroshine_token_field'), 'mas-token', 'password', '',
+        cfg.has_token ? unchanged : 'mas_...'));
+    frag.appendChild(_masField(
+        i18n.t('connectors.myastroshine_secret_field'), 'mas-signing-secret', 'password', '',
+        cfg.has_signing_secret ? unchanged : ''));
+    const tokenHelp = document.createElement('p');
+    tokenHelp.className = 'form-text text-muted small mt-0 mb-3';
+    tokenHelp.textContent = i18n.t('connectors.myastroshine_token_help');
+    frag.appendChild(tokenHelp);
+
+    // Advanced (collapse) - callback URL override
+    const advDiv = document.createElement('div');
+    advDiv.className = 'mb-3 collapse';
+    advDiv.id = 'connector-advanced-myastroshine';
+    advDiv.appendChild(_masField(
+        i18n.t('connectors.myastroshine_callback_override_field'), 'mas-callback-override', 'url',
+        cfg.callback_url_override || '', 'http://192.168.1.42:5000'));
+    const cbHint = document.createElement('p');
+    cbHint.className = 'form-text text-muted small mt-0';
+    cbHint.textContent = i18n.t('connectors.myastroshine_callback_override_hint');
+    advDiv.appendChild(cbHint);
+    frag.appendChild(advDiv);
+
+    const advLink = document.createElement('a');
+    advLink.className = 'small text-muted d-block mb-3';
+    advLink.dataset.bsToggle = 'collapse';
+    advLink.href = '#connector-advanced-myastroshine';
+    advLink.appendChild(DOMUtils.createIcon('bi bi-chevron-down me-1'));
+    advLink.appendChild(document.createTextNode(i18n.t('connectors.advanced_settings')));
+    frag.appendChild(advLink);
+
+    // copy_rating switch
+    const copyRatingWrap = document.createElement('div');
+    copyRatingWrap.className = 'form-check form-switch mb-3';
+    const copyRatingChk = document.createElement('input');
+    copyRatingChk.type = 'checkbox';
+    copyRatingChk.className = 'form-check-input';
+    copyRatingChk.id = 'mas-copy-rating';
+    copyRatingChk.checked = !!cfg.copy_rating;
+    const copyRatingLbl = document.createElement('label');
+    copyRatingLbl.className = 'form-check-label small';
+    copyRatingLbl.setAttribute('for', 'mas-copy-rating');
+    copyRatingLbl.textContent = i18n.t('connectors.myastroshine_copy_rating_field');
+    copyRatingWrap.appendChild(copyRatingChk);
+    copyRatingWrap.appendChild(copyRatingLbl);
+    frag.appendChild(copyRatingWrap);
+
+    // Actions: enable switch + save
+    const actions = document.createElement('div');
+    actions.className = 'd-flex gap-2';
+    const switchRow = document.createElement('div');
+    switchRow.className = 'form-check form-switch me-auto align-self-center';
+    const enabledChk = document.createElement('input');
+    enabledChk.type = 'checkbox';
+    enabledChk.className = 'form-check-input';
+    enabledChk.id = 'mas-enabled';
+    enabledChk.checked = !!cfg.enabled;
+    const enabledLbl = document.createElement('label');
+    enabledLbl.className = 'form-check-label small';
+    enabledLbl.setAttribute('for', 'mas-enabled');
+    enabledLbl.textContent = i18n.t('connectors.enabled_label');
+    switchRow.appendChild(enabledChk);
+    switchRow.appendChild(enabledLbl);
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'btn btn-sm btn-primary';
+    saveBtn.type = 'button';
+    saveBtn.id = 'mas-save-btn';
+    saveBtn.appendChild(DOMUtils.createIcon('bi bi-floppy me-1'));
+    saveBtn.appendChild(document.createTextNode(i18n.t('common.save')));
+
+    actions.appendChild(switchRow);
+    actions.appendChild(saveBtn);
+    frag.appendChild(actions);
+
+    return frag;
+}
+
+function _bindMyAstroShineEvents() {
+    const configureBtn = document.getElementById('connector-configure-myastroshine');
+    const panel = document.getElementById('connector-panel-myastroshine');
+    if (configureBtn && panel) {
+        configureBtn.addEventListener('click', () => {
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        });
+    }
+    const testBtn = document.getElementById('mas-test-btn');
+    if (testBtn) testBtn.addEventListener('click', _testMyAstroShine);
+    const saveBtn = document.getElementById('mas-save-btn');
+    if (saveBtn) saveBtn.addEventListener('click', _saveMyAstroShine);
+}
+
+async function _testMyAstroShine() {
+    const urlInput = document.getElementById('mas-url');
+    const resultDiv = document.getElementById('mas-test-result');
+    if (!urlInput || !resultDiv) return;
+
+    const url = urlInput.value.trim().replace(/\/+$/, '');
+    if (!url) {
+        _setResultMessage(resultDiv, i18n.t('connectors.url_required'), 'text-danger');
+        return;
+    }
+    _setResultSpinner(resultDiv, i18n.t('connectors.testing'));
+
+    const result = await fetchJSONOnce('/api/astrodex/integration/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+    }).catch(() => null);
+
+    if (result && result.reachable) {
+        _setResultMessage(resultDiv, i18n.t('connectors.reachable'), 'text-success', 'bi bi-check-circle');
+    } else {
+        _setResultMessage(
+            resultDiv, i18n.t('connectors.myastroshine_test_offline_hint'), 'text-warning', 'bi bi-exclamation-triangle');
+    }
+}
+
+async function _saveMyAstroShine() {
+    const saveBtn = document.getElementById('mas-save-btn');
+    const payload = {
+        label: (document.getElementById('mas-label')?.value || '').trim(),
+        url: (document.getElementById('mas-url')?.value || '').trim().replace(/\/+$/, ''),
+        callback_url_override: (document.getElementById('mas-callback-override')?.value || '').trim().replace(/\/+$/, ''),
+        copy_rating: !!document.getElementById('mas-copy-rating')?.checked,
+        enabled: !!document.getElementById('mas-enabled')?.checked,
+    };
+    // Only send secrets when the user actually typed something (blank = keep current).
+    const token = (document.getElementById('mas-token')?.value || '').trim();
+    const secret = (document.getElementById('mas-signing-secret')?.value || '').trim();
+    if (token) payload.token = token;
+    if (secret) payload.signing_secret = secret;
+
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        DOMUtils.clear(saveBtn);
+        const spinner = document.createElement('div');
+        spinner.className = 'spinner-border spinner-border-sm';
+        saveBtn.appendChild(spinner);
+    }
+
+    const result = await fetchJSONOnce('/api/astrodex/integration/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    }).catch(() => null);
+
+    if (saveBtn) {
+        saveBtn.disabled = false;
+        DOMUtils.clear(saveBtn);
+        saveBtn.appendChild(DOMUtils.createIcon('bi bi-floppy me-1'));
+        saveBtn.appendChild(document.createTextNode(i18n.t('common.save')));
+    }
+
+    if (result?.status === 'success') {
+        showMessage('success', i18n.t('connectors.myastroshine_saved'));
+        loadConnectorsStore();
+    } else {
+        showMessage('error', i18n.t('connectors.myastroshine_save_error'));
+    }
 }
 
 function _suggestCard() {

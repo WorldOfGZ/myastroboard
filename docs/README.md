@@ -40,6 +40,7 @@ Welcome to the comprehensive documentation for MyAstroBoard, the integrated astr
 #### Observatory & Connectors
 - [Observatory](OBSERVATORY.md) - Live dashboard fed by external connectors (AllSky panels, sensor data, keogram, timelapse)
 - [Connectors](CONNECTORS.md) - Connector architecture, AllSky setup, module reference, and how to add a new connector
+- [MyAstroShine integration](MYASTROSHINE.md) - AstroDex <-> MyAstroShine image round-trip: send a photo out for re-processing, get an enhanced duplicate back
 
 ### Administration
 - [Authentication & Users](AUTHENTICATION.md) - Roles, user management, preferences, session security
@@ -94,6 +95,7 @@ Welcome to the comprehensive documentation for MyAstroBoard, the integrated astr
 | ISS passes | Spaceflight → ISS | [SPACEFLIGHT.md](SPACEFLIGHT.md) |
 | AllSky live image & data | Observatory | [OBSERVATORY.md](OBSERVATORY.md) |
 | External connectors setup | Parameters → Connectors | [CONNECTORS.md](CONNECTORS.md) |
+| Send a photo to MyAstroShine | Astrodex → object → photo actions | [MYASTROSHINE.md](MYASTROSHINE.md) |
 | Push notifications | My Settings → Notifications | [NOTIFICATIONS.md](NOTIFICATIONS.md) |
 | User roles | Parameters → Users | [AUTHENTICATION.md](AUTHENTICATION.md) |
 | Location presets & switcher | Parameters → Locations / sky widget | [LOCATIONS.md](LOCATIONS.md) |

@@ -95,6 +95,14 @@ v1.6 turns `BaseConnector` into a documented, versioned public SDK with a separa
 `myastroboard/mab-plugins` repository and a curated (reviewed-PR) distribution model. Until then,
 new connectors land directly in `backend/connectors/` by PR.
 
+> **Not every "connector" is a `BaseConnector`.** The MyAstroShine integration
+> ([MYASTROSHINE.md](MYASTROSHINE.md)) is bidirectional, owns UI in the Astrodex tab, and has its
+> own routes - it is a core feature, not an extension point. It is stored under
+> `config["connectors"]["myastroshine"]` only so it rides along in the backup ZIP, and is
+> deliberately absent from the `REGISTRY`, `GET /api/connectors`, and the Observatory tab. A new
+> read-only bridge to an external tool is a `BaseConnector`; anything that writes back into
+> MyAstroBoard data or owns its own screen is a core change - open a discussion first.
+
 ---
 
 ## Export formatter
